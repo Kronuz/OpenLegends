@@ -15,7 +15,7 @@
 #define IDI_ICO_QUESTION                211
 #define IDI_ICO_ERROR                   212
 #define IDI_ICO_OK                      213
-#define IDR_TB_VIEWS                    214
+#define IDR_TB_PROJECT                  214
 #define IDR_TB_SCRIPTS                  215
 #define ID_VIEW_INFORMATION             216
 #define ID_VIEW_PROPERTIES              217
@@ -43,7 +43,6 @@
 #define ID_EDIT_GOTO_PREV_BOOKMARK      32805
 #define ID_EDIT_CLEAR_ALL_BOOKMARKS     32806
 #define ID_WORLDVIEW                    32808
-#define ID_BUTTON32810                  32810
 #define ID_VIEW_PANEFIRST               33001
 #define ID_VIEW_PANELAST                33005
 #define IDS_MESSAGE_PASSED_N_OF_FILE    60001
@@ -54,7 +53,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        224
-#define _APS_NEXT_COMMAND_VALUE         32811
+#define _APS_NEXT_COMMAND_VALUE         32812
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

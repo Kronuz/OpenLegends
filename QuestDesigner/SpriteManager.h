@@ -54,7 +54,8 @@
 #pragma once
 #include "Console.h"
 #include "interfaces.h"
-#include "FileManager.h"
+#include "FilePath.h"
+#include "Archiver.h"
 
 /*! \brief Enumaration of all sprite types.
 
@@ -70,6 +71,7 @@
 	for the entities, and masks are most useful for background sprites.
 */
 enum _spt_type	{
+					tUnknown,		//!< Indicates an unknown sprite type
 					tBackground,	//!< Indicates a background sprite
 					tEntity,		//!< Indicates an entity sprite
 					tMask			//!< Indicates a mask sprite (or Mask map)
@@ -81,6 +83,17 @@ class CProjectManager;
 class CSpriteSheet;
 class CAnimation;
 
+class CMaskMap;
+
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CScript
+	\brief		The Scripts base class.
+	\author		Kronuz
+	\version	1.0
+	\date		April 16, 2003
+
+	\todo Write the implementation of this class.
+*/
 class CScript :
 	public CConsole
 {
@@ -91,7 +104,67 @@ public:
 	CString GetScriptFile();
 	CString GetAmxFile();
 };
+ 
+/////////////////////////////////////////////////////////////////////////////
+/*! \struct		SSpriteData
+	\brief		Data structure of the sprites.
+	\author		Kronuz
+	\version	1.0
+	\date		April 28, 2003
 
+	Structure to contain all the intrinsic information for the flyweight the sprites.
+
+	\sa CSprite
+*/
+struct SSpriteData {
+	// Sprite:
+	int iAnimSpd;		//!< Animation speed of the sprite
+	bool bVisible;		//!< Is the sprite visible?
+	bool bFlipped;		//!< Is the sprite flipped?
+	bool bMirrored;		//!< Is the sprite mirrored?
+	int iRotation;		//!< Sprite rotation (0, 90 180, or 270)
+};
+struct SMaskData : public SSpriteData
+{
+};
+struct SBackgroundData : public SSpriteData
+{
+	// Background:
+	UCHAR cAlphaValue; 	/*!< \brief Sets the intensity of the entire sprite.
+
+		Although sprites can have an alpha value attatched to each pixel, 
+		within the image file (sprite sheet), there is also the possibility to 
+		change the overall alpha value of a specific sprite.
+	*/
+	CString sSubLayer; 	/*!< \brief Name of the sublayer of the sprite.
+		
+		This is it, finally, this member defines the default "sublayer" to which
+		the sprite belongs to.\n
+		There are two types of layers: Layers and Sublayers. Sublayers are defined
+		for	each sprite when it is created, whilst Layers are chosen in the map
+		editor at the time the sprite is positioned. Sublayers are made to facilitate
+		the use of layers, giving the default Z order of the objects within the 
+		current layer. (more on this latter)
+	*/
+	CMaskMap *pMaskMap;		/*!< \brief Pointer to the mask map fot the sprite.
+
+		The value can be NULL if no mask is associated with the sprite,
+		if a mask map is associated with the sprite, the pointer should be a
+		valid pointer to a mask, although the mask can be either just declared
+		or declared and defined.
+	*/
+};
+struct SEntityData : public SBackgroundData
+{
+	// Entity:
+	CScript *pScript; 	/*!< \brief Name of the entity's script.
+
+		Every entity should have a script to represent its behavior, 
+		this member keeps a pointer to the corresponfing script.\n
+		Note that neither background nor mask sprites can be associated 
+		with a script, thus this should be NULL for non-entity sprites.
+	*/
+};
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CSprite
 	\brief		The sprites base class.
@@ -116,10 +189,11 @@ public:
 	\todo Write the implementation of this class.
 */
 class CSprite :
-	public CConsole
+	public CNamedObj
 {
-	friend CProjectManager;
-	friend CSpriteSheet;
+public:
+	CSprite(LPCSTR szName);
+	virtual ~CSprite();
 
 protected:
 	bool m_bDefined; /*!< \brief Shows if the sprite is a defined sprite.
@@ -136,8 +210,8 @@ protected:
 		This can never be a NULL, since every animation belongs to a 
 		sprite sheet (and to only one).
 	*/
-	
-	int m_iAnimSpd;		/*!< Animation speed of the sprite */
+
+	SSpriteData *m_pSpriteData;
 
 	CSimpleArray<CRect> m_Boundaries; 	/*!< \brief List of boundaries boxes for the sprite.
 
@@ -148,16 +222,6 @@ protected:
 		sheet image file boundaries.
 	*/
 
-	bool m_visible;		/*!< Is the sprite visible? */
-
-	bool m_flipped;		/*!< Is the sprite flipped? */
-
-	bool m_mirrored;	/*!< Is the sprite mirrored? */
-
-	int m_rotation;		/*!< Sprite rotation (0, 90 180, or 270) */
-
-public:
-	CString m_sName;
 	_spt_type m_SptType;	/*!< \brief Current sprite type.
 			
 			Sprites marked as background or entities are supposed 
@@ -170,6 +234,14 @@ public:
 			no obstacle thus this areas do not slow down nor stop the entity from passing.
 		*/
 
+public:
+	_spt_type GetSpriteType();
+	CSpriteSheet* GetSpriteSheet();
+	bool IsDefined();
+
+	void AddRect(RECT rcRect);
+	void SetSpriteSheet(CSpriteSheet *pSpriteSheet);
+	void SetSpriteData(SSpriteData *pSpriteData);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -190,10 +262,9 @@ public:
 class CMaskMap :
 	public CSprite
 {
-	friend CSpriteSheet;
-
 public:
-	CMaskMap();
+	CMaskMap(LPCSTR szName);
+protected:
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -206,42 +277,21 @@ public:
 	The CBackground class provides the functionality for all visible objects on the game,
 	this includes a base to manage Entities
 
-	\sa CEntity and CMaskMap
+	\remarks
+	This class, and its derivates (i.e. CEntity), are implemented to work as flyweight 
+	objects, receiving any extrinsic state as a SDrawContext parameter for the
+	IDrawableObject interface.
+
+	\sa IDrawableObject, SDrawContext, CEntity and CMaskMap
 	\todo Write the implementation of this class.
 */
 class CBackground : 
-//	public IDrawableObject,
+	//public IDrawableObject,
 	public CSprite
 {
-	friend CSpriteSheet;
-
-protected:
-	UCHAR m_cAlphaValue; 	/*!< \brief Sets the intensity of the entire sprite.
-
-		Although sprites can have an alpha value attatched to each pixel, 
-		within the image file (sprite sheet), there is also the possibility to 
-		change the overall alpha value of a specific sprite.
-	*/
-	CString m_sSubLayer; 	/*!< \brief Name of the sublayer of the sprite.
-		
-		This is it, finally, this member defines the default "sublayer" to which
-		the sprite belongs to.\n
-		There are two types of layers: Layers and Sublayers. Sublayers are defined
-		for	each sprite when it is created, whilst Layers are chosen in the map
-		editor at the time the sprite is positioned. Sublayers are made to facilitate
-		the use of layers, giving the default Z order of the objects within the 
-		current layer. (more on this latter)
-	*/
-	CMaskMap *m_pMaskMap;		/*!< \brief Pointer to the mask map fot the sprite.
-
-		The value can be NULL if no mask is associated with the sprite,
-		if a mask map is associated with the sprite, the pointer should be a
-		valid pointer to a mask, although the mask can be either just declared
-		or declared and defined.
-	*/
-
 public:
-	CBackground();
+	CBackground(LPCSTR szName);
+protected:
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -263,20 +313,31 @@ class CEntity :
 //	public IScriptableObject,
 	public CBackground
 {
-	friend CSpriteSheet;
+public:
+	CEntity(LPCSTR szName);
 
 protected:
+};
 
+/////////////////////////////////////////////////////////////////////////////
+/*! \class	CSpriteContext
+	\brief		Flyweight sprites context class.
+	\author		Kronuz
+	\version	1.0
+	\date		April 28, 2003
+
+	This class maintains the extrinsic status of the CSprite's flyweight objects.
+	It is a concrete class based on the interface for flyweight drawable
+	objects.
+
+	\sa IDrawableObject
+*/
+class CSpriteContext :
+	public CDrawableContext
+{
 public:
-	CScript *m_pScript; 	/*!< \brief Name of the entity's script.
-
-		Every entity should have a script to represent its behavior, 
-		this member keeps a pointer to the corresponfing script.\n
-		Note that neither background nor mask sprites can be associated 
-		with a script, thus this should be NULL for non-entity sprites.
-	*/
-	CEntity();
-
+	void MoveTo(POINT NewPos) = 0; //!< Moves the sprite
+	void SetStatus(DWORD Flags) = 0;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -291,28 +352,31 @@ public:
 	This class does NOT give any information about the sprites in the map
 	or its actual state.
 
+	This class reads, keeps, and maintains a flyweight pool of sprites,
+	each sprite shares a common state, but receives a context from the client 
+	that needs to use it.
+
 	\sa CAnimation and CSprite
 	\todo Write the implementation of this class.
 */
 class CSpriteSheet :
+	public CNamedObj,
 	public CConsole,
-	public IIOObject
+	public IDocumentObject
 {
 	friend CProjectManager;
-
 protected:
-	int m_iLines;
-	CIOMode *m_InOut;
 	CProjectManager *m_pProjectManager;
 
 	CFileName m_fnSheetFile;
-	CString m_sSheetName;
+	//CString m_sSheetName;
 
-	CSimpleMap<CString, CSprite*> m_Sprites;
+	CSimpleMap<CString, CSprite*> m_Sprites; //!< Flyweight pool of sprites.
 
-	int LoadSprite(FILE *fInFile); //!< Loads a single sprite from the current point of the file.
-
+	//! No one but the Project Manager is alowed to create Sprite Sheets
+	CSpriteSheet(CProjectManager *pProjectManager);
+	~CSpriteSheet();
 public:
-	bool Load(LPCSTR szFile);
-	bool Save(LPCSTR szFile) { return false; }
+	CFileName& GetFileName() { return m_fnSheetFile; }
+	CProjectManager* GetProjectManager() { return m_pProjectManager; }
 };

@@ -17,16 +17,34 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		FileManager.cpp
-	\brief		Implementation of the file manager classes.
-	\date		April 17, 2003
+/*! \file		WorldManager.cpp
+	\brief		Implementation of the CProjectManager class.
+	\date		April 28, 2003
 
-	This file implements all the classes that manage the sprites,
-	including backgrounds, sprite sheets, animations, mask maps and
-	entities.
+	This file implements the classes that manage a world in the game,
+	this includes the methods to create a new world, maps for that
+	world, and being living on it.
+
 */
 
 #include "stdafx.h"
-#include "FileManager.h"
+#include "WorldManager.h"
 
-CString g_sHomeDir;
+CMap::~CMap()
+{
+}
+
+CWorld::~CWorld()
+{
+	if(m_Maps.GetSize()) printf("\tFreeing World Maps...\n");
+	for(int i=0; i<m_Maps.GetSize(); i++) {
+		delete m_Maps[i];
+		m_Maps[i] = NULL;
+	}
+}
+
+bool CWorld::Load(LPCSTR szFile)
+{
+	return false;
+}
+

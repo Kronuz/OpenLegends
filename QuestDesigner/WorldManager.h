@@ -17,13 +17,13 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		ProjectManager.h 
-	\brief		Interface of the CProjectManager class.
-	\date		April 15, 2003
+/*! \file		WorldManager.h 
+	\brief		Interface of the CWorld and CMap classes.
+	\date		April 28, 2003
 
-	This file defines all the classes that manage the project,
-	this includes the methods to write and read from the 
-	configuration files (i.e. sprite sheet files).
+	This file defines the classes that manage a world in the game,
+	this includes the methods to create a new world, maps for that
+	world, and being living on it.
 	
 	\todo Everything is missing on this module :)
 
@@ -31,3 +31,41 @@
 
 #pragma once
 
+#include "Console.h"
+#include "interfaces.h"
+
+class CMap :
+	public CConsole
+{
+public:
+	CMap();
+	~CMap();
+
+};
+
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CWorldManager
+	\brief		CWorldManager class.
+	\author		Kronuz
+	\version	1.0
+	\date		April 28, 2003
+
+	This class Is the one that manages everything in the project,
+	from the sprite sheets list and the sounds list, to the world and
+	map of the game.
+*/
+class CWorld :
+	public CConsole,
+	public IDocumentObject
+{
+	CString m_sWorldName;
+	CSimpleArray<CMap*> m_Maps;
+public:
+	CWorld();
+	~CWorld();
+
+	// Loading/Saving methods:
+	bool Load(LPCSTR szFile); //!< Loads the world from a file
+	bool Save(LPCSTR szFile) { return false; } //!< Saves the world to a file
+
+};

@@ -17,33 +17,24 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		ChildView.h 
-	\brief		Interface of the CChildView class.
-	\date		April 26, 2003
-*/
 
-#pragma once
+#include "stdafx.h"
+#include "ArchiveBinary.h"
 
-#include "Console.h"
-
-/////////////////////////////////////////////////////////////////////////////
-// Forward declarations
-class CChildFrame;
-
-class CChildView :
-	public CConsole
+bool CSpriteSheetBinArch::ReadObject(LPCSTR szFile)
 {
-protected:
-	// Pointer to parent frame
-	CChildFrame *m_pParentFrame;
-	// The view's file name
-	CString m_sFilePath;
-	// The view's title
-	CString m_sTitle;
+	return false;
+}
+bool CSpriteSheetBinArch::WriteObject(LPCSTR szFile)
+{
+	return false;
+}
 
-	// Construction/Destruction
-	CChildView(CChildFrame *pParentFrame);
-public:
-	CString& GetFilePath() { return m_sFilePath; }
-	CString& GetTitle() { return m_sTitle; }
-};
+bool CProjectBinArch::ReadObject(LPCSTR szFile)
+{
+	return false;
+}
+bool CProjectBinArch::WriteObject(LPCSTR szFile)
+{
+	return false;
+}

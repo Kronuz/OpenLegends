@@ -17,13 +17,11 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		ProjectManager.h 
-	\brief		Interface of the CProjectManager class.
-	\date		April 15, 2003
+/*! \file		SoundManager.h 
+	\brief		Interface of the CSound and CMusic classes.
+	\date		April 28, 2003
 
-	This file defines all the classes that manage the project,
-	this includes the methods to write and read from the 
-	configuration files (i.e. sprite sheet files).
+	Classes that handle sounds and music in the game.
 	
 	\todo Everything is missing on this module :)
 
@@ -31,3 +29,5 @@
 
 #pragma once
 
+class CSound {
+};

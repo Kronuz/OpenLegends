@@ -103,9 +103,9 @@ LRESULT CScriptEditorView::OnFileReload(WORD /*wNotifyCode*/, WORD /*wID*/, HWND
 // Save handlers
 LRESULT CScriptEditorView::OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	if (!m_sFileName.IsEmpty()) {
+	if (!m_sFilePath.IsEmpty()) {
 		// save the file
-		DoFileSave(m_sFileName);
+		DoFileSave(m_sFilePath);
 	} else {
 		DoFileSaveAs();
 	}
@@ -242,13 +242,13 @@ BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T
 	}
 
 	// Save file name for later
-	m_sFileName = lpszPathName;
+	m_sFilePath = lpszPathName;
 
 	// Save the tittle for later
 	m_sTitle = lpszTitle;
 
-	m_pParentFrame->m_sChildName = m_sFileName;
-	m_pParentFrame->SetTitle(m_sFileName);
+	m_pParentFrame->m_sChildName = m_sFilePath;
+	m_pParentFrame->SetTitle(m_sFilePath);
 	m_pParentFrame->SetTabText(m_sTitle);
 
 	return TRUE;
@@ -271,7 +271,7 @@ BOOL CScriptEditorView::DoFileSave ( const CString & sPathName )
 	}
 
 	// Save file name for later
-	m_sFileName = sPathName;	
+	m_sFilePath = sPathName;	
 
 	return TRUE;
 }
@@ -287,10 +287,10 @@ BOOL CScriptEditorView::DoFileSaveAs()
 		// save the title
 		m_sTitle = wndFileDialog.m_szFileTitle;
 		// save the title
-		m_sFileName = wndFileDialog.m_szFileName;
+		m_sFilePath = wndFileDialog.m_szFileName;
 
-		m_pParentFrame->m_sChildName = m_sFileName;
-		m_pParentFrame->SetTitle(m_sFileName);
+		m_pParentFrame->m_sChildName = m_sFilePath;
+		m_pParentFrame->SetTitle(m_sFilePath);
 		m_pParentFrame->SetTabText(m_sTitle);
 		
 		return TRUE;
@@ -302,10 +302,10 @@ BOOL CScriptEditorView::DoFileSaveAs()
 BOOL CScriptEditorView::DoReload ()
 {
 	// simply re-open the file we opend
-	CME_CODE lRet = OpenFile(m_sFileName);
+	CME_CODE lRet = OpenFile(m_sFilePath);
 
 	if(CME_FAILED(lRet)) {		
-		ATLTRACE(_T ( "Error: Failed to reload file: %s\n" ), m_sFileName);
+		ATLTRACE(_T ( "Error: Failed to reload file: %s\n" ), m_sFilePath);
 		return FALSE;
 	}
 	return TRUE;
@@ -349,7 +349,7 @@ void CScriptEditorView::UIUpdateMenuItems()
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	CUpdateUIBase *pUpdateUI = pMainFrm->GetUpdateUI();
 
-	pUpdateUI->UIEnable(ID_FILE_RELOAD, !m_sFileName.IsEmpty());
+	pUpdateUI->UIEnable(ID_FILE_RELOAD, !m_sFilePath.IsEmpty());
 	pUpdateUI->UIEnable(ID_FILE_SAVE, IsModified());	
 	pUpdateUI->UIEnable(ID_FILE_SAVE_AS, TRUE );
 		

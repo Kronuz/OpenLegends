@@ -72,14 +72,15 @@ BEGIN
     BUTTON      ID_EDIT_TAB
     BUTTON      ID_EDIT_UNTAB
     SEPARATOR
-    BUTTON      ID_BUILD
     BUTTON      ID_APP_ABOUT
 END
 
-IDR_TB_VIEWS TOOLBAR  16, 15
+IDR_TB_PROJECT TOOLBAR  16, 15
 BEGIN
     BUTTON      ID_VIEW_WORLDEDITOR
     BUTTON      ID_VIEW_MAPEDITOR
+    SEPARATOR
+    BUTTON      ID_BUILD
 END
 
 
@@ -91,7 +92,7 @@ END
 IDR_TB_SCRIPTS          BITMAP                  "res\\Toolbar.bmp"
 IDB_MSDEV_TAB_ICONS     BITMAP                  "res\\msdev_tab_icons.bmp"
 IDB_FOLDERS             BITMAP                  "res\\folders.bmp"
-IDR_TB_VIEWS            BITMAP                  "res\\toolbar1.bmp"
+IDR_TB_PROJECT          BITMAP                  "res\\toolbar1.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -211,11 +212,11 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\QuestDesigner.ico"
-IDI_ICO_ERROR           ICON                    "res\\ico00001.ico"
+IDI_ICO_ERROR           ICON                    "res\\Error.ico"
 IDR_MDICHILD            ICON                    "res\\QuestDesignerDoc.ico"
-IDI_ICO_WARNING         ICON                    "res\\icon1.ico"
-IDI_ICO_QUESTION        ICON                    "res\\icon2.ico"
-IDI_ICO_OK              ICON                    "res\\ico00002.ico"
+IDI_ICO_WARNING         ICON                    "res\\Warning.ico"
+IDI_ICO_QUESTION        ICON                    "res\\Question.ico"
+IDI_ICO_OK              ICON                    "res\\Okay.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

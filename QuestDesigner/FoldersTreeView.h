@@ -23,6 +23,21 @@
 */
 
 #pragma once
+
+class CTreeInfo {
+public:
+	LPTSTR m_szPath;
+	DWORD_PTR m_dwData;
+	CTreeInfo(LPCSTR szPath, DWORD_PTR dwData) {
+		m_szPath = new char[strlen(szPath)+1];
+		strcpy(m_szPath, szPath);
+		m_dwData = dwData;
+	}
+	~CTreeInfo() {
+		delete []m_szPath;
+	}
+};
+
 class CFoldersTreeView :
 	public CWindowImpl<CFoldersTreeView, CTreeViewCtrl>
 {
@@ -53,13 +68,33 @@ public:
 		return 0;
 	}
 
+	LRESULT DelTree(WPARAM wParam, LPARAM lParam)
+	{
+		HTREEITEM hParentItem, hItem;
+		CTreeInfo *pTI = (CTreeInfo *)lParam;
+		ATLASSERT(pTI);
+
+		hItem = FindPath(NULL, pTI->m_szPath);
+		while(hItem) {
+			hParentItem = GetParentItem(hItem);
+			DeleteItem(hItem);
+			if(ItemHasChildren(hParentItem)) break;
+			hItem = hParentItem;
+		}
+
+		delete pTI;
+
+		return TRUE;
+	}
+
 	LRESULT AddTree(WPARAM wParam, LPARAM lParam)
 	{
 		HTREEITEM hItem;
+		CTreeInfo *pTI = (CTreeInfo *)lParam;
+		ATLASSERT(pTI);
 
 		char *szAux;
-		char *szTmp = new char[strlen((LPCSTR)lParam)+1];
-		strcpy(szTmp, (LPCSTR)lParam);
+		char *szTmp = pTI->m_szPath;
 		szAux = strrchr(szTmp, '\\');
 		if(szAux) {
 			*szAux++='\0';
@@ -69,9 +104,16 @@ public:
 			hItem = GetRootItem();
 		}
 
-		if(FindLeaf(hItem, szAux) == NULL)
-			InsertItem(szAux, (wParam>>8), (wParam&0xff), hItem, TVI_LAST);
-		delete []szTmp;
+		if(FindLeaf(hItem, szAux) == NULL) {
+			hItem = InsertItem(szAux, (wParam>>8), (wParam&0xff), hItem, TVI_LAST);
+			SetItemData(hItem, pTI->m_dwData);
+		}
+
+		hItem = GetRootItem();
+		ATLASSERT(hItem);
+		SetItemImage(hItem, (ICO_PROJECT>>8), (ICO_PROJECT&0xff));
+
+		delete pTI;
 
 		return TRUE;
 	}

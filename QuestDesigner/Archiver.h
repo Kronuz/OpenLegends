@@ -17,33 +17,49 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		ChildView.h 
-	\brief		Interface of the CChildView class.
-	\date		April 26, 2003
-*/
+/*! \file		Archiver.h
+	\brief		Archive interfaces.
+	\author		Kronuz
+	\version	1.0
+	\date		April 16, 2003
 
+	Archiver.h provides the abstract interfaces for reading and writing
+	objects in any mode. 
+
+	\sa ArchiveText.h, ArchiveBinary.h.
+*/
 #pragma once
+
+#include "interfaces.h"
 
 #include "Console.h"
 
-/////////////////////////////////////////////////////////////////////////////
-// Forward declarations
-class CChildFrame;
+class CProjectManager;
+class CSpriteSheet;
 
-class CChildView :
+class CSpriteSheetArch :
+	public IArchive,
 	public CConsole
 {
-protected:
-	// Pointer to parent frame
-	CChildFrame *m_pParentFrame;
-	// The view's file name
-	CString m_sFilePath;
-	// The view's title
-	CString m_sTitle;
-
-	// Construction/Destruction
-	CChildView(CChildFrame *pParentFrame);
 public:
-	CString& GetFilePath() { return m_sFilePath; }
-	CString& GetTitle() { return m_sTitle; }
+	CSpriteSheetArch(CSpriteSheet *pSpriteSheet) : m_pSpriteSheet(pSpriteSheet) {}
+protected:
+	CSpriteSheet *m_pSpriteSheet;
+	virtual int ReadSprite(FILE *fInFile) = 0;
+public:
+	bool ReadObject(LPCSTR szFile) = 0;
+	bool WriteObject(LPCSTR szFile) = 0;
+};
+
+class CProjectArch:
+	public IArchive,
+	public CConsole
+{
+public:
+	CProjectArch(CProjectManager *pProjectManager) : m_pProjectManager(pProjectManager) {}
+protected:
+	CProjectManager *m_pProjectManager;
+public:
+	bool ReadObject(LPCSTR szFile) = 0;
+	bool WriteObject(LPCSTR szFile) = 0;
 };
