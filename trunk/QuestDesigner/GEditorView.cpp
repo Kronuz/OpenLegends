@@ -202,26 +202,6 @@ LRESULT CGEditorView::OnHScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &b
 	return nResult;
 }
 
-void CGEditorView::OnAdjustLimits()
-{
-	CPoint Point(
-		(int)((float)GetScrollPos(SB_HORZ)/m_Zoom), 
-		(int)((float)GetScrollPos(SB_VERT)/m_Zoom)
-	);
-
-	CalculateLimits();
-	if(m_rcScrollLimits.IsRectEmpty()) return;
-
-	SetScrollSize(m_rcScrollLimits.Size());
-
-	ScrollTo(
-		(int)((float)Point.x*m_Zoom), 
-		(int)((float)Point.y*m_Zoom)
-	);
-
- 	UpdateView();
- 	Invalidate();
-}
 bool CGEditorView::OnFileOpen()
 {
 	return false;
@@ -251,6 +231,26 @@ bool CGEditorView::OnFileSaveAs()
 	return DoFileSaveAs();
 }
 
+void CGEditorView::OnAdjustLimits()
+{
+	CPoint Point(
+		(int)((float)GetScrollPos(SB_HORZ)/m_Zoom), 
+		(int)((float)GetScrollPos(SB_VERT)/m_Zoom)
+	);
+	CalculateLimits();
+	if(m_rcScrollLimits.IsRectEmpty()) return;
+
+	SetScrollSize(m_rcScrollLimits.Size());
+
+	ScrollTo(
+		(int)((float)Point.x*m_Zoom), 
+		(int)((float)Point.y*m_Zoom)
+	);
+
+ 	UpdateView();
+ 	Invalidate();
+}
+
 LRESULT CGEditorView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
 	LRESULT nResult = baseClass::OnSize(uMsg, wParam, lParam, bHandled);
@@ -260,7 +260,7 @@ LRESULT CGEditorView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHan
 	// the map editor locks up. But it works fine for Kronuz with WTL 7.0. Also, for me this line
 	// doesn't do anything. But it must have some purpose.
 	// See OnAdjustLimits() which is the command handler for ID_APP_ADJUST.
-	//PostMessage(WM_COMMAND, ID_APP_ADJUST, 0);
+//	PostMessage(WM_COMMAND, ID_APP_ADJUST, 0);
 
 	return nResult;
 }

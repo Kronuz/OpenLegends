@@ -316,7 +316,11 @@ public:
 public:
 
 	// NOTE: CreateEx also calls this (through T*)
+#if (_WTL_VER <= 0x0700)
+	HWND Create(HWND hWndParent, WTL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
+#else
 	HWND Create(HWND hWndParent, ATL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
+#endif
 			DWORD dwStyle = 0U, DWORD dwExStyle = 0U,
 			UINT nMenuID = 0U, LPVOID lpCreateParam = NULL)
 	{

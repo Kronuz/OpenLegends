@@ -392,9 +392,13 @@ public:
 		m_hWnd = hWnd;
 		return (*this);
 	}
-	
+#if (_WTL_VER <= 0x0700)
+	HWND Create( HWND hWndParent, WTL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
+		DWORD dwStyle = 0, DWORD dwExStyle = 0, WTL::_U_MENUorID MenuOrID = 0U, 
+#else
 	HWND Create( HWND hWndParent, ATL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
 		DWORD dwStyle = 0, DWORD dwExStyle = 0, ATL::_U_MENUorID MenuOrID = 0U, 
+#endif
 		LPVOID lpCreateParam = NULL)
 	{
 		return CWindow::Create ( GetWndClassName(), hWndParent, rect.m_lpRect, 

@@ -65,6 +65,11 @@ int CConsole::print(const char *format, va_list argptr)
 	info.argptr = argptr;
 		if(!::IsWindow(ms_hWnd)) return -1;
 
+	// This creates a log (for debugging purposes only):
+	FILE *arch = fopen("QuestDesigner.log", "at");
+	vfprintf(arch, format, argptr);
+	fclose(arch);
+
 	SendMessage(ms_hWnd, WMQD_MESSAGE, 0, (LPARAM)&info);
 	return 1;
 }

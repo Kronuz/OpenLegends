@@ -89,7 +89,7 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 		fclose(arch);
 	} else szLicense = _T("\
 Open Zelda Project\r\n\
-Copyright (C) 2001-2003\r\n\
+Copyright (C) 2001-2004\r\n\
 \r\n\
 This program is free software; you can redistribute it and/or modify it \
 under the terms of the GNU General Public License as published by the Free \

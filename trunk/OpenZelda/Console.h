@@ -31,15 +31,18 @@
 class CConsole : public IConsole
 {
 	static CConsole *_instance;
-	FILE *file;
 public:
-	CConsole() : file(NULL) {}
-	~CConsole() { if(file) fclose(file); }
+	CConsole() {
+		FILE *arch = fopen("OpenZelda.log", "w");
+		fclose(arch);
+	}
+	~CConsole() {}
 
 	int print(const char *format, va_list argptr) { 
-		if(!file) file = fopen("c:\\log.txt", "wt");
-		vfprintf(file, format, argptr);
-		fflush(file);
+		// This creates a log (for debugging purposes only):
+		FILE *arch = fopen("OpenZelda.log", "at");
+		vfprintf(arch, format, argptr);
+		fclose(arch);
 		return 0; 
 	}
 	int printf(const char *format, ...) { 
