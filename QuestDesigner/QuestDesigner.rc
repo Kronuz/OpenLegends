@@ -52,7 +52,7 @@ END
 // Toolbar
 //
 
-IDR_MAINFRAME TOOLBAR  16, 15
+IDR_TB_SCRIPTS TOOLBAR  16, 15
 BEGIN
     BUTTON      ID_FILE_NEW
     BUTTON      ID_FILE_OPEN
@@ -76,15 +76,22 @@ BEGIN
     BUTTON      ID_APP_ABOUT
 END
 
+IDR_TB_VIEWS TOOLBAR  16, 15
+BEGIN
+    BUTTON      ID_VIEW_WORLDEDITOR
+    BUTTON      ID_VIEW_MAPEDITOR
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
-IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+IDR_TB_SCRIPTS          BITMAP                  "res\\Toolbar.bmp"
 IDB_MSDEV_TAB_ICONS     BITMAP                  "res\\msdev_tab_icons.bmp"
 IDB_FOLDERS             BITMAP                  "res\\folders.bmp"
+IDR_TB_VIEWS            BITMAP                  "res\\toolbar1.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -104,8 +111,13 @@ BEGIN
     BEGIN
         MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
         MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
-        MENUITEM "Informarion",                 ID_VIEW_INFO
-        MENUITEM "Properties",                  ID_VIEW_PROP
+        MENUITEM SEPARATOR
+        MENUITEM "World Editor",                218
+        MENUITEM "Map Editor",                  219
+        MENUITEM "Sprite Editor",               220
+        MENUITEM SEPARATOR
+        MENUITEM "Informarion",                 216
+        MENUITEM "Properties",                  217
     END
     POPUP "&Help"
     BEGIN
@@ -170,6 +182,13 @@ BEGIN
     BEGIN
         MENUITEM "&Toolbar",                    ID_VIEW_TOOLBAR
         MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+        MENUITEM SEPARATOR
+        MENUITEM "World Editor",                ID_VIEW_WORLDEDITOR
+        MENUITEM "Map Editor",                  ID_VIEW_MAPEDITOR
+        MENUITEM "Sprite Editor",               ID_VIEW_SPRITEEDITOR
+        MENUITEM SEPARATOR
+        MENUITEM "Information",                 ID_VIEW_INFORMATION
+        MENUITEM "Properties",                  ID_VIEW_PROPERTIES
     END
     POPUP "&Window"
     BEGIN
@@ -192,7 +211,11 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\QuestDesigner.ico"
+IDI_ICO_ERROR           ICON                    "res\\ico00001.ico"
 IDR_MDICHILD            ICON                    "res\\QuestDesignerDoc.ico"
+IDI_ICO_WARNING         ICON                    "res\\icon1.ico"
+IDI_ICO_QUESTION        ICON                    "res\\icon2.ico"
+IDI_ICO_OK              ICON                    "res\\ico00002.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -304,9 +327,10 @@ STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "QuestDesigner"
     IDR_MDICHILD            "Document"
-    ID_POSITION_PANE        "Ln: 999, Col: 999"
+    ID_POSITION_PANE        "Ln: 9999, Col: 9999"
     ID_OVERTYPE_PANE        "OVR"
     ID_READONLY_PANE        "READ"
+    ID_ICON_PANE            "ICI"
 END
 
 STRINGTABLE 
@@ -395,7 +419,48 @@ END
 
 STRINGTABLE 
 BEGIN
+    IDS_MESSAGE_PASSED_N_OF_FILE "Passed %s of file searching for '%s'"
+    IDS_WARNING_RELOAD      "Reload the current document?"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_EDIT_FIND_NEXT       "Finds the next occurance of the specified text\nFind Next"
+    ID_EDIT_FIND_PREV       "Finds the previous occurance of the specified text\nFind Previous"
+    ID_EDIT_FIND_SELECTION  "Find the next occurrence of the selected text\nFind Selection"
+    ID_EDIT_GOTO_LINE       "Move to the specified line number.\nGoto Line"
+    ID_EDIT_MATCH_BRACE     "Finds the matching brace.\nMatch Brace"
+    ID_EDIT_UPPERCASE       "Change selection to upper case\nMake Upper"
+    ID_EDIT_LOWERCASE       "Change selection to lower case\nMake Lower"
+    ID_EDIT_TABIFY          "Replaces spaces with tabs in the selection\nTabify Selection"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_EDIT_UNTABIFY        "Replaces tabs with spaces in the selection\nUntabify Selection"
+    ID_EDIT_SHOW_WHITE_SPACE "Shows or hides tab characters\nShow Whitespace"
+    ID_EDIT_READ_ONLY       "Sets the current documment as read-only\nRead Only"
+    ID_EDIT_TOGGLE_BOOKMARK "Toggle a bookmark on the current line\nToggle Bookmark"
+    ID_EDIT_GOTO_NEXT_BOOKMARK 
+                            "Go to the next bookmark in the active document\nNext Bookmark"
+    ID_EDIT_GOTO_PREV_BOOKMARK 
+                            "Go to the previous bookmark in the active document\nPrevious Bookmark"
+    ID_EDIT_CLEAR_ALL_BOOKMARKS 
+                            "Clear all bookmark in the active document\nClear All Bookmarks"
+END
+
+STRINGTABLE 
+BEGIN
     ID_BUILD                "Build the Quest File\nBuild"
+    ID_EDIT_TAB             "Indents the selected text right one tab stop\nIndent Selection"
+    ID_EDIT_UNTAB           "Unindents the selected text one tab stop\nUnindent Selection"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_WORLDEDITOR     "Show or hide the world editor\nToggle World Editor"
+    ID_VIEW_MAPEDITOR       "Show or hide the map editor\nToggle Map Editor"
+    ID_VIEW_SPRITEEDITOR    "Show or hide the sprite editor\nToggle Sprite Editor"
 END
 
 #endif    // English (U.S.) resources

@@ -31,6 +31,8 @@
 
 #include "MainFrm.h"
 
-#include "ScriptEditorFrm.h"
 #include "WorldEditorFrm.h"
+#include "MapEditorFrm.h"
+
+#include "ScriptEditorFrm.h"
 #include "HtmlFrm.h"

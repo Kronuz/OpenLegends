@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "ChildView.h"
+
 #include <codemax.h>
 #include "cmaxwtl.h"
 #define CMLANG_ZES _T("OZ Script file")
@@ -33,19 +35,14 @@
 class CScriptEditorFrame;
 
 class CScriptEditorView:
+	public CChildView,
 	public CWindowImpl<CScriptEditorView, CodeMaxControl>,
 	public CodeMaxControlNotifications<CScriptEditorView>,
 	public CodeMaxControlCommands<CScriptEditorView>
 {
-private:
-	// Pointer to parent frame
-	CScriptEditorFrame *m_pParentFrame;
-	// The view's file name
-	CString m_sFileName;
-	// The view's title
-	CString m_sTitle;
-
 public:
+	bool m_bModified;
+
 	// Construction/Destruction
 	CScriptEditorView(CScriptEditorFrame *pParentFrame);
 
@@ -157,4 +154,6 @@ public:
 	// Reload a file
 	BOOL DoReload ();
 
+	void UIUpdateStatusBar();
+	void UIUpdateMenuItems();
 };

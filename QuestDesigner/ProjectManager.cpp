@@ -45,8 +45,8 @@ LRESULT CProjectManager::StartBuild()
 	m_iStep = 0;
 	m_iCnt1 = m_Scripts.GetSize();
 	if(m_iCnt1 == 0) m_iStep++;
-	SendMessage(m_hWnd, WMQD_BUILDBEGIN, 0, (LPARAM)(LPCSTR)m_sProjectName);
-	SendMessage(m_hWnd, WMQD_STEPEND, 0, 0);
+	SendMessage(m_shWnd, WMQD_BUILDBEGIN, 0, (LPARAM)(LPCSTR)m_sProjectName);
+	SendMessage(m_shWnd, WMQD_STEPEND, 0, 0);
 	return TRUE;
 }
 
@@ -80,9 +80,9 @@ LRESULT CProjectManager::BuildNextStep(WPARAM wParam, LPARAM lParam)
 				sIncludeDir, 
 				pScript->GetScriptFile(), 
 				pScript->GetAmxFile() );
-		} else SendMessage(m_hWnd, WMQD_STEPEND, 0, 0);
+		} else SendMessage(m_shWnd, WMQD_STEPEND, 0, 0);
 	} else
-		SendMessage(m_hWnd, WMQD_BUILDEND, 0, 0);
+		SendMessage(m_shWnd, WMQD_BUILDEND, 0, 0);
 	return TRUE;
 }
 
@@ -128,7 +128,7 @@ CScript *CProjectManager::DefineScript(CString &sName)
 	if(idx == -1) {
 		m_Scripts.Add(pScript->m_fnScriptFile.GetFileTitle(), pScript);
 
-		SendMessage(m_hWnd, 
+		SendMessage(m_shWnd, 
 			WMQD_ADDTREE, 
 			ICO_DOC1, 
 			(LPARAM)(LPCSTR)(m_sProjectName + "\\Entities\\" + 
@@ -204,7 +204,7 @@ CSprite *CProjectManager::DefineSprite(CString &sName, _spt_type sptType, CSprit
 	pSprite->m_pSpriteSheet = pSpriteSheet;
 	pSprite->m_bDefined = true;
 	// We send a message letting know that a new sprite has just been defined
-	SendMessage(m_hWnd, 
+	SendMessage(m_shWnd, 
 		WMQD_ADDTREE, 
 		ICO_PICTURE, 
 		(LPARAM)(LPCSTR)(m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->m_sSheetName + (LPCSTR)((sptType==tBackground)?"\\Backgrounds\\":(sptType==tEntity)?"\\Entities\\":"\\Mask maps\\") + sName));

@@ -27,8 +27,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CMainFrame;
+class CChildView;
 
-enum _child_type { tUnknown=0, tScriptEditor, tHtmlView, tMapEditor, tWorldEditor };
+enum _child_type { tAny=0, tScriptEditor, tHtmlView, tWorldEditor, tMapEditor };
 /////////////////////////////////////////////////////////////////////////////
 // This is the common childs class
 typedef CWinTraits<WS_OVERLAPPEDWINDOW | WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_MAXIMIZE, WS_EX_MDICHILD> CChildFrameTraits;
@@ -41,19 +42,27 @@ protected:
 	// Pointer to main frame
 	CMainFrame *m_pMainFrame;
 
+	CTabbedMDICommandBarCtrl *m_pCmdBar;
+
+	CChildFrame(CMainFrame *pMainFrame, _child_type ChildType);
+	void SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar);
+
 public:
+	// Type of the child window
+	_child_type m_ChildType;
+	// Name given to the child window
+	CString m_sChildName;
+
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
 
 	BEGIN_MSG_MAP(CScriptEditorFrame)
 		CHAIN_MSG_MAP(baseClass)
 	END_MSG_MAP()
 
-	CTabbedMDICommandBarCtrl *m_pCmdBar;
-	// Type of the child window
-	_child_type m_ChildType;
-	// Name given to the child window
-	CString m_sChildName;
-
 	LRESULT Register(_child_type ChildType);
 	LRESULT Unregister();
+
+	// Return the main frame
+	CMainFrame* GetMainFrame() { return m_pMainFrame; }
+
 };

@@ -242,10 +242,19 @@
 					RelativePath="ChildFrm.cpp">
 				</File>
 				<File
+					RelativePath="ChildView.cpp">
+				</File>
+				<File
 					RelativePath="HtmlFrm.cpp">
 				</File>
 				<File
 					RelativePath="HtmlView.cpp">
+				</File>
+				<File
+					RelativePath="MapEditorFrm.cpp">
+				</File>
+				<File
+					RelativePath="MapEditorView.cpp">
 				</File>
 				<File
 					RelativePath="ScriptEditorFrm.cpp">
@@ -330,10 +339,19 @@
 					RelativePath="ChildFrm.h">
 				</File>
 				<File
+					RelativePath="ChildView.h">
+				</File>
+				<File
 					RelativePath="HtmlFrm.h">
 				</File>
 				<File
 					RelativePath="HtmlView.h">
+				</File>
+				<File
+					RelativePath="MapEditorFrm.h">
+				</File>
+				<File
+					RelativePath="MapEditorView.h">
 				</File>
 				<File
 					RelativePath="ScriptEditorFrm.h">
@@ -381,10 +399,25 @@
 				RelativePath="res\folders.bmp">
 			</File>
 			<File
+				RelativePath="res\ico00001.ico">
+			</File>
+			<File
+				RelativePath="res\ico00002.ico">
+			</File>
+			<File
+				RelativePath="res\icon1.ico">
+			</File>
+			<File
+				RelativePath="res\icon2.ico">
+			</File>
+			<File
 				RelativePath="res\msdev_tab_icons.bmp">
 			</File>
 			<File
 				RelativePath="res\toolbar.bmp">
+			</File>
+			<File
+				RelativePath="res\toolbar1.bmp">
 			</File>
 		</Filter>
 	</Files>

@@ -17,53 +17,44 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		ScriptEditorFrm.h 
-	\brief		Interface of the CScriptEditorFrame class.
-	\date		April 15, 2003
+/*! \file		MapEditorFrm.h 
+	\brief		Interface of the CMapEditorFrame class.
+	\date		April 27, 2003
 */
 
 #pragma once
 
 #include "ChildFrm.h"
-#include "ScriptEditorView.h"
-
-//class CIdleHandlerWithPump;
+#include "MapEditorView.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CMainFrame;
-class CIdleHandlerPump;
 
 /////////////////////////////////////////////////////////////////////////////
 // This class manages the script editor frame
-class CScriptEditorFrame :
-	public CChildFrame, 
-	public CIdleHandlerPump // (idle stuff usually not required on child frames)
+class CMapEditorFrame :
+	public CChildFrame
 {
 protected:
 public:
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
-	virtual BOOL OnIdle();
 
 	// The window's view (the child control)
-	CScriptEditorView *m_pScriptEditorView;
+	CMapEditorView *m_pMapEditorView;
 
 	// Construction/Destruction:
-	CScriptEditorFrame(CMainFrame *pMainFrame);
+	CMapEditorFrame(CMainFrame *pMainFrame);
 
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
 	BEGIN_MSG_MAP(CScriptEditorFrame)
-		MESSAGE_HANDLER(WM_CLOSE, OnClose)
-
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_FORWARDMSG, OnForwardMsg)
 		MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		
-		MESSAGE_HANDLER(WMQD_SELECT, OnSelectLine)
-
 		MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
 		CHAIN_MSG_MAP(CChildFrame)
@@ -74,22 +65,12 @@ public:
 
 	END_MSG_MAP()
 
-// Handler prototypes (uncomment arguments if needed):
-//	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
-//	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
-//	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
-
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
-	
-	LRESULT OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL /*&bHandled*/);
-
 	LRESULT OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-	LRESULT OnSelectLine(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
-
 	// Return the window's child control
-	CScriptEditorView* GetView() { return m_pScriptEditorView; }
+	CMapEditorView* GetView() { return m_pMapEditorView; }
 };

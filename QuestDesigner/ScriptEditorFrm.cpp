@@ -26,10 +26,9 @@
 #include "MainFrm.h"
 
 CScriptEditorFrame::CScriptEditorFrame(CMainFrame *pMainFrame) :
+	CChildFrame(pMainFrame, tScriptEditor),
 	m_pScriptEditorView(NULL)
 { 
-	m_pMainFrame = pMainFrame;
-	m_pCmdBar = NULL;
 }	
 
 void CScriptEditorFrame::OnFinalMessage(HWND /*hWnd*/)
@@ -46,11 +45,6 @@ void CScriptEditorFrame::OnFinalMessage(HWND /*hWnd*/)
 
 	delete this;
 }
-void CScriptEditorFrame::SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar)
-{
-	m_pCmdBar = pCmdBar;
-}
-
 BOOL CScriptEditorFrame::OnIdle()
 {
 	// update the main window's title bar
@@ -93,6 +87,25 @@ LRESULT CScriptEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 	CChildFrame::Unregister();
 	return 0;
 }
+
+LRESULT CScriptEditorFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL /*&bHandled*/)
+{
+	if(m_pScriptEditorView->IsModified()) {
+		CString sSave;
+		sSave.Format("Save Changes to %s?", m_pScriptEditorView->GetTitle());
+		int ret = MessageBox(sSave, _T("Quest Designer - Script Editor"), MB_YESNOCANCEL);
+		BOOL bTmp;
+		switch(ret) {
+			case IDCANCEL: return 0;
+			case IDYES: m_pScriptEditorView->OnFileSave(0,0,0,bTmp);
+			case IDNO: return DefWindowProc();
+		}
+	} else {
+		return DefWindowProc();
+	}
+	return 0;
+}
+
 LRESULT CScriptEditorFrame::OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	LPMSG pMsg = (LPMSG)lParam;

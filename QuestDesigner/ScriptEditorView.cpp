@@ -23,12 +23,13 @@
 
 #include "stdafx.h"
 
+#include "MainFrm.h"
 #include "ScriptEditorView.h"
 #include "ScriptEditorFrm.h"
 #include <ssfiledialog.h>
 
 CScriptEditorView::CScriptEditorView(CScriptEditorFrame *pParentFrame) :
-m_pParentFrame(pParentFrame)
+	CChildView(pParentFrame)
 {
 }
 
@@ -41,10 +42,20 @@ BOOL CScriptEditorView::PreTranslateMessage(MSG *pMsg)
 BOOL CScriptEditorView::OnIdle ()
 {
 	// Update all the menu items
-//	UIUpdateMenuItems ();
+	UIUpdateMenuItems();
 	
 	// Update position display in the status bar
-//	UIUpdateStatusBar ();	
+	UIUpdateStatusBar();
+
+	bool bModified = (IsModified()?1:0);
+	if(bModified != m_bModified) {
+		m_bModified = bModified;
+		if(m_bModified) {
+			m_pParentFrame->SetTabText(m_sTitle+"*");
+		} else {
+			m_pParentFrame->SetTabText(m_sTitle);
+		}
+	}
 
 	return FALSE;
 }
@@ -55,7 +66,7 @@ void CScriptEditorView::OnFinalMessage(HWND /*hWnd*/)
 	// Update position display in the status bar (remove it)
 	CMainFrame * pMainFrm = m_pParentFrame->GetMainFrame ();
 	CMultiPaneStatusBarCtrl * pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl ();
-	pStatusBar->SetPaneText ( ID_POSITION_PANE, _T ( "" ) );
+	pStatusBar->SetPaneText (ID_POSITION_PANE, _T(""));
 */
 	delete this;
 }
@@ -80,118 +91,152 @@ LRESULT CScriptEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 LRESULT CScriptEditorView::OnFileReload(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	CString sMessage;
+	sMessage.LoadString(IDS_WARNING_RELOAD);
+
+	if(IDYES==MessageBox(sMessage, "Quest Designer - Script Editor", MB_YESNO)) {
+		DoReload();
+	}
 	return 0;
 }
 
 // Save handlers
 LRESULT CScriptEditorView::OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	if (!m_sFileName.IsEmpty()) {
+		// save the file
+		DoFileSave(m_sFileName);
+	} else {
+		DoFileSaveAs();
+	}
 	return 0;
 }
 LRESULT CScriptEditorView::OnFileSaveAs(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	DoFileSaveAs();
 	return 0;
 }
 
 // Indent/Unindent the current selection
 LRESULT CScriptEditorView::OnEditTab(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	IndentSelection();
 	return 0;
 }
 LRESULT CScriptEditorView::OnEditUntab(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	UnIndentSelection();
 	return 0;
 }
 
 // Find next/previous search match in the buffer
 LRESULT CScriptEditorView::OnEditFindNext(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	FindNext();
 	return 0;
 }
 LRESULT CScriptEditorView::OnEditFindPrev(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	FindPrev();
 	return 0;
 }
 
 // Searches the buffer using the current selection as the search parameter
 LRESULT CScriptEditorView::OnEditFindSelection(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	FindNextWord();
 	return 0;
 }
 // Jump to the desired line
 LRESULT CScriptEditorView::OnEditGotoLine(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	// The zero-based line number to jump to.  If -1, the user is prompted.
+	GotoLine(-1);
 	return 0;
 }
 
 // Find the current brace's 'sibling'
 LRESULT CScriptEditorView::OnEditMatchBrace(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	GotoMatchBrace();
 	return 0;
 }
 
 // Set buffer to read-only
 LRESULT CScriptEditorView::OnEditReadOnly(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	// toggle read only
+	BOOL bReadOnly = IsReadOnly();
+	SetReadOnly(!bReadOnly);
 	return 0;
 }
 
 // Advanced edit commands
 LRESULT CScriptEditorView::OnEditUppercase(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	UpperCaseSelection();	
 	return 0;
 }
 LRESULT CScriptEditorView::OnEditLowercase(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	LowerCaseSelection();
 	return 0;
 }
 LRESULT CScriptEditorView::OnEditTabify(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	TabifySelection();
 	return 0;
 }
 LRESULT CScriptEditorView::OnEditUntabify(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	UnTabifySelection();
 	return 0;
 }
 LRESULT CScriptEditorView::OnShowWhiteSpace(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	// toggle white space
+	ToggleWhiteSpaceDisplay();
 	return 0;
 }
 
 // Bookmark functions
 LRESULT CScriptEditorView::OnEditToggleBookmark(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	BookmarkToggle();
 	return 0;
 }
 LRESULT CScriptEditorView::OnEditGotoNextBookmark(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	BookmarkPrev();
 	return 0;
 }
 LRESULT CScriptEditorView::OnUpdateEditGotoPrevBookmark(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	BookmarkNext();
 	return 0;
 }
 LRESULT CScriptEditorView::OnEditClearAllBookmarks(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	BookmarkClearAll();
 	return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Open a file
-BOOL CScriptEditorView::DoFileOpen ( LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T("Untitled")*/ ) 
+BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T("Untitled")*/ ) 
 {
-	ATLTRACE ( _T ( "Entering : CCodeMaxWTLSampleView::DoFileOpen ( %s )\n" ), lpszPathName );
+	ATLTRACE(_T("Entering : CCodeMaxWTLSampleView::DoFileOpen(%s )\n" ), lpszPathName );
 	
 	// open the requested file
 	CME_CODE lRet = OpenFile(lpszPathName);
 
 	if(CME_FAILED(lRet)) {
-		ATLTRACE ( _T ( "Error: Failed to load file: %s\n" ), lpszPathName );
+		ATLTRACE(_T("Error: Failed to load file: %s\n" ), lpszPathName );
 
 		// show the error message
 		CString sMessage;
-		sMessage.Format ( _T( "Failed to load: %s\n\n" ), lpszPathName );
-		//ShowLastError ( sMessage, ::GetLastError () );
+		sMessage.Format(_T("Failed to load: %s\n\n" ), lpszPathName );
+		//ShowLastError ( sMessage, ::GetLastError());
 		
 		return FALSE;
 	}
@@ -202,14 +247,9 @@ BOOL CScriptEditorView::DoFileOpen ( LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=
 	// Save the tittle for later
 	m_sTitle = lpszTitle;
 
+	m_pParentFrame->m_sChildName = m_sFileName;
+	m_pParentFrame->SetTitle(m_sFileName);
 	m_pParentFrame->SetTabText(m_sTitle);
-
-	// If the CodeMax control has normalized case enabled, forcing
-	//	a reload of the file will makes CodeMax normalize the entire file
-	if(IsNormalizeCaseEnabled()) {
-		// force a reload...
-		//DoReload();
-	}
 
 	return TRUE;
 }
@@ -235,19 +275,24 @@ BOOL CScriptEditorView::DoFileSave ( const CString & sPathName )
 
 	return TRUE;
 }
-BOOL CScriptEditorView::DoFileSaveAs () 
+BOOL CScriptEditorView::DoFileSaveAs()
 {
 	static TCHAR szFilter[] = "OZ Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
-	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
+	CSSFileDialog wndFileDialog(FALSE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
 	if(IDOK == wndFileDialog.DoModal()) {
 		if(!DoFileSave (wndFileDialog.m_ofn.lpstrFile)) {
 			return FALSE;
 		}
 		// save the title
-		//m_sTitle = wndFileDialog.GetFileTitle ();
+		m_sTitle = wndFileDialog.m_szFileTitle;
 		// save the title
-		//m_sFilename = wndFileDialog.GetFileTitle();
+		m_sFileName = wndFileDialog.m_szFileName;
+
+		m_pParentFrame->m_sChildName = m_sFileName;
+		m_pParentFrame->SetTitle(m_sFileName);
+		m_pParentFrame->SetTabText(m_sTitle);
+		
 		return TRUE;
 	}
 	return FALSE;
@@ -264,4 +309,82 @@ BOOL CScriptEditorView::DoReload ()
 		return FALSE;
 	}
 	return TRUE;
+}
+void CScriptEditorView::UIUpdateStatusBar()
+{
+	CMainFrame * pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl * pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	// display position in buffer on the status bar
+	CM_RANGE cmRange;
+	if(CME_SUCCEEDED(GetSel(&cmRange, FALSE))) {
+		CString sText;
+		sText.Format(_T("Ln %d, Col %d"), cmRange.posEnd.nLine+1, cmRange.posEnd.nCol);
+		pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
+	} else {
+		pStatusBar->SetPaneText(ID_POSITION_PANE, "");
+	}
+
+	// display overtype indicator in the status bar
+	if(IsOvertypeEnabled()) {
+		CString sIndicator;
+		sIndicator.LoadString(ID_OVERTYPE_PANE);
+		pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sIndicator);
+	} else {
+		pStatusBar->SetPaneText(ID_OVERTYPE_PANE, "");
+	}
+	
+	// display overtype indicator in the status bar
+	if(IsReadOnly()) {
+		CString sIndicator;
+		sIndicator.LoadString(ID_READONLY_PANE);
+		pStatusBar->SetPaneText(ID_READONLY_PANE, sIndicator);
+	} else {
+		pStatusBar->SetPaneText(ID_READONLY_PANE, "");
+	}
+}
+void CScriptEditorView::UIUpdateMenuItems()
+{
+	// Get the main window's UI updater
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CUpdateUIBase *pUpdateUI = pMainFrm->GetUpdateUI();
+
+	pUpdateUI->UIEnable(ID_FILE_RELOAD, !m_sFileName.IsEmpty());
+	pUpdateUI->UIEnable(ID_FILE_SAVE, IsModified());	
+	pUpdateUI->UIEnable(ID_FILE_SAVE_AS, TRUE );
+		
+	pUpdateUI->UIEnable(ID_EDIT_UNDO, CanUndo());
+	pUpdateUI->UIEnable(ID_EDIT_REDO, CanRedo());
+
+	pUpdateUI->UIEnable(ID_EDIT_CUT, CanCut());
+	pUpdateUI->UIEnable(ID_EDIT_COPY, CanCopy());
+	pUpdateUI->UIEnable(ID_EDIT_PASTE, CanPaste());
+	pUpdateUI->UIEnable(ID_EDIT_CLEAR, IsSelection());
+
+	pUpdateUI->UIEnable(ID_EDIT_READ_ONLY, TRUE);
+	pUpdateUI->UISetCheck(ID_EDIT_READ_ONLY, (IsReadOnly()?1:0));
+
+	pUpdateUI->UIEnable(ID_EDIT_SHOW_WHITE_SPACE, TRUE);
+	pUpdateUI->UISetCheck(ID_EDIT_SHOW_WHITE_SPACE, IsWhitespaceDisplayEnabled());
+
+	// get the current selection
+	BOOL bSelection, bColumnSelection;
+	bSelection = IsSelection(bColumnSelection);
+
+	pUpdateUI->UIEnable(ID_EDIT_TAB, TRUE ); // can always indent
+	pUpdateUI->UIEnable(ID_EDIT_UNTAB, (bSelection && !bColumnSelection));
+
+	pUpdateUI->UIEnable(ID_EDIT_FIND_SELECTION, (bSelection && !bColumnSelection));
+		
+	pUpdateUI->UIEnable(ID_EDIT_UPPERCASE, (bSelection && !bColumnSelection));
+	pUpdateUI->UIEnable(ID_EDIT_LOWERCASE, (bSelection && !bColumnSelection));
+	pUpdateUI->UIEnable(ID_EDIT_TABIFY, bSelection);
+	pUpdateUI->UIEnable(ID_EDIT_UNTABIFY, bSelection);
+
+	// retrive the number of bookmarks
+	int nCount = GetAllBookmarks(NULL);
+	
+	pUpdateUI->UIEnable(ID_EDIT_GOTO_NEXT_BOOKMARK, nCount>0);
+	pUpdateUI->UIEnable(ID_EDIT_GOTO_PREV_BOOKMARK, nCount>0);
+	pUpdateUI->UIEnable(ID_EDIT_CLEAR_ALL_BOOKMARKS, nCount>0);
 }

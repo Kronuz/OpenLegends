@@ -60,8 +60,6 @@ public:
 	CHtmlFrame(CMainFrame *pMainFrame);
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
-	void SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar);
-
 	BEGIN_MSG_MAP(CHtmlFrame)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
@@ -93,8 +91,6 @@ public:
 
 	// Return the window's child control
 	CHtmlView* GetView() { return m_pHtmlView; }
-	// Return the main frame
-	CMainFrame* GetMainFrame() { return m_pMainFrame; }
 
 	LRESULT OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);

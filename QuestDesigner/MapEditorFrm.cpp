@@ -17,31 +17,31 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		WorldEditorFrm.cpp 
-	\brief		Implementation of the CWorldEditorFrame class.
-	\date		April 15, 2003
+/*! \file		MapEditorFrm.cpp 
+	\brief		Implementation of the CMapEditorFrame class.
+	\date		April 27, 2003
 */
 
 #include "stdafx.h"
-#include "WorldEditorFrm.h"
+#include "MapEditorFrm.h"
 #include "MainFrm.h"
 
-CWorldEditorFrame::CWorldEditorFrame(CMainFrame *pMainFrame) :
-	CChildFrame(pMainFrame, tWorldEditor),
-	m_pWorldEditorView(NULL)
+CMapEditorFrame::CMapEditorFrame(CMainFrame *pMainFrame) :
+	CChildFrame(pMainFrame, tMapEditor),
+	m_pMapEditorView(NULL)
 { 
 }	
-void CWorldEditorFrame::OnFinalMessage(HWND /*hWnd*/)
+void CMapEditorFrame::OnFinalMessage(HWND /*hWnd*/)
 {
 	delete this;
 }
 
-LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	m_pWorldEditorView = new CWorldEditorView(this);
+	m_pMapEditorView = new CMapEditorView(this);
 
 	// create our view
-	m_hWndClient = m_pWorldEditorView->Create(m_hWnd, 
+	m_hWndClient = m_pMapEditorView->Create(m_hWnd, 
 										rcDefault,
 										NULL, 
 										WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL, 
@@ -51,18 +51,18 @@ LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 		return FALSE;
 	}
 
-	CChildFrame::Register(tWorldEditor);
+	CChildFrame::Register(tMapEditor);
 	SetMsgHandled(FALSE);
-	m_sChildName = _T("World Editor");
+	m_sChildName = _T("Map Editor");
 	SetTitle(m_sChildName);
 	return TRUE;
 }
-LRESULT CWorldEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+LRESULT CMapEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
 	CChildFrame::Unregister();
 	return 0;
 }
-LRESULT CWorldEditorFrame::OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
+LRESULT CMapEditorFrame::OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	LPMSG pMsg = (LPMSG)lParam;
 	// we need the base class to do its stuff
@@ -70,9 +70,9 @@ LRESULT CWorldEditorFrame::OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM
 		return TRUE;
 
 	// the messages need to be hended to the active view
-	return m_pWorldEditorView->PreTranslateMessage(pMsg);
+	return m_pMapEditorView->PreTranslateMessage(pMsg);
 }
-LRESULT CWorldEditorFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
+LRESULT CMapEditorFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	// System settings or metrics have changed.  Propogate this message
 	// to all the child windows so they can update themselves as appropriate.
@@ -80,10 +80,10 @@ LRESULT CWorldEditorFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lPar
 
 	return 0;
 }
-LRESULT CWorldEditorFrame::OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+LRESULT CMapEditorFrame::OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	// We give the focus to the view
-	m_pWorldEditorView->SetFocus();
+	m_pMapEditorView->SetFocus();
 
 	return 0;
 }

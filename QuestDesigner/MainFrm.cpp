@@ -30,12 +30,13 @@
 static int nStatusBarPanes [] =
 {
 	ID_DEFAULT_PANE,
+	ID_ICON_PANE,
 	ID_POSITION_PANE,
 	ID_OVERTYPE_PANE,
 	ID_READONLY_PANE
 };
 
-static LPCTSTR lpcszQuestDesignerRegKey = _T ( "Software\\OpenZelda\\QuestDesigner" );
+static LPCTSTR lpcszQuestDesignerRegKey = _T("Software\\OpenZelda\\QuestDesigner");
 
 BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 {
@@ -61,7 +62,7 @@ BOOL CMainFrame::OnIdle()
 	// Update all the toolbar items
 	UIUpdateToolBar();
 	// Update all the menu items
-	UIUpdateMenuItems ();
+	UIUpdateMenuItems();
 
 	return FALSE;
 }
@@ -69,7 +70,7 @@ BOOL CMainFrame::OnIdle()
 LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	// updating the window handler of the project's console
-	CConsole::m_hWnd = m_hWnd;
+	CConsole::m_shWnd = m_hWnd;
 
 	// create command bar window
 	HWND hWndCmdBar = m_CmdBar.Create(m_hWnd, rcDefault, NULL, ATL_SIMPLE_CMDBAR_PANE_STYLE);
@@ -81,32 +82,59 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	SetMenu(NULL);
 
 	// create a toolbar
-	HWND hWndToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_MAINFRAME, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	HWND hScriptToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_SCRIPTS, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
 	// add the toolbar to the UI update map
-	UIAddToolBar(hWndToolBar);
+	UIAddToolBar(hScriptToolBar);
+
+	// create a toolbar
+	HWND hViewsToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_VIEWS, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	// add the toolbar to the UI update map
+	UIAddToolBar(hViewsToolBar);
 
 	// create a rebat to hold both: the command bar and the toolbar
-	CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE);
+	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE)) {
+		ATLTRACE("Failed to create applications rebar\n");
+		return -1;      // fail to create
+	}	
+
 	AddSimpleReBarBand(hWndCmdBar);
-	AddSimpleReBarBand(hWndToolBar, NULL, TRUE);
+	AddSimpleReBarBand(hScriptToolBar, NULL, TRUE, 400);
+	AddSimpleReBarBand(hViewsToolBar, NULL, FALSE);
 
 	// create a status bar
-	CreateSimpleStatusBar(_T ( "Ready" ) ) ||
-		 !m_wndStatusBar.SubclassWindow ( m_hWndStatusBar ) ||
-		 !m_wndStatusBar.SetPanes ( nStatusBarPanes, 
-			sizeof ( nStatusBarPanes ) / sizeof ( int ), false);
+	if(!CreateSimpleStatusBar(_T("Ready")) ||
+		 !m_wndStatusBar.SubclassWindow(m_hWndStatusBar) ||
+		 !m_wndStatusBar.SetPanes(nStatusBarPanes, 
+		 sizeof(nStatusBarPanes)/sizeof(int), false) ) {
+		
+		ATLTRACE("Failed to create status bar\n");
+		return -1;      // fail to create
+	}
+
+
+	HICON hIcon = AtlLoadIconImage(IDI_ICO_OK, LR_DEFAULTCOLOR);
+	m_wndStatusBar.SetPaneIcon(ID_ICON_PANE, hIcon);
 
 	// finally we create the MDI client
-	CreateMDIClient();
+	if(!CreateMDIClient()) {
+		ATLTRACE("Failed to create MDI client\n");
+		return -1;      // fail to create
+	}
 
 	m_tabbedClient.SetTabOwnerParent(m_hWnd);
 	BOOL bSubclass = m_tabbedClient.SubclassWindow(m_hWndMDIClient);
 	m_CmdBar.UseMaxChildDocIconAndFrameCaptionButtons(false);
 	m_CmdBar.SetMDIClient(m_hWndMDIClient);
 
-	UIAddToolBar(hWndToolBar);
 	UISetCheck(ID_VIEW_TOOLBAR, TRUE);
 	UISetCheck(ID_VIEW_STATUS_BAR, TRUE);
+
+	UISetCheck(ID_VIEW_WORLDEDITOR, FALSE);
+	UISetCheck(ID_VIEW_MAPEDITOR, FALSE);
+	UISetCheck(ID_VIEW_SPRITEEDITOR, FALSE);
+
+	UISetCheck(ID_VIEW_INFORMATION, TRUE);
+	UISetCheck(ID_VIEW_PROPERTIES, FALSE);
 
 	// Update all the menu items
 	UIUpdateMenuItems();
@@ -123,7 +151,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	PostMessage(CWM_INITIALIZE);
 
 	m_InfoFrame.DisplayTab(m_OutputView.m_hWnd);
-	m_ProjectManager.Load("Kronuz Project");
+	m_ProjectManager.Load(_T("Kronuz Project"));
 
 	return 0;
 }
@@ -135,7 +163,7 @@ void CMainFrame::InitializeDefaultPanes()
 	CRect rcFloat(0,0,400,200);
 	CRect rcDock(0,0,150,rcClient.Width()-200);
 
-	DWORD dwStyle=WS_OVERLAPPEDWINDOW | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+	DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 	m_InfoFrame.Create(m_hWnd, rcFloat, _T("Information Window"), dwStyle);
 	DockWindow(
 		m_InfoFrame,
@@ -145,19 +173,17 @@ void CMainFrame::InitializeDefaultPanes()
 		rcDock.Width() /* nWidth*/,
 		rcDock.Height() /* nHeight*/);
 
-	m_OutputView.Create(m_InfoFrame, rcDefault, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL, WS_EX_CLIENTEDGE);
-	m_TaskListView.Create(m_InfoFrame, rcDefault, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL, WS_EX_CLIENTEDGE);
-	m_DescriptionView.Create(m_InfoFrame, rcDefault, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL, WS_EX_CLIENTEDGE);
+	dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL;
+	m_OutputView.Create(m_InfoFrame, rcDefault, NULL, dwStyle, WS_EX_CLIENTEDGE);
+	m_TaskListView.Create(m_InfoFrame, rcDefault, NULL, dwStyle, WS_EX_CLIENTEDGE);
+	m_DescriptionView.Create(m_InfoFrame, rcDefault, NULL, dwStyle, WS_EX_CLIENTEDGE);
 	m_OutputView.m_pMainFrame = this;
-
-	//m_InfoFrame.AddTab(m_LogView, _T("Log"), MAKEINTRESOURCE(IDI_LOG));
 
 	int nFirstIndex = m_InfoFrame.AddBitmap(IDB_MSDEV_TAB_ICONS, RGB(0,255,0));
 
 	m_InfoFrame.AddTab(m_DescriptionView,	_T("Project Description"),	1 + nFirstIndex);
 	m_InfoFrame.AddTab(m_TaskListView,		_T("Things To Do"),			6 + nFirstIndex);
 	m_InfoFrame.AddTab(m_OutputView,		_T("Output Window"),		3 + nFirstIndex);
-
 
 
 	m_ListFrame.Create(m_hWnd, rcFloat, _T("World List Window"), dwStyle);
@@ -168,15 +194,11 @@ void CMainFrame::InitializeDefaultPanes()
 		float(0.0)/*fPctPos*/,
 		rcDock.Width() /* nWidth*/,
 		rcDock.Height() /* nHeight*/);
-/*
-	| 
-		TVS_SHOWSELALWAYS | TVS_HASBUTTONS | TVS_LINESATROOT | TVS_HASLINES | 
-		TVS_EDITLABELS | TVS_SHOWSELALWAYS| TVS_DISABLEDRAGDROP
-*/
 	m_FoldersView.Create(m_ListFrame, 
 		rcDefault, 
 		NULL, 
-		WS_CHILD | WS_VISIBLE |TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT, 
+		WS_CHILD | WS_VISIBLE |TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | 
+		TVS_SHOWSELALWAYS| TVS_DISABLEDRAGDROP, 
 		WS_EX_CLIENTEDGE);
 	m_ListFrame.AddTab(m_FoldersView,		_T("Project"),	NULL);
 
@@ -248,15 +270,54 @@ LRESULT CMainFrame::OnViewStatusBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*h
 	UpdateLayout();
 	return 0;
 }
-LRESULT CMainFrame::OnViewInfoWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+int CMainFrame::CountChilds(_child_type ChildType)
 {
-	BOOL bVisible = !m_InfoFrame.IsWindowVisible();
-	m_InfoFrame.ShowWindow(bVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
-	UISetCheck(ID_VIEW_INFO, bVisible);
-	UpdateLayout();
-
+	int cnt = 0;
+	CChildFrame *pChildFrame;
+	for(int i=0; i<m_ChildList.GetSize(); i++) {
+		pChildFrame = m_ChildList[i];
+		if(pChildFrame->m_ChildType == ChildType || tAny == ChildType) cnt++;
+	}
+	return cnt;
+}
+CChildFrame* CMainFrame::FindChild(LPCSTR lpszName)
+{
+	int cnt = 0;
+	CChildFrame *pChildFrame;
+	for(int i=0; i<m_ChildList.GetSize(); i++) {
+		pChildFrame = m_ChildList[i];
+		if(pChildFrame->m_sChildName == lpszName) {
+			return pChildFrame;
+		}
+	}
+	return NULL;
+}
+LRESULT CMainFrame::OnViewWorldEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	if(CountChilds(tWorldEditor)) {
+		CChildFrame *pChild = FindChild(_T("World Editor"));
+		ATLASSERT(pChild);
+		SendMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
+	} else {
+		CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
+		HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+	}
+	OnIdle(); // Force idle processing to update the toolbar.
 	return 0;
 }
+LRESULT CMainFrame::OnViewMapEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	CMapEditorFrame *pChild = new CMapEditorFrame(this);
+	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+
+	OnIdle(); // Force idle processing to update the toolbar.
+	return 0;
+}
+LRESULT CMainFrame::OnViewSpriteEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	return 0;
+}
+
 LRESULT CMainFrame::OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	CAboutDlg dlg;
@@ -281,26 +342,8 @@ LRESULT CMainFrame::OnWindowArrangeIcons(WORD /*wNotifyCode*/, WORD /*wID*/, HWN
 
 LRESULT CMainFrame::OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
-	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
-
 	m_InfoFrame.DisplayTab(m_OutputView.m_hWnd);
 	m_ProjectManager.StartBuild();
-/*
-	CString m_sIncludeDir = "C:\\Programming\\questdesigner-source\\compiler\\INCLUDE";
-	CString m_sInputDir = "C:\\";
-	CString m_sOutputDir = "C:\\";
-
-	CString m_sInputFile = "_armos1.zes";
-	CString m_sOutputFile = "_armos1.amx";
-
-	m_InfoFrame.DisplayTab(m_OutputView.m_hWnd);
-	m_OutputView.BeginBuildMsg("OpenZelda's Quest");
-
-	m_SmallCompiler.Compile(m_sIncludeDir, m_sInputDir+m_sInputFile, m_sOutputDir+m_sOutputFile);
-
-	m_OutputView.EndBuildMsg();
-*/
 	return 0;
 }
 
@@ -309,7 +352,7 @@ int CMainFrame::Select(LPCTSTR szFilename, LPARAM lParam)
 	CChildFrame *pChildFrame;
 	for(int i=0; i<m_ChildList.GetSize(); i++) {
 		pChildFrame = m_ChildList[i];
-		if(pChildFrame->m_sChildName==szFilename) {
+		if(pChildFrame->m_sChildName == szFilename) {
 			pChildFrame->BringWindowToTop();
 			if(lParam!=0) SendMessage(pChildFrame->m_hWnd, WMQD_SELECT, 0, lParam);
 			return 1;
@@ -341,8 +384,7 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 		pChild->DestroyWindow();
 		return 0;
 	} else {
-		pChild->m_sChildName = szFilename;
-		pView->SetReadOnly ( bReadOnly );
+		pView->SetReadOnly(bReadOnly);
 		if(lParam!=0) SendMessage(pChild->m_hWnd, WMQD_SELECT, 0, lParam);
 	}
 	return 1;
@@ -350,7 +392,7 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 
 void CMainFrame::UIUpdateMenuItems ()
 {
-	_child_type ActiveChildType = tUnknown;
+	_child_type ActiveChildType = tAny;
 	CChildFrame *pChildFrame;
 	HWND hWndMDIActive = MDIGetActive();
 	int OpenScripts=0;
@@ -362,49 +404,43 @@ void CMainFrame::UIUpdateMenuItems ()
 	
 	int nChildWindows = m_ChildList.GetSize();
 
+	UISetCheck(ID_VIEW_INFORMATION, m_InfoFrame.IsWindow() && m_InfoFrame.IsWindowVisible());
+	UISetCheck(ID_VIEW_WORLDEDITOR, CountChilds(tWorldEditor));
+
 	if( ActiveChildType!=tScriptEditor ) {
+		UIEnable(ID_FILE_RELOAD, FALSE);
+		UIEnable(ID_FILE_SAVE, FALSE);
+		UIEnable(ID_FILE_SAVE_ALL, FALSE);
+		UIEnable(ID_FILE_SAVE_AS, FALSE);
+		UIEnable(ID_FILE_PRINT, FALSE);
+		UIEnable(ID_FILE_PRINT_SETUP, FALSE);
 
-	/*
-	for(int id=ID_VIEW_PANEFIRST; id<=ID_VIEW_PANELAST; id++)
-		UIEnable(id,FALSE);
-	UIEnable(ID_VIEW_INFO, TRUE);
-	if(m_InfoFrame.IsWindow())
-		UISetCheck(ID_VIEW_OUTPUT, m_InfoFrame.IsWindowVisible());
-*/
+		UIEnable(ID_EDIT_UNDO, FALSE);
+		UIEnable(ID_EDIT_REDO, FALSE);	
+		UIEnable(ID_EDIT_CUT, FALSE);
+		UIEnable(ID_EDIT_COPY, FALSE);
+		UIEnable(ID_EDIT_PASTE, FALSE);
+		UIEnable(ID_EDIT_CLEAR, FALSE);
 
-		UIEnable ( ID_FILE_RELOAD, FALSE );
-		UIEnable ( ID_FILE_SAVE, FALSE );
-		UIEnable ( ID_FILE_SAVE_ALL, FALSE );
-		UIEnable ( ID_FILE_SAVE_AS, FALSE );
-		UIEnable ( ID_FILE_PRINT, FALSE );
-		UIEnable ( ID_FILE_PRINT_SETUP, FALSE );
-
-		UIEnable ( ID_EDIT_UNDO, FALSE );
-		UIEnable ( ID_EDIT_REDO, FALSE );	
-		UIEnable ( ID_EDIT_CUT, FALSE );
-		UIEnable ( ID_EDIT_COPY, FALSE );
-		UIEnable ( ID_EDIT_PASTE, FALSE );
-		UIEnable ( ID_EDIT_CLEAR, FALSE );
-
-		UIEnable ( ID_EDIT_TAB, FALSE );
-		UIEnable ( ID_EDIT_UNTAB, FALSE );
+		UIEnable(ID_EDIT_TAB, FALSE);
+		UIEnable(ID_EDIT_UNTAB, FALSE);
 		
-		UIEnable ( ID_EDIT_FIND_SELECTION, FALSE );		
+		UIEnable(ID_EDIT_FIND_SELECTION, FALSE);
 		
-		UIEnable ( ID_EDIT_READ_ONLY, FALSE );
-		UISetCheck ( ID_EDIT_READ_ONLY, 0 );
+		UIEnable(ID_EDIT_READ_ONLY, FALSE);
+		UISetCheck(ID_EDIT_READ_ONLY, 0);
 		
-		UIEnable ( ID_EDIT_UPPERCASE, FALSE );
-		UIEnable ( ID_EDIT_LOWERCASE, FALSE );
-		UIEnable ( ID_EDIT_TABIFY, FALSE );
-		UIEnable ( ID_EDIT_UNTABIFY, FALSE );
+		UIEnable(ID_EDIT_UPPERCASE, FALSE);
+		UIEnable(ID_EDIT_LOWERCASE, FALSE);
+		UIEnable(ID_EDIT_TABIFY, FALSE);
+		UIEnable(ID_EDIT_UNTABIFY, FALSE);
 		
-		UIEnable ( ID_EDIT_SHOW_WHITE_SPACE, FALSE );
-		UISetCheck ( ID_EDIT_SHOW_WHITE_SPACE, 0 );
+		UIEnable(ID_EDIT_SHOW_WHITE_SPACE, FALSE);
+		UISetCheck(ID_EDIT_SHOW_WHITE_SPACE, 0);
 		
-		UIEnable ( ID_EDIT_GOTO_NEXT_BOOKMARK, FALSE );
-		UIEnable ( ID_EDIT_GOTO_PREV_BOOKMARK, FALSE );
-		UIEnable ( ID_EDIT_CLEAR_ALL_BOOKMARKS, FALSE );	
+		UIEnable(ID_EDIT_GOTO_NEXT_BOOKMARK, FALSE);
+		UIEnable(ID_EDIT_GOTO_PREV_BOOKMARK, FALSE);
+		UIEnable(ID_EDIT_CLEAR_ALL_BOOKMARKS, FALSE);
 	} 
 	else {
 		if(OpenScripts > 1) {

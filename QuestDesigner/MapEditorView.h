@@ -17,9 +17,9 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		WorldEditorView.h 
-	\brief		Interface of the CWorldEditorView class.
-	\date		April 15, 2003
+/*! \file		MapEditorView.h 
+	\brief		Interface of the CMapEditorView class.
+	\date		April 27, 2003
 */
 
 #pragma once
@@ -28,28 +28,19 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
-class CWorldEditorFrame;
+class CMapEditorFrame;
 
-class CWorldEditorView : 
+class CMapEditorView : 
 	public CChildView,
-	public CScrollWindowImpl<CWorldEditorView>
+	public CScrollWindowImpl<CMapEditorView>
 {
 private:
 
-	CSize m_WorldSize;
-	HPEN  m_hPenGrid;
-	HFONT m_hFont12; 
-	HFONT m_hFont10;
-	HFONT m_hFont8;
-	HFONT m_hFont6;
+	CSize m_MapSize;
 
-	bool m_bClean;
-	CPoint m_MousePoint;
-	CSize m_szMap;	// Map dimensions
-	int m_Zoom;		// Current zoom
 public:
 	// Construction/Destruction
-	CWorldEditorView(CWorldEditorFrame *pParentFrame);
+	CMapEditorView(CMapEditorFrame *pParentFrame);
 
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
@@ -64,23 +55,15 @@ public:
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 
 		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
-		MESSAGE_HANDLER(WM_MOUSEWHEEL, OnMouseWheel)
 
-		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
-
-		CHAIN_MSG_MAP(CScrollWindowImpl<CWorldEditorView>);
+		CHAIN_MSG_MAP(CScrollWindowImpl<CMapEditorView>);
 	END_MSG_MAP()
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-
-	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled);
 
 	void DoPaint(CDCHandle dc);
 
-	void UpdateMouse(CPoint point);
-	void ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap);
 };
