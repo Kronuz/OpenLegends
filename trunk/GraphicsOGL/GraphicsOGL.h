@@ -34,6 +34,8 @@
 #include <GLAUX.H>
 #include <GLU.H>
 
+#define OGL_DEVICE_ID 0xca96d82f
+
 BOOL WINAPI DllEntryPoint(HINSTANCE hDll, DWORD fdwReason, LPVOID lpvRserved);
 
 class CTextureOGL:public ITexture

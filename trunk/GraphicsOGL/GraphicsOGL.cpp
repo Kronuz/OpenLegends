@@ -50,11 +50,33 @@ const WORD IGraphics::Version = 0x0011;//version 1.1, same for a while. hard to 
 
 HRESULT QueryGfxInterface(WORD Version, IGraphics **pInterface, IConsole *Output)
 {
-	return S_OK;
-}
+	if( HIBYTE(Version) != HIBYTE(IGraphics::Version) ) return E_FAIL;
+	if(	LOBYTE(Version) > LOBYTE(IGraphics::Version) ) return E_FAIL;
+
+	if(!*pInterface) {
+		// Convert our interface pointer to a CGraphicsOGL object
+		*pInterface = new CGraphicsOGL;
+		(*pInterface)->SetConsole(Output);
+		return S_OK;
+	}
+
+	return E_FAIL;
+}//thanks Kronuz for this function ;)
+
 // Release our Handle to the class
 HRESULT ReleaseGfxInterface(IGraphics **pInterface)
 {
+	if(!*pInterface) {
+		return E_FAIL;
+	}
+
+	// Not our device:
+	if((*pInterface)->GetDeviceID() != OGL_DEVICE_ID) {
+		return E_FAIL;
+	}
+
+	delete *pInterface;
+	*pInterface = NULL;
 	return S_OK;
 }
 
