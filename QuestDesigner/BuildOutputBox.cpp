@@ -132,9 +132,11 @@ LRESULT CBuildOutputBox::EndBuildMsg(WPARAM wParam, LPARAM lParam)
 
 	sprintf(line, "\
 \n%s - %d error(s), %d warning(s)\n\n\
----------------------- Done ----------------------\n\n\
+---------------------- %s ----------------------\n\n\
 Build: %d succeeded, %d failed\n\n\n\
-", m_sProject, m_Errors, m_Warnings, m_Errors?0:1, m_Errors?1:0);
+", m_sProject, m_Errors, m_Warnings, 
+(wParam==-1)?"Build Canceled":"Done",
+m_Errors?0:1, m_Errors?1:0);
 	COutputBox::WriteMsg(line, &fmt);
 	return TRUE;
 }

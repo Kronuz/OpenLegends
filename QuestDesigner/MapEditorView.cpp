@@ -172,14 +172,17 @@ bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle)
 	// Save file name for later
 	m_sFilePath = m_pMapGroupI->GetMapGroupID();
 
-	// Save the tittle for later
+	ISoundManager *pSoundManager = CProjectFactory::Interface()->GetSoundManager();
+	pSoundManager->SwitchMusic(m_pMapGroupI->GetMusic(), 0);
+
+	// Save the title for later
 	m_sTitle = lpszTitle;
 
 	m_pParentFrame->m_sChildName = m_sFilePath;
 	m_pParentFrame->SetTitle(m_sFilePath);
 	m_pParentFrame->SetTabText(m_sTitle);
 
-	SetScrollSize(10+(int)((float)m_szMap.cx*m_Zoom), 10+(int)((float)m_szMap.cy*m_Zoom));
+	SetScrollSize((int)((float)m_szMap.cx*m_Zoom), (int)((float)m_szMap.cy*m_Zoom));
 
 	m_SelectionI->SetSnapSize(m_nSnapSize, m_bShowGrid);
 
@@ -191,12 +194,23 @@ bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle)
 }
 LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
+	if(m_pMapGroupI) {
+		ISoundManager *pSoundManager = CProjectFactory::Interface()->GetSoundManager();
+		pSoundManager->SwitchMusic(NULL, 0, false);
+	}
+
 	RevokeDragDrop(m_hWnd); //calls release
 	m_pDropTarget=NULL;
 	return 0;
 }
 LRESULT CMapEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
+	if(m_pMapGroupI) {
+		ISoundManager *pSoundManager = CProjectFactory::Interface()->GetSoundManager();
+		pSoundManager->SwitchMusic(m_pMapGroupI->GetMusic(), 0);
+		OnChangeSel();
+	}
+/**/
 	SetTimer(1, 1000/30);
 	return 0;
 }
@@ -257,6 +271,9 @@ void CMapEditorView::Render()
 
 	// Update timings and stuff for the animations
 	CProjectFactory::Interface()->UpdateFPS();
+
+	ISoundManager *pSoundManager = CProjectFactory::Interface()->GetSoundManager();
+	pSoundManager->DoMusic();
 
 	// show entities, and if set, also sprite boundaries and masks
 	WORD wFlags = SPRITE_ENTITIES | (m_bShowBoundaries?SPRITE_BOUNDS:0) | (m_bShowMasks?SPRITE_MASKS:0);
@@ -375,6 +392,39 @@ void CMapEditorView::ToCursor(CURSOR cursor_)
 
 	SetCursor(hCursor);
 }
+void CMapEditorView::OnChange()
+{
+	HWND hWnd = GetMainFrame()->m_hWnd;
+	::SendMessage(hWnd, WMP_UPDATE, 0, 0);
+}
+void CMapEditorView::OnChangeSel(IPropertyEnabled *pPropObj)
+{
+	HWND hWnd = GetMainFrame()->m_hWnd;
+	::SendMessage(hWnd, WMP_CLEAR, 0, 0);
+
+	SInfo Information;
+	SPropertyList Properties;
+	SObjProp *pOP = m_SelectionI->GetFirstSelection();
+	while(pOP) {
+		memset(&Information, 0, sizeof(SInfo));
+		pOP->GetInfo(&Information);
+		::SendMessage(hWnd, WMP_ADDINFO, (WPARAM)pPropObj, (LPARAM)&Information);
+		if(pPropObj == Information.pPropObject) {
+			memset(&Properties, 0, sizeof(SPropertyList));
+			pOP->GetProperties(&Properties);
+			::SendMessage(hWnd, WMP_SETPROP, 0, (LPARAM)&Properties);
+		}
+		pOP = m_SelectionI->GetNextSelection();
+	}
+	if(pPropObj == NULL) {
+		pOP = m_SelectionI->GetFirstSelection();
+		if(pOP) {
+			memset(&Properties, 0, sizeof(SPropertyList));
+			pOP->GetProperties(&Properties);
+			::SendMessage(hWnd, WMP_SETPROP, 0, (LPARAM)&Properties);
+		}
+	}
+}
 LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	if(m_bFloating) return 0;
@@ -394,7 +444,7 @@ LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		else {
 			m_SelectionI->CleanSelection();
 			m_SelectionI->StartSelBox(Point);
-			m_SelectionI->EndSelBoxAdd(Point, 0);
+			OnChangeSel(m_SelectionI->EndSelBoxAdd(Point, 0));
 			if(m_SelectionI->Count()) GetMainFrame()->m_Layers.SetCurSel(m_SelectionI->GetLayer());
 			m_CursorStatus=eIDC_SIZEALL;
 		}
@@ -430,16 +480,19 @@ LRESULT CMapEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	if(m_SelectionI->isSelecting()) {
 		if((wParam&MK_SHIFT)==MK_SHIFT || (wParam&MK_CONTROL)==0) {
 			if((wParam&MK_SHIFT)==0) m_SelectionI->CleanSelection();
-			m_SelectionI->EndSelBoxAdd(Point, ((wParam&MK_CONTROL)==MK_CONTROL)?1:0);
+			OnChangeSel(m_SelectionI->EndSelBoxAdd(Point, ((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
 			if(m_SelectionI->Count()) GetMainFrame()->m_Layers.SetCurSel(m_SelectionI->GetLayer());
 		} else {
 			m_SelectionI->EndSelBoxRemove(Point);
+			OnChangeSel();
 		}
 	} else if(m_SelectionI->isMoving() || m_SelectionI->isFloating()) {
 		m_SelectionI->EndMoving(Point);
 		ShowCursor(TRUE);
+		OnChange();
 	} else if(m_SelectionI->isResizing()) {
 		m_SelectionI->EndResizing(Point);
+		OnChange();
 	}
 
 	Invalidate();
@@ -479,7 +532,7 @@ LRESULT CMapEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	if((wParam&MK_SHIFT)==MK_SHIFT && (wParam&MK_CONTROL)==MK_CONTROL) {
 		m_pGraphicsI->GetWorldPosition(&Point);
 		m_SelectionI->StartSelBox(Point);
-		m_SelectionI->EndSelBoxAdd(Point, -1);
+		OnChangeSel(m_SelectionI->EndSelBoxAdd(Point, -1));
 		if(m_SelectionI->Count()) GetMainFrame()->m_Layers.SetCurSel(m_SelectionI->GetLayer());
 	} else if((wParam&MK_SHIFT)==0 && (wParam&MK_CONTROL)==0) {
 		if(!bInSelection && m_bMulSelection==true) {
@@ -487,13 +540,16 @@ LRESULT CMapEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 				CPoint ScreenPoint(lParam);
 				ClientToScreen(&ScreenPoint);
 				PostMessage(WM_CONTEXTMENU, wParam, MAKELPARAM(ScreenPoint.x, ScreenPoint.y));
-			} else m_SelectionI->CleanSelection();
+			} else {
+				m_SelectionI->CleanSelection();
+				OnChangeSel();
+			}
 		} else {
 			if(!bInSelection && (m_SelectionI->Count()==0 || m_bMulSelection==false)) {
 				m_SelectionI->CleanSelection();
 				m_pGraphicsI->GetWorldPosition(&Point);
 				m_SelectionI->StartSelBox(Point);
-				m_SelectionI->EndSelBoxAdd(Point, 0);
+				OnChangeSel(m_SelectionI->EndSelBoxAdd(Point, 0));
 				if(m_SelectionI->Count()) GetMainFrame()->m_Layers.SetCurSel(m_SelectionI->GetLayer());
 			} 
 			CPoint ScreenPoint(lParam);
@@ -704,8 +760,10 @@ LRESULT CMapEditorView::BeginDrag()
 	HRESULT hr = ::DoDragDrop(pDataObject, m_pDropSource, DROPEFFECT_COPY, &dwEffect);
 	pDataObject->Release();
 	
-	if(hr == DRAGDROP_S_DROP) 
+	if(hr == DRAGDROP_S_DROP)  {
 		m_SelectionI->Cancel();
+		OnChangeSel();
+	}
 
 	m_DragState = tToDrag;
 
@@ -816,6 +874,7 @@ LRESULT CMapEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOO
 		m_SelectionI->Cancel();
 		m_DragState = tNone;
 		ReleaseCapture();
+		OnChangeSel();
 	} else if(wParam == VK_ADD || wParam == VK_OEM_PLUS) {
 		ZoomIn();
 	} else if(wParam == VK_SUBTRACT || wParam == VK_OEM_MINUS) {
@@ -839,6 +898,7 @@ LRESULT CMapEditorView::OnDropObject(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam
 	
 	m_SelectionI->SetLayer(GetMainFrame()->m_Layers.GetCurSel());
 	m_SelectionI->Paste((LPVOID)wParam, CPoint(lParam));
+	OnChangeSel();
 	return 0;
 }
 
@@ -900,29 +960,34 @@ inline bool CMapEditorView::Flip()
 {
 	m_SelectionI->FlipSelection();
 	Invalidate();
+	OnChange();
 	return true;
 }
 inline bool CMapEditorView::Mirror() 
 {
 	m_SelectionI->MirrorSelection();
 	Invalidate();
+	OnChange();
 	return true;
 }
 inline bool CMapEditorView::CWRotate()
 {
 	m_SelectionI->CWRotateSelection();
 	Invalidate();
+	OnChange();
 	return true;
 }
 inline bool CMapEditorView::CCWRotate()
 {
 	m_SelectionI->CCWRotateSelection();
 	Invalidate();
+	OnChange();
 	return true;
 }
 inline bool CMapEditorView::Delete()
 {
 	m_SelectionI->DeleteSelection();
+	OnChangeSel();
 	return true;
 }
 inline bool CMapEditorView::Copy()
@@ -943,6 +1008,7 @@ inline bool CMapEditorView::Cut()
 	if(!Copy()) return false;
 	m_SelectionI->DeleteSelection();
 	Invalidate();
+	OnChangeSel();
 	return true;
 }
 inline bool CMapEditorView::Paste()
@@ -973,12 +1039,14 @@ bool CMapEditorView::MultipleSel()
 bool CMapEditorView::SelectAll()
 {
 	Invalidate();
+	OnChangeSel();
 	return true;
 }
 bool CMapEditorView::SelectNone()
 {
 	m_SelectionI->CleanSelection();
 	Invalidate();
+	OnChangeSel();
 	return true;
 }
 bool CMapEditorView::Zoom(float zoom)
@@ -1009,7 +1077,7 @@ bool CMapEditorView::Zoom(float zoom)
 	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
 
 	// We need to recalculate the new map size (in pixeles)
-	SetScrollSize(10+(int)((float)m_szMap.cx*m_Zoom), 10+(int)((float)m_szMap.cy*m_Zoom));
+	SetScrollSize((int)((float)m_szMap.cx*m_Zoom), (int)((float)m_szMap.cy*m_Zoom));
 	return true;
 }
 bool CMapEditorView::NoZoom()
@@ -1109,6 +1177,7 @@ inline bool CMapEditorView::Paste(CPoint &Point)
 		pGetDataObject->Release();
 	}
 
+	OnChangeSel();
 	Invalidate();
 	return true;
 }

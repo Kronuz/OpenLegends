@@ -44,6 +44,7 @@ class CProjectFactory
    	HMODULE m_hDLL;
 	HWND m_hWnd;
 
+	bool m_bBuilding;
 	IGame *m_pGameI;
 
 	// Current state of the object:
@@ -54,6 +55,8 @@ public:
 	~CProjectFactory();
 
 	// Building/Linking methods:
+	bool isBuilding() { return m_bBuilding; }
+	void CancelBuild() { m_bBuilding = false; m_iStep = -1; }
 	LRESULT StartBuild(); //!< Starts the building process
 	LRESULT BuildNextStep(WPARAM wParam, LPARAM lParam); //!< Continues the building process
 

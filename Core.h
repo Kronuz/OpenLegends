@@ -43,6 +43,11 @@ enum CURSOR {
 };
 
 /////////////////////////////////////////////////////////////////////////////
+// Forward declarations
+struct SPropertyList;
+struct SInfo;
+
+/////////////////////////////////////////////////////////////////////////////
 /*! \class	CNamedObj
 	\brief		Class to manage the name of objects.
 	\author		Kronuz
@@ -63,6 +68,14 @@ protected:
 public:
 	const CBString& GetName() const { return m_sName; }
 	void SetName(LPCSTR szName)  { m_sName = szName; }
+};
+
+enum InfoType { itUnknown, itWorld, itMapGroup, itMap, itSpriteSheet, itSprite, itBackground, itMask, itEntity, itSpriteContext, itSound, itScript };
+interface IPropertyEnabled
+{
+	virtual bool GetInfo(SInfo *pI) const = 0;
+	virtual bool GetProperties(SPropertyList *pPL) const = 0;
+	virtual bool SetProperties(SPropertyList &PL) = 0;
 };
 
 struct GameInfo;

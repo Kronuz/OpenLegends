@@ -30,6 +30,7 @@
 #include "stdafx.h"
 #include "WorldManager.h"
 #include "GameManager.h"
+#include "SoundManager.h"
 
 CLayer::CLayer() :
 	CDocumentObject(),
@@ -50,7 +51,8 @@ CMapGroup::CMapGroup() :
 	m_pBitmap(NULL),
 	m_rcPosition(0,0,0,0),
 	m_sMapID("New Map Group"),
-	m_bLoaded(false)
+	m_bLoaded(false),
+	m_pMusic(NULL)
 {
 }
 CMapGroup::~CMapGroup()
@@ -123,6 +125,15 @@ void CMapGroup::GetMapGroupSize(CSize &MapGroupSize) const
 void CMapGroup::GetMapGroupRect(CRect &MapGroupRect) const
 {
 	MapGroupRect = m_rcPosition;
+}
+
+void CMapGroup::SetMusic(ISound *pSound)
+{
+	m_pMusic = pSound;
+}
+ISound* CMapGroup::GetMusic() const
+{
+	return m_pMusic;
 }
 
 void CMapGroup::SetMapGroupSize(const CSize &MapGroupSize)

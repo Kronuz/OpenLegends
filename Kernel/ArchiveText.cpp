@@ -81,7 +81,7 @@ int CSpriteSheetTxtArch::ReadSprite(CVFile &vfFile)
 	int iFrame=0, iFrames = 1;
 
 	CVFile &fnSheetFile = m_pSpriteSheet->GetFileName();
-	CGameManager *pGameManager = m_pSpriteSheet->GetGameManager();
+	CGameManager *pGameManager = CGameManager::Instance();
 
 	CRect rcRect;
 	_spt_type sptType;
@@ -383,9 +383,9 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 	m_nLines = 0;
 	CHAR buff[100];
 
-	CBString sSheetName;
-	ReadStringFromFile(sSheetName, vfFile);
-	if(sSheetName == "Open Zelda Quest Designer Map File") {
+	CBString sID;
+	ReadStringFromFile(sID, vfFile);
+	if(sID == "Open Zelda Quest Designer Map File") {
 		if(ReadMaps(vfFile)) {
 			if(ReadMapGroups(vfFile)) {
 				if(!ReadProperties(vfFile)) bRet = false;
@@ -433,11 +433,13 @@ bool CWorldTxtArch::ReadMapGroups(CVFile &vfFile)
 
 		int nLoopBack	= ReadLongFromFile(vfFile);
 
+		// Music fot the map group
 		ReadStringFromFile(sMusic, vfFile);
 
 		CMapGroup *pMapGroup = m_pWorld->BuildMapGroup(Rect.left, Rect.top, Rect.Width(), Rect.Height());
-		if(pMapGroup) {
-			pMapGroup->SetName(sMusic);
+		if(pMapGroup && sMusic!="") {
+			CGameManager *pGameManager = CGameManager::Instance();
+			pMapGroup->SetMusic(pGameManager->MakeSound(sMusic));
 		}
 	}
 

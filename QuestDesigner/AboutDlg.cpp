@@ -89,7 +89,14 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 	m_wndHyperLinkEmail1.SetHyperLink ( _T ("mailto:kronuz@users.sourceforge.net") );		
 
 	LPSTR szLicense;
-	FILE *arch = fopen("License.txt", "rb");
+
+	char szPath[MAX_PATH];
+	::GetModuleFileNameA(_Module.GetModuleInstance(), szPath, MAX_PATH);
+	char *aux = strrchr(szPath, '\\');
+	if(aux) *(aux+1) = '\0';
+	strcat(szPath, "License.txt");
+
+	FILE *arch = fopen(szPath, "rb");
 	if(arch) {
 		szLicense = new char[20*1024];
 		memset(szLicense, 0, 20*1024);

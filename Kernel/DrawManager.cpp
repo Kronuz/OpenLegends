@@ -28,6 +28,43 @@
 #include "DrawManager.h"
 #include "SpriteManager.h"
 
+#include "../IGame.h"
+
+bool SObjProp::GetInfo(SInfo *pI) const
+{
+	bool ret = pContext->GetInfo(pI);
+	if(!ret) return false;
+
+	pI->pPropObject = (IPropertyEnabled*)this;
+	return true;
+}
+bool SObjProp::GetProperties(SPropertyList *pPL) const
+{
+	bool ret = pContext->GetProperties(pPL);
+	if(!ret) return false;
+
+	pPL->Information.pPropObject = (IPropertyEnabled*)this;
+
+	pPL->AddList("Horizontal Chain", eXChain, "0 - Relative, 1 - Stretch, 2 - Right, 3 - Left, 4 - Fixed");
+	pPL->AddList("Vertical Chain", eYChain, "0 - Relative, 1 - Stretch, 2 - Up, 3 - Down, 4 - Fixed");
+
+	return true;
+}
+bool SObjProp::SetProperties(SPropertyList &PL)
+{
+	SProperty* pP;
+	bool ret = pContext->SetProperties(PL);
+	if(!ret) return false;
+
+	pP = PL.FindProperty("Horizontal Chain", SProperty::ptList);
+	if(pP) eXChain = (_Chain)pP->nValue;
+	
+	pP = PL.FindProperty("Vertical Chain", SProperty::ptList);
+	if(pP) eYChain = (_Chain)pP->nValue;
+
+	return true;
+}
+
 // This functions are used to sort the sprite list before rendering to the screen.
 inline bool CDrawableContext::ContextSubLayerCompare::operator()(const CDrawableContext *a, const CDrawableContext *b) const
 {
@@ -401,7 +438,7 @@ int CDrawableSelection::GetBoundingRect(CRect &Rect_)
 	int nObjects = 0;
 	CRect RectTmp;
 	Rect_.SetRect(0,0,0,0);
-	map<CDrawableContext*, SObjProp>::iterator Iterator;
+	mapObject::iterator Iterator;
 	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
 		Iterator->first->GetAbsFinalRect(RectTmp);
 		Rect_.UnionRect(Rect_, RectTmp);
@@ -410,7 +447,7 @@ int CDrawableSelection::GetBoundingRect(CRect &Rect_)
 	return nObjects;
 }
 
-void CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains) 
+IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains) 
 {
 	int nLayer = m_Objects.size()?m_nLayer:-1;
 	CDrawableContext *pDrawableContext = NULL;
@@ -420,20 +457,20 @@ void CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains)
 			nLayer = pDrawableContext->GetObjLayer();
 			m_nLayer = nLayer;
 
-			map<CDrawableContext*, SObjProp>::iterator Iterator;
+			mapObject::iterator Iterator;
 			Iterator = m_Objects.find(pDrawableContext);
 			if(Iterator==m_Objects.end()) {
 				CRect Rect;
 				pDrawableContext->GetRect(Rect);
 				pDrawableContext->SelectContext();
-				m_Objects.insert(pairObject(pDrawableContext, SObjProp(Rect, relative, relative)));
+				m_Objects.insert(pairObject(pDrawableContext, SObjProp(pDrawableContext, Rect, relative, relative)));
 				pDrawableContext->SelectContext();
 				CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
 				CONSOLE_DEBUG("The selected object is on layer %d, and sublayer: %d.\n", pDrawableContext->GetObjLayer(), pDrawableContext->GetObjSubLayer());
-				return;
+				return NULL;
 			}
 			if(Chains>0) {
-				if(m_Objects.size()<=1) return; // ignore if there's only one object
+				if(m_Objects.size()<=1) return NULL; // ignore if there's only one object
 				if(Iterator->second.eXChain<4) Iterator->second.eXChain = (_Chain)((int)Iterator->second.eXChain+1);
 				else {
 					Iterator->second.eXChain = (_Chain)0;
@@ -441,9 +478,9 @@ void CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains)
 					else Iterator->second.eYChain = (_Chain)0;
 				}
 				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->second.eXChain, (int)Iterator->second.eYChain);
-				return;
+				return static_cast<IPropertyEnabled *>(&Iterator->second);
 			} else if(Chains<0) {
-				if(m_Objects.size()<=1) return; // ignore if there's only one object
+				if(m_Objects.size()<=1) return NULL; // ignore if there's only one object
 				if(Iterator->second.eXChain>0) Iterator->second.eXChain = (_Chain)((int)Iterator->second.eXChain-1);
 				else {
 					Iterator->second.eXChain = (_Chain)4;
@@ -451,12 +488,13 @@ void CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains)
 					else Iterator->second.eYChain = (_Chain)4;
 				}
 				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->second.eXChain, (int)Iterator->second.eYChain);
-				return;
+				return static_cast<IPropertyEnabled *>(&Iterator->second);
 			}
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
 	}
+	return NULL;
 }
 void CDrawableSelection::SelPointRemove(const CPoint &point_) 
 {
@@ -563,7 +601,7 @@ void CDrawableSelection::ResizeTo(const CPoint &point_)
 	}
 	rcNewBoundaries.NormalizeRect();
 
-	map<CDrawableContext*, SObjProp>::const_iterator Iterator;
+	mapObject::const_iterator Iterator;
 	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
 		ResizeObject(Iterator->first, Iterator->second, m_rcSelection, rcNewBoundaries, true);
 	}
@@ -583,7 +621,7 @@ void CDrawableSelection::StartMoving(const CPoint &point_)
 }
 void CDrawableSelection::DeleteSelection()
 {
-	map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		Iterator->first->SelectContext(false);
 		(*m_ppMainDrawable)->KillChild(Iterator->first);
@@ -607,7 +645,7 @@ void CDrawableSelection::Cancel()
 		ResizeTo(m_ptInitialPoint);
 		EndResizing(m_ptInitialPoint);
 	} else {
-		map<CDrawableContext*, SObjProp>::iterator Iterator;
+		mapObject::iterator Iterator;
 		for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
 			Iterator->first->SelectContext(false);
 		}
@@ -637,7 +675,7 @@ void CDrawableSelection::MoveTo(const CPoint &Point_)
 
 	if(rcNewBoundaries.left == rcOldBoundaries.left && rcNewBoundaries.top == rcOldBoundaries.top) return;
 
-	map<CDrawableContext*, SObjProp>::const_iterator Iterator;
+	mapObject::const_iterator Iterator;
 	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
 		ResizeObject(Iterator->first, Iterator->second, m_rcSelection, rcNewBoundaries, true);
 	}
@@ -679,23 +717,22 @@ void CDrawableSelection::SizeSelBox(const CPoint &point_) {
 }
 bool CDrawableSelection::SelectedAt(const CPoint &point_)
 {
-	map<CDrawableContext*, SObjProp>::const_iterator Iterator = m_Objects.begin();
+	mapObject::const_iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		if(Iterator->first->isAt(point_)) return true;
 		Iterator++;
 	}
 	return false;
 }
-void CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Chains) {
-	if(m_eCurrentState!=eSelecting) return;
+IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Chains) {
+	if(m_eCurrentState!=eSelecting) return NULL;
 	m_rcSelection.right = point_.x;
 	m_rcSelection.bottom = point_.y;
 	m_eCurrentState = eNone;
 
 	m_rcSelection.NormalizeRect();
 	if(m_rcSelection.Width()<=1 && m_rcSelection.Height()<=1) {
-		SelPointAdd(m_rcSelection.TopLeft(), Chains);
-		return;
+		return SelPointAdd(m_rcSelection.TopLeft(), Chains);
 	}
 	int nLayer = m_Objects.size()?m_nLayer:-1;
 	CDrawableContext *pDrawableContext = NULL;
@@ -705,19 +742,20 @@ void CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Chains) {
 			nLayer = pDrawableContext->GetObjLayer();
 			m_nLayer = nLayer;
 
-			map<CDrawableContext*, SObjProp>::const_iterator Iterator;
+			mapObject::const_iterator Iterator;
 			Iterator = m_Objects.find(pDrawableContext);
 			if(Iterator==m_Objects.end()) {
 				CRect Rect;
 				pDrawableContext->GetRect(Rect);
 				pDrawableContext->SelectContext();
-				m_Objects.insert(pairObject(pDrawableContext, SObjProp(Rect, relative, relative)));
+				m_Objects.insert(pairObject(pDrawableContext, SObjProp(pDrawableContext, Rect, relative, relative)));
 			}
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildIn(m_rcSelection, &pDrawableContext);
 	}
 	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
+	return NULL;
 }
 void CDrawableSelection::EndSelBoxRemove(const CPoint &point_) {
 	if(m_eCurrentState!=eSelecting) return;
@@ -744,7 +782,7 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_) {
 	}
 }
 void CDrawableSelection::CleanSelection() {
-	map<CDrawableContext*, SObjProp>::iterator Iterator;
+	mapObject::iterator Iterator;
 	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
 		Iterator->first->SelectContext(false);
 	}
@@ -773,7 +811,7 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 	CRect RectTmp;
 
 	// For each selected object, we check to see if the mouse is over it, also we build a bounding Rect:
-	map<CDrawableContext*, SObjProp>::const_iterator Iterator;
+	mapObject::const_iterator Iterator;
 	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
 		Iterator->first->GetAbsFinalRect(RectTmp);
 		if(Iterator->first->isAt(WorldPoint) && m_bCanMove) m_CurrentCursor = eIDC_SIZEALL; // The cursor is ovet the object.

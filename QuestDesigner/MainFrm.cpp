@@ -79,6 +79,10 @@ BOOL CMainFrame::OnIdle()
 
 LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
+	m_bProjectLoaded = false;
+	m_pProjectFactory = CProjectFactory::Instance(m_hWnd);
+	m_pOZKernel = m_pProjectFactory->Interface();
+
 	// updating the window handler of the project's console
 	CConsole::ms_hWnd = m_hWnd;
 
@@ -369,17 +373,17 @@ LRESULT CMainFrame::OnFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 
 LRESULT CMainFrame::OnProjectOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	if(!CProjectFactory::Interface(m_hWnd)->Close()) {
-		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
+	if(!m_pOZKernel->Close()) {
+		int nChoice = MessageBox("Some changes have been made, save?", "Quest Designer", MB_YESNOCANCEL);
 		if(nChoice == IDYES) {
-			if(!CProjectFactory::Interface()->Save()) {
+			if(!m_pOZKernel->Save()) {
 				MessageBox("Couldn't save!");
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		CProjectFactory::Interface()->Close(true);
+		m_pOZKernel->Close(true);
 	} 
 
 	UIEnableToolbar(FALSE);
@@ -389,10 +393,12 @@ LRESULT CMainFrame::OnProjectOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWn
 
 	::SendMessage(m_GameProject, WM_SETREDRAW, FALSE, 0);
 	g_sHomeDir = "C:\\qd\\Quest Designer 2.1.4\\";
-	CProjectFactory::Interface()->Load(g_sHomeDir);
+	m_pOZKernel->Load(g_sHomeDir);
 	::SendMessage(m_GameProject, WM_SETREDRAW, TRUE, 0);
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 	m_SpriteSets.PopulateTree(g_sHomeDir + "Sprite Sets");
+
+	m_bProjectLoaded = true;
 
 	UIEnableToolbar(TRUE);
 
@@ -468,6 +474,11 @@ LRESULT CMainFrame::OnViewSpriteEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND 
 	return 0;
 }
 
+LRESULT CMainFrame::OnAppHelp(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	ShowHelp(m_hWnd);
+	return 0;
+}
 LRESULT CMainFrame::OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	CAboutDlg dlg;
@@ -497,10 +508,17 @@ LRESULT CMainFrame::OnWindowArrangeIcons(WORD /*wNotifyCode*/, WORD /*wID*/, HWN
 	return 0;
 }
 
+LRESULT CMainFrame::OnStopBuild(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	m_pProjectFactory->CancelBuild();
+	OnIdle(); // Force idle processing to update the toolbar.
+	return 0;
+}
 LRESULT CMainFrame::OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 //	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
-	CProjectFactory::Instance(m_hWnd)->StartBuild();
+	m_pProjectFactory->StartBuild();
+	OnIdle(); // Force idle processing to update the toolbar.
 	return 0;
 }
 
@@ -521,8 +539,8 @@ int CMainFrame::Select(LPCTSTR szFilename, LPARAM lParam)
 int CMainFrame::MapCreate(CPoint &Point)
 {
 	CMapGroup *pMapGroupI;
-	if((pMapGroupI = CProjectFactory::Interface()->FindMapGroup(Point.x, Point.y))==NULL) {
-		if((pMapGroupI = CProjectFactory::Interface()->BuildMapGroup(Point.x, Point.y, 1, 1))==NULL) return 0;
+	if((pMapGroupI = m_pOZKernel->FindMapGroup(Point.x, Point.y))==NULL) {
+		if((pMapGroupI = m_pOZKernel->BuildMapGroup(Point.x, Point.y, 1, 1))==NULL) return 0;
 	}
 
 	// Searching for an open child with the same file:
@@ -548,7 +566,7 @@ int CMainFrame::MapCreate(CPoint &Point)
 int CMainFrame::MapFileOpen(CPoint &Point)
 {
 	CMapGroup *pMapGroupI;
-	if((pMapGroupI = CProjectFactory::Interface()->FindMapGroup(Point.x, Point.y))==NULL) return MapCreate(Point);
+	if((pMapGroupI = m_pOZKernel->FindMapGroup(Point.x, Point.y))==NULL) return MapCreate(Point);
 
 	LPCSTR szTitle = pMapGroupI->GetMapGroupID();
 
@@ -574,19 +592,19 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
-	if(!CProjectFactory::Interface()->CloseWorld()) {
-		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
+	if(!m_pOZKernel->CloseWorld()) {
+		int nChoice = MessageBox("Some changes have been made, save?", "Quest Designer", MB_YESNOCANCEL);
 		if(nChoice == IDYES) {
-			if(!CProjectFactory::Interface()->SaveWorld()) {
+			if(!m_pOZKernel->SaveWorld()) {
 				MessageBox("Couldn't save!");
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		CProjectFactory::Interface()->CloseWorld(true);
+		m_pOZKernel->CloseWorld(true);
 	} 
-	CProjectFactory::Interface()->LoadWorld(szFilename);
+	m_pOZKernel->LoadWorld(szFilename);
 
 	if(Select(_T("World Editor"), 0)) return 1;
 
@@ -657,8 +675,42 @@ void CMainFrame::UIUpdateMenuItems()
 		m_Layers.EnableWindow(FALSE);
 		m_bLayers = FALSE;
 	}
+	if(m_pProjectFactory->isBuilding()) {
+		UIEnable(ID_PROJECT_OPEN, FALSE);
+		UIEnable(ID_QUEST_NEW, FALSE);
+		UIEnable(ID_QUEST_OPEN, FALSE);
+		UIEnable(ID_APP_WORLDED, FALSE);
+		UIEnable(ID_APP_MAPED, FALSE);
+		UIEnable(ID_APP_SCRIPTED, FALSE);
+		UIEnable(ID_APP_BUILD, FALSE);
+		UIEnable(ID_APP_PREFERENCES, FALSE);
+		UIEnable(ID_APP_HELP, FALSE);
+		UIEnable(ID_APP_ABOUT, FALSE);
+		UIEnable(ID_APP_STOPBUILD, TRUE);
+	} else {
+		UIEnable(ID_PROJECT_OPEN, TRUE);
+		UIEnable(ID_QUEST_NEW, TRUE);
+		UIEnable(ID_QUEST_OPEN, TRUE);
+		UIEnable(ID_APP_WORLDED, TRUE);
+		UIEnable(ID_APP_MAPED, TRUE);
+		UIEnable(ID_APP_SCRIPTED, TRUE);
+		UIEnable(ID_APP_BUILD, TRUE);
+		UIEnable(ID_APP_PREFERENCES, TRUE);
+		UIEnable(ID_APP_HELP, TRUE);
+		UIEnable(ID_APP_ABOUT, TRUE);
+		UIEnable(ID_APP_STOPBUILD, FALSE);
+	}
+	if(!m_bProjectLoaded) {
+		UIEnable(ID_QUEST_NEW, FALSE);
+		UIEnable(ID_QUEST_OPEN, FALSE);
+		UIEnable(ID_APP_WORLDED, FALSE);
+		UIEnable(ID_APP_MAPED, FALSE);
+		UIEnable(ID_APP_SCRIPTED, FALSE);
+		UIEnable(ID_APP_BUILD, FALSE);
+		UIEnable(ID_APP_STOPBUILD, FALSE);
+	}
 
-	if( ActiveChildType!=tScriptEditor ) {
+	if( ActiveChildType!=tScriptEditor || m_pProjectFactory->isBuilding()) {
 		UIEnable(ID_APP_SAVE, FALSE);
 		UIEnable(ID_APP_SAVE_ALL, FALSE);
 		UIEnable(ID_APP_SAVE_AS, FALSE);

@@ -11,20 +11,157 @@
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 struct GameInfo;
+#define BUFFSIZE 200
+#define MAX_PROPS 50
+struct SInfo
+{
+	InfoType eType;
+	char szScope[30];
+	char szName[30];
+	IPropertyEnabled *pPropObject;
+};
+struct SProperty
+{
+	enum _prop_type { ptUnknown, ptCategory, ptValue, ptBoolean, ptString, ptList } eType;
+	char Buffer[BUFFSIZE];
+	LPCSTR szPropName;
+	bool bEnabled;
+	union {
+		LPCSTR szString;
+		bool bBoolean;
+		int nValue;
+		struct {
+			int nIndex;
+			LPCSTR *List;
+		};
+	};
+};
+struct SPropertyList
+{
+	SInfo Information;
+	int nProperties;
+	SProperty aProperties[MAX_PROPS];
+
+	SProperty* FindProperty(LPCSTR _szName, SProperty::_prop_type _eType = SProperty::ptUnknown)	{
+		for(int i=0; i<nProperties; i++) {
+			aProperties[i].szPropName = aProperties[i].Buffer;
+			if( !stricmp(aProperties[i].Buffer, _szName) &&
+				(_eType == SProperty::ptUnknown || _eType == aProperties[i].eType) ) 
+				return &aProperties[i];
+		}
+		return NULL;
+	}
+	bool SetName(LPCSTR _szName) {
+		if(nProperties>=MAX_PROPS) return false;
+		aProperties[nProperties].szPropName = aProperties[nProperties].Buffer;
+		strncpy(aProperties[nProperties].Buffer, _szName, 29);
+		return true;
+	}
+	bool AddCategory(LPCSTR _szName, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].eType = SProperty::ptCategory;
+		nProperties++;
+		return true;
+	}
+	bool AddString(LPCSTR _szName, LPCSTR _szString, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+
+		LPSTR eob = aProperties[nProperties].Buffer;
+		LPSTR aux = eob + strlen(aProperties[nProperties].szPropName) + 1;
+		eob += BUFFSIZE;
+
+		aProperties[nProperties].szString = aux;
+		strncpy(aux, _szString, eob - aux - 1);
+		aProperties[nProperties].eType = SProperty::ptString;
+		nProperties++;
+		return true;
+	}
+	bool AddList(LPCSTR _szName, int _nIndex, LPCSTR _szList, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].nIndex = _nIndex;
+		LPSTR eob = aProperties[nProperties].Buffer;
+		LPSTR list = aProperties[nProperties].Buffer + strlen(aProperties[nProperties].szPropName) + 1;
+		eob += BUFFSIZE;
+
+		aProperties[nProperties].List = (LPCSTR *)list;
+		LPSTR buffer = list + 11*sizeof(LPSTR);
+		LPCSTR tok = _szList;
+
+		// tokenize the list:
+		for(int i=0; tok && i<=10; i++) {
+			while(*tok==' ' || *tok==',' || *tok=='\t') tok++;
+			LPCSTR aux = strchr(tok, ',');
+			int len;
+			if(aux) len = aux-tok;
+			else len = strlen(tok);
+			
+			if(len > 29) len = 29;
+			if(eob - buffer < len + 1) break;
+
+			aProperties[nProperties].List[i] = buffer;
+			strncpy(buffer, tok, len);
+			buffer+=len;
+			buffer++;
+			tok = aux;
+		}
+		aProperties[nProperties].eType = SProperty::ptList;
+		nProperties++;
+		return true;
+	}
+	bool AddValue(LPCSTR _szName, int _nValue, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].nValue = _nValue;
+		aProperties[nProperties].eType = SProperty::ptValue;
+		nProperties++;
+		return true;
+	}
+	bool AddBoolean(LPCSTR _szName, bool _bBoolean, bool _bEnabled = true)	{
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bBoolean = _bBoolean;
+		aProperties[nProperties].eType = SProperty::ptBoolean;
+		nProperties++;
+		return true;
+	}
+};
 
 interface ISound 
 {
-	virtual void Play() const = 0;
+	virtual DWORD Play(bool _bForever = false) = 0;
 	virtual void Loop(int _repeat = -1) = 0;
-	virtual void Stop() const = 0;
-	virtual void FadeOut(bool _fade = true) = 0;
-	virtual void FadeIn(bool _fade = true) = 0;
+	virtual void Stop(DWORD ID) = 0;
+	virtual void Pause(DWORD ID) = 0;
 
-	virtual int SetFadeSpeed(int _speed) = 0;
-	virtual int SetVolume(int _volume) = 0;
+	virtual bool IsPlaying(DWORD ID) = 0;
 
-	virtual int GetFadeSpeed() const = 0;
-	virtual int GetVolume() const = 0;
+	virtual void SetVolume(DWORD ID, int _volume) = 0;
+	virtual int GetVolume(DWORD ID) = 0;
+
+	virtual int GetLoopBack() const = 0;
+	virtual void SetLoopBack(int _loop) = 0;
+
+	virtual void SetCurrentPosition(DWORD ID, int _pos) = 0;
+
+	virtual LPCSTR GetSoundFilePath(LPSTR szPath, size_t buffsize) = 0;
+};
+
+interface ISoundManager
+{
+	virtual void DoMusic() = 0;
+	virtual void SwitchMusic(ISound *_pSound, int _loopback, bool _fade = true) = 0;
+	virtual void SetMusicVolume(int _volume) = 0;
+	virtual int GetMusicVolume() const = 0;
+	virtual void SetMusicFadeSpeed(int _speed) = 0;
+	virtual int GetMusicFadeSpeed() const = 0;
 };
 
 interface IScript
@@ -78,6 +215,7 @@ interface IGame :
 	virtual LPCSTR GetProjectName() const = 0;
 	virtual int CountScripts() const = 0;
 	virtual const IScript* GetScript(int idx) const = 0;
+	virtual ISoundManager* GetSoundManager() const = 0;
 	/*	\brief Sets the callback function for different objects.
 
 		\remarks 
@@ -103,7 +241,6 @@ interface IGame :
 	virtual void SetConsole(IConsole *pConsole) = 0;
 };
 
-enum InfoType { itWorld, itMapGroup, itMap, itSpriteSheet, itSprite, itSpriteContext, itSound, itScript };
 enum InfoReason { irNoReason, irAdded, irDeleted, irChanged };
 
 struct WorldInfo

@@ -110,12 +110,20 @@ extern CAppModule _Module;
 /*! Message sent to the window when a file needs to be opened and line or object shown. */
 #define WMQD_SELECT			(WMQD_FIRST+6)
 
-#define WMQD_ADDTREE		(WMQD_FIRST+8)
-#define WMQD_DELTREE		(WMQD_FIRST+9)
+#define WMGP_ADDTREE		(WMQD_FIRST+8)
+#define WMGP_DELTREE		(WMQD_FIRST+9)
 
-#define WMQD_DRAGLEAVE		(WMQD_FIRST+10)
-#define WMQD_DRAGOVER		(WMQD_FIRST+11)
-#define WMQD_DRAGENTER		(WMQD_FIRST+12)
+#define WMQ_ADDTREE			(WMQD_FIRST+10)
+#define WMQ_DELTREE			(WMQD_FIRST+11)
+
+#define WMQD_DRAGLEAVE		(WMQD_FIRST+12)
+#define WMQD_DRAGOVER		(WMQD_FIRST+13)
+#define WMQD_DRAGENTER		(WMQD_FIRST+14)
+
+#define WMP_CLEAR			(WMQD_FIRST+15)
+#define WMP_UPDATE			(WMQD_FIRST+16)
+#define WMP_ADDINFO			(WMQD_FIRST+17)
+#define WMP_SETPROP			(WMQD_FIRST+18)
 
 /*! Message sent to a window view when an object has been dropped to it. */
 #define WMQD_DROPOBJ		(WMQD_FIRST+20)
@@ -156,6 +164,8 @@ extern CAppModule _Module;
 		func(); \
 		return TRUE; \
 	}
+
+void ShowHelp(HWND hWnd, LPCSTR szTopic = NULL);
 
 /////////////////////////////////////////////////////////////////////////////
 // Bug fixes and updates needed:

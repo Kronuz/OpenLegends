@@ -107,6 +107,31 @@
 
 CAppModule _Module;
 
+void ShowHelp(HWND hWnd, LPCSTR szTopic) 
+{
+	char szPath[MAX_PATH];
+	::GetModuleFileNameA(_Module.GetModuleInstance(), szPath, MAX_PATH);
+	char *aux = strrchr(szPath, '\\');
+	if(aux) *(aux+1) = '\0';
+	strcat(szPath, "ozscript.chm");
+
+	HtmlHelp(hWnd, szPath, HH_DISPLAY_TOC, NULL);
+	if(szTopic) {
+		HH_AKLINK link;
+		link.cbStruct =     sizeof(HH_AKLINK) ;
+		link.fReserved =    FALSE;
+		link.pszKeywords =  szTopic; 
+		link.pszUrl =       NULL; 
+		link.pszMsgText =   NULL; 
+		link.pszMsgTitle =  NULL; 
+		link.pszWindow =    NULL;
+		link.fIndexOnFail = TRUE;
+
+		HtmlHelp(hWnd, szPath, HH_KEYWORD_LOOKUP, (DWORD)&link);
+		HtmlHelp(hWnd, szPath, HH_SYNC, NULL);
+	}
+}
+
 int StartCodeSense(CodeSenseLibrary *cmaxlib)
 {
 	CM_LANGUAGE LangZES = { 
@@ -190,6 +215,10 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 	_Module.AddMessageLoop(&theLoop);
 	
 
+	// Initialize the html help system
+	DWORD dwCookie;
+	HtmlHelp(NULL, NULL, HH_INITIALIZE, (DWORD)&dwCookie);
+
 	if(!StartCodeSense(&cmaxlib)) {
 		ATLTRACE ( _T ( "CodeSense initialization failed!\n" ) );
 		return 0; // bail...
@@ -203,6 +232,9 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 //	wndMain.ShowWindow(nCmdShow);
 
 	int nRet = theLoop.Run();
+
+	// Uninitialize the help system
+	HtmlHelp(NULL, NULL, HH_UNINITIALIZE, dwCookie);
 
 	_Module.RemoveMessageLoop();
 	return nRet;

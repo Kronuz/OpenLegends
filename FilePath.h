@@ -538,6 +538,8 @@ inline LPCVOID CVFile::ReadFile(LPVOID buffer, size_t buffsize)
 		m_pBuffer = new BYTE[tmpsize];
 		buffer = m_pBuffer;
 	}
+	if(!buffer) return NULL;
+
 	Read(buffer, size);
 
 	return buffer;

@@ -463,7 +463,7 @@ BEGIN
                     IDC_STATIC,146,149,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
     GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
-    CTEXT           "Quest Designer v0.6.0\nfor Open Zelda",IDC_STATIC,7,122,
+    CTEXT           "Quest Designer v0.6.1\nfor Open Zelda",IDC_STATIC,7,122,
                     132,17,0,WS_EX_TRANSPARENT
     EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
     LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
@@ -615,7 +615,7 @@ BEGIN
         BEGIN
             VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Quest Designer v0.6.0 alpha"
+            VALUE "FileDescription", "Quest Designer v0.6.1 alpha"
             VALUE "FileVersion", "1, 0, 0, 6"
             VALUE "InternalName", "QuestDesigner"
             VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
