@@ -30,7 +30,11 @@
 // I couldn't get it to work fine when you have more than one window with different sizes.
 //#define _USE_SWAPCHAINS 
 
+// Use hardware vertex buffers, it should be faster, but it isn't !?? (probably the animations)
+//#define _USE_HWVB
+
 #include <map>
+#include <vector>
 #include <string>
 
 #include "../IGraphics.h"
@@ -60,12 +64,18 @@ typedef struct _D3DCDVERTEX {
 	draw the sprites faster on the screen.
 */
 struct SVertexBuffer {
+#ifdef _USE_HWVB
+	IDirect3DVertexBuffer8 *m_pD3DVB;
+#endif
 	D3DCDTVERTEX *m_pVertices;
 	int m_nVertices;
 	int m_nPrimitives;
 	int m_texTop;
 	int m_texLeft;
 	SVertexBuffer(D3DCDTVERTEX *pVertices_, int nVertices_, int nPrmitives_, int texTop_, int texLeft_) : 
+#ifdef _USE_HWVB
+		m_pD3DVB(NULL),
+#endif
 		m_pVertices(pVertices_), m_nVertices(nVertices_), m_nPrimitives(nPrmitives_),
 		m_texTop(texTop_), m_texLeft(texLeft_) {}
 	~SVertexBuffer() {
@@ -156,8 +166,14 @@ class CGraphicsD3D8 :
 	_D3DDEVTYPE m_devType;
 	D3DXMATRIX m_OldWorldMatrix, m_WorldMatrix, m_IdentityMatrix;
 
+	// map of created textures:
 	typedef std::pair<const std::string, CTextureD3D8*> pairTexture;
 	static std::map<std::string, CTextureD3D8*> ms_Textures;
+
+#ifdef _USE_HWVB
+	// vector of created buffers:
+	static std::vector<CBufferD3D8*> ms_Buffers;
+#endif
 
 #ifdef _USE_SWAPCHAINS
 	typedef std::pair<IDirect3DSwapChain8**, D3DPRESENT_PARAMETERS*> pairSwapChain;
@@ -167,6 +183,8 @@ class CGraphicsD3D8 :
 #else
 	HWND m_hWnd;
 #endif
+	ID3DXFont *m_pD3DFont;
+	ARGBCOLOR m_rgbFontColor;
 
 	D3DCDVERTEX *m_pGrid[2];
 	int m_nGridLines[2];
@@ -189,6 +207,10 @@ class CGraphicsD3D8 :
 	bool BuildSwapChain();
 #endif
 
+#ifdef _USE_HWVB
+	void BuildHWVertexBuffer(SVertexBuffer *pVertexBuffer) const;
+#endif
+
 	WORD GetBitCount();
 	WORD GetNext16ARGB(BYTE **Data);
 	void Clear(const RECT *rectDest, ARGBCOLOR rgbColor) const;
@@ -207,6 +229,7 @@ public:
 	RECT GetVisibleRect() const;
 	float GetCurrentZoom() const;
 
+	bool SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);
 	bool Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);
 	int  Finalize();
 	bool BeginPaint();
@@ -219,7 +242,7 @@ public:
 
 	void SetClearColor(ARGBCOLOR rgbColor);
 
-	void SetFont(LPCSTR lpFont, const SIZE &sizeChar);
+	void SetFont(LPCSTR lpFont, int CharHeight, ARGBCOLOR rgbColor, LONG Weight);
 	void DrawText(const POINT &pointDest, LPCSTR lpString, ...) const;
 	void DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR lpString, ...) const;
 
@@ -229,7 +252,9 @@ public:
 		int rotate = GFX_ROTATE_0, 
 		int transform = GFX_NORMAL, 
 		ARGBCOLOR rgbColor = COLOR_ARGB(255,255,255,255), 
-		IBuffer **buffer = NULL
+		IBuffer **buffer = NULL,
+		float rotation = 0.0f,
+		float scale = 1.0f
 	) const;
 
 	void FillRect(const RECT &rectDest, ARGBCOLOR rgbColor) const;
