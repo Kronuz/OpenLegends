@@ -46,23 +46,9 @@ CMapEditorView::CMapEditorView(CMapEditorFrame *pParentFrame) :
 {
 }
 
-// Called to translate window messages before they are dispatched 
-BOOL CMapEditorView::PreTranslateMessage(MSG *pMsg)
-{
-	return FALSE;
-}
-
-// Called to clean up after window is destroyed (called when WM_NCDESTROY is sent)
-void CMapEditorView::OnFinalMessage(HWND /*hWnd*/)
-{
-	CProjectFactory::Delete(&m_SelectionI);
-	CGraphicsFactory::Delete(&m_pGraphicsI);
-	delete this;
-}
-
 LRESULT CMapEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
-	LRESULT nResult = DefWindowProc();
+	LRESULT lResult = DefWindowProc();
 
 	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D8.dll"))) {
 		MessageBox("Couldn't load graphics plugin, check plugin version.", "Quest Designer");
@@ -70,20 +56,29 @@ LRESULT CMapEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 
 	ASSERT(m_pGraphicsI);
 
-	m_pGraphicsI->Initialize(GetMainFrame()->m_hWnd);
+	if(!m_pGraphicsI->Initialize(GetMainFrame()->m_hWnd)) {
+		::PostMessage(GetParent(), WM_CLOSE, 0, 0);
+	}
 
 	m_pSoundManager = CProjectFactory::Interface()->GetSoundManager();
 
 	bHandled = FALSE;
 
-	return nResult;
+	return lResult;
 }
 LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
+	// check if we are still the topmost window in the MDI frame, if so, stop the music:
 	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) {
 		if(m_pSoundManager && GetMainFrame()->m_bAllowSounds)
 			m_pSoundManager->SwitchMusic(NULL, 0, false);
 	}
+
+	m_SelectionI->CleanSelection();
+	OnChangeSel(OCS_AUTO);
+
+	CProjectFactory::Delete(&m_SelectionI); m_SelectionI = NULL;
+	CGraphicsFactory::Delete(&m_pGraphicsI); m_pGraphicsI = NULL;
 
 	bHandled = FALSE;
 
@@ -91,7 +86,7 @@ LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 }
 
 // Called if the layer's combo box (in the toolbar) selection changes (other layer is selected):
-LRESULT CMapEditorView::OnSelChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND hWndCtl, BOOL& bHandled)
+LRESULT CMapEditorView::OnSelChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& bHandled)
 {
 	if(!m_pMapGroupI || !m_SelectionI) return 0;
 	
@@ -133,6 +128,7 @@ LRESULT CMapEditorView::OnStateChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND h
 	m_pMapGroupI->ShowLayer(nLayer, (nVisibleState == 0));
 	m_SelectionI->LockLayer(nLayer, (nLockedState == 1));
 
+	OnChangeSel(OCS_AUTO);
 	Invalidate();
 
 	return 0;
@@ -140,60 +136,72 @@ LRESULT CMapEditorView::OnStateChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND h
 
 LRESULT CMapEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
-	if(GetMainFrame()->GetOldFocus(tMapEditor) != m_hWnd) {
-		if(m_pMapGroupI) {
-			if(m_pSoundManager && GetMainFrame()->m_bAllowSounds)
-				m_pSoundManager->SwitchMusic(m_pMapGroupI->GetMusic(), 0);
+	bHandled = FALSE;
+
+	if(m_pMapGroupI && m_pSoundManager && GetMainFrame()->m_bAllowSounds) {
+		// If the last Map Editor window to have the focus wasn't this one, switch the music:
+		if(GetMainFrame()->GetOldFocus(tMapEditor) != m_hWnd) {
+			m_pSoundManager->SwitchMusic(m_pMapGroupI->GetMusic(), 0);
 		}
 	}
 
+	// If the last Registerd Window to have the focus was this very same window, do nothing:
 	if(GetMainFrame()->GetOldFocus(tAny) == m_hWnd) return 0;
-	GetMainFrame()->SetOldFocus(tMapEditor, m_hWnd);
+	GetMainFrame()->SetOldFocus(tMapEditor, m_hWnd); // leave a trace of our existence
 
-
-	if(!m_pMapGroupI || !m_SelectionI) {
+	if(!m_pMapGroupI || !m_SelectionI) { // If the map isn't initialized, reset layers:
 		for(int nLayer=0; nLayer<MAX_LAYERS; nLayer++) {
 			GetMainFrame()->m_ctrlLayers.SetItemState(nLayer, "1_Visible", 0);
 			GetMainFrame()->m_ctrlLayers.SetItemState(nLayer, "2_Locked", 0);
 		}
-		GetMainFrame()->m_ctrlLayers.SetCurSel(2);
+		GetMainFrame()->m_ctrlLayers.SetCurSel(DEFAULT_LAYER);
 	}
 
+	// Update the properties window:
 	OnChangeSel(OCS_RENEW);
-
-	bHandled = FALSE;
 
 	return 0;
 }
 
 LRESULT CMapEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
-	// stop the animations
-	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) return 0;
+	bHandled = FALSE;
+
+	// check if we are still the focused window or other application's window is to be focused, 
+	// if so, we just do nothing:
+	if(wParam == NULL) return 0;
+	if(GetParentFrame()->m_hWnd == (HWND)wParam) return 0;
 
 	// Capture the MapGroup (to update the world editor)
 	if(m_pMapGroupI && m_SelectionI) {
 		if(m_SelectionI->HasChanged()) {
-			BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f);
+			BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f); // (1/4 the size)
 			m_pMapGroupI->SetThumbnail(pBitmap);
 		}
 	}
-	
-	bHandled = FALSE;
-
 	return 0;
 }
 
-void CMapEditorView::OnNoSound()
+void CMapEditorView::OnParallax()
+{
+	OnAdjustLimits();
+}
+void CMapEditorView::OnAnim()
+{
+	Invalidate();
+}
+void CMapEditorView::OnSound()
 {
 	if(m_pMapGroupI) {
 		if(m_pSoundManager && GetMainFrame()->m_bAllowSounds) m_pSoundManager->SwitchMusic(m_pMapGroupI->GetMusic(), 0);
 	}
 }
 
-bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle) 
+bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam) 
 {
-	m_pMapGroupI = pMapGroupI;
+	if(!DoFileClose()) return false;
+
+	m_pMapGroupI = (CMapGroup *)wParam;
 	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pMapGroupI))))
 		MessageBox("Couldn't load kernel, check kernel version.", "Quest Designer");
 
@@ -229,9 +237,46 @@ bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle)
 	Invalidate();
 	return true;
 }
+// must return true if the file was truly closed, false otherwise.
+bool CMapEditorView::DoFileClose()
+{
+	if(hasChanged()) {
+		CString sSave;
+		sSave.Format("Save Changes to %s?", GetTitle());
+		int ret = MessageBox(sSave, _T("Quest Designer"), MB_YESNOCANCEL|MB_ICONWARNING);
+		switch(ret) {
+			case IDCANCEL: 
+				return false;
+			case IDYES: 
+				if(!OnFileSave()) { 
+					MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR); 
+					return false; 
+				}
+			case IDNO: 
+				return true;
+		}
+	}
+
+	return true;
+}
+bool CMapEditorView::DoFileSave(LPCTSTR lpszFilePath)
+{
+	return false;
+}
+bool CMapEditorView::DoFileSaveAs()
+{
+	return false;
+}
+bool CMapEditorView::DoFileReload()
+{
+	return false;
+}
 
 LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	ATLASSERT(m_SelectionI);
+	if(!m_SelectionI) return 0;
+
 	CMenu menu;
 	if(!menu.CreatePopupMenu())
 		return 0;
@@ -279,6 +324,9 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		menu.AppendMenu(MF_STRING, 10, "De&lete");
 		menu.AppendMenu(MF_SEPARATOR);
 		menu.AppendMenu(MF_STRING, 11, "Select &None");
+	}
+	if(SelectedCount() == 1) {
+		menu.AppendMenu(MF_STRING, 12, "Edit &Sprite");
 	}
 
 	menu.EnableMenuItem(9, MF_GRAYED);
@@ -355,6 +403,17 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 				SelectNone();
 			}
 			break;
+		case 12: {
+			SObjProp *pObjProp = m_SelectionI->GetFirstSelection();
+			ATLASSERT(pObjProp);
+			if(pObjProp && pObjProp->pContext) {
+				CSprite *pSprite = (CSprite *)pObjProp->pContext->GetDrawableObj();
+				CSpriteSheet *pSpriteSheet = pSprite->GetSpriteSheet();
+
+				GetMainFrame()->SptShtFileOpen(pSpriteSheet, (LPCSTR)pSprite->GetName());
+			}
+			break;
+		}
 	}
 
 	if(isFloating()) SetCapture();
@@ -692,11 +751,21 @@ bool CMapEditorView::GetMouseStateAt(const CPoint &_Point, CURSOR *_pCursor)
 
 void CMapEditorView::CalculateLimits()
 {
+	int nVisibleX = (int)((float)m_szMap.cx * m_Zoom + 0.5f);
+	int nVisibleY = (int)((float)m_szMap.cy * m_Zoom + 0.5f);
+
+	if(GetMainFrame()->m_bAllowParallax) {
+		CRect Rect;
+		GetClientRect(&Rect);
+		nVisibleX = Rect.Width() + (int)((float)(m_szMap.cx - 640) * m_Zoom + 0.5f);
+		nVisibleY = Rect.Height() + (int)((float)(m_szMap.cy - 480) * m_Zoom + 0.5f);
+	}
+
 	m_rcScrollLimits.SetRect(
 		0,
 		0,
-		(int)((float)m_szMap.cx*m_Zoom + 0.5f),
-		(int)((float)m_szMap.cy*m_Zoom + 0.5f) 
+		nVisibleX,
+		nVisibleY
 	);
 }
 
@@ -705,15 +774,33 @@ void CMapEditorView::UpdateSnapSize(int _SnapSize)
 	m_SelectionI->SetSnapSize(_SnapSize, m_bShowGrid);
 }
 
-void CMapEditorView::Render()
+void CMapEditorView::DoFrame()
 {
 	ASSERT(m_SelectionI);
 
 	// Update timings and stuff for the animations
 	CProjectFactory::Interface()->UpdateFPS();
-
+	
 	if(m_pSoundManager && GetMainFrame()->m_bAllowSounds)
 		m_pSoundManager->DoMusic();
+}
+void CMapEditorView::Render(WPARAM wParam)
+{
+	ASSERT(m_SelectionI);
+
+	CRect rcView = m_pGraphicsI->GetVisibleRect();
+
+	// resolution on which the parallax will be used:
+	rcView.right = rcView.left + 640;
+	rcView.bottom = rcView.top + 480;
+
+	if(GetMainFrame()->m_bAllowParallax) {
+		m_pMapGroupI->CalculateParallax(&rcView);
+		m_SelectionI->SetClip(&rcView, COLOR_ARGB(128, 255, 255, 255)); // Clip the window
+	} else {
+		m_pMapGroupI->CalculateParallax(NULL);
+		m_SelectionI->SetClip(NULL);
+	}
 
 	// show entities, and if set, also sprite boundaries and masks
 	WORD wFlags = SPRITE_ENTITIES | (m_bShowBoundaries?SPRITE_BOUNDS:0) | (m_bShowMasks?SPRITE_MASKS:0);
@@ -754,6 +841,13 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 	::SendMessage(hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
 
 	SInfo Information;
+
+	// Add te map group to the properties window:
+	m_pMapGroupI->GetInfo(&Information);
+	m_pMapGroupI->Flag((m_SelectionI->Count() == 0));
+	::SendMessage(hWnd, WMP_ADDINFO, NULL, (LPARAM)&Information);
+
+	// add every selected object to the properties window:
 	SObjProp *pOP = m_SelectionI->GetFirstSelection();
 	while(pOP) {
 		pOP->GetInfo(&Information);
@@ -763,3 +857,27 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 	::SendMessage(hWnd, WMP_SETPROP, 0, 0);
 }
 
+LRESULT CMapEditorView::OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	if( wParam >= '0' || wParam <= '9' ) {
+		if(GetMainFrame()->m_ctrlLayers.SetCurSel(wParam - '0') != CB_ERR) {
+			BOOL bDummy;
+			OnSelChange(0,0,0,bDummy);
+		}
+	}
+
+	bHandled = FALSE;
+	return 0;
+}
+LRESULT CMapEditorView::OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+{
+	CDrawableContext *pDrawableContext = m_SelectionI->GetLastSelected();
+	if(pDrawableContext) {
+		CSprite *pSprite = (CSprite *)pDrawableContext->GetDrawableObj();
+		CSpriteSheet *pSpriteSheet = pSprite->GetSpriteSheet();
+
+		GetMainFrame()->SptShtFileOpen(pSpriteSheet, (LPCSTR)pSprite->GetName());
+	}
+
+	return 0;
+}

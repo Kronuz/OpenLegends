@@ -107,6 +107,8 @@ public:
    virtual BYTE GetKind() const = 0;
    virtual void SetOwner(HWND hWnd, LPVOID pData) = 0;
    virtual LPCTSTR GetName() const = 0;
+   virtual void SetCategory(IProperty *pCategory) = 0; // Added by Kronuz
+   virtual IProperty* GetCategory() const = 0; // Added by Kronuz
    virtual void SetEnabled(BOOL bEnable) = 0;
    virtual BOOL IsEnabled() const = 0;
    virtual void SetItemData(LPARAM lParam) = 0;

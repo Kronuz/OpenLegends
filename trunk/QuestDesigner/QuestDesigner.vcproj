@@ -550,6 +550,9 @@
 				RelativePath=".\res\bitmap2.bmp">
 			</File>
 			<File
+				RelativePath=".\res\camara.bmp">
+			</File>
+			<File
 				RelativePath=".\res\combo_icons.bmp">
 			</File>
 			<File
@@ -725,7 +728,34 @@
 			</File>
 		</Filter>
 		<File
+			RelativePath=".\res\combo_icons.png">
+		</File>
+		<File
+			RelativePath=".\res\combo_icons2.png">
+		</File>
+		<File
+			RelativePath=".\res\logo.png">
+		</File>
+		<File
 			RelativePath=".\res\test.png">
+		</File>
+		<File
+			RelativePath=".\res\ToolbarFolders.png">
+		</File>
+		<File
+			RelativePath=".\res\ToolbarMain.png">
+		</File>
+		<File
+			RelativePath=".\res\ToolbarMapEdBasic.png">
+		</File>
+		<File
+			RelativePath=".\res\ToolbarMapEdObject.png">
+		</File>
+		<File
+			RelativePath=".\res\ToolbarProject.png">
+		</File>
+		<File
+			RelativePath=".\res\ToolbarPropertyView.png">
 		</File>
 	</Files>
 	<Globals>

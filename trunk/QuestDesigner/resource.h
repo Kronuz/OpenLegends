@@ -6,6 +6,7 @@
 #define IDD_PROPERTIES                  101
 #define IDD_PROPERTIES_NOTIMPLEMENTED   102
 #define IDD_PROPERTYVIEW                103
+#define IDD_COLORPEEK                   104
 #define IDR_MAINFRAME                   130
 #define IDR_MDICHILD                    131
 #define ID_POSITION_PANE                150
@@ -52,6 +53,8 @@
 #define IDR_PNG1                        263
 #define IDR_MDISPTSHTED                 264
 #define IDI_DOC_SPRITE                  264
+#define IDB_BITMAP1                     264
+#define IDB_CAMARA                      264
 #define IDI_DOC_SPTSHT                  265
 #define IDI_DOC_SPTSET                  266
 #define IDI_DOC_WAV                     267
@@ -94,6 +97,8 @@
 #define IDC_URL1_STATIC                 1022
 #define IDC_ACK_BUTTON                  1023
 #define IDC_THANKS_EDIT                 1024
+#define IDC_STATIC1                     1025
+#define IDC_STATIC2                     1026
 #define ID_PROJECT_OPEN                 32000
 #define ID_FOLDERS_PROPERTIES           32001
 #define ID_PROP_CAT                     32002
@@ -171,8 +176,12 @@
 #define ID_SCRIPTED_CODELIST            32404
 #define ID_SCRIPTED_CODETIP1            32405
 #define ID_SCRIPTED_CODETIP2            32406
-#define ID_APP_NOSOUND                  32408
-#define ID_MAPED_SELHOLD                32410
+#define ID_APP_SOUND                    32407
+#define ID_APP_ANIM                     32408
+#define ID_APP_PARALLAX                 32409
+#define ID_APP_ADJUST                   32410
+#define ID_MAPED_SELHOLD                32411
+#define ID_APP_RUN                      32415
 #define ID_APP_SAVE                     57603
 #define ID_APP_SAVE_AS                  57604
 #define ID_ERASE                        57632
@@ -213,8 +222,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        264
-#define _APS_NEXT_COMMAND_VALUE         32414
+#define _APS_NEXT_RESOURCE_VALUE        265
+#define _APS_NEXT_COMMAND_VALUE         32420
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           105
 #endif

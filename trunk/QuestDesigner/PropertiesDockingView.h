@@ -23,7 +23,6 @@
 #include "SuperCombo.h"
 
 #include <PropertyList.h>
-#include "ToolBarBox.h"
 
 typedef struct tagPROPDESC {
 	char Name[30];

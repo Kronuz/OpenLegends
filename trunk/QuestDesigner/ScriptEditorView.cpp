@@ -114,32 +114,37 @@ LRESULT CScriptEditorView::OnMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-LRESULT CScriptEditorView::OnFileReload(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+bool CScriptEditorView::OnFileOpen()
+{
+	return false;
+}
+bool CScriptEditorView::OnFileClose()
+{
+	return DoFileClose();
+}
+bool CScriptEditorView::OnFileReload()
 {
 	CString sMessage;
 	sMessage.LoadString(IDS_WARNING_RELOAD);
 
-	if(IDYES==MessageBox(sMessage, "Quest Designer - Script Editor", MB_YESNO)) {
-		DoReload();
+	if(IDYES==MessageBox(sMessage, "Quest Designer", MB_YESNO|MB_ICONWARNING)) {
+		return DoFileReload();
 	}
-	return 0;
+	return false;
 }
 
 // Save handlers
-LRESULT CScriptEditorView::OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+bool CScriptEditorView::OnFileSave()
 {
 	if (!m_sFilePath.IsEmpty()) {
 		// save the file
-		DoFileSave(m_sFilePath);
-	} else {
-		DoFileSaveAs();
+		return DoFileSave(m_sFilePath);
 	}
-	return 0;
+	return DoFileSaveAs();
 }
-LRESULT CScriptEditorView::OnFileSaveAs(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+bool CScriptEditorView::OnFileSaveAs()
 {
-	DoFileSaveAs();
-	return 0;
+	return DoFileSaveAs();
 }
 
 LRESULT CScriptEditorView::OnCodeList1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
@@ -264,24 +269,26 @@ LRESULT CScriptEditorView::OnEditClearAllBookmarks(WORD /*wNotifyCode*/, WORD /*
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // Open a file
-BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T("Untitled")*/ ) 
+bool CScriptEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam) 
 {
+	if(!DoFileClose()) return false;
+
 	// open the requested file
-	CME_CODE lRet = OpenFile(lpszPathName);
+	CME_CODE lRet = OpenFile(lpszFilePath);
 
 	if(CME_FAILED(lRet)) {
-		ATLTRACE(_T("Error: Failed to load file: %s\n" ), lpszPathName );
+		ATLTRACE(_T("Error: Failed to load file: %s\n" ), lpszFilePath );
 
 		// show the error message
 		CString sMessage;
-		sMessage.Format(_T("Failed to load: %s\n\n" ), lpszPathName );
+		sMessage.Format(_T("Failed to load: %s\n\n" ), lpszFilePath );
 		//ShowLastError ( sMessage, ::GetLastError());
 		
-		return FALSE;
+		return false;
 	}
 
 	// Save file name for later
-	m_sFilePath = lpszPathName;
+	m_sFilePath = lpszFilePath;
 
 	// Save the tittle for later
 	m_sTitle = lpszTitle;
@@ -290,38 +297,60 @@ BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T
 	m_pParentFrame->SetTitle(m_sFilePath);
 	m_pParentFrame->SetTabText(m_sTitle);
 
-	return TRUE;
+	return true;
 }
+// must return true if the file was truly closed, false otherwise.
+bool CScriptEditorView::DoFileClose()
+{
+	if(hasChanged()) {
+		CString sSave;
+		sSave.Format("Save Changes to %s?", GetTitle());
+		int ret = MessageBox(sSave, _T("Quest Designer"), MB_YESNOCANCEL|MB_ICONWARNING);
+		switch(ret) {
+			case IDCANCEL: 
+				return false;
+			case IDYES: 
+				if(!OnFileSave()) { 
+					MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR); 
+					return false; 
+				}
+			case IDNO: 
+				return true;
+		}
+	}
+	return true;
+}
+
 // Save a file
-BOOL CScriptEditorView::DoFileSave ( const CString & sPathName ) 
+bool CScriptEditorView::DoFileSave(LPCTSTR lpszFilePath) 
 {
 	// open the requested file
-	CME_CODE lRet = SaveFile(sPathName, FALSE /*bClearUndo*/);
+	CME_CODE lRet = SaveFile(lpszFilePath, FALSE /*bClearUndo*/);
 
 	if(CME_FAILED(lRet)) {
-		ATLTRACE(_T("Error: Failed to save: %s\n"), sPathName);
+		ATLTRACE(_T("Error: Failed to save: %s\n"), lpszFilePath);
 
 		// show the error message
 		CString sMessage;
-		sMessage.Format(_T("Error: Failed to save: %s\n\n"), sPathName);
+		sMessage.Format(_T("Error: Failed to save: %s\n\n"), lpszFilePath);
 //		MessageBox(sMessage, ::GetLastError());
 
-		return FALSE;
+		return false;
 	}
 
 	// Save file name for later
-	m_sFilePath = sPathName;	
+	m_sFilePath = lpszFilePath;	
 
-	return TRUE;
+	return true;
 }
-BOOL CScriptEditorView::DoFileSaveAs()
+bool CScriptEditorView::DoFileSaveAs()
 {
 	static TCHAR szFilter[] = "OZ Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(FALSE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
 	if(IDOK == wndFileDialog.DoModal()) {
 		if(!DoFileSave (wndFileDialog.m_ofn.lpstrFile)) {
-			return FALSE;
+			return false;
 		}
 		// save the title
 		m_sTitle = wndFileDialog.m_szFileTitle;
@@ -332,22 +361,22 @@ BOOL CScriptEditorView::DoFileSaveAs()
 		m_pParentFrame->SetTitle(m_sFilePath);
 		m_pParentFrame->SetTabText(m_sTitle);
 		
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }
 
 // Reload a file	
-BOOL CScriptEditorView::DoReload ()
+bool CScriptEditorView::DoFileReload()
 {
 	// simply re-open the file we opend
 	CME_CODE lRet = OpenFile(m_sFilePath);
 
 	if(CME_FAILED(lRet)) {		
 		ATLTRACE(_T ( "Error: Failed to reload file: %s\n" ), m_sFilePath);
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 void CScriptEditorView::UIUpdateStatusBar()
 {

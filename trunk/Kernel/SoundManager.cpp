@@ -41,8 +41,14 @@ CSound::~CSound()
 
 LPCSTR CSound::GetSoundFilePath(LPSTR szPath, size_t buffsize)
 {
-	strncpy(szPath, (LPCSTR)m_vFile.GetFilePath(), buffsize);
+	strncpy(szPath, (LPCSTR)m_vFile.GetAbsFilePath(), buffsize);
 	return szPath;
+}
+
+LPCSTR CSound::GetSoundFileName(LPSTR szFileName, size_t buffsize)
+{
+	strncpy(szFileName, (LPCSTR)m_vFile.GetFileName(), buffsize);
+	return szFileName;
 }
 
 inline bool CSound::LoadFile() 

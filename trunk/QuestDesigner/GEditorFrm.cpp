@@ -36,6 +36,15 @@ LRESULT CGEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& b
 {
 	ATLASSERT(m_pGEditorView);  // this should have been set by the user class
 	m_pChildView = m_pGEditorView;
+
 	bHandled = FALSE;
+
 	return TRUE;
+}
+LRESULT CGEditorFrame::OnClose(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	if(m_pGEditorView->DoFileClose()) {
+		DefWindowProc();
+	}
+	return 0;
 }

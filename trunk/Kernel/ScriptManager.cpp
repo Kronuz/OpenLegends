@@ -390,12 +390,12 @@ bool CScript::NeedToCompile() const
 }
 LPCSTR CScript::GetScriptFilePath(LPSTR szPath, size_t buffsize) const
 {
-	strncpy(szPath, (LPCSTR)m_fnScriptFile.GetFilePath(), buffsize);
+	strncpy(szPath, (LPCSTR)m_fnScriptFile.GetAbsFilePath(), buffsize);
 	return szPath;
 }
 LPCSTR CScript::GetCompiledFilePath(LPSTR szPath, size_t buffsize) const
 {
 	MakeCompiledFile();
-	strncpy(szPath, (LPCSTR)m_fnCompiledFile.GetFilePath(), buffsize);
+	strncpy(szPath, (LPCSTR)m_fnCompiledFile.GetAbsFilePath(), buffsize);
 	return szPath;
 }

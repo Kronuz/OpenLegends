@@ -25,15 +25,6 @@
 #include "GameManager.h"
 #include "SpriteManager.h"
 
-#define ReadFloatFromFile(file) \
-	((file).GetLine(buff, sizeof(buff))==NULL) ? (0.0f) : (m_nLines++, atof(buff))
-
-#define ReadLongFromFile(file) \
-	((file).GetLine(buff, sizeof(buff))==NULL) ? (0) : (m_nLines++, atol(buff))
-
-#define ReadStringFromFile(string, file) \
-	((file).GetLine(buff, sizeof(buff))==NULL) ? (string="[eof]") : (m_nLines++, string=buff, string.Trim())
-
 bool CSpriteSheetTxtArch::ReadObject(CVFile &vfFile)
 {
 	m_nLines = 0;
@@ -84,7 +75,7 @@ int CSpriteSheetTxtArch::ReadSprite(CVFile &vfFile)
 	CBString sLine;
 	int iFrame=0, iFrames = 1;
 
-	CVFile &fnSheetFile = m_pSpriteSheet->GetFileName();
+	const CVFile &fnSheetFile = m_pSpriteSheet->GetFile();
 	CGameManager *pGameManager = CGameManager::Instance();
 
 	CRect rcRect;
@@ -132,7 +123,7 @@ retry:
 				if(pSprite->IsDefined()) {
 					state = eError;
 					CONSOLE_PRINTF("%s error[1]: '%s' already defined in '%s' (%s)\n    '%s' redefinition attempt in '%s' (%s)\n", 
-						(sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", pSprite->GetName(), pSprite->GetSpriteSheet()->GetName(), pSprite->GetSpriteSheet()->GetFileName().GetFileName(),
+						(sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", pSprite->GetName(), pSprite->GetSpriteSheet()->GetName(), pSprite->GetSpriteSheet()->GetFile().GetFileName(),
 						pSprite->GetName(), m_pSpriteSheet->GetName(), fnSheetFile.GetFileName());
 				} else state = eAnim;
 			}
@@ -441,6 +432,11 @@ bool CWorldTxtArch::ReadMapGroups(CVFile &vfFile)
 		ReadStringFromFile(sMusic, vfFile);
 
 		CMapGroup *pMapGroup = m_pWorld->BuildMapGroup(Rect.left, Rect.top, Rect.Width(), Rect.Height());
+		ASSERT(pMapGroup);
+		CBString sNewID;
+		sNewID.Format("Untitled (%d, %d)", Rect.left, Rect.top);
+		pMapGroup->SetMapGroupID(sNewID);
+		LoadThumbnail(pMapGroup);
 		if(pMapGroup && sMusic!="") {
 			CGameManager *pGameManager = CGameManager::Instance();
 			pMapGroup->SetMusic(pGameManager->MakeSound(sMusic));
@@ -449,6 +445,79 @@ bool CWorldTxtArch::ReadMapGroups(CVFile &vfFile)
 
 	return true;
 }
+bool CWorldTxtArch::LoadThumbnail(CMapGroup *pMapGroup)
+{
+	CRect rcPosition;
+	pMapGroup->GetMapGroupRect(rcPosition);
+
+	int nMapWidth = m_pWorld->m_szMapSize.cx / 4;
+	int nMapHeight = m_pWorld->m_szMapSize.cy / 4;
+
+	int nWidth = rcPosition.Width() * nMapWidth;
+	int nHeight = rcPosition.Height()* nMapHeight;
+
+	LPBYTE pRawBuffer = new BYTE[sizeof(BITMAP) + nHeight * nWidth * sizeof(WORD)];
+	ASSERT(pRawBuffer);
+	if(!pRawBuffer) return false;
+
+	LPBITMAP pBitmap = (LPBITMAP)pRawBuffer;
+	ZeroMemory(pBitmap, sizeof(BITMAP) + nHeight * nWidth * sizeof(WORD));
+	pBitmap->bmBits = pRawBuffer + sizeof(BITMAP);
+	pBitmap->bmWidth = nWidth;
+	pBitmap->bmHeight = nHeight;
+	pBitmap->bmWidthBytes = nWidth * sizeof(WORD);
+	pBitmap->bmBitsPixel = sizeof(WORD)*8;
+
+	CVFile vfFile;
+	CBString sFile;
+	CBString sPath = "questdata\\" + m_pWorld->GetFile().GetFileTitle(); // relative by default
+
+	// for each map in the group, we load it in the ground layer:
+	for(int j=0; j<rcPosition.Height(); j++) {
+		for(int i=0; i<rcPosition.Width(); i++) {
+			sFile.Format("\\screens\\%d-%d.bmp", rcPosition.left + i, rcPosition.top + j);
+			vfFile.SetFilePath(sPath + sFile);
+			if(vfFile.Open("r")) {
+				int m_nLines = 0; // to use the helpers, we need this.
+				CHAR buff[100]; // to use the helpers, we need this buffer
+
+				// if it was saved in 32 bits, the file is incomplete anyway so why bother...
+
+				// Old bitmaps (for the old QD were 128x96 pixels):
+				LPBYTE pBytes = (LPBYTE)pBitmap->bmBits;
+				pBytes += (rcPosition.Height()-j) * nMapHeight * pBitmap->bmWidthBytes;
+				pBytes += i * nMapWidth * sizeof(WORD);
+				pBytes -= pBitmap->bmWidthBytes;
+				for(int y=0; y<96; y++) {
+					int dx = 0;
+					for(int x=0; x<128; x++) {
+						BYTE r,g,b;
+						DWORD dwPixel = (DWORD)ReadLongFromFile(vfFile);
+						// rrrrrggggggbbbbb to 0rrrrrgggggbbbbb:
+						r = (BYTE)(dwPixel>>11);
+						g = (BYTE)((dwPixel>>6) & 0x1F);
+						b = (BYTE)(dwPixel & 0x1F);
+						dwPixel = (r<<10) | (g<<5) | (b);
+
+						// each 4 pixels, we need to add one (old thumbnails were smaller)
+						if(x%4 == 0) *((LPWORD)pBytes + dx++) = (WORD)dwPixel;
+						*((LPWORD)pBytes + dx++) = (WORD)dwPixel;
+					}
+					if(y%4 == 0) {
+						memcpy(pBytes - pBitmap->bmWidthBytes, pBytes, pBitmap->bmWidthBytes);
+						pBytes -= pBitmap->bmWidthBytes;
+					}
+					pBytes -= pBitmap->bmWidthBytes;
+				}
+				vfFile.Close();
+			}
+		}
+	}
+	pMapGroup->SetThumbnail(pBitmap);
+
+	return true;
+}
+
 bool CWorldTxtArch::ReadProperties(CVFile &vfFile)
 {
 	CHAR buff[100];

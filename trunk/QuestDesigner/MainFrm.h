@@ -94,7 +94,9 @@ public:
 		m_pProjectFactory(NULL), 
 		m_pOZKernel(NULL), 
 		m_bProjectLoaded(false), 
-		m_bAllowSounds(true) 
+		m_bAllowSounds(false),
+		m_bAllowAnimations(true),
+		m_bAllowParallax(false) 
 	{}
 
 protected:
@@ -133,6 +135,8 @@ public:
 
 	bool m_bProjectLoaded;
 	bool m_bAllowSounds;
+	bool m_bAllowAnimations;
+	bool m_bAllowParallax;
 	HWND m_ahWnd[10];
 
 ////////////////////////////////////////////////////////
@@ -159,6 +163,7 @@ public:
 		UPDATE_ELEMENT(ID_APP_SAVE_AS, UPDUI_MENUPOPUP)
 
 		UPDATE_ELEMENT(ID_APP_PRINT, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_APP_RUN, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_BUILD, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_STOPBUILD, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_PREFERENCES, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
@@ -173,7 +178,9 @@ public:
 		UPDATE_ELEMENT(ID_APP_SPTSHTED, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_SCRIPTED, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		
-		UPDATE_ELEMENT(ID_APP_NOSOUND, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_APP_SOUND, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_APP_ANIM, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_APP_PARALLAX, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 
 		UPDATE_ELEMENT(ID_SCRIPTED_READ_ONLY, UPDUI_MENUPOPUP)
 		
@@ -232,12 +239,16 @@ public:
 		MENU_COMMAND_HANDLER(ID_APP_STATUS_BAR, OnViewStatusBar)
 		MENU_COMMAND_HANDLER(ID_APP_EXIT, OnFileExit)
 
-		COMMAND_ID_HANDLER(ID_APP_NOSOUND, OnNoSound)
+		COMMAND_ID_HANDLER(ID_APP_SOUND, OnSound)
+		COMMAND_ID_HANDLER(ID_APP_ANIM, OnAnim)
+		COMMAND_ID_HANDLER(ID_APP_PARALLAX, OnParallax)
 
 		MENU_COMMAND_HANDLER(ID_APP_WORLDED, OnViewWorldEditor)
 		MENU_COMMAND_HANDLER(ID_APP_MAPED, OnViewMapEditor)
+		MENU_COMMAND_HANDLER(ID_APP_SCRIPTED, OnViewScriptEditor)
 		MENU_COMMAND_HANDLER(ID_APP_SPTSHTED, OnViewSpriteEditor)
 
+		MENU_COMMAND_HANDLER(ID_APP_RUN, OnRunProject)
 		MENU_COMMAND_HANDLER(ID_APP_BUILD, OnBuildProject)
 		MENU_COMMAND_HANDLER(ID_APP_STOPBUILD, OnStopBuild)
 		//MESSAGE_HANDLER(WMQD_BEGIN, ??)
@@ -291,7 +302,9 @@ public:
 	LRESULT OnInitialize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-	LRESULT OnNoSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
+	LRESULT OnAnim(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
+	LRESULT OnParallax(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
+	LRESULT OnSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
 
 	LRESULT OnFileExit();
 	LRESULT OnFileNew();
@@ -308,6 +321,7 @@ public:
 	LRESULT OnViewWorldEditor();
 	LRESULT OnViewMapEditor();
 	LRESULT OnViewSpriteEditor();
+	LRESULT OnViewScriptEditor();
 
 	LRESULT OnViewInformationWindow();
 	LRESULT OnViewPropertiesWindow();
@@ -320,6 +334,7 @@ public:
 	LRESULT OnWindowArrangeIcons();
 
 	LRESULT OnBuildProject();
+	LRESULT OnRunProject();
 	LRESULT OnStopBuild();
 
 	HWND CreatePane(HWND hWndClient, LPCTSTR sName, HICON hIcon, CRect& rcDock, HWND hDockTo, dockwins::CDockingSide side);
@@ -335,6 +350,7 @@ public:
 	int ScriptFileOpen(LPCTSTR szFilename, LPARAM lParam=0, BOOL bReadOnly=FALSE);
 	int MapCreate(CPoint &Point);
 	int MapFileOpen(CPoint &Point);
+	int SptShtFileOpen(CSpriteSheet *pSpriteSheet, LPCSTR lpszSprite);
 
 	void UIUpdateMenuItems();
 	void UIEnableToolbar(BOOL bEnable = TRUE);

@@ -55,14 +55,17 @@ PROPDESC PropDesc[] = {
 LRESULT CPropertyView::ItemUpdate(HPROPERTY hProperty, BOOL bCommit)
 {
 	LPCSTR Name = hProperty->GetName();
-	SProperty *pP = m_PropertyList.FindProperty(Name);
+	HPROPERTY hCategory = hProperty->GetCategory();
+	SProperty *pP = m_PropertyList.FindProperty(Name, hCategory?hCategory->GetName():"");
 	ASSERT(pP);
 	if(!pP) return 0;
 
 	VARIANT value;
 	memset(&value,0,sizeof(VARIANT));
 	value.vt = VT_I4;
-	if(pP->eType == SProperty::ptString) value.vt = VT_BSTR;
+	if( pP->eType == SProperty::ptString ||
+		pP->eType == SProperty::ptUCString ||
+		pP->eType == SProperty::ptLCString ) value.vt = VT_BSTR;
 	if(!hProperty->GetValue(&value)) return 0;
 
 	switch(pP->eType) {
@@ -70,6 +73,11 @@ LRESULT CPropertyView::ItemUpdate(HPROPERTY hProperty, BOOL bCommit)
 		case SProperty::ptLCString: 
 		case SProperty::ptString: 
 			strncpy(pP->szString, COLE2CT(value.bstrVal), pP->uMDL-1);
+			pP->bChanged = true;
+			break;
+		case SProperty::ptRGBColor: 
+		case SProperty::ptARGBColor: 
+			pP->rgbColor = ARGBCOLOR(*(RGBQUAD*)&(value.intVal));
 			pP->bChanged = true;
 			break;
 		case SProperty::ptRangeValue: 
@@ -204,12 +212,12 @@ LRESULT CPropertyView::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 	GetClientRect(&rcClient);
 
 	m_ctrlToolbar.SubclassWindow( CFrameWindowImplBase<>::CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_PROPVIEW, FALSE, ATL_SIMPLE_TOOLBAR_STYLE | CCS_NODIVIDER | CCS_NOPARENTALIGN | TBSTYLE_FLAT) );
-	m_ctrlToolbar.LoadTrueColorToolBar(16, IDR_TB1_PROPVIEW);
+	m_ctrlToolbar.LoadTrueColorToolBar(IDR_TB1_PROPVIEW);
 	m_ctrlToolbar.MoveWindow(0,0, rcClient.right - rcClient.left, 10);
 	m_ctrlComboBox.SubclassWindow(GetDlgItem(IDC_COMBO));
 
 	m_ctrlComboBox.SetMultiSelection();
-	m_ctrlComboBox.LoadStatesBitmap(16, IDB_COMBO_ICONS, IDB_COMBO_ICONS);
+	m_ctrlComboBox.LoadStatesBitmap(IDB_COMBO_ICONS, IDB_COMBO_ICONS);
 	m_ctrlComboBox.AddIcon("Icon");
 
 	static CFont font;
@@ -249,8 +257,12 @@ LRESULT CPropertyView::OnClear(WPARAM wParam, LPARAM lParam)
 void CPropertyView::AddProperties(SPropertyList *pPL)
 {
 	HPROPERTY hProp = NULL;
+	LPCSTR szLastProperty = "";
 	for(int i=0; i<pPL->nProperties; i++) {
-		hProp = m_ctrlList.FindProperty(pPL->aProperties[i].szPropName);
+		if(pPL->aProperties[i].eType == SProperty::ptCategory) {
+			szLastProperty = pPL->aProperties[i].szPropName;
+		}
+		hProp = m_ctrlList.FindProperty(pPL->aProperties[i].szPropName, szLastProperty);
 		if(hProp) {
 			if(pPL->aProperties[i].eType != SProperty::ptCategory) {
 				if( pPL->aProperties[i].eType == SProperty::ptString ||
@@ -258,14 +270,23 @@ void CPropertyView::AddProperties(SPropertyList *pPL)
 					pPL->aProperties[i].eType == SProperty::ptLCString ) {
 					CComVariant vValue = pPL->aProperties[i].szString;
 					m_ctrlList.SetItemValue(hProp, &vValue);
-				} else if(pPL->aProperties[i].eType == SProperty::ptValue ||
+				} else 
+				if( pPL->aProperties[i].eType == SProperty::ptARGBColor ||
+					pPL->aProperties[i].eType == SProperty::ptRGBColor ) {
+					RGBQUAD Color = (RGBQUAD)ARGBCOLOR(pPL->aProperties[i].rgbColor);
+					CComVariant vValue = (int)(*(DWORD*)&Color);
+					m_ctrlList.SetItemValue(hProp, &vValue);
+				} else 
+				if( pPL->aProperties[i].eType == SProperty::ptValue ||
 					pPL->aProperties[i].eType == SProperty::ptRangeValue ) {
 					CComVariant vValue = pPL->aProperties[i].nValue;
 					m_ctrlList.SetItemValue(hProp, &vValue);
-				} else if(pPL->aProperties[i].eType == SProperty::ptBoolean) {
+				} else 
+				if( pPL->aProperties[i].eType == SProperty::ptBoolean ) {
 					CComVariant vValue = (int)(pPL->aProperties[i].bBoolean & 1);
 					m_ctrlList.SetItemValue(hProp, &vValue);
-				} else if(pPL->aProperties[i].eType == SProperty::ptList) {
+				} else 
+				if( pPL->aProperties[i].eType == SProperty::ptList ) {
 					CComVariant vValue = pPL->aProperties[i].nIndex;
 					m_ctrlList.SetItemValue(hProp, &vValue);
 				}
@@ -275,25 +296,39 @@ void CPropertyView::AddProperties(SPropertyList *pPL)
 				m_ctrlList.SetItemMultivalue(hProp, pPL->aProperties[i].bMultivalue);
 			}
 		} else {
-			if(pPL->aProperties[i].eType == SProperty::ptCategory) {
+			if( pPL->aProperties[i].eType == SProperty::ptCategory ) {
 				hProp = m_ctrlList.AddItem( PropCreateCategory(pPL->aProperties[i].szPropName) );
-			} else if(pPL->aProperties[i].eType == SProperty::ptString) {
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptString ) {
 				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].szString) );
-			} else if(pPL->aProperties[i].eType == SProperty::ptUCString) {
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptUCString ) {
 				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].szString, ES_UPPERCASE) );
-			} else if(pPL->aProperties[i].eType == SProperty::ptLCString) {
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptLCString ) {
 				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].szString, ES_LOWERCASE) );
-			} else if(pPL->aProperties[i].eType == SProperty::ptValue) {
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptValue ) {
 				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].nValue) );
-			} else if(pPL->aProperties[i].eType == SProperty::ptRangeValue) {
+			} else
+			if( pPL->aProperties[i].eType == SProperty::ptARGBColor ) {
+				hProp = m_ctrlList.AddItem( PropCreateColor(pPL->aProperties[i].szPropName, (RGBQUAD)ARGBCOLOR(pPL->aProperties[i].rgbColor), TRUE) );
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptRGBColor ) {
+				hProp = m_ctrlList.AddItem( PropCreateColor(pPL->aProperties[i].szPropName, (RGBQUAD)ARGBCOLOR(pPL->aProperties[i].rgbColor), FALSE) );
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptRangeValue ) {
 				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].nValue, 
 					pPL->aProperties[i].nLowerRange, pPL->aProperties[i].nHigherRange, 
 					pPL->aProperties[i].dwSlider) );
-			} else if(pPL->aProperties[i].eType == SProperty::ptBoolean) {
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptBoolean ) {
 				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].bBoolean) );
-			} else if(pPL->aProperties[i].eType == SProperty::ptList) {
+			} else 
+			if( pPL->aProperties[i].eType == SProperty::ptList ) {
 				hProp = m_ctrlList.AddItem( PropCreateList( pPL->aProperties[i].szPropName, pPL->aProperties[i].List, pPL->aProperties[i].nIndex) );
 			}
+
 			if(hProp) {
 				m_ctrlList.SetItemEnabled(hProp, pPL->aProperties[i].bEnabled);
 				m_ctrlList.SetItemMultivalue(hProp, pPL->aProperties[i].bMultivalue);
@@ -313,7 +348,7 @@ LRESULT CPropertyView::OnAddInfo(WPARAM wParam, LPARAM lParam)
 
 	CString sInfo;
 
-	if(*(pI->szName)=='\0' || *(pI->szName)=='*' ) sInfo = "unnamed";
+	if(*(pI->szName)=='\0' || *(pI->szName)=='*' ) sInfo = "untitled";
 	else sInfo = pI->szName;
 
 	sInfo += ": ";

@@ -62,7 +62,7 @@ bool SObjProp::SetProperties(SPropertyList &PL)
 	bool bChanged = pContext->SetProperties(PL);
 	if(bChanged) pSelection->m_bChanged = pSelection->m_bModified = true;
 
-	pP = PL.FindProperty("Horizontal Chain", SProperty::ptList);
+	pP = PL.FindProperty("Horizontal Chain", "Behavior", SProperty::ptList);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(eXChain != (_Chain)pP->nIndex) {
 			eXChain = (_Chain)pP->nIndex;
@@ -70,7 +70,7 @@ bool SObjProp::SetProperties(SPropertyList &PL)
 		}
 	}
 	
-	pP = PL.FindProperty("Vertical Chain", SProperty::ptList);
+	pP = PL.FindProperty("Vertical Chain", "Behavior", SProperty::ptList);
 	if(pP) if(pP->bEnabled && pP->bChanged)  {
 		if(eYChain != (_Chain)pP->nIndex) {
 			eYChain = (_Chain)pP->nIndex;
@@ -122,8 +122,8 @@ inline bool CDrawableContext::ContextYXCompare::operator()(const CDrawableContex
 
 	if(a->m_Position.y+SizeA.cy < b->m_Position.y+SizeB.cy) return true;
 	if(a->m_Position.y+SizeA.cy >= b->m_Position.y+SizeB.cy) return false;
-	if(a->m_Position.x+SizeA.cx < b->m_Position.x+SizeB.cx) return true;
-	//if(a->m_Position.x+SizeA.cx >= b->m_Position.x+SizeB.cx) return false;
+	if(a->m_Position.x+SizeA.cx < b->m_Position.x+(SizeB.cx/2)) return true;
+	//if(a->m_Position.x+SizeA.cx >= b->m_Position.x+(SizeB.cx/2)) return false;
 
 	return false;
 }
@@ -138,8 +138,8 @@ inline bool CDrawableContext::ContextYiXCompare::operator()(const CDrawableConte
 
 	if(a->m_Position.y+SizeA.cy < b->m_Position.y+SizeB.cy) return true;
 	if(a->m_Position.y+SizeA.cy >= b->m_Position.y+SizeB.cy) return false;
-	if(a->m_Position.x >= b->m_Position.x) return true;
-	//if(a->m_Position.x < b->m_Position.x) return false;
+	if(a->m_Position.x >= b->m_Position.x+(SizeB.cx/2)) return true;
+	//if(a->m_Position.x < b->m_Position.x+(SizeB.cx/2)) return false;
 
 	return false;
 }
@@ -167,7 +167,8 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 	m_Size(-1,-1),
 	m_nInsertion(0),
 	m_bValidMap(false),
-	m_pPtr(NULL)
+	m_pPtr(NULL),
+	m_rgbBkColor(255,0,0,0)
 {
 	memset(m_pBuffer, 0, sizeof(m_pBuffer));
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
@@ -567,7 +568,7 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_CurrentCursor(eIDC_ARROW),
 	m_nSnapSize(1),
 	m_bShowGrid(false),
-	m_nLayer(2), // Default Layer = 2
+	m_nLayer(DEFAULT_LAYER), // Default Layer
 	m_rcSelection(0,0,0,0),
 	m_ptInitialPoint(0,0),
 	m_bAllowMultiLayerSel(false),
@@ -575,7 +576,10 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_bChanged(true),
 	m_bModified(false),
 	m_bHoldSelection(false),
-	m_pBitmap(NULL)
+	m_pBitmap(NULL),
+	m_pLastSelected(NULL),
+	m_rcClip(0,0,0,0),
+	m_CurrentSel(NULL)
 {
 	for(int i=0; i<MAX_LAYERS; i++)
 		m_bLockedLayers[i] = false;
@@ -613,7 +617,12 @@ IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chai
 				CRect Rect;
 				pDrawableContext->GetRect(Rect);
 				pDrawableContext->SelectContext();
+
 				m_Objects.push_back(SObjProp(this, pDrawableContext, Rect, relative, relative));
+
+				// set the last selection:
+				m_pLastSelected = pDrawableContext;
+
 				pDrawableContext->SelectContext();
 				CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
 				CONSOLE_DEBUG("The selected object is on layer %d, and sublayer: %d.\n", pDrawableContext->GetObjLayer(), pDrawableContext->GetObjSubLayer());
@@ -627,6 +636,8 @@ IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chai
 					if(Iterator->eYChain<4) Iterator->eYChain = (_Chain)((int)Iterator->eYChain+1);
 					else Iterator->eYChain = (_Chain)0;
 				}
+				// set the last selection:
+				m_pLastSelected = Iterator->pContext;
 				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
 				return static_cast<IPropertyEnabled *>(Iterator.operator ->());
 			} else if(Chains<0) {
@@ -637,6 +648,8 @@ IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chai
 					if(Iterator->eYChain>0) Iterator->eYChain = (_Chain)((int)Iterator->eYChain-1);
 					else Iterator->eYChain = (_Chain)4;
 				}
+				// set the last selection:
+				m_pLastSelected = Iterator->pContext;
 				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
 				return static_cast<IPropertyEnabled *>(Iterator.operator ->());
 			}
@@ -655,6 +668,9 @@ void CDrawableSelection::SelPointRemove(const CPoint &point_)
 		int nNewLayer = pDrawableContext->GetObjLayer();
 		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
 			nLayer = nNewLayer;
+
+			// remove the last selection:
+			if(m_pLastSelected == pDrawableContext) m_pLastSelected = NULL;
 
 			pDrawableContext->SelectContext(false);
 			vectorObject::iterator removed = 
@@ -818,6 +834,7 @@ int CDrawableSelection::DeleteSelection()
 			Iterator++;
 		}
 
+		m_pLastSelected = NULL;
 		m_Objects.clear();
 		m_bFloating = false;
 		m_bModified = m_bChanged = true;
@@ -839,6 +856,7 @@ void CDrawableSelection::Cancel()
 		for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
 			Iterator->pContext->SelectContext(false);
 		}
+		m_pLastSelected = NULL;
 		m_Objects.clear();
 	}
 }
@@ -960,6 +978,7 @@ void CDrawableSelection::LockLayer(int nLayer, bool bLock)
 				bind2nd(m_equalLayer, nLayer)
 			);
 
+		m_pLastSelected = NULL;
 		m_Objects.erase(Iterator, m_Objects.end());
 
 		// reselect remaining items:
@@ -994,6 +1013,8 @@ void CDrawableSelection::SubSelPoint(bool bAdd, const CPoint &point_, int Chains
 	while(Iterator != m_Objects.end()) {
 		if(Iterator->pContext->isAt(point_) && Iterator->bSubselected != bAdd) {
 			if(Chains==0 || !bAdd) {
+				if(Iterator->pContext == m_pLastSelected && !bAdd) m_pLastSelected = NULL;
+				if(bAdd) m_pLastSelected = Iterator->pContext;
 				Iterator->bSubselected = bAdd;
 			} else if(Chains>0) {
 				if(m_Objects.size()<=1) return; // ignore if there's only one object
@@ -1003,6 +1024,7 @@ void CDrawableSelection::SubSelPoint(bool bAdd, const CPoint &point_, int Chains
 					if(Iterator->eYChain<4) Iterator->eYChain = (_Chain)((int)Iterator->eYChain+1);
 					else Iterator->eYChain = (_Chain)0;
 				}
+				m_pLastSelected = Iterator->pContext;
 				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
 			} else if(Chains<0) {
 				if(m_Objects.size()<=1) return; // ignore if there's only one object
@@ -1012,6 +1034,7 @@ void CDrawableSelection::SubSelPoint(bool bAdd, const CPoint &point_, int Chains
 					if(Iterator->eYChain>0) Iterator->eYChain = (_Chain)((int)Iterator->eYChain-1);
 					else Iterator->eYChain = (_Chain)4;
 				}
+				m_pLastSelected = Iterator->pContext;
 				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
 			}
 			return;
@@ -1038,6 +1061,8 @@ void CDrawableSelection::EndSubSelBox(bool bAdd, const CPoint &point_, int Chain
 	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		if(Iterator->pContext->isIn(m_rcSelection)) {
+			if(Iterator->pContext == m_pLastSelected && !bAdd) m_pLastSelected = NULL;
+			if(bAdd) m_pLastSelected = Iterator->pContext;
 			Iterator->bSubselected = bAdd;
 		}
 		Iterator++;
@@ -1075,6 +1100,9 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 				CRect Rect;
 				pDrawableContext->GetRect(Rect);
 				pDrawableContext->SelectContext();
+
+				m_pLastSelected = pDrawableContext;
+
 				m_Objects.push_back(SObjProp(this, pDrawableContext, Rect, relative, relative));
 			}
 		}
@@ -1108,6 +1136,8 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_)
 		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
 			nLayer = nNewLayer;
 
+			if(pDrawableContext == m_pLastSelected) m_pLastSelected = NULL;
+
 			pDrawableContext->SelectContext(false);
 			vectorObject::iterator remove = 
 				remove_if(m_Objects.begin(), m_Objects.end(), bind2nd(m_equalContext, pDrawableContext));
@@ -1123,6 +1153,7 @@ void CDrawableSelection::CleanSelection() {
 		if(!m_bHoldSelection) Iterator->pContext->SelectContext(false);
 		else Iterator->bSubselected = false;
 	}
+	m_pLastSelected = NULL;
 	if(!m_bHoldSelection) m_Objects.clear();
 }
 bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor)
@@ -1235,7 +1266,7 @@ inline bool CDrawableSelection::BeginPaint(IGraphics *pGraphicsI, WORD wFlags)
 	ASSERT(m_ppMainDrawable);
 	if(!*m_ppMainDrawable) return false;
 	CSprite::SetShowOptions(wFlags);
-	pGraphicsI->SetClearColor(COLOR_ARGB(255,0,0,0));
+	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
 	if(pGraphicsI->BeginPaint()) return true;
 	return false;
 }
@@ -1254,10 +1285,29 @@ inline bool CDrawableSelection::DrawAll(IGraphics *pGraphicsI)
 	if(m_bShowGrid) 
 		bRet &= pGraphicsI->DrawGrid(16, COLOR_ARGB(100,0,0,255));
 
+	if(!m_rcClip.IsRectEmpty()) {
+		bRet &= pGraphicsI->DrawFrame(m_rcClip, m_rgbClipColor, COLOR_ARGB(255, 255, 0, 0));
+	}
+	// Get the current layer's size and draw a frame around it:
+	CRect Rect;
+	(*m_ppMainDrawable)->GetChild(m_nLayer)->GetRect(Rect);
+	pGraphicsI->SelectingBox(Rect, COLOR_ARGB(128, 0, 255, 0)); 
+
 	bRet &= Draw(pGraphicsI);
 		
 	return bRet;
 }
+bool CDrawableSelection::SetClip(const CRect *pRect, ARGBCOLOR rgbColor)
+{
+	if(pRect) {
+		m_rcClip = *pRect;
+	} else {
+		m_rcClip.SetRect(0,0,0,0);
+	}
+	m_rgbClipColor = rgbColor;
+	return true;
+}
+
 bool CDrawableSelection::Paint(IGraphics *pGraphicsI, WORD wFlags)
 {
 	bool bRet = true;
@@ -1290,7 +1340,7 @@ BITMAP* CDrawableSelection::Capture(IGraphics *pGraphicsI, float zoom)
 	pBitmap->bmBitsPixel = sizeof(WORD)*8;
 
 	CSprite::SetShowOptions(SPRITE_ENTITIES); // show entities
-	pGraphicsI->SetClearColor(COLOR_ARGB(255,0,0,0));
+	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
 	// BeginCapture() and EndCapture() return 16 bits bitmaps in the RGB555 format.
 	if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
 		(*m_ppMainDrawable)->Draw(pGraphicsI);
@@ -1371,4 +1421,18 @@ BITMAP* CDrawableSelection::CaptureSelection(IGraphics *pGraphicsI, float zoom)
 	} 
 
 	return pBitmap;
+}
+
+SObjProp* CDrawableSelection::GetFirstSelection()
+{
+	m_CurrentSel = m_Objects.begin();
+	if(m_CurrentSel == m_Objects.end()) return NULL;
+	return (m_CurrentSel++).operator ->();
+}
+
+SObjProp* CDrawableSelection::GetNextSelection() 
+{
+	if(m_CurrentSel == NULL) return NULL;
+	if(m_CurrentSel == m_Objects.end()) return NULL;
+	return (m_CurrentSel++).operator ->();
 }

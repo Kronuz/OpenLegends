@@ -12,11 +12,11 @@
 
 class CTreeDropTarget : public CIDropTarget
 {
-	DWORD _FindIcon(_OpenZeldaFile *pOZFile)
+	DWORD _FindIcon(LPCOZFILE pOZFile)
 	{
 		if(!pOZFile) return ICO_UNKNOWN;
 		// Find out what icon should the pOZFile use:
-		if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) return ICO_UNKNOWN;
+		if(VerifyOZFile(&pOZFile) == FALSE) return ICO_UNKNOWN;
 
 		DWORD dwIcon = ICO_UNKNOWN;
 		switch(pOZFile->dwSignature) {
@@ -40,7 +40,7 @@ class CTreeDropTarget : public CIDropTarget
 		ATLASSERT(pTreeInfo);
 		if(!pTreeInfo) return NULL;
 
-		DWORD dwIcon = _FindIcon((_OpenZeldaFile *)pTreeInfo->GetData());
+		DWORD dwIcon = _FindIcon((LPCOZFILE)pTreeInfo->GetData());
 		// If we can't recognize the dropped file, we don't use it.
 		if(dwIcon == ICO_UNKNOWN) {
 			delete pTreeInfo;
@@ -55,7 +55,7 @@ class CTreeDropTarget : public CIDropTarget
 		item.mask = TVIF_PARAM;
 		if(TreeView_GetItem(m_hTargetWnd, &item) == TRUE && item.lParam != 0) {
 			CTreeInfo *pTreeInfo = (CTreeInfo *)item.lParam;
-			sPath = CString((LPCSTR)pTreeInfo->GetFile()->GetFilePath()) + "\\";
+			sPath = CString((LPCSTR)pTreeInfo->GetFile()->GetAbsFilePath()) + "\\";
 			if(sPath.Right(1) != "\\" && !sPath.IsEmpty()) sPath += "\\";
 		} else {
 			delete pTreeInfo;
@@ -101,7 +101,7 @@ class CTreeDropTarget : public CIDropTarget
 	}
 
 public:
-	CTreeDropTarget(HWND hTargetWnd):CIDropTarget(hTargetWnd){}	
+	CTreeDropTarget(HWND hTargetWnd) : CIDropTarget(hTargetWnd) {}
 	
 	virtual bool OnDrop(FORMATETC* pFmtEtc, STGMEDIUM& medium, DWORD *pdwEffect)
 	{
@@ -128,9 +128,9 @@ public:
 				pTreeInfo = NULL;
 
 				// check if the object contains a valid OZ file as the data:
-				_OpenZeldaFile *pOZFile = (_OpenZeldaFile *)pData;
-				if(pOZFile) if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) pOZFile = NULL;
-				if(pOZFile) {
+				LPCOZFILE pOZFile = (LPCOZFILE)pData;
+				
+				if(VerifyOZFile(&pOZFile)) {
 					CString sName;
 					DWORD dwSize = 0;
 

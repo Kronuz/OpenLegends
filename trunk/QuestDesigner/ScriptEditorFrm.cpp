@@ -38,7 +38,7 @@ LRESULT CScriptEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
 				MAKEINTRESOURCE(IDI_DOC_SCRIPT),
 				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
 	SetIcon(hIcon, ICON_SMALL);
-	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDISCRIPTED)));
+	m_hMenu = ::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDISCRIPTED));
 
 	m_pChildView = m_pScriptEditorView = new CScriptEditorView(this);
 
@@ -70,18 +70,8 @@ LRESULT CScriptEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 
 LRESULT CScriptEditorFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL /*&bHandled*/)
 {
-	if(m_pScriptEditorView->IsModified()) {
-		CString sSave;
-		sSave.Format("Save Changes to %s?", m_pScriptEditorView->GetTitle());
-		int ret = MessageBox(sSave, _T("Quest Designer - Script Editor"), MB_YESNOCANCEL);
-		BOOL bTmp;
-		switch(ret) {
-			case IDCANCEL: return 0;
-			case IDYES: m_pScriptEditorView->OnFileSave(0,0,0,bTmp);
-			case IDNO: return DefWindowProc();
-		}
-	} else {
-		return DefWindowProc();
+	if(m_pScriptEditorView->DoFileClose()) {
+		DefWindowProc();
 	}
 	return 0;
 }

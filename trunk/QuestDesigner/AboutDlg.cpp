@@ -49,32 +49,16 @@ LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPar
 
 /*/
 	CImage Image;
-	LoadBitmap(&Image, _Module.GetModuleInstance(), IDB_LOGO);
-
-	BITMAP bm;
-	GetObject((HBITMAP)Image, sizeof(BITMAP), (LPSTR)&bm);
+	LoadImage(&Image, _Module.GetModuleInstance(), IDB_LOGO);
 
 	CMemDC memdc((HDC)wParam, NULL);
-	BLENDFUNCTION bf;
-
-    bf.BlendOp = AC_SRC_OVER;
-    bf.BlendFlags = 0;
-    bf.AlphaFormat = AC_SRC_ALPHA;
-    bf.SourceConstantAlpha = 0xff;
-
-	HDC hdcCompatible = CreateCompatibleDC(memdc);
-	HBITMAP hOldBMP = (HBITMAP)SelectObject(hdcCompatible, (HBITMAP)Image);
 
 	RECT rcClient;
 	GetClientRect(&rcClient);
 	memdc.FillRect(&rcClient, COLOR_3DFACE);
 
-	memdc.AlphaBlend(7, 15, bm.bmWidth, bm.bmHeight, hdcCompatible, 
-				  0, 0, bm.bmWidth, bm.bmHeight, bf);
+	Image.AlphaBlend(memdc, 7, 15, Image.GetWidth(), Image.GetHeight(), 0, 0, Image.GetWidth(), Image.GetHeight());
 
-	SelectObject(hdcCompatible, hOldBMP);
-	DeleteDC(hdcCompatible);
-/**/
 	return 0;
 
 }
@@ -161,8 +145,8 @@ I want to thank all people who helped me and collaborated in one way or the othe
       + Raichu19192, for testing and support;\r\n\
       + HocusPocus;\r\n\
       + GodGinrai;\r\n\
-      + and last, but not least, the guys at GU that hold that great \r\n\
-          website and their support (http://www.thegaminguniverse.com)\r\n\r\n\
+      + and last, but not least, the guys at GU who have \r\n\
+          a great website (http://www.thegaminguniverse.com)\r\n\r\n\
 If you feel I'm missing sombody, please tell me so I can add her/him/you to the list. "));
 
 	return TRUE;

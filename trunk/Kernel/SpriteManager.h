@@ -372,10 +372,16 @@ protected:
 public:
 	ITexture *m_pTexture; //! cached texture (valid only if it was aquired with the same Device ID)
 
-	CVFile& GetFileName() { return m_fnFile; }
-	LPCSTR GetFilePath(LPSTR szPath, size_t buffsize) const
+	const CBString& GetName() const { return CNamedObj::GetName(); }
+
+	virtual LPCSTR GetFilePath(LPSTR szPath, size_t buffsize) const
 	{
-		strncpy(szPath, (LPCSTR)m_fnFile.GetFilePath(), buffsize);
+		strncpy(szPath, (LPCSTR)m_fnFile.GetAbsFilePath(), buffsize);
+		return szPath;
+	}
+	virtual LPCSTR GetName(LPSTR szPath, size_t buffsize) const
+	{
+		strncpy(szPath, (LPCSTR)GetName(), buffsize);
 		return szPath;
 	}
 
@@ -503,8 +509,6 @@ struct _SpriteSet {
 class CSpriteSelection :
 	public CDrawableSelection
 {
-	vectorObject::iterator m_CurrentSel;
-
 	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
 	void BuildRealSelectionBounds();
 
@@ -513,7 +517,7 @@ class CSpriteSelection :
 	bool PasteSprite(CLayer *pLayer, LPCSTR szSprite);
 
 public:
-	CSpriteSelection(CDrawableContext **ppDrawableContext_) : CDrawableSelection(ppDrawableContext_), m_CurrentSel(NULL) {}
+	CSpriteSelection(CDrawableContext **ppDrawableContext_) : CDrawableSelection(ppDrawableContext_) {}
 
 	// Interface Definition:
 	virtual void FlipSelection();
@@ -522,9 +526,6 @@ public:
 	virtual void CCWRotateSelection();
 
 	virtual bool Draw(const IGraphics *pGraphics_);
-
-	virtual SObjProp* GetFirstSelection();
-	virtual SObjProp* GetNextSelection();
 
 	// If no bitmap is provided, no thumbnail bitmap is added to the copy.
 	// If a bitmap is provided, and the memory for the bitmap has been allocated 

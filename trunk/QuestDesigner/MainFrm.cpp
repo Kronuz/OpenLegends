@@ -104,11 +104,11 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 
 	// Initialize the Projects toolbar:
 	m_ctrlProjectToolBar.SubclassWindow( hProjectToolBar );
-	m_ctrlProjectToolBar.LoadTrueColorToolBar(18, IDR_TB1_PROJECT);
+	m_ctrlProjectToolBar.LoadTrueColorToolBar(IDR_TB1_PROJECT);
 
 	// Initialize the Main toolbar:
 	m_ctrlMainToolBar.SubclassWindow( hMainToolBar );
-	m_ctrlMainToolBar.LoadTrueColorToolBar(18, IDR_TB1_MAIN);
+	m_ctrlMainToolBar.LoadTrueColorToolBar(IDR_TB1_MAIN);
 
 	TBBUTTONINFO tbbi;
 	tbbi.cbSize = sizeof( TBBUTTONINFO );
@@ -116,13 +116,14 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	m_ctrlMainToolBar.GetButtonInfo( ID_MAPED_LAYER, &tbbi );
 
 	tbbi.dwMask = TBIF_SIZE | TBIF_STYLE;
-	tbbi.fsStyle = TBSTYLE_SEP;
+	tbbi.fsStyle = BTNS_SEP;
 	tbbi.cx = 150;
 	m_ctrlMainToolBar.SetButtonInfo( ID_MAPED_LAYER, &tbbi );
 
 	RECT rc;
 	m_ctrlMainToolBar.GetRect( ID_MAPED_LAYER, &rc );
-	 
+	
+	rc.top += (rc.bottom-rc.top)/2 - 11;
 	rc.left += ::GetSystemMetrics( SM_CXEDGE );
 	rc.right -= ::GetSystemMetrics( SM_CXEDGE );
 	rc.bottom += 200;
@@ -135,14 +136,15 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 
 	m_ctrlLayers.SetFont(AtlGetDefaultGuiFont());
 
-	m_ctrlLayers.LoadStatesBitmap(16, IDB_COMBO_ICONS, IDB_COMBO_ICONS2);
+	m_ctrlLayers.LoadStatesBitmap(IDB_COMBO_ICONS, IDB_COMBO_ICONS2);
 	m_ctrlLayers.AddStateIcon("1_Visible", 1, 2);
 	m_ctrlLayers.AddStateIcon("2_Locked", 3, 2);
 
 	for(int i=0; i<MAX_LAYERS; i++) {
+		if(*g_szLayerNames[i] == '\0') break;
 		m_ctrlLayers.AddString(g_szLayerNames[i]);
 	}
-	m_ctrlLayers.SetCurSel(2);
+	m_ctrlLayers.SetCurSel(DEFAULT_LAYER);
 
 	// create a rebat to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_ADJUSTABLE)) {
@@ -182,8 +184,6 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	UISetCheck(ID_APP_STATUS_BAR, TRUE);
 
 	UISetCheck(ID_APP_WORLDED, FALSE);
-	UISetCheck(ID_APP_MAPED, FALSE);
-	UISetCheck(ID_APP_SPTSHTED, FALSE);
 
 	UIUpdateMenuItems();
 
@@ -381,10 +381,10 @@ LRESULT CMainFrame::OnFileOpen()
 LRESULT CMainFrame::OnProjectOpen()
 {
 	if(!m_pOZKernel->Close()) {
-		int nChoice = MessageBox("Some changes have been made, save?", "Quest Designer", MB_YESNOCANCEL);
+		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
 			if(!m_pOZKernel->Save()) {
-				MessageBox("Couldn't save!");
+				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
@@ -470,7 +470,7 @@ CChildFrame* CMainFrame::FindChild(LPCSTR lpszName)
 	return NULL;
 }
 
-LRESULT CMainFrame::OnNoSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled)
+LRESULT CMainFrame::OnSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled)
 {
 	m_bAllowSounds = !m_bAllowSounds;
 	OnIdle(); // Force idle processing to update the toolbar.
@@ -486,17 +486,37 @@ LRESULT CMainFrame::OnNoSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl
 
 	return 0;
 }
+LRESULT CMainFrame::OnAnim(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled)
+{
+	m_bAllowAnimations = !m_bAllowAnimations;
+	OnIdle(); // Force idle processing to update the toolbar.
+
+	bHandled = FALSE;
+
+	return 0;
+}
+LRESULT CMainFrame::OnParallax(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled)
+{
+	m_bAllowParallax = !m_bAllowParallax;
+	OnIdle(); // Force idle processing to update the toolbar.
+
+	bHandled = FALSE;
+
+	return 0;
+}
+
 LRESULT CMainFrame::OnViewWorldEditor()
 {
 	if(CountChilds(tWorldEditor)) {
 		CChildFrame *pChild = FindChild(_T("World Editor"));
 		ATLASSERT(pChild);
-		SendMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
+		::PostMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
 	} else {
 		CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
 		DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
 		HWND hChildWnd = pChild->CreateEx(m_hWndClient, NULL, NULL, dwStyle);
-		ATLASSERT(hChildWnd);
+		//pChild->m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIWORLDED));
+		ATLASSERT(::IsWindow(hChildWnd));
 	}
 	OnIdle(); // Force idle processing to update the toolbar.
 	return 0;
@@ -508,9 +528,13 @@ LRESULT CMainFrame::OnViewMapEditor()
 }
 LRESULT CMainFrame::OnViewSpriteEditor()
 {
+//	SptShtFileOpen("C:\\newHouseOut.png");
 	return 0;
 }
-
+LRESULT CMainFrame::OnViewScriptEditor()
+{
+	return 0;
+}
 LRESULT CMainFrame::OnAppHelp()
 {
 	ShowHelp(m_hWnd);
@@ -551,6 +575,11 @@ LRESULT CMainFrame::OnStopBuild()
 	OnIdle(); // Force idle processing to update the toolbar.
 	return 0;
 }
+LRESULT CMainFrame::OnRunProject()
+{
+	OnIdle(); // Force idle processing to update the toolbar.
+	return 0;
+}
 LRESULT CMainFrame::OnBuildProject()
 {
 //	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
@@ -586,13 +615,14 @@ int CMainFrame::MapCreate(CPoint &Point)
 	CMapEditorFrame *pChild = new CMapEditorFrame(this);
 	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
 	HWND hChildWnd = pChild->CreateEx(m_hWndClient, NULL, NULL, dwStyle);
-	ATLASSERT(hChildWnd);
+	//pChild->m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIMAPED));
+	ATLASSERT(::IsWindow(hChildWnd));
 
 	// get the child's 'view' (actually child's client control)
 	CMapEditorView *pView = pChild->GetView();
-	if(!pView->DoMapOpen(pMapGroupI, szTitle)) {
+	if(!pView->DoFileOpen(NULL, szTitle, (WPARAM)pMapGroupI)) {
 		// kill the failed window (will delete itself)
-		::SendMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		::PostMessage(pChild->m_hWnd,WM_CLOSE,0,0);
 		return 0;
 	}
 	return 1;
@@ -608,20 +638,48 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 	LPCSTR szTitle = pMapGroupI->GetMapGroupID();
 
 	// Searching for an open child with the same file:
-//	if(Select(szTitle, 0)) return 1;
+	if(Select(szTitle, 0)) return 1;
 
 	if(!pMapGroupI->Load()) return 0;
 
 	CMapEditorFrame *pChild = new CMapEditorFrame(this);
 	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
 	HWND hChildWnd = pChild->CreateEx(m_hWndClient, NULL, NULL, dwStyle);
-	ATLASSERT(hChildWnd);
+	//pChild->m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIMAPED));
+	ATLASSERT(::IsWindow(hChildWnd));
 
 	// get the child's 'view' (actually child's client control)
 	CMapEditorView *pView = pChild->GetView();
-	if(!pView->DoMapOpen(pMapGroupI, szTitle)) {
+	if(!pView->DoFileOpen(NULL, szTitle, (WPARAM)pMapGroupI)) {
 		// kill the failed window (will delete itself)
-		::SendMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		::PostMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		return 0;
+	}
+	return 1;
+}
+
+int CMainFrame::SptShtFileOpen(CSpriteSheet *pSpriteSheet, LPCSTR lpszSprite)
+{
+	char szTitle[MAX_PATH];
+	pSpriteSheet->GetName(szTitle, sizeof(szTitle));
+
+	char szFilePath[MAX_PATH];
+	pSpriteSheet->GetFilePath(szFilePath, sizeof(szFilePath));
+
+	// Searching for an open child with the same file:
+	if(Select(szFilePath, (LPARAM)lpszSprite)) return 1;
+
+	CSptShtEditorFrame *pChild = new CSptShtEditorFrame(this);
+	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
+	HWND hChildWnd = pChild->CreateEx(m_hWndClient, NULL, NULL, dwStyle);
+	//pChild->m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDISPTSHTED));
+	ATLASSERT(::IsWindow(hChildWnd));
+
+	// get the child's 'view' (actually child's client control)
+	CSptShtEditorView *pView = pChild->GetView();
+	if(!pView->DoFileOpen(szFilePath, szTitle, (WPARAM)pSpriteSheet, (LPARAM)lpszSprite)) {
+		// kill the failed window (will delete itself)
+		::PostMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
 		return 0;
 	}
 	return 1;
@@ -630,10 +688,10 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
 	if(!m_pOZKernel->CloseWorld()) {
-		int nChoice = MessageBox("Some changes have been made, save?", "Quest Designer", MB_YESNOCANCEL);
+		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
 			if(!m_pOZKernel->SaveWorld()) {
-				MessageBox("Couldn't save!");
+				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
@@ -648,7 +706,8 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 	CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
 	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
 	HWND hChildWnd = pChild->CreateEx(m_hWndClient, NULL, NULL, dwStyle);
-	ATLASSERT(hChildWnd);
+	//pChild->m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIWORLDED));
+	ATLASSERT(::IsWindow(hChildWnd));
 
 	OnIdle(); // Force idle processing to update the toolbar.
 
@@ -668,7 +727,8 @@ int CMainFrame::ScriptFileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly
 	CScriptEditorFrame *pChild = new CScriptEditorFrame(this);
 	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
 	HWND hChildWnd = pChild->CreateEx(m_hWndClient, NULL, NULL, dwStyle);
-	ATLASSERT(hChildWnd);
+	//pChild->m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDISCRIPTED));
+	ATLASSERT(::IsWindow(hChildWnd));
 
 	// get the child's 'view' (actually child's client control)
 	CScriptEditorView *pView = pChild->GetView();
@@ -676,7 +736,7 @@ int CMainFrame::ScriptFileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly
 	// open the requested file
 	if(!pView->DoFileOpen(szFilename, szTitle)) {
 		// kill the failed window (will delete itself)
-		::SendMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		::PostMessage(pChild->m_hWnd,WM_CLOSE,0,0);
 		return 0;
 	} else {
 		pView->SetReadOnly(bReadOnly);
@@ -706,34 +766,49 @@ void CMainFrame::UIUpdateMenuItems()
 		}
 	}
 
-	UISetCheck(ID_APP_WORLDED, CountChilds(tWorldEditor));
-	UISetCheck(ID_APP_NOSOUND, !m_bAllowSounds );
-
 	if( ActiveChildType!=tMapEditor ) {
 		m_ctrlLayers.EnableWindow(FALSE);
 		m_bLayers = FALSE;
 	}
 	if(m_pProjectFactory->isBuilding()) {
+		UISetCheck(ID_APP_WORLDED, FALSE);
+		UISetCheck(ID_APP_SOUND, FALSE);
+		UISetCheck(ID_APP_ANIM, FALSE);
+		UISetCheck(ID_APP_PARALLAX, FALSE);
+
 		UIEnable(ID_PROJECT_OPEN, FALSE);
 		UIEnable(ID_QUEST_NEW, FALSE);
 		UIEnable(ID_QUEST_OPEN, FALSE);
-		UIEnable(ID_APP_NOSOUND, FALSE);
+		UIEnable(ID_APP_SOUND, FALSE);
+		UIEnable(ID_APP_ANIM, FALSE);
+		UIEnable(ID_APP_PARALLAX, FALSE);
 		UIEnable(ID_APP_WORLDED, FALSE);
 		UIEnable(ID_APP_MAPED, FALSE);
+		UIEnable(ID_APP_SPTSHTED, FALSE);
 		UIEnable(ID_APP_SCRIPTED, FALSE);
+		UIEnable(ID_APP_RUN, FALSE);
 		UIEnable(ID_APP_BUILD, FALSE);
 		UIEnable(ID_APP_PREFERENCES, FALSE);
 		UIEnable(ID_APP_HELP, FALSE);
 		UIEnable(ID_APP_ABOUT, FALSE);
 		UIEnable(ID_APP_STOPBUILD, TRUE);
 	} else {
+		UISetCheck(ID_APP_WORLDED, CountChilds(tWorldEditor));
+		UISetCheck(ID_APP_SOUND, m_bAllowSounds );
+		UISetCheck(ID_APP_ANIM, m_bAllowAnimations );
+		UISetCheck(ID_APP_PARALLAX, m_bAllowParallax );
+
 		UIEnable(ID_PROJECT_OPEN, TRUE);
 		UIEnable(ID_QUEST_NEW, TRUE);
 		UIEnable(ID_QUEST_OPEN, TRUE);
-		UIEnable(ID_APP_NOSOUND, TRUE);
+		UIEnable(ID_APP_SOUND, TRUE);
+		UIEnable(ID_APP_ANIM, TRUE);
+		UIEnable(ID_APP_PARALLAX, TRUE);
 		UIEnable(ID_APP_WORLDED, TRUE);
 		UIEnable(ID_APP_MAPED, TRUE);
+		UIEnable(ID_APP_SPTSHTED, TRUE);
 		UIEnable(ID_APP_SCRIPTED, TRUE);
+		UIEnable(ID_APP_RUN, TRUE);
 		UIEnable(ID_APP_BUILD, TRUE);
 		UIEnable(ID_APP_PREFERENCES, TRUE);
 		UIEnable(ID_APP_HELP, TRUE);
@@ -741,12 +816,23 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_APP_STOPBUILD, FALSE);
 	}
 	if(!m_bProjectLoaded) {
+		UISetCheck(ID_APP_WORLDED, FALSE);
+		UISetCheck(ID_APP_SOUND, FALSE);
+		UISetCheck(ID_APP_ANIM, FALSE);
+		UISetCheck(ID_APP_PARALLAX, FALSE);
+
 		UIEnable(ID_QUEST_NEW, FALSE);
 		UIEnable(ID_QUEST_OPEN, FALSE);
+		UIEnable(ID_APP_SOUND, FALSE);
+		UIEnable(ID_APP_ANIM, FALSE);
+		UIEnable(ID_APP_PARALLAX, FALSE);
 		UIEnable(ID_APP_WORLDED, FALSE);
 		UIEnable(ID_APP_MAPED, FALSE);
+		UIEnable(ID_APP_SPTSHTED, FALSE);
 		UIEnable(ID_APP_SCRIPTED, FALSE);
+		UIEnable(ID_APP_RUN, FALSE);
 		UIEnable(ID_APP_BUILD, FALSE);
+		UIEnable(ID_APP_PREFERENCES, FALSE);
 		UIEnable(ID_APP_STOPBUILD, FALSE);
 	}
 

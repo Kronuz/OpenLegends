@@ -105,28 +105,28 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, const A
 	}
 	if(pTexture == NULL) {
 		// We make use of lazy evaluation here to load the textures.
-		CVFile fn = pSpriteSheet->GetFileName();
+		CVFile fnFile = pSpriteSheet->GetFile();
 		float scale = 1.0f;
-		fn.SetFileExt(".png");
-		if(!fn.FileExists()) {
+		fnFile.SetFileExt(".png");
+		if(!fnFile.FileExists()) {
 			scale = 2.0f;
-			fn.SetFileExt(".bmp");
-			CONSOLE_PRINTF("Kernel Warning: Couldn't find Sprite Sheet from PNG file,\n    trying to load from '%s' instead.\n", fn.GetFileName());
-			if(!fn.FileExists()) {
-				CONSOLE_PRINTF("Kernel Error: Couldn't find Sprite Sheet bitmap for '%s.spt'.\n", fn.GetFileTitle());
+			fnFile.SetFileExt(".bmp");
+			CONSOLE_PRINTF("Kernel Warning: Couldn't find Sprite Sheet from PNG file,\n    trying to load from '%s' instead.\n", fnFile.GetFileName());
+			if(!fnFile.FileExists()) {
+				CONSOLE_PRINTF("Kernel Error: Couldn't find Sprite Sheet bitmap for '%s.spt'.\n", fnFile.GetFileTitle());
 				return false;
 			}
 		}
-		if(fn.Open("r")) {
-			int filesize = fn.GetFileSize();
-			LPCVOID pData = fn.ReadFile();
+		if(fnFile.Open("r")) {
+			int filesize = fnFile.GetFileSize();
+			LPCVOID pData = fnFile.ReadFile();
 			if(!pData) {
-				CONSOLE_PRINTF("Kernel Fatal Error: Not enough memory to hold %d bytes!\n", fn.GetFileSize());
-			} else pGraphics->CreateTextureFromFileInMemory(fn.GetFileName(), pData, filesize, &pTexture, scale);
-			fn.Close();
+				CONSOLE_PRINTF("Kernel Fatal Error: Not enough memory to hold %d bytes!\n", fnFile.GetFileSize());
+			} else pGraphics->CreateTextureFromFileInMemory(fnFile.GetFileName(), pData, filesize, &pTexture, scale);
+			fnFile.Close();
 		}
 		if(!pTexture) {
-			CONSOLE_PRINTF("Kernel Error: Couldn't open Sprite Sheet bitmap for '%s.spt'.\n", fn.GetFileTitle());
+			CONSOLE_PRINTF("Kernel Error: Couldn't open Sprite Sheet bitmap for '%s.spt'.\n", fnFile.GetFileTitle());
 			return false;
 		}
 		if(pSpriteSheet->m_pTexture) pSpriteSheet->m_pTexture->Release();
@@ -141,38 +141,41 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, const A
 		if(nFrame == -1) nFrame = m_Boundaries.size()-1;
 	}
 
-	if( m_pSpriteData->iAnimSpd && 
-		CGameManager::GetPauseLevel() == 0 && 
-		pGraphics->GetCurrentZoom() >= 0.5f ) { // fps
+	float fDelta = CGameManager::GetFPSDelta();
+	if( fDelta > 0.0f && pGraphics->GetCurrentZoom() >= 0.5f ) {
+		if( m_pSpriteData->iAnimSpd && 
+			CGameManager::GetPauseLevel() == 0 ) { // fps
 
-		int TotalFrames = m_Boundaries.size();
-		if(m_pSpriteData->eAnimDir != _d_down) {
-			// How long would have taken to play all remaining frames since last render?
-			// Less than the time it took to get here?
-			float AnimTime = (float)(TotalFrames - nFrame) / (float)m_pSpriteData->iAnimSpd;
-			int nTmp = ((m_pSpriteData->iAnimSpd * CGameManager::GetLastTick()/1000) % TotalFrames);
-			if((nTmp < nFrame || AnimTime < CGameManager::GetFPSDelta()) && !m_pSpriteData->bAnimLoop) {
-				nTmp = TotalFrames-1;
-			} 
-			nFrame = nTmp;
-		} else {
-			float AnimTime = (float)(nFrame + 1) / (float)m_pSpriteData->iAnimSpd;
-			int nTmp = (TotalFrames-1) - ((m_pSpriteData->iAnimSpd * CGameManager::GetLastTick()/1000) % TotalFrames);
-			if((nTmp > nFrame || AnimTime < CGameManager::GetFPSDelta()) && !m_pSpriteData->bAnimLoop) {
-				nTmp = 0;
-			}
-			nFrame = nTmp;
-		}
-
-		if(context.m_pBuffer[nBuffer] && scontext->m_nFrame[nBuffer]!=nFrame) {
-			if( m_Boundaries[nFrame].Width() != m_Boundaries[scontext->m_nFrame[nBuffer]].Width() ||
-				m_Boundaries[nFrame].Height() != m_Boundaries[scontext->m_nFrame[nBuffer]].Height()) {
-				context.m_pBuffer[nBuffer]->Invalidate(); // the next frame has different size, invalidate.
+			int TotalFrames = m_Boundaries.size();
+			if(m_pSpriteData->eAnimDir != _d_down) {
+				// How long would have taken to play all remaining frames since last render?
+				// Less than the time it took to get here?
+				float AnimTime = (float)(TotalFrames - nFrame) / (float)m_pSpriteData->iAnimSpd;
+				int nTmp = ((m_pSpriteData->iAnimSpd * CGameManager::GetLastTick()/1000) % TotalFrames);
+				if((nTmp < nFrame || AnimTime < fDelta) && !m_pSpriteData->bAnimLoop) {
+					nTmp = TotalFrames-1;
+				} 
+				nFrame = nTmp;
 			} else {
-				context.m_pBuffer[nBuffer]->Touch(); // same size, the same buffer can be used, just touch.
+				float AnimTime = (float)(nFrame + 1) / (float)m_pSpriteData->iAnimSpd;
+				int nTmp = (TotalFrames-1) - ((m_pSpriteData->iAnimSpd * CGameManager::GetLastTick()/1000) % TotalFrames);
+				if((nTmp > nFrame || AnimTime < fDelta) && !m_pSpriteData->bAnimLoop) {
+					nTmp = 0;
+				}
+				nFrame = nTmp;
 			}
-		}/**/
-	}
+		} 
+	} else nFrame = 0;
+
+	if(context.m_pBuffer[nBuffer] && scontext->m_nFrame[nBuffer]!=nFrame) {
+		if( m_Boundaries[nFrame].Width() != m_Boundaries[scontext->m_nFrame[nBuffer]].Width() ||
+			m_Boundaries[nFrame].Height() != m_Boundaries[scontext->m_nFrame[nBuffer]].Height()) {
+			context.m_pBuffer[nBuffer]->Invalidate(); // the next frame has different size, invalidate.
+		} else {
+			context.m_pBuffer[nBuffer]->Touch(); // same size, the same buffer can be used, just touch.
+		}
+	}/**/
+
 	scontext->m_nFrame[nBuffer] = nFrame;
 
 	ARGBCOLOR rgbColor = scontext->getARGB();
@@ -298,9 +301,6 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 	ASSERT(pPL->nProperties == 0);
 	GetInfo(&pPL->Information);
 
-	char szColor[8];
-	sprintf(szColor, "#%02X%02X%02X", getARGB().rgbRed, getARGB().rgbGreen, getARGB().rgbBlue);
-
 	CRect Rect;
 	pPL->AddCategory("Appearance");
 	if(pPL->Information.eType == itEntity) pPL->AddString("Name", GetName());
@@ -317,7 +317,7 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 		pPL->AddRange("Red Color", getRed(), -256, 255, RED_SLIDER, false);
 		pPL->AddRange("Green Color", getGreen(), -256, 255, GREEN_SLIDER, false);
 		pPL->AddRange("Blue Color", getBlue(), -256, 255, BLUE_SLIDER, false);
-		pPL->AddCaseString("RGB Color", szColor, UpperCase, false);
+		pPL->AddRGBColor("RGB Color", getARGB(), false);
 		pPL->AddRange("Lightness", getLightness(), 0, 255, SIMPLE_SLIDER, false);
 	} else {
 		pPL->AddValue("Width", Rect.Width());
@@ -329,7 +329,7 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 		pPL->AddRange("Red Color", getRed(), -256, 255, RED_SLIDER);
 		pPL->AddRange("Green Color", getGreen(), -256, 255, GREEN_SLIDER);
 		pPL->AddRange("Blue Color", getBlue(), -256, 255, BLUE_SLIDER);
-		pPL->AddCaseString("RGB Color", szColor, UpperCase);
+		pPL->AddRGBColor("RGB Color", getARGB());
 		pPL->AddRange("Lightness", getLightness(), 0, 255, SIMPLE_SLIDER);
 	}
 
@@ -338,12 +338,18 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 	char szLayersList[MAX_LAYERS + sizeof(g_szLayerNames)] = {0};
 	for(int i=0; i<MAX_LAYERS; i++) {
 		strcat(szLayersList, g_szLayerNames[i]);
-		if(i != MAX_LAYERS-1) strcat(szLayersList, ",");
+		if(i != MAX_LAYERS-1) {
+			if(*g_szLayerNames[i+1] == '\0') break;
+			strcat(szLayersList, ",");
+		}
 	}
 	char szSubLayersList[MAX_SUBLAYERS + sizeof(g_szSubLayerNames)] = {0};
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
 		strcat(szSubLayersList, g_szSubLayerNames[i]);
-		if(i != MAX_SUBLAYERS-1) strcat(szSubLayersList, ",");
+		if(i != MAX_SUBLAYERS-1) {
+			if(*g_szSubLayerNames[i+1] == '\0') break;
+			strcat(szSubLayersList, ",");
+		}
 	}
 
 	pPL->AddList("Layer", GetObjLayer(), szLayersList);
@@ -376,7 +382,15 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 	CRect Rect;
 	GetAbsFinalRect(Rect);
 
-	pP = PL.FindProperty("X", SProperty::ptValue);
+	pP = PL.FindProperty("Name", "Appearance", SProperty::ptString);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(strcmp(GetName(), pP->szString)) {
+			SetName(pP->szString);
+			bChanged = true;
+		}
+	}
+
+	pP = PL.FindProperty("X", "Appearance", SProperty::ptValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(pP->nValue - Rect.left) {
 			Rect.OffsetRect(pP->nValue - Rect.left, 0);
@@ -384,7 +398,7 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 		}
 	}
 	
-	pP = PL.FindProperty("Y", SProperty::ptValue);
+	pP = PL.FindProperty("Y", "Appearance", SProperty::ptValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(pP->nValue - Rect.top) {
 			Rect.OffsetRect(0, pP->nValue - Rect.top);
@@ -392,7 +406,7 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 		}
 	}
 
-	pP = PL.FindProperty("Width", SProperty::ptValue);
+	pP = PL.FindProperty("Width", "Appearance", SProperty::ptValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(Rect.right - Rect.left != pP->nValue) {
 			Rect.right = Rect.left + pP->nValue;
@@ -400,7 +414,7 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 		}
 	}
 
-	pP = PL.FindProperty("Height", SProperty::ptValue);
+	pP = PL.FindProperty("Height", "Appearance", SProperty::ptValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(Rect.bottom - Rect.top != pP->nValue) {
 			Rect.bottom = Rect.top + pP->nValue;
@@ -410,35 +424,35 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 
 	SetAbsFinalRect(Rect);
 
-	pP = PL.FindProperty("Alpha", SProperty::ptRangeValue);
+	pP = PL.FindProperty("Alpha", "Appearance", SProperty::ptRangeValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(getAlpha() != pP->nValue) {
 			Alpha(pP->nValue);
 			bChanged = true;
 		}
 	}
-	pP = PL.FindProperty("Red Color", SProperty::ptRangeValue);
+	pP = PL.FindProperty("Red Color", "Appearance", SProperty::ptRangeValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(getRed() != pP->nValue) {
 			Red(pP->nValue);
 			bChanged = true;
 		}
 	}
-	pP = PL.FindProperty("Green Color", SProperty::ptRangeValue);
+	pP = PL.FindProperty("Green Color", "Appearance", SProperty::ptRangeValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(getGreen() != pP->nValue) {
 			Green(pP->nValue);
 			bChanged = true;
 		}
 	}
-	pP = PL.FindProperty("Blue Color", SProperty::ptRangeValue);
+	pP = PL.FindProperty("Blue Color", "Appearance", SProperty::ptRangeValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(getBlue() != pP->nValue) {
 			Blue(pP->nValue);
 			bChanged = true;
 		}
 	}
-	pP = PL.FindProperty("Lightness", SProperty::ptRangeValue);
+	pP = PL.FindProperty("Lightness", "Appearance", SProperty::ptRangeValue);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(getLightness() != pP->nValue) {
 			ARGB(Commit_rgbColor); 
@@ -447,23 +461,15 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 		}
 	}
 
-	pP = PL.FindProperty("RGB Color", SProperty::ptUCString);
+	pP = PL.FindProperty("RGB Color", "Appearance", SProperty::ptRGBColor);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
-		ARGBCOLOR rgbColor;
-		int r, g, b;
-		if(sscanf(pP->szString, "#%02X%02X%02X", &r, &g, &b) == 3) {
-			rgbColor.rgbRed = r;
-			rgbColor.rgbGreen = g;
-			rgbColor.rgbBlue = b;
-			rgbColor.rgbAlpha = (BYTE)getAlpha();
-			if(getARGB().dwColor != rgbColor.dwColor) {
-				ARGB(rgbColor);
-				bChanged = true;
-			}
+		if(getARGB().dwColor != pP->rgbColor) {
+			ARGB(pP->rgbColor);
+			bChanged = true;
 		}
 	}
 
-	pP = PL.FindProperty("IsMirrored", SProperty::ptBoolean);
+	pP = PL.FindProperty("IsMirrored", "Appearance", SProperty::ptBoolean);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(isMirrored() != pP->bBoolean) {
 			Mirror(pP->bBoolean);
@@ -471,7 +477,7 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 		}
 	}
 
-	pP = PL.FindProperty("IsFlipped", SProperty::ptBoolean);
+	pP = PL.FindProperty("IsFlipped", "Appearance", SProperty::ptBoolean);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(isFlipped() != pP->bBoolean) {
 			Flip(pP->bBoolean);
@@ -479,7 +485,7 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 		}
 	}
 	
-	pP = PL.FindProperty("Rotation", SProperty::ptList);
+	pP = PL.FindProperty("Rotation", "Appearance", SProperty::ptList);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
 		if(Rotation() != pP->nIndex) {
 			Rotate(pP->nIndex);
@@ -487,18 +493,18 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 		}
 	}
 
-	pP = PL.FindProperty("SubLayer", SProperty::ptList);
+	pP = PL.FindProperty("Layer", "Misc", SProperty::ptList);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
-		if(GetObjSubLayer() != pP->nIndex) {
-			SetObjSubLayer(pP->nIndex);
+		if(GetObjLayer() != pP->nIndex) {
+			SetObjLayer(pP->nIndex);
 			bChanged = true;
 		}
 	}
 
-	pP = PL.FindProperty("Layer", SProperty::ptList);
+	pP = PL.FindProperty("SubLayer", "Misc", SProperty::ptList);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
-		if(GetObjLayer() != pP->nIndex) {
-			SetObjLayer(pP->nIndex);
+		if(GetObjSubLayer() != pP->nIndex) {
+			SetObjSubLayer(pP->nIndex);
 			bChanged = true;
 		}
 	}
@@ -528,18 +534,6 @@ void CSpriteSelection::BuildRealSelectionBounds()
 		// We need to keep the initial size and location of every selected object:
 		Iterator->rcRect = RectTmp;
 	}
-}
-SObjProp* CSpriteSelection::GetFirstSelection()
-{
-	m_CurrentSel = m_Objects.begin();
-	if(m_CurrentSel == m_Objects.end()) return NULL;
-	return (m_CurrentSel++).operator ->();
-}
-SObjProp* CSpriteSelection::GetNextSelection() 
-{
-	if(m_CurrentSel == NULL) return NULL;
-	if(m_CurrentSel == m_Objects.end()) return NULL;
-	return (m_CurrentSel++).operator ->();
 }
 
 bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
@@ -878,7 +872,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 
 	_SpriteSet *CopyBoard = (_SpriteSet*)pRawBuffer;
 	strcpy(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID);
-	strcat(CopyBoard->Info.Header.ID, "\nUnnamed Sprite Set\nDescription goes here.");
+	strcat(CopyBoard->Info.Header.ID, "\nUntitled Sprite Set\nDescription goes here.");
 	CopyBoard->Info.Header.dwSignature = OZF_SPRITE_SET_SIGNATURE;
 	CopyBoard->Info.Header.dwSize = asize + bmpsize;
 	CopyBoard->Info.nObjects = (int)m_Objects.size();
@@ -1189,22 +1183,22 @@ bool CSpriteSelection::PasteSpriteSet(CLayer *pLayer, LPBYTE pRawBuffer)
 }
 bool CSpriteSelection::PasteFile(CLayer *pLayer, LPCSTR szFilePath)
 {
-	CVFile fn(szFilePath);
-	if(!fn.FileExists()) return false;
+	CVFile fnFile(szFilePath);
+	if(!fnFile.FileExists()) return false;
 
 	BYTE Header[sizeof(_SpriteSet::_SpriteSetInfo)];
 	_SpriteSet *CopyBoard = (_SpriteSet*)Header;
 
-	fn.Open("r");
-	fn.Read(Header, sizeof(_SpriteSet::_SpriteSetInfo));
-	fn.Close();
+	fnFile.Open("r");
+	fnFile.Read(Header, sizeof(_SpriteSet::_SpriteSetInfo));
+	fnFile.Close();
 	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) return false;
 	else if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) return false;
 
-	fn.Open("r");
-	LPBYTE pRawBuffer = (LPBYTE)fn.ReadFile();
+	fnFile.Open("r");
+	LPBYTE pRawBuffer = (LPBYTE)fnFile.ReadFile();
 	bool bRet = PasteSpriteSet(pLayer, pRawBuffer);
-	fn.Close();
+	fnFile.Close();
 
 	return bRet;
 }

@@ -23,15 +23,15 @@
 // Modified by Kronuz on September 8th, 2003
 
 #ifndef __PROPERTYITEM__H
-  #error PropertyItemImpl.h requires PropertyItem.h to be included first
+#error PropertyItemImpl.h requires PropertyItem.h to be included first
 #endif
 
 #ifndef __PROPERTYITEMEDITORS__H
-  #error PropertyItemImpl.h requires PropertyItemEditors.h to be included first
+#error PropertyItemImpl.h requires PropertyItemEditors.h to be included first
 #endif
 
 #ifndef __ATLBASE_H__
-  #error PropertyItem.h requires atlbase.h to be included first
+#error PropertyItem.h requires atlbase.h to be included first
 #endif
 
 
@@ -43,127 +43,139 @@ class CProperty : public IProperty
 {
 protected:
 
-   LPCTSTR m_szMultivalue;
-
-   HWND   m_hWndOwner;
-   LPTSTR m_pszName;
-   bool   m_fEnabled;
-   bool   m_bMultivalue;	// Added by Kronuz.
-   LPARAM m_lParam;
+	LPCTSTR m_szMultivalue;
+	IProperty *m_pCategory;	// Added by Kronuz.
+	HWND   m_hWndOwner;
+	LPTSTR m_pszName;
+	bool   m_fEnabled;
+	bool   m_bMultivalue;	// Added by Kronuz.
+	LPARAM m_lParam;
 
 public:
-   CProperty(LPCTSTR pstrName, LPARAM lParam) : 
+	CProperty(LPCTSTR pstrName, LPARAM lParam) : 
 	  m_szMultivalue(_T("*VARIOUS*")),
-	  m_bMultivalue(false), 
-	  m_fEnabled(true), 
-	  m_lParam(lParam), 
-	  m_hWndOwner(NULL)
-   {
-      ATLASSERT(!::IsBadStringPtr(pstrName,-1));
-      ATLTRY(m_pszName = new TCHAR[ (::lstrlen(pstrName) * sizeof(TCHAR)) + 1 ]);
-      ATLASSERT(m_pszName);
-      ::lstrcpy(m_pszName, pstrName);
-   }
-   virtual ~CProperty()
-   {
-      delete [] m_pszName;
-   }
-   virtual void SetOwner(HWND hWnd, LPVOID /*pData*/)
-   {
-      ATLASSERT(::IsWindow(hWnd));
-      ATLASSERT(m_hWndOwner==NULL); // Cannot set it twice
-      m_hWndOwner = hWnd;
-   }
-   virtual LPCTSTR GetName() const
-   {
-      return m_pszName; // Dangerous!
-   }
-   virtual void SetEnabled(BOOL bEnable)
-   {
-      m_fEnabled = bEnable == TRUE;
-   }
-   virtual BOOL IsEnabled() const
-   {
-      return m_fEnabled;
-   }
-   virtual void SetItemData(LPARAM lParam)
-   {
-      m_lParam = lParam;
-   }
-   virtual LPARAM GetItemData() const
-   {
-      return m_lParam;
-   }
-   virtual void DrawName(PROPERTYDRAWINFO& di)
-   {
-      CDCHandle dc(di.hDC);
-      COLORREF clrBack, clrFront;
-      if( di.state & ODS_SELECTED ) { // Modified by Kronuz
-         clrBack = di.clrSelBack;
-         clrFront = di.clrSelText;
-      } else if( di.state & ODS_DISABLED ) {
-         clrFront = di.clrDisabled;
-         clrBack = di.clrBack;
-      } else {
-         clrFront = di.clrText;
-         clrBack = di.clrBack;
-      }
-      if( (di.state & ODS_GRAYED) ) { // Added by Kronuz:
-         clrBack = ::GetSysColor(COLOR_3DFACE);
-		 if( di.state & ODS_DISABLED ) clrFront = di.clrDisabled;
-		 else clrFront = di.clrText;
-      }
+		  m_bMultivalue(false), 
+		  m_fEnabled(true), 
+		  m_lParam(lParam), 
+		  m_hWndOwner(NULL),
+		  m_pCategory(NULL)
+	  {
+		  ATLASSERT(!::IsBadStringPtr(pstrName,-1));
+		  ATLTRY(m_pszName = new TCHAR[ (::lstrlen(pstrName) * sizeof(TCHAR)) + 1 ]);
+		  ATLASSERT(m_pszName);
+		  ::lstrcpy(m_pszName, pstrName);
+	  }
+	  virtual ~CProperty()
+	  {
+		  delete [] m_pszName;
+	  }
+	  virtual void SetOwner(HWND hWnd, LPVOID /*pData*/)
+	  {
+		  ATLASSERT(::IsWindow(hWnd));
+		  ATLASSERT(m_hWndOwner==NULL); // Cannot set it twice
+		  m_hWndOwner = hWnd;
+	  }
+	  virtual LPCTSTR GetName() const
+	  {
+		  return m_pszName; // Dangerous!
+	  }
+	  // Added by Kronuz:
+	  virtual void SetCategory(IProperty *pCategory)
+	  {
+		  m_pCategory = pCategory;
+	  }
+	  // Added by Kronuz:
+	  virtual IProperty* GetCategory() const
+	  {
+		  return m_pCategory;
+	  }
 
-      RECT rcItem = di.rcItem;
-      dc.FillSolidRect(&rcItem, clrBack);
-      rcItem.left += 2; // Indent text
-      dc.SetBkMode(TRANSPARENT);
-      dc.SetBkColor(clrBack);
-      dc.SetTextColor(clrFront);
-      dc.DrawText(m_pszName, -1, &rcItem, DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_VCENTER);
-   }
-   virtual void DrawValue(PROPERTYDRAWINFO& /*di*/) 
-   { 
-   }
-   virtual HWND CreateInplaceControl(HWND /*hWnd*/, const RECT& /*rc*/) 
-   { 
-      return NULL; 
-   }
-   virtual BOOL Activate(UINT /*action*/, LPARAM /*lParam*/) 
-   { 
-      return TRUE; 
-   }
-   virtual BOOL GetDisplayValue(LPTSTR /*pstr*/, UINT /*cchMax*/) const 
-   { 
-      return FALSE; 
-   }
-   virtual UINT GetDisplayValueLength() const 
-   { 
-      return 0; 
-   }
-   virtual BOOL GetValue(VARIANT* /*pValue*/) const 
-   { 
-      return FALSE; 
-   }
-   virtual BOOL SetValue(const VARIANT& /*value*/) 
-   { 
-      ATLASSERT(false);
-      return FALSE; 
-   }
-   virtual BOOL SetValue(HWND /*hWnd*/) 
-   { 
-      ATLASSERT(false);
-      return FALSE; 
-   }
-   // Added by Kronuz:
-   virtual bool IsMultivalue() const 
-   { 
-	   return m_bMultivalue; 
-   }
-   virtual void SetMultivalue(bool bMultivalue) 
-   { 
-	   m_bMultivalue = bMultivalue; 
-   }
+	  virtual void SetEnabled(BOOL bEnable)
+	  {
+		  m_fEnabled = bEnable == TRUE;
+	  }
+	  virtual BOOL IsEnabled() const
+	  {
+		  return m_fEnabled;
+	  }
+	  virtual void SetItemData(LPARAM lParam)
+	  {
+		  m_lParam = lParam;
+	  }
+	  virtual LPARAM GetItemData() const
+	  {
+		  return m_lParam;
+	  }
+	  virtual void DrawName(PROPERTYDRAWINFO& di)
+	  {
+		  CDCHandle dc(di.hDC);
+		  COLORREF clrBack, clrFront;
+		  if( di.state & ODS_SELECTED ) { // Modified by Kronuz
+			  clrBack = di.clrSelBack;
+			  clrFront = di.clrSelText;
+		  } else if( di.state & ODS_DISABLED ) {
+			  clrFront = di.clrDisabled;
+			  clrBack = di.clrBack;
+		  } else {
+			  clrFront = di.clrText;
+			  clrBack = di.clrBack;
+		  }
+		  if( (di.state & ODS_GRAYED) ) { // Added by Kronuz:
+			  clrBack = ::GetSysColor(COLOR_3DFACE);
+			  if( di.state & ODS_DISABLED ) clrFront = di.clrDisabled;
+			  else clrFront = di.clrText;
+		  }
+
+		  RECT rcItem = di.rcItem;
+		  dc.FillSolidRect(&rcItem, clrBack);
+		  rcItem.left += 2; // Indent text
+		  dc.SetBkMode(TRANSPARENT);
+		  dc.SetBkColor(clrBack);
+		  dc.SetTextColor(clrFront);
+		  dc.DrawText(m_pszName, -1, &rcItem, DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_VCENTER);
+	  }
+	  virtual void DrawValue(PROPERTYDRAWINFO& /*di*/) 
+	  { 
+	  }
+	  virtual HWND CreateInplaceControl(HWND /*hWnd*/, const RECT& /*rc*/) 
+	  { 
+		  return NULL; 
+	  }
+	  virtual BOOL Activate(UINT /*action*/, LPARAM /*lParam*/) 
+	  { 
+		  return TRUE; 
+	  }
+	  virtual BOOL GetDisplayValue(LPTSTR /*pstr*/, UINT /*cchMax*/) const 
+	  { 
+		  return FALSE; 
+	  }
+	  virtual UINT GetDisplayValueLength() const 
+	  { 
+		  return 0; 
+	  }
+	  virtual BOOL GetValue(VARIANT* /*pValue*/) const 
+	  { 
+		  return FALSE; 
+	  }
+	  virtual BOOL SetValue(const VARIANT& /*value*/) 
+	  { 
+		  ATLASSERT(false);
+		  return FALSE; 
+	  }
+	  virtual BOOL SetValue(HWND /*hWnd*/) 
+	  { 
+		  ATLASSERT(false);
+		  return FALSE; 
+	  }
+	  // Added by Kronuz:
+	  virtual bool IsMultivalue() const 
+	  { 
+		  return m_bMultivalue; 
+	  }
+	  virtual void SetMultivalue(bool bMultivalue) 
+	  { 
+		  m_bMultivalue = bMultivalue; 
+	  }
 };
 
 
@@ -173,66 +185,66 @@ public:
 class CPropertyItem : public CProperty
 {
 protected:
-   CComVariant m_val;
+	CComVariant m_val;
 public:
-   CPropertyItem(LPCTSTR pstrName, LPARAM lParam) : CProperty(pstrName, lParam)
-   {
-   }
-   BYTE GetKind() const 
-   { 
-      return PROPKIND_SIMPLE; 
-   }
-   void DrawValue(PROPERTYDRAWINFO& di)
-   {
-      UINT cchMax = GetDisplayValueLength() + 1;
-      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
-      ATLASSERT(pszText);
-      if( !GetDisplayValue(pszText, cchMax) ) return;
-      CDCHandle dc(di.hDC);
-      dc.SetBkMode(TRANSPARENT);
-      dc.SetTextColor(di.state & ODS_DISABLED ? di.clrDisabled : di.clrText);
-      dc.SetBkColor(di.clrBack);
-      RECT rcText = di.rcItem;
-      rcText.left += PROP_TEXT_INDENT;
-      dc.DrawText(pszText, -1, 
-         &rcText, 
-         DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER);
-   }
-   BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
-   {      
-      ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
+	CPropertyItem(LPCTSTR pstrName, LPARAM lParam) : CProperty(pstrName, lParam)
+	{
+	}
+	BYTE GetKind() const 
+	{ 
+		return PROPKIND_SIMPLE; 
+	}
+	void DrawValue(PROPERTYDRAWINFO& di)
+	{
+		UINT cchMax = GetDisplayValueLength() + 1;
+		LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+		ATLASSERT(pszText);
+		if( !GetDisplayValue(pszText, cchMax) ) return;
+		CDCHandle dc(di.hDC);
+		dc.SetBkMode(TRANSPARENT);
+		dc.SetTextColor(di.state & ODS_DISABLED ? di.clrDisabled : di.clrText);
+		dc.SetBkColor(di.clrBack);
+		RECT rcText = di.rcItem;
+		rcText.left += PROP_TEXT_INDENT;
+		dc.DrawText(pszText, -1, 
+			&rcText, 
+			DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER);
+	}
+	BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
+	{      
+		ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
 
-	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
-		  return TRUE;
-	  }
+		if(IsMultivalue()) { // Added by Kronuz
+			::lstrcpyn(pstr, m_szMultivalue, cchMax);
+			return TRUE;
+		}
 
-      // Convert VARIANT to string and use that as display string...
-      CComVariant v;
-      if( FAILED( v.ChangeType(VT_BSTR, &m_val) ) ) return FALSE;
-      USES_CONVERSION;
-      ::lstrcpyn(pstr, OLE2CT(v.bstrVal), cchMax);
-      return TRUE;
-   }
-   UINT GetDisplayValueLength() const
-   {
-	   if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
-      // Hmm, need to convert it to display string first and
-      // then take the length...
-      // TODO: Call GetDisplayValue() instead...
-      CComVariant v;
-      if( FAILED( v.ChangeType(VT_BSTR, &m_val) ) ) return 0;
-      return v.bstrVal == NULL ? 0 : ::lstrlenW(v.bstrVal);
-   }
-   BOOL GetValue(VARIANT* pVal) const
-   {
-      return SUCCEEDED( CComVariant(m_val).Detach(pVal) );
-   }
-   BOOL SetValue(const VARIANT& value)
-   {
-      m_val = value;
-      return TRUE;
-   }
+		// Convert VARIANT to string and use that as display string...
+		CComVariant v;
+		if( FAILED( v.ChangeType(VT_BSTR, &m_val) ) ) return FALSE;
+		USES_CONVERSION;
+		::lstrcpyn(pstr, OLE2CT(v.bstrVal), cchMax);
+		return TRUE;
+	}
+	UINT GetDisplayValueLength() const
+	{
+		if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
+		// Hmm, need to convert it to display string first and
+		// then take the length...
+		// TODO: Call GetDisplayValue() instead...
+		CComVariant v;
+		if( FAILED( v.ChangeType(VT_BSTR, &m_val) ) ) return 0;
+		return v.bstrVal == NULL ? 0 : ::lstrlenW(v.bstrVal);
+	}
+	BOOL GetValue(VARIANT* pVal) const
+	{
+		return SUCCEEDED( CComVariant(m_val).Detach(pVal) );
+	}
+	BOOL SetValue(const VARIANT& value)
+	{
+		m_val = value;
+		return TRUE;
+	}
 };
 
 
@@ -242,82 +254,82 @@ public:
 class CPropertyReadOnlyItem : public CPropertyItem
 {
 protected:
-   UINT m_uStyle;
-   HICON m_hIcon;
-   COLORREF m_clrBack;
-   COLORREF m_clrText;
+	UINT m_uStyle;
+	HICON m_hIcon;
+	COLORREF m_clrBack;
+	COLORREF m_clrText;
 
 public:
-   CPropertyReadOnlyItem(LPCTSTR pstrName, LPARAM lParam) : 
-      CPropertyItem(pstrName, lParam), 
-      m_uStyle( DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER ),
-      m_clrBack( (COLORREF) -1 ),
-      m_clrText( (COLORREF) -1 ),
-      m_hIcon(NULL)
-   {
-   }
-   void DrawValue(PROPERTYDRAWINFO& di)
-   {
-      // Get property text
-      UINT cchMax = GetDisplayValueLength() + 1;
-      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
-      ATLASSERT(pszText);
-      if( !GetDisplayValue(pszText, cchMax) ) return;
-      // Prepare paint
-      RECT rcText = di.rcItem;
-      CDCHandle dc(di.hDC);
-      dc.SetBkMode(OPAQUE);
-      // Set background color
-      COLORREF clrBack = di.clrBack;
-      if( m_clrBack != (COLORREF) -1 ) clrBack = m_clrBack;
-      dc.SetBkColor(clrBack);
-      // Set text color
-      COLORREF clrText = di.clrText;
-      if( m_clrText != (COLORREF) -1 ) clrText = m_clrText;
-      if( di.state & ODS_DISABLED ) clrText = di.clrDisabled; 
-      dc.SetTextColor(clrText);
-      // Draw icon if available
-      if( m_hIcon ) {
-         POINT pt = { rcText.left + 2, rcText.top + 2 };
-         SIZE sz = { ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON) };
-         ::DrawIconEx(dc, pt.x, pt.y, m_hIcon, sz.cx, sz.cy, 0, NULL, DI_NORMAL);
-         rcText.left += sz.cx + 4;
-      }
-      // Draw text with custom style
-      rcText.left += PROP_TEXT_INDENT;
-      dc.DrawText(pszText, -1, 
-         &rcText, 
-         m_uStyle);
-   }
+	CPropertyReadOnlyItem(LPCTSTR pstrName, LPARAM lParam) : 
+	  CPropertyItem(pstrName, lParam), 
+		  m_uStyle( DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER ),
+		  m_clrBack( (COLORREF) -1 ),
+		  m_clrText( (COLORREF) -1 ),
+		  m_hIcon(NULL)
+	  {
+	  }
+	  void DrawValue(PROPERTYDRAWINFO& di)
+	  {
+		  // Get property text
+		  UINT cchMax = GetDisplayValueLength() + 1;
+		  LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+		  ATLASSERT(pszText);
+		  if( !GetDisplayValue(pszText, cchMax) ) return;
+		  // Prepare paint
+		  RECT rcText = di.rcItem;
+		  CDCHandle dc(di.hDC);
+		  dc.SetBkMode(OPAQUE);
+		  // Set background color
+		  COLORREF clrBack = di.clrBack;
+		  if( m_clrBack != (COLORREF) -1 ) clrBack = m_clrBack;
+		  dc.SetBkColor(clrBack);
+		  // Set text color
+		  COLORREF clrText = di.clrText;
+		  if( m_clrText != (COLORREF) -1 ) clrText = m_clrText;
+		  if( di.state & ODS_DISABLED ) clrText = di.clrDisabled; 
+		  dc.SetTextColor(clrText);
+		  // Draw icon if available
+		  if( m_hIcon ) {
+			  POINT pt = { rcText.left + 2, rcText.top + 2 };
+			  SIZE sz = { ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON) };
+			  ::DrawIconEx(dc, pt.x, pt.y, m_hIcon, sz.cx, sz.cy, 0, NULL, DI_NORMAL);
+			  rcText.left += sz.cx + 4;
+		  }
+		  // Draw text with custom style
+		  rcText.left += PROP_TEXT_INDENT;
+		  dc.DrawText(pszText, -1, 
+			  &rcText, 
+			  m_uStyle);
+	  }
 
-   // Operations
+	  // Operations
 
-   // NOTE: To use these methods, you must cast the HPROPERTY 
-   //       handle back to the CPropertyReadOnlyItem class.
-   //       Nasty stuff, but so far I've settled with this approach.
+	  // NOTE: To use these methods, you must cast the HPROPERTY 
+	  //       handle back to the CPropertyReadOnlyItem class.
+	  //       Nasty stuff, but so far I've settled with this approach.
 
-   COLORREF SetBkColor(COLORREF clrBack)
-   {
-      COLORREF clrOld = m_clrBack;
-      m_clrBack = clrBack;
-      return clrOld;
-   }
-   COLORREF SetTextColor(COLORREF clrText)
-   {
-      COLORREF clrOld = m_clrText;
-      m_clrText = clrText;
-      return clrOld;
-   }
-   HICON SetIcon(HICON hIcon)
-   {
-      HICON hOldIcon = m_hIcon;
-      m_hIcon = hIcon;
-      return hOldIcon;
-   }
-   void ModifyDrawStyle(UINT uRemove, UINT uAdd)
-   {
-      m_uStyle = (m_uStyle & ~uRemove) | uAdd;
-   }
+	  COLORREF SetBkColor(COLORREF clrBack)
+	  {
+		  COLORREF clrOld = m_clrBack;
+		  m_clrBack = clrBack;
+		  return clrOld;
+	  }
+	  COLORREF SetTextColor(COLORREF clrText)
+	  {
+		  COLORREF clrOld = m_clrText;
+		  m_clrText = clrText;
+		  return clrOld;
+	  }
+	  HICON SetIcon(HICON hIcon)
+	  {
+		  HICON hOldIcon = m_hIcon;
+		  m_hIcon = hIcon;
+		  return hOldIcon;
+	  }
+	  void ModifyDrawStyle(UINT uRemove, UINT uAdd)
+	  {
+		  m_uStyle = (m_uStyle & ~uRemove) | uAdd;
+	  }
 };
 
 
@@ -327,143 +339,143 @@ public:
 class CPropertyEditItem : public CPropertyItem
 {
 protected:
-   HWND m_hwndEdit;
-   DWORD m_dwSlider;
-   int m_iLowerLimit;
-   int m_iHigherLimit;
-   DWORD m_dwStyle;
-	
+	HWND m_hwndEdit;
+	DWORD m_dwSlider;
+	int m_iLowerLimit;
+	int m_iHigherLimit;
+	DWORD m_dwStyle;
+
 public:
-   CPropertyEditItem(LPCTSTR pstrName, int iLower, int iHigher, DWORD dwSlider, DWORD dwStyle, LPARAM lParam) : 
-      CPropertyItem(pstrName, lParam), 
-      m_hwndEdit(NULL),
-	  m_dwSlider(dwSlider),
-	  m_iLowerLimit(iLower),
-	  m_iHigherLimit(iHigher),
-	  m_dwStyle(dwStyle)
-   {
-   }
-   CPropertyEditItem(LPCTSTR pstrName, LPARAM lParam) : 
-      CPropertyItem(pstrName, lParam), 
-      m_hwndEdit(NULL),
-	  m_dwSlider(0),
-	  m_iLowerLimit(0),
-	  m_iHigherLimit(0),
-	  m_dwStyle(0)
-   {
-   }
-   BYTE GetKind() const 
-   { 
-      return PROPKIND_EDIT; 
-   }
-   void DrawValue(PROPERTYDRAWINFO& di)
-   {
-	  if(m_dwSlider & 0xff000000) {
-		  ATLASSERT(m_val.vt==VT_I4);
-		  if( m_val.lVal < m_iLowerLimit ) m_val.lVal = m_iLowerLimit;
-		  if( m_val.lVal > m_iHigherLimit  ) m_val.lVal = m_iHigherLimit;
+	CPropertyEditItem(LPCTSTR pstrName, int iLower, int iHigher, DWORD dwSlider, DWORD dwStyle, LPARAM lParam) : 
+	  CPropertyItem(pstrName, lParam), 
+		  m_hwndEdit(NULL),
+		  m_dwSlider(dwSlider),
+		  m_iLowerLimit(iLower),
+		  m_iHigherLimit(iHigher),
+		  m_dwStyle(dwStyle)
+	  {
 	  }
-
-      UINT cchMax = GetDisplayValueLength() + 1;
-      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
-      ATLASSERT(pszText);
-      if( !GetDisplayValue(pszText, cchMax) ) return;
-      CDCHandle dc(di.hDC);
-      dc.SetBkMode(TRANSPARENT);
-      dc.SetTextColor(di.state & ODS_DISABLED ? di.clrDisabled : di.clrText);
-      dc.SetBkColor(di.clrBack);
-      RECT rcText = di.rcItem;
-      rcText.left += PROP_TEXT_INDENT;
-
-	  if(m_dwSlider & 0xff000000) { // Added by Kronuz:
-		  rcText.top--;
-		  rcText.bottom--;
+	  CPropertyEditItem(LPCTSTR pstrName, LPARAM lParam) : 
+	  CPropertyItem(pstrName, lParam), 
+		  m_hwndEdit(NULL),
+		  m_dwSlider(0),
+		  m_iLowerLimit(0),
+		  m_iHigherLimit(0),
+		  m_dwStyle(0)
+	  {
 	  }
-
-      dc.DrawText(pszText, -1, 
-         &rcText, 
-         DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER);
-
-	  // Added by Kronuz:
-	  if(m_dwSlider & 0xff000000) {
-		  RECT rcSlider = di.rcItem;
-		  rcSlider.top = rcSlider.bottom - 4;
-
-		  int len = (rcSlider.right - rcSlider.left);
-		  if(len>80) len = 80;
-
-		  int pos = (len * (m_val.lVal - m_iLowerLimit)) / (m_iHigherLimit - m_iLowerLimit);
-
-		  rcSlider.right = rcSlider.left + pos;
-		  dc.FillSolidRect(&rcSlider, m_dwSlider & 0x00ffffff);
-		  
-		  DWORD dwBkColor = m_dwSlider >> 24;
-		  dwBkColor |= dwBkColor << 8;
-		  dwBkColor |= dwBkColor << 8;
-		  rcSlider.left = rcSlider.right;
-		  rcSlider.right = di.rcItem.left + len;
-		  dc.FillSolidRect(&rcSlider, dwBkColor);
+	  BYTE GetKind() const 
+	  { 
+		  return PROPKIND_EDIT; 
 	  }
-   }
-   HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
-   {
-      // Get default text
-      UINT cchMax = GetDisplayValueLength() + 1;
-      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
-      ATLASSERT(pszText);
-      if( !GetDisplayValue(pszText, cchMax) ) return NULL;
-      // Create EDIT control
-      CPropertyEditWindow* win = new CPropertyEditWindow(m_iLowerLimit, m_iHigherLimit, m_dwSlider);
-      ATLASSERT(win);
-      RECT rcWin = rc;
+	  void DrawValue(PROPERTYDRAWINFO& di)
+	  {
+		  if(m_dwSlider & 0xff000000) {
+			  ATLASSERT(m_val.vt==VT_I4);
+			  if( m_val.lVal < m_iLowerLimit ) m_val.lVal = m_iLowerLimit;
+			  if( m_val.lVal > m_iHigherLimit  ) m_val.lVal = m_iHigherLimit;
+		  }
 
-      // Added by Kronuz (to center the control text, and also to leave space to the slider when needed):
-	  if(m_dwSlider & 0xff000000) rcWin.top--;
+		  UINT cchMax = GetDisplayValueLength() + 1;
+		  LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+		  ATLASSERT(pszText);
+		  if( !GetDisplayValue(pszText, cchMax) ) return;
+		  CDCHandle dc(di.hDC);
+		  dc.SetBkMode(TRANSPARENT);
+		  dc.SetTextColor(di.state & ODS_DISABLED ? di.clrDisabled : di.clrText);
+		  dc.SetBkColor(di.clrBack);
+		  RECT rcText = di.rcItem;
+		  rcText.left += PROP_TEXT_INDENT;
 
-      m_hwndEdit = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD | ES_LEFT | ES_AUTOHSCROLL | m_dwStyle);
-      ATLASSERT(::IsWindow(m_hwndEdit));
+		  if(m_dwSlider & 0xff000000) { // Added by Kronuz:
+			  rcText.top--;
+			  rcText.bottom--;
+		  }
 
-      // Simple hack to validate numbers
-      switch( m_val.vt ) {
-      case VT_UI1:
-      case VT_UI2:
-      case VT_UI4:
-         win->ModifyStyle(0, ES_NUMBER);
-      }
-      return m_hwndEdit;
-   }
-   BOOL SetValue(const VARIANT& value)
-   {
-      if( m_val.vt == VT_EMPTY ) m_val = value;
-      return SUCCEEDED( m_val.ChangeType(m_val.vt, &value) );
-   }
-   BOOL SetValue(HWND hWnd) 
-   { 
-      ATLASSERT(::IsWindow(hWnd));
-      int len = ::GetWindowTextLength(hWnd) + 1;
-      LPTSTR pstr = (LPTSTR) _alloca(len * sizeof(TCHAR));
-      ATLASSERT(pstr);
-      if( ::GetWindowText(hWnd, pstr, len) == 0 ) {
-         // Bah, an empty string AND an error causes the same return code!
-         if( ::GetLastError() != 0 ) return FALSE;
-      }
-      CComVariant v = pstr;
-      return SetValue(v);
-   }
-   BOOL Activate(UINT action, LPARAM lParam)
-   {
-      switch( action ) {
-      case PACT_TAB:
-      case PACT_SPACE:
-      case PACT_DBLCLICK:
-         if( ::IsWindow(m_hwndEdit) ) {
-            ::SetFocus(m_hwndEdit);
-            ::SendMessage(m_hwndEdit, EM_SETSEL, 0, -1);
-         }
-         break;
-      }
-      return TRUE;
-   }
+		  dc.DrawText(pszText, -1, 
+			  &rcText, 
+			  DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER);
+
+		  // Added by Kronuz:
+		  if(m_dwSlider & 0xff000000) {
+			  RECT rcSlider = di.rcItem;
+			  rcSlider.top = rcSlider.bottom - 4;
+
+			  int len = (rcSlider.right - rcSlider.left);
+			  if(len>80) len = 80;
+
+			  int pos = (len * (m_val.lVal - m_iLowerLimit)) / (m_iHigherLimit - m_iLowerLimit);
+
+			  rcSlider.right = rcSlider.left + pos;
+			  dc.FillSolidRect(&rcSlider, m_dwSlider & 0x00ffffff);
+
+			  DWORD dwBkColor = m_dwSlider >> 24;
+			  dwBkColor |= dwBkColor << 8;
+			  dwBkColor |= dwBkColor << 8;
+			  rcSlider.left = rcSlider.right;
+			  rcSlider.right = di.rcItem.left + len;
+			  dc.FillSolidRect(&rcSlider, dwBkColor);
+		  }
+	  }
+	  HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+	  {
+		  // Get default text
+		  UINT cchMax = GetDisplayValueLength() + 1;
+		  LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+		  ATLASSERT(pszText);
+		  if( !GetDisplayValue(pszText, cchMax) ) return NULL;
+		  // Create EDIT control
+		  CPropertyEditWindow* win = new CPropertyEditWindow(m_iLowerLimit, m_iHigherLimit, m_dwSlider);
+		  ATLASSERT(win);
+		  RECT rcWin = rc;
+
+		  // Added by Kronuz (to center the control text, and also to leave space to the slider when needed):
+		  if(m_dwSlider & 0xff000000) rcWin.top--;
+
+		  m_hwndEdit = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD | ES_LEFT | ES_AUTOHSCROLL | m_dwStyle);
+		  ATLASSERT(::IsWindow(m_hwndEdit));
+
+		  // Simple hack to validate numbers
+		  switch( m_val.vt ) {
+			case VT_UI1:
+			case VT_UI2:
+			case VT_UI4:
+				win->ModifyStyle(0, ES_NUMBER);
+		  }
+		  return m_hwndEdit;
+	  }
+	  BOOL SetValue(const VARIANT& value)
+	  {
+		  if( m_val.vt == VT_EMPTY ) m_val = value;
+		  return SUCCEEDED( m_val.ChangeType(m_val.vt, &value) );
+	  }
+	  BOOL SetValue(HWND hWnd) 
+	  { 
+		  ATLASSERT(::IsWindow(hWnd));
+		  int len = ::GetWindowTextLength(hWnd) + 1;
+		  LPTSTR pstr = (LPTSTR) _alloca(len * sizeof(TCHAR));
+		  ATLASSERT(pstr);
+		  if( ::GetWindowText(hWnd, pstr, len) == 0 ) {
+			  // Bah, an empty string AND an error causes the same return code!
+			  if( ::GetLastError() != 0 ) return FALSE;
+		  }
+		  CComVariant v = pstr;
+		  return SetValue(v);
+	  }
+	  BOOL Activate(UINT action, LPARAM lParam)
+	  {
+		  switch( action ) {
+			case PACT_TAB:
+			case PACT_SPACE:
+			case PACT_DBLCLICK:
+				if( ::IsWindow(m_hwndEdit) ) {
+					::SetFocus(m_hwndEdit);
+					::SendMessage(m_hwndEdit, EM_SETSEL, 0, -1);
+				}
+				break;
+		  }
+		  return TRUE;
+	  }
 };
 
 
@@ -473,54 +485,54 @@ public:
 class CPropertyDateItem : public CPropertyEditItem
 {
 public:
-   CPropertyDateItem(LPCTSTR pstrName, LPARAM lParam) : 
-      CPropertyEditItem(pstrName, lParam)
-   {
-   }
-   HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
-   {
-      // Get default text
-      UINT cchMax = GetDisplayValueLength() + 1;
-      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
-      ATLASSERT(pszText);
-      if( !GetDisplayValue(pszText, cchMax) ) return NULL;
-      // Create window
-      CPropertyDateWindow* win = new CPropertyDateWindow();
-      ATLASSERT(win);
-      RECT rcWin = rc;
-      m_hwndEdit = win->Create(hWnd, rcWin, pszText);
-      ATLASSERT(win->IsWindow());
-      return *win;
-   }
-   BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
-   {
-	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
-		  return TRUE;
+	CPropertyDateItem(LPCTSTR pstrName, LPARAM lParam) : 
+	  CPropertyEditItem(pstrName, lParam)
+	  {
 	  }
+	  HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+	  {
+		  // Get default text
+		  UINT cchMax = GetDisplayValueLength() + 1;
+		  LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+		  ATLASSERT(pszText);
+		  if( !GetDisplayValue(pszText, cchMax) ) return NULL;
+		  // Create window
+		  CPropertyDateWindow* win = new CPropertyDateWindow();
+		  ATLASSERT(win);
+		  RECT rcWin = rc;
+		  win->Create(hWnd, rcWin, pszText);
+		  ATLASSERT(win->IsWindow());
+		  return *win;
+	  }
+	  BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
+	  {
+		  if(IsMultivalue()) { // Added by Kronuz
+			  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
+			  return TRUE;
+		  }
 
-      if( m_val.date == 0.0 ) {
-         ::lstrcpy(pstr, _T(""));
-         return TRUE;
-      }
-      return CPropertyEditItem::GetDisplayValue(pstr, cchMax);
-   }
-   BOOL SetValue(const VARIANT& value)
-   {
-      if( value.vt == VT_BSTR && ::SysStringLen(value.bstrVal) == 0 ) {
-         m_val.date = 0.0;
-         return TRUE;
-      }
-      return CPropertyEditItem::SetValue(value);
-   }
-   BOOL SetValue(HWND hWnd)
-   {
-      if( ::GetWindowTextLength(hWnd) == 0 ) {
-         m_val.date = 0.0;
-         return TRUE;
-      }
-      return CPropertyEditItem::SetValue(hWnd);
-   }
+		  if( m_val.date == 0.0 ) {
+			  ::lstrcpy(pstr, _T(""));
+			  return TRUE;
+		  }
+		  return CPropertyEditItem::GetDisplayValue(pstr, cchMax);
+	  }
+	  BOOL SetValue(const VARIANT& value)
+	  {
+		  if( value.vt == VT_BSTR && ::SysStringLen(value.bstrVal) == 0 ) {
+			  m_val.date = 0.0;
+			  return TRUE;
+		  }
+		  return CPropertyEditItem::SetValue(value);
+	  }
+	  BOOL SetValue(HWND hWnd)
+	  {
+		  if( ::GetWindowTextLength(hWnd) == 0 ) {
+			  m_val.date = 0.0;
+			  return TRUE;
+		  }
+		  return CPropertyEditItem::SetValue(hWnd);
+	  }
 };
 
 
@@ -530,65 +542,65 @@ public:
 class CPropertyCheckButtonItem : public CProperty
 {
 protected:
-   bool m_bValue;
+	bool m_bValue;
 
 public:
-   CPropertyCheckButtonItem(LPCTSTR pstrName, bool bValue, LPARAM lParam) : 
-      CProperty(pstrName, lParam),
-      m_bValue(bValue)
-   {
-   }
-   BYTE GetKind() const 
-   { 
-      return PROPKIND_CHECK; 
-   }
-   BOOL GetValue(VARIANT* pVal) const
-   {
-      return SUCCEEDED( CComVariant(m_bValue).Detach(pVal) );
-   }
-   BOOL SetValue(const VARIANT& value)
-   {
-      // Set a new value
-      switch( value.vt ) {
-      case VT_BOOL:
-         m_bValue = value.boolVal != VARIANT_FALSE;
-         return TRUE;
-      default:
-         ATLASSERT(false);
-         return FALSE;
-      }
-   }
-   void DrawValue(PROPERTYDRAWINFO& di)
-   {
-      int cxThumb = ::GetSystemMetrics(SM_CXMENUCHECK);
-      int cyThumb = ::GetSystemMetrics(SM_CYMENUCHECK);
+	CPropertyCheckButtonItem(LPCTSTR pstrName, bool bValue, LPARAM lParam) : 
+	  CProperty(pstrName, lParam),
+		  m_bValue(bValue)
+	  {
+	  }
+	  BYTE GetKind() const 
+	  { 
+		  return PROPKIND_CHECK; 
+	  }
+	  BOOL GetValue(VARIANT* pVal) const
+	  {
+		  return SUCCEEDED( CComVariant(m_bValue).Detach(pVal) );
+	  }
+	  BOOL SetValue(const VARIANT& value)
+	  {
+		  // Set a new value
+		  switch( value.vt ) {
+case VT_BOOL:
+	m_bValue = value.boolVal != VARIANT_FALSE;
+	return TRUE;
+default:
+	ATLASSERT(false);
+	return FALSE;
+		  }
+	  }
+	  void DrawValue(PROPERTYDRAWINFO& di)
+	  {
+		  int cxThumb = ::GetSystemMetrics(SM_CXMENUCHECK);
+		  int cyThumb = ::GetSystemMetrics(SM_CYMENUCHECK);
 
-      RECT rcMark = di.rcItem;
-      rcMark.left += 10;
-      rcMark.right = rcMark.left + cxThumb;
-      rcMark.top += 2;
-      if( rcMark.top + cyThumb >= rcMark.bottom ) rcMark.top -= rcMark.top + cyThumb - rcMark.bottom + 1;
-      rcMark.bottom = rcMark.top + cyThumb;
+		  RECT rcMark = di.rcItem;
+		  rcMark.left += 10;
+		  rcMark.right = rcMark.left + cxThumb;
+		  rcMark.top += 2;
+		  if( rcMark.top + cyThumb >= rcMark.bottom ) rcMark.top -= rcMark.top + cyThumb - rcMark.bottom + 1;
+		  rcMark.bottom = rcMark.top + cyThumb;
 
-      UINT uState = DFCS_BUTTONCHECK | DFCS_FLAT;
-      if( m_bValue ) uState |= DFCS_CHECKED;
-      if( di.state & ODS_DISABLED ) uState |= DFCS_INACTIVE;
-      ::DrawFrameControl(di.hDC, &rcMark, DFC_BUTTON, uState);
-   }
-   BOOL Activate(UINT action, LPARAM /*lParam*/) 
-   { 
-      switch( action ) {
-      case PACT_SPACE:
-      case PACT_CLICK:
-      case PACT_DBLCLICK:
-         if( IsEnabled() ) {
-            CComVariant v = !m_bValue;
-            ::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM) (VARIANT*) &v, (LPARAM) this);
-         }
-         break;
-      }
-      return TRUE;
-   }
+		  UINT uState = DFCS_BUTTONCHECK | DFCS_FLAT;
+		  if( m_bValue ) uState |= DFCS_CHECKED;
+		  if( di.state & ODS_DISABLED ) uState |= DFCS_INACTIVE;
+		  ::DrawFrameControl(di.hDC, &rcMark, DFC_BUTTON, uState);
+	  }
+	  BOOL Activate(UINT action, LPARAM /*lParam*/) 
+	  { 
+		  switch( action ) {
+case PACT_SPACE:
+case PACT_CLICK:
+case PACT_DBLCLICK:
+	if( IsEnabled() ) {
+		CComVariant v = !m_bValue;
+		::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM) (VARIANT*) &v, (LPARAM) this);
+	}
+	break;
+		  }
+		  return TRUE;
+	  }
 };
 
 
@@ -598,75 +610,190 @@ public:
 class CPropertyFileNameItem : public CPropertyItem
 {
 public:
-   CPropertyFileNameItem(LPCTSTR pstrName, LPARAM lParam) : CPropertyItem(pstrName, lParam)
-   {
-   }
-   HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
-   {
-      // Get default text
-      TCHAR szText[MAX_PATH] = { 0 };
-      if( !GetDisplayValue(szText, (sizeof(szText) / sizeof(TCHAR)) - 1) ) return NULL;      
-      // Create EDIT control
-      CPropertyButtonWindow* win = new CPropertyButtonWindow();
-      ATLASSERT(win);
-      RECT rcWin = rc;
-      win->m_prop = this;
-      win->Create(hWnd, rcWin, szText);
-      ATLASSERT(win->IsWindow());
-      return *win;
-   }
-   BOOL SetValue(const VARIANT& value)
-   {
-      ATLASSERT(V_VT(&value)==VT_BSTR);
-      m_val = value;
-      return TRUE;
-   }
-   BOOL SetValue(HWND /*hWnd*/) 
-   {
-      // Do nothing... A value should be set on reacting to the button notification.
-      // In other words: Use SetItemValue() in response to the PLN_BROWSE notification!
-      return TRUE;
-   }
-   BOOL Activate(UINT action, LPARAM /*lParam*/)
-   {
-      switch( action ) {
-      case PACT_BROWSE:
-      case PACT_DBLCLICK:
-         // Let control owner know
-         NMPROPERTYITEM nmh = { m_hWndOwner, ::GetDlgCtrlID(m_hWndOwner), PIN_BROWSE, this };
-         ::SendMessage(::GetParent(m_hWndOwner), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh);
-      }
-      return TRUE;
-   }
-   BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
-   {
-	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
-		  return TRUE;
+	CPropertyFileNameItem(LPCTSTR pstrName, LPARAM lParam) : CPropertyItem(pstrName, lParam)
+	{
+	}
+	HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+	{
+		// Get default text
+		TCHAR szText[MAX_PATH] = { 0 };
+		if( !GetDisplayValue(szText, (sizeof(szText) / sizeof(TCHAR)) - 1) ) return NULL;      
+		// Create EDIT control
+		CPropertyButtonWindow* win = new CPropertyButtonWindow();
+		ATLASSERT(win);
+		RECT rcWin = rc;
+		win->m_prop = this;
+		win->Create(hWnd, rcWin, szText);
+		ATLASSERT(win->IsWindow());
+		return *win;
+	}
+	BOOL SetValue(const VARIANT& value)
+	{
+		ATLASSERT(V_VT(&value)==VT_BSTR);
+		m_val = value;
+		return TRUE;
+	}
+	BOOL SetValue(HWND /*hWnd*/) 
+	{
+		// Do nothing... A value should be set on reacting to the button notification.
+		// In other words: Use SetItemValue() in response to the PLN_BROWSE notification!
+		return TRUE;
+	}
+	BOOL Activate(UINT action, LPARAM /*lParam*/)
+	{
+		switch( action ) {
+case PACT_BROWSE:
+case PACT_DBLCLICK:
+	// Let control owner know
+	NMPROPERTYITEM nmh = { m_hWndOwner, ::GetDlgCtrlID(m_hWndOwner), PIN_BROWSE, this };
+	::SendMessage(::GetParent(m_hWndOwner), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh);
+		}
+		return TRUE;
+	}
+	BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
+	{
+		if(IsMultivalue()) { // Added by Kronuz
+			::lstrcpyn(pstr, m_szMultivalue, cchMax);
+			return TRUE;
+		}
+
+		ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
+		*pstr = _T('\0');
+		if( m_val.bstrVal == NULL ) return TRUE;
+		// Only display actual filename (strip path)
+		USES_CONVERSION;
+		LPCTSTR pstrFileName = OLE2CT(m_val.bstrVal);
+		LPCTSTR p = pstrFileName;
+		while( *p ) {
+			if( *p == _T(':') || *p == _T('\\') ) pstrFileName = p + 1;
+			p = ::CharNext(p);
+		}
+		::lstrcpyn(pstr, pstrFileName, cchMax);
+		return TRUE;
+	}
+	UINT GetDisplayValueLength() const
+	{
+		if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
+
+		TCHAR szPath[MAX_PATH] = { 0 };
+		if( !GetDisplayValue(szPath, (sizeof(szPath) / sizeof(TCHAR)) - 1) ) return 0;
+		return ::lstrlen(szPath);
+	}
+};
+
+/////////////////////////////////////////////////////////////////////////////
+// Color property
+
+class CPropertyColorItem : public CPropertyItem
+{
+	HWND m_hwndEdit;
+	BOOL m_bAlphaChannel;
+public:
+	CPropertyColorItem(LPCTSTR pstrName, BOOL bAlphaChannel, LPARAM lParam) : 
+		CPropertyItem(pstrName, lParam), 
+		m_bAlphaChannel(bAlphaChannel),
+		m_hwndEdit(NULL)
+	{
+	}
+	BYTE GetKind() const 
+	{ 
+		return PROPKIND_EDIT; 
+	}
+	HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+	{
+		// Get default text
+		TCHAR szText[MAX_PATH] = { 0 };
+		if( !GetDisplayValue(szText, (sizeof(szText) / sizeof(TCHAR)) - 1) ) return NULL;      
+		// Create EDIT control
+		CPropertyColorWindow* win = new CPropertyColorWindow();
+		ATLASSERT(win);
+		RECT rcWin = rc;
+		m_hwndEdit = win->Create(hWnd, rcWin, szText, WS_VISIBLE | WS_CHILD | ES_LEFT | ES_AUTOHSCROLL);
+		ATLASSERT(::IsWindow(m_hwndEdit));
+		return m_hwndEdit;
+	}
+	BOOL SetValue(const VARIANT& value)
+	{
+		if(V_VT(&value)==VT_BSTR) {
+			USES_CONVERSION;
+
+			RGBQUAD rgb;
+			LPCTSTR pstrColor = OLE2CT(value.bstrVal);
+
+			int a,r,g,b; a=r=g=b=255;
+			if(m_bAlphaChannel) {
+				if(::_stscanf(pstrColor, _T("#%02X%02X%02X%02X"), &a, &r, &g, &b) != 4) return FALSE;
+			} else {
+				if(::_stscanf(pstrColor, _T("#%02X%02X%02X"), &r, &g, &b) != 3) return FALSE;
+			}
+			rgb.rgbReserved = a;
+			rgb.rgbRed = r;
+			rgb.rgbGreen = g;
+			rgb.rgbBlue = b;
+
+			m_val = (int)(*(DWORD*)&rgb);
+		} else {
+			m_val = value;
+		}
+
+		return TRUE;
+	}
+	BOOL SetValue(HWND hWnd) 
+	{
+	  ATLASSERT(::IsWindow(hWnd));
+	  int len = ::GetWindowTextLength(hWnd) + 1;
+	  LPTSTR pstr = (LPTSTR) _alloca(len * sizeof(TCHAR));
+	  ATLASSERT(pstr);
+	  if( ::GetWindowText(hWnd, pstr, len) == 0 ) {
+		  // Bah, an empty string AND an error causes the same return code!
+		  if( ::GetLastError() != 0 ) return FALSE;
 	  }
+	  CComVariant v = pstr;
+	  return SetValue(v);
+	}
+	BOOL Activate(UINT action, LPARAM /*lParam*/)
+	{
+		  switch( action ) {
+			case PACT_TAB:
+			case PACT_SPACE:
+			case PACT_DBLCLICK:
+				if( ::IsWindow(m_hwndEdit) ) {
+					::SetFocus(m_hwndEdit);
+					::SendMessage(m_hwndEdit, EM_SETSEL, 0, -1);
+				}
+				break;
+		  }
+		  return TRUE;
+	}
+	BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
+	{
+		if(IsMultivalue()) { // Added by Kronuz
+			::lstrcpyn(pstr, m_szMultivalue, cchMax);
+			return TRUE;
+		}
 
-      ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
-      *pstr = _T('\0');
-      if( m_val.bstrVal == NULL ) return TRUE;
-      // Only display actual filename (strip path)
-      USES_CONVERSION;
-      LPCTSTR pstrFileName = OLE2CT(m_val.bstrVal);
-      LPCTSTR p = pstrFileName;
-      while( *p ) {
-         if( *p == _T(':') || *p == _T('\\') ) pstrFileName = p + 1;
-         p = ::CharNext(p);
-      }
-      ::lstrcpyn(pstr, pstrFileName, cchMax);
-      return TRUE;
-   }
-   UINT GetDisplayValueLength() const
-   {
-	   if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
+		ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
+		*pstr = _T('\0');
+		// Display the string (HTML) version of the color
+		TCHAR pstrColor[10];
+		RGBQUAD rgb = *(RGBQUAD*)&(m_val.intVal);
+		if(m_bAlphaChannel) {
+			::_stprintf(pstrColor, _T("#%02X%02X%02X%02X"), rgb.rgbReserved, rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue);
+		} else {
+			::_stprintf(pstrColor, _T("#%02X%02X%02X"), rgb.rgbRed, rgb.rgbGreen, rgb.rgbBlue);
+		}
 
-      TCHAR szPath[MAX_PATH] = { 0 };
-      if( !GetDisplayValue(szPath, (sizeof(szPath) / sizeof(TCHAR)) - 1) ) return 0;
-      return ::lstrlen(szPath);
-   }
+		::lstrcpyn(pstr, pstrColor, cchMax);
+		return TRUE;
+	}
+	UINT GetDisplayValueLength() const
+	{
+		if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
+
+		TCHAR szPath[MAX_PATH] = { 0 };
+		if( !GetDisplayValue(szPath, (sizeof(szPath) / sizeof(TCHAR)) - 1) ) return 0;
+		return ::lstrlen(szPath);
+	}
 };
 
 
@@ -676,138 +803,138 @@ public:
 class CPropertyListItem : public CPropertyItem
 {
 protected:
-   CSimpleArray<CComBSTR> m_arrList;
-   HWND m_hwndCombo;
+	CSimpleArray<CComBSTR> m_arrList;
+	HWND m_hwndCombo;
 
 public:
-   CPropertyListItem(LPCTSTR pstrName, LPARAM lParam) : 
-      CPropertyItem(pstrName, lParam), 
-      m_hwndCombo(NULL)
-   {
-      m_val = -1L;
-   }
-   BYTE GetKind() const 
-   { 
-      return PROPKIND_LIST; 
-   }
-   HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
-   {
-      // Get default text
-      UINT cchMax = GetDisplayValueLength() + 1;
-      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
-      ATLASSERT(pszText);
-      if( !GetDisplayValue(pszText, cchMax) ) return NULL;
-      // Create 'faked' DropDown control
-      CPropertyListWindow* win = new CPropertyListWindow();
-      ATLASSERT(win);
-      RECT rcWin = rc;
+	CPropertyListItem(LPCTSTR pstrName, LPARAM lParam) : 
+	  CPropertyItem(pstrName, lParam), 
+		  m_hwndCombo(NULL)
+	  {
+		  m_val = -1L;
+	  }
+	  BYTE GetKind() const 
+	  { 
+		  return PROPKIND_LIST; 
+	  }
+	  HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+	  {
+		  // Get default text
+		  UINT cchMax = GetDisplayValueLength() + 1;
+		  LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+		  ATLASSERT(pszText);
+		  if( !GetDisplayValue(pszText, cchMax) ) return NULL;
+		  // Create 'faked' DropDown control
+		  CPropertyListWindow* win = new CPropertyListWindow();
+		  ATLASSERT(win);
+		  RECT rcWin = rc;
 
-      m_hwndCombo = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD);
-	  ATLASSERT(::IsWindow(m_hwndCombo)); // Modified by Kronuz
-      // Add list
-      USES_CONVERSION;      
-      for( int i = 0; i < m_arrList.GetSize(); i++ ) win->AddItem(OLE2CT(m_arrList[i]));
-      win->SelectItem(m_val.lVal);
-      // Go...
-      return *win;
-   }
-   BOOL Activate(UINT action, LPARAM /*lParam*/)
-   {
-      switch( action ) {
-      case PACT_SPACE:
-         if( ::IsWindow(m_hwndCombo) ) {
-            // Fake button click...
-            ::SendMessage(m_hwndCombo, WM_COMMAND, MAKEWPARAM(0, BN_CLICKED), 0);
-         }
-         break;
-      case PACT_DBLCLICK:
-         // Simulate neat VB control effect. DblClick cycles items in list...
-         // Set value and recycle edit control
-         if( IsEnabled() ) {
-            CComVariant v = m_val.lVal + 1;
-            ::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM) (VARIANT*) &v, (LPARAM) this);
-         }
-         break;
-      }
-      return TRUE;
-   }
-   BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
-   {
-	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
+		  m_hwndCombo = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD);
+		  ATLASSERT(::IsWindow(m_hwndCombo)); // Modified by Kronuz
+		  // Add list
+		  USES_CONVERSION;      
+		  for( int i = 0; i < m_arrList.GetSize(); i++ ) win->AddItem(OLE2CT(m_arrList[i]));
+		  win->SelectItem(m_val.lVal);
+		  // Go...
+		  return *win;
+	  }
+	BOOL Activate(UINT action, LPARAM /*lParam*/)
+	{
+		switch( action ) {
+			case PACT_SPACE:
+				if( ::IsWindow(m_hwndCombo) ) {
+					// Fake button click...
+					::SendMessage(m_hwndCombo, WM_COMMAND, MAKEWPARAM(0, BN_CLICKED), 0);
+				}
+				break;
+			case PACT_DBLCLICK:
+				// Simulate neat VB control effect. DblClick cycles items in list...
+				// Set value and recycle edit control
+				if( IsEnabled() ) {
+					CComVariant v = m_val.lVal + 1;
+					::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM) (VARIANT*) &v, (LPARAM) this);
+				}
+				break;
+		}
+		  return TRUE;
+	}
+	  BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
+	  {
+		  if(IsMultivalue()) { // Added by Kronuz
+			  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
+			  return TRUE;
+		  }
+
+		  ATLASSERT(m_val.vt==VT_I4);
+		  ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
+		  *pstr = _T('\0');
+		  if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return FALSE;
+		  USES_CONVERSION;
+		  ::lstrcpyn( pstr, OLE2CT(m_arrList[m_val.lVal]), cchMax) ;
 		  return TRUE;
 	  }
+	  UINT GetDisplayValueLength() const
+	  {
+		  if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
 
-      ATLASSERT(m_val.vt==VT_I4);
-      ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
-      *pstr = _T('\0');
-      if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return FALSE;
-      USES_CONVERSION;
-      ::lstrcpyn( pstr, OLE2CT(m_arrList[m_val.lVal]), cchMax) ;
-      return TRUE;
-   }
-   UINT GetDisplayValueLength() const
-   {
-	   if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
+		  ATLASSERT(m_val.vt==VT_I4);
+		  if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return 0;
+		  BSTR bstr = m_arrList[m_val.lVal];
+		  return bstr == NULL ? 0 : ::lstrlenW(bstr);
+	  };
 
-      ATLASSERT(m_val.vt==VT_I4);
-      if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return 0;
-      BSTR bstr = m_arrList[m_val.lVal];
-      return bstr == NULL ? 0 : ::lstrlenW(bstr);
-   };
-
-   BOOL SetValue(const VARIANT& value)
-   {
-      switch( value.vt ) {
-      case VT_BSTR:
-         {
-            m_val = 0;
-            for( long i = 0; i < m_arrList.GetSize(); i++ ) {
-               if( ::wcscmp(value.bstrVal, m_arrList[i]) == 0 ) {
-                  m_val = i;
-                  return TRUE;
-               }
-            }
-            return FALSE;
-         }
-         break;
-      default:
-         // Treat as index into list
-         if( FAILED( m_val.ChangeType(VT_I4, &value) ) ) return FALSE;
-         if( m_val.lVal >= m_arrList.GetSize() ) m_val.lVal = 0;
-         return TRUE;
-      }
-   }
-   BOOL SetValue(HWND hWnd)
-   { 
-      ATLASSERT(::IsWindow(hWnd));
-      int len = ::GetWindowTextLength(hWnd) + 1;
-      LPTSTR pstr = (LPTSTR) _alloca(len * sizeof(TCHAR));
-      ATLASSERT(pstr);
-      if( !::GetWindowText(hWnd, pstr, len) ) {
-         if( ::GetLastError() != 0 ) return FALSE;
-      }
-      CComVariant v = pstr;
-      return SetValue(v);
-   }
-   void SetList(LPCTSTR* ppList)
-   {
-      ATLASSERT(ppList);
-      m_arrList.RemoveAll();
-      while( *ppList ) {
-         CComBSTR bstr(*ppList);
-         m_arrList.Add(bstr);
-         ppList++;
-      }
-      if( m_val.lVal == -1 ) m_val = 0;
-   }
-   void AddListItem(LPCTSTR pstrText)
-   {
-      ATLASSERT(!::IsBadStringPtr(pstrText,-1));
-      CComBSTR bstr(pstrText);
-      m_arrList.Add(bstr);
-      if( m_val.lVal == -1 ) m_val = 0;
-   }
+	  BOOL SetValue(const VARIANT& value)
+	  {
+		  switch( value.vt ) {
+case VT_BSTR:
+	{
+		m_val = 0;
+		for( long i = 0; i < m_arrList.GetSize(); i++ ) {
+			if( ::wcscmp(value.bstrVal, m_arrList[i]) == 0 ) {
+				m_val = i;
+				return TRUE;
+			}
+		}
+		return FALSE;
+	}
+	break;
+default:
+	// Treat as index into list
+	if( FAILED( m_val.ChangeType(VT_I4, &value) ) ) return FALSE;
+	if( m_val.lVal >= m_arrList.GetSize() ) m_val.lVal = 0;
+	return TRUE;
+		  }
+	  }
+	  BOOL SetValue(HWND hWnd)
+	  { 
+		  ATLASSERT(::IsWindow(hWnd));
+		  int len = ::GetWindowTextLength(hWnd) + 1;
+		  LPTSTR pstr = (LPTSTR) _alloca(len * sizeof(TCHAR));
+		  ATLASSERT(pstr);
+		  if( !::GetWindowText(hWnd, pstr, len) ) {
+			  if( ::GetLastError() != 0 ) return FALSE;
+		  }
+		  CComVariant v = pstr;
+		  return SetValue(v);
+	  }
+	  void SetList(LPCTSTR* ppList)
+	  {
+		  ATLASSERT(ppList);
+		  m_arrList.RemoveAll();
+		  while( *ppList ) {
+			  CComBSTR bstr(*ppList);
+			  m_arrList.Add(bstr);
+			  ppList++;
+		  }
+		  if( m_val.lVal == -1 ) m_val = 0;
+	  }
+	  void AddListItem(LPCTSTR pstrText)
+	  {
+		  ATLASSERT(!::IsBadStringPtr(pstrText,-1));
+		  CComBSTR bstr(pstrText);
+		  m_arrList.Add(bstr);
+		  if( m_val.lVal == -1 ) m_val = 0;
+	  }
 };
 
 
@@ -817,19 +944,19 @@ public:
 class CPropertyBooleanItem : public CPropertyListItem
 {
 public:
-   CPropertyBooleanItem(LPCTSTR pstrName, LPARAM lParam) : CPropertyListItem(pstrName, lParam)
-   {
+	CPropertyBooleanItem(LPCTSTR pstrName, LPARAM lParam) : CPropertyListItem(pstrName, lParam)
+	{
 #ifdef IDS_TRUE
-      TCHAR szBuffer[32];
-      ::LoadString(_Module.GetResourceInstance(), IDS_FALSE, szBuffer, sizeof(szBuffer) / sizeof(TCHAR));
-      AddListItem(szBuffer);
-      ::LoadString(_Module.GetResourceInstance(), IDS_TRUE, szBuffer, sizeof(szBuffer) / sizeof(TCHAR));
-      AddListItem(szBuffer);
+		TCHAR szBuffer[32];
+		::LoadString(_Module.GetResourceInstance(), IDS_FALSE, szBuffer, sizeof(szBuffer) / sizeof(TCHAR));
+		AddListItem(szBuffer);
+		::LoadString(_Module.GetResourceInstance(), IDS_TRUE, szBuffer, sizeof(szBuffer) / sizeof(TCHAR));
+		AddListItem(szBuffer);
 #else
-      AddListItem(_T("False"));
-      AddListItem(_T("True"));
+		AddListItem(_T("False"));
+		AddListItem(_T("True"));
 #endif
-   }
+	}
 };
 
 
@@ -839,65 +966,65 @@ public:
 class CPropertyComboItem : public CPropertyItem
 {
 public:
-   CListBox m_ctrl;
+	CListBox m_ctrl;
 
-   CPropertyComboItem(LPCTSTR pstrName, LPARAM lParam) : 
-      CPropertyItem(pstrName, lParam)
-   {
-   }
-   HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
-   {
-      ATLASSERT(::IsWindow(m_ctrl));
-      // Create window
-      CPropertyComboWindow* win = new CPropertyComboWindow();
-      ATLASSERT(win);
-      RECT rcWin = rc;
-      win->m_hWndCombo = m_ctrl;
-      win->Create(hWnd, rcWin);
-      ATLASSERT(::IsWindow(*win));
-      return *win;
-   }
-   BYTE GetKind() const 
-   { 
-      return PROPKIND_CONTROL; 
-   }
-   void DrawValue(PROPERTYDRAWINFO& di) 
-   { 
-      RECT rc = di.rcItem;
-      ::InflateRect(&rc, 0, -1);
-      DRAWITEMSTRUCT dis = { 0 };
-      dis.hDC = di.hDC;
-      dis.hwndItem = m_ctrl;
-      dis.CtlID = m_ctrl.GetDlgCtrlID();
-      dis.CtlType = ODT_LISTBOX;
-      dis.rcItem = rc;
-      dis.itemState = ODS_DEFAULT | ODS_COMBOBOXEDIT;
-      dis.itemID = m_ctrl.GetCurSel();
-      dis.itemData = (int) m_ctrl.GetItemData(dis.itemID);
-      ::SendMessage(m_ctrl, OCM_DRAWITEM, dis.CtlID, (LPARAM) &dis);
-   }
-   BOOL GetValue(VARIANT* pValue) const 
-   { 
-      CComVariant v = (int) m_ctrl.GetItemData(m_ctrl.GetCurSel());
-      return SUCCEEDED( v.Detach(pValue) );
-   }
-   BOOL SetValue(HWND /*hWnd*/) 
-   {      
-      int iSel = m_ctrl.GetCurSel();
-      CComVariant v = (int) m_ctrl.GetItemData(iSel);
-      return SetValue(v); 
-   }
-   BOOL SetValue(const VARIANT& value)
-   {
-      ATLASSERT(value.vt==VT_I4);
-      for( int i = 0; i < m_ctrl.GetCount(); i++ ) {
-         if( m_ctrl.GetItemData(i) == (DWORD_PTR) value.lVal ) {
-            m_ctrl.SetCurSel(i);
-            return TRUE;
-         }
-      }
-      return FALSE;
-   }
+	CPropertyComboItem(LPCTSTR pstrName, LPARAM lParam) : 
+	CPropertyItem(pstrName, lParam)
+	{
+	}
+	HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+	{
+		ATLASSERT(::IsWindow(m_ctrl));
+		// Create window
+		CPropertyComboWindow* win = new CPropertyComboWindow();
+		ATLASSERT(win);
+		RECT rcWin = rc;
+		win->m_hWndCombo = m_ctrl;
+		win->Create(hWnd, rcWin);
+		ATLASSERT(::IsWindow(*win));
+		return *win;
+	}
+	BYTE GetKind() const 
+	{ 
+		return PROPKIND_CONTROL; 
+	}
+	void DrawValue(PROPERTYDRAWINFO& di) 
+	{ 
+		RECT rc = di.rcItem;
+		::InflateRect(&rc, 0, -1);
+		DRAWITEMSTRUCT dis = { 0 };
+		dis.hDC = di.hDC;
+		dis.hwndItem = m_ctrl;
+		dis.CtlID = m_ctrl.GetDlgCtrlID();
+		dis.CtlType = ODT_LISTBOX;
+		dis.rcItem = rc;
+		dis.itemState = ODS_DEFAULT | ODS_COMBOBOXEDIT;
+		dis.itemID = m_ctrl.GetCurSel();
+		dis.itemData = (int) m_ctrl.GetItemData(dis.itemID);
+		::SendMessage(m_ctrl, OCM_DRAWITEM, dis.CtlID, (LPARAM) &dis);
+	}
+	BOOL GetValue(VARIANT* pValue) const 
+	{ 
+		CComVariant v = (int) m_ctrl.GetItemData(m_ctrl.GetCurSel());
+		return SUCCEEDED( v.Detach(pValue) );
+	}
+	BOOL SetValue(HWND /*hWnd*/) 
+	{      
+		int iSel = m_ctrl.GetCurSel();
+		CComVariant v = (int) m_ctrl.GetItemData(iSel);
+		return SetValue(v); 
+	}
+	BOOL SetValue(const VARIANT& value)
+	{
+		ATLASSERT(value.vt==VT_I4);
+		for( int i = 0; i < m_ctrl.GetCount(); i++ ) {
+			if( m_ctrl.GetItemData(i) == (DWORD_PTR) value.lVal ) {
+				m_ctrl.SetCurSel(i);
+				return TRUE;
+			}
+		}
+		return FALSE;
+	}
 };
 
 
@@ -908,116 +1035,128 @@ public:
 
 inline HPROPERTY PropCreateVariant(LPCTSTR pstrName, const VARIANT& vValue, int iLower, int iHigher, DWORD dwSlider, DWORD dwStyle, LPARAM lParam = 0)
 {
-   CPropertyEditItem* prop = NULL;
-   ATLTRY( prop = new CPropertyEditItem(pstrName, iLower, iHigher, dwSlider, dwStyle, lParam) );
-   ATLASSERT(prop);
-   if( prop ) prop->SetValue(vValue);
-   return prop;
+	CPropertyEditItem* prop = NULL;
+	ATLTRY( prop = new CPropertyEditItem(pstrName, iLower, iHigher, dwSlider, dwStyle, lParam) );
+	ATLASSERT(prop);
+	if( prop ) prop->SetValue(vValue);
+	return prop;
 }
 
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, LPCTSTR pstrValue, LPARAM lParam = 0)
 {
-   CComVariant vValue = pstrValue;
-   return PropCreateVariant(pstrName, vValue, 0, 0, 0, 0, lParam);
+	CComVariant vValue = pstrValue;
+	return PropCreateVariant(pstrName, vValue, 0, 0, 0, 0, lParam);
 }
 
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, int iValue, LPARAM lParam = 0)
 {
-   CComVariant vValue = iValue;
-   return PropCreateVariant(pstrName, vValue, 0, 0, 0, 0, lParam);
+	CComVariant vValue = iValue;
+	return PropCreateVariant(pstrName, vValue, 0, 0, 0, 0, lParam);
 }
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, int iValue, int iLower, int iHigher, DWORD dwSlider, LPARAM lParam = 0)
 {
-   CComVariant vValue = iValue;
-   return PropCreateVariant(pstrName, vValue, iLower, iHigher, dwSlider, 0, lParam);
+	CComVariant vValue = iValue;
+	return PropCreateVariant(pstrName, vValue, iLower, iHigher, dwSlider, 0, lParam);
 }
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, int iValue, DWORD dwStyle, LPARAM lParam = 0)
 {
-   CComVariant vValue = iValue;
-   return PropCreateVariant(pstrName, vValue, 0, 0, 0, dwStyle, lParam);
+	CComVariant vValue = iValue;
+	return PropCreateVariant(pstrName, vValue, 0, 0, 0, dwStyle, lParam);
 }
 
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, bool bValue, LPARAM lParam = 0)
 {
-   // NOTE: Converts to integer, since we're using value as an index to dropdown
-   CComVariant vValue = (int) bValue & 1;
-   CPropertyBooleanItem* prop = NULL;
-   ATLTRY( prop = new CPropertyBooleanItem(pstrName, lParam) );
-   ATLASSERT(prop);
-   if( prop ) prop->SetValue(vValue);
-   return prop;
+	// NOTE: Converts to integer, since we're using value as an index to dropdown
+	CComVariant vValue = (int) bValue & 1;
+	CPropertyBooleanItem* prop = NULL;
+	ATLTRY( prop = new CPropertyBooleanItem(pstrName, lParam) );
+	ATLASSERT(prop);
+	if( prop ) prop->SetValue(vValue);
+	return prop;
+}
+
+// Added by Kronuz:
+inline HPROPERTY PropCreateColor(LPCTSTR pstrName, RGBQUAD Color, BOOL bAlphaChannel, LPARAM lParam = 0)
+{
+	CPropertyColorItem* prop = NULL;
+	ATLTRY( prop = new CPropertyColorItem(pstrName, bAlphaChannel, lParam) );
+	ATLASSERT(prop);
+	if( prop == NULL ) return NULL;
+	CComVariant vValue = *(DWORD*)&Color;
+	prop->SetValue(vValue);
+	return prop;
 }
 
 inline HPROPERTY PropCreateFileName(LPCTSTR pstrName, LPCTSTR pstrFileName, LPARAM lParam = 0)
 {
-   ATLASSERT(!::IsBadStringPtr(pstrFileName,-1));
-   CPropertyFileNameItem* prop = NULL;
-   ATLTRY( prop = new CPropertyFileNameItem(pstrName, lParam) );
-   ATLASSERT(prop);
-   if( prop == NULL ) return NULL;
-   CComVariant vValue = pstrFileName;
-   prop->SetValue(vValue);
-   return prop;
+	ATLASSERT(!::IsBadStringPtr(pstrFileName,-1));
+	CPropertyFileNameItem* prop = NULL;
+	ATLTRY( prop = new CPropertyFileNameItem(pstrName, lParam) );
+	ATLASSERT(prop);
+	if( prop == NULL ) return NULL;
+	CComVariant vValue = pstrFileName;
+	prop->SetValue(vValue);
+	return prop;
 }
 
 inline HPROPERTY PropCreateDate(LPCTSTR pstrName, const SYSTEMTIME stValue, LPARAM lParam = 0)
 {
-   IProperty* prop = NULL;
-   ATLTRY( prop = new CPropertyDateItem(pstrName, lParam) );
-   ATLASSERT(prop);
-   if( prop == NULL ) return NULL;
-   CComVariant vValue;
-   vValue.vt = VT_DATE;
-   vValue.date = 0.0; // NOTE: Clears value in case of conversion error below!
-   if( stValue.wYear > 0 ) ::SystemTimeToVariantTime( (LPSYSTEMTIME) &stValue, &vValue.date );
-   prop->SetValue(vValue);
-   return prop;
+	IProperty* prop = NULL;
+	ATLTRY( prop = new CPropertyDateItem(pstrName, lParam) );
+	ATLASSERT(prop);
+	if( prop == NULL ) return NULL;
+	CComVariant vValue;
+	vValue.vt = VT_DATE;
+	vValue.date = 0.0; // NOTE: Clears value in case of conversion error below!
+	if( stValue.wYear > 0 ) ::SystemTimeToVariantTime( (LPSYSTEMTIME) &stValue, &vValue.date );
+	prop->SetValue(vValue);
+	return prop;
 }
 
 inline HPROPERTY PropCreateList(LPCTSTR pstrName, LPCTSTR* ppList, int iValue = 0, LPARAM lParam = 0)
 {
-   ATLASSERT(ppList);
-   CPropertyListItem* prop = NULL;
-   ATLTRY( prop = new CPropertyListItem(pstrName, lParam) );
-   ATLASSERT(prop);
-   if( prop && ppList ) {
-      prop->SetList(ppList);
-      CComVariant vValue = iValue;
-      prop->SetValue(vValue);
-   }
-   return prop;
+	ATLASSERT(ppList);
+	CPropertyListItem* prop = NULL;
+	ATLTRY( prop = new CPropertyListItem(pstrName, lParam) );
+	ATLASSERT(prop);
+	if( prop && ppList ) {
+		prop->SetList(ppList);
+		CComVariant vValue = iValue;
+		prop->SetValue(vValue);
+	}
+	return prop;
 }
 
 inline HPROPERTY PropCreateComboControl(LPCTSTR pstrName, HWND hWnd, int iValue, LPARAM lParam = 0)
 {
-   ATLASSERT(::IsWindow(hWnd));
-   CPropertyComboItem* prop = NULL;
-   ATLTRY( prop = new CPropertyComboItem(pstrName, lParam) );
-   ATLASSERT(prop);
-   if( prop ) {
-      prop->m_ctrl = hWnd;
-      CComVariant vValue = iValue;
-      prop->SetValue(vValue);
-   }
-   return prop;
+	ATLASSERT(::IsWindow(hWnd));
+	CPropertyComboItem* prop = NULL;
+	ATLTRY( prop = new CPropertyComboItem(pstrName, lParam) );
+	ATLASSERT(prop);
+	if( prop ) {
+		prop->m_ctrl = hWnd;
+		CComVariant vValue = iValue;
+		prop->SetValue(vValue);
+	}
+	return prop;
 }
 
 inline HPROPERTY PropCreateCheckButton(LPCTSTR pstrName, bool bValue, LPARAM lParam = 0)
 {
-   return new CPropertyCheckButtonItem(pstrName, bValue, lParam);
+	return new CPropertyCheckButtonItem(pstrName, bValue, lParam);
 }
 
 inline HPROPERTY PropCreateReadOnlyItem(LPCTSTR pstrName, LPCTSTR pstrValue = _T(""), LPARAM lParam = 0)
 {
-   ATLASSERT(!::IsBadStringPtr(pstrValue,-1));
-   CPropertyItem* prop = NULL;
-   ATLTRY( prop = new CPropertyReadOnlyItem(pstrName, lParam) );
-   ATLASSERT(prop);
-   if( prop ) {
-      CComVariant v = pstrValue;
-      prop->SetValue(v);
-   }
-   return prop;
+	ATLASSERT(!::IsBadStringPtr(pstrValue,-1));
+	CPropertyItem* prop = NULL;
+	ATLTRY( prop = new CPropertyReadOnlyItem(pstrName, lParam) );
+	ATLASSERT(prop);
+	if( prop ) {
+		CComVariant v = pstrValue;
+		prop->SetValue(v);
+	}
+	return prop;
 }
 
 

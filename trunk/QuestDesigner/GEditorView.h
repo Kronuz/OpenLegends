@@ -65,7 +65,6 @@ protected:
 	WPARAM m_wMouseState;
 	LPARAM m_lMousePos;
 
-	bool m_bAnimated;
 	bool m_bSnapToGrid;
 	bool m_bShowGrid;
 	bool m_bMulSelection;
@@ -115,6 +114,11 @@ public:
 
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
+	// Called to translate window messages before they are dispatched 
+	virtual BOOL PreTranslateMessage(MSG *pMsg);
+	// Called to clean up after window is destroyed
+	virtual void OnFinalMessage(HWND /*hWnd*/);
+
 	BEGIN_MSG_MAP(CGEditorView)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
@@ -142,10 +146,18 @@ public:
 		MESSAGE_HANDLER(WM_MBUTTONDOWN, OnMButtonDown)
 		MESSAGE_HANDLER(WM_MBUTTONUP,	OnMButtonUp)
 
-		MESSAGE_HANDLER(WMQD_DROPOBJ,	OnDropObject)
+		MESSAGE_HANDLER(WMQD_DROPOBJ, OnDropObject)
 		
 		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
 		MESSAGE_HANDLER(WM_KEYUP, OnKeyUp)
+
+		MENU_COMMAND_HANDLER(ID_APP_ADJUST, OnAdjustLimits)
+
+		MENU_COMMAND_HANDLER(ID_APP_OPEN, OnFileOpen)
+		MENU_COMMAND_HANDLER(ID_APP_CLOSE, OnFileClose)
+		MENU_COMMAND_HANDLER(ID_APP_RELOAD, OnFileReload)
+		MENU_COMMAND_HANDLER(ID_APP_SAVE, OnFileSave)
+		MENU_COMMAND_HANDLER(ID_APP_SAVE_AS, OnFileSaveAs)
 
 		CHAIN_MSG_MAP(baseClass);
 	END_MSG_MAP()
@@ -182,6 +194,16 @@ public:
 	
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
+	void OnAdjustLimits();
+
+	bool OnFileOpen();
+	bool OnFileClose();
+
+	bool OnFileReload();
+	// Save handlers
+	bool OnFileSave();
+	bool OnFileSaveAs();
 
 	void DoPaint(CDCHandle dc);
 	CURSOR ToCursor(CURSOR _cursor);
@@ -227,11 +249,18 @@ public:
 	virtual bool GetMouseStateAt(const CPoint &_Point, CURSOR *_pCursor) = 0;
 	virtual void CalculateLimits() = 0;
 	virtual void UpdateSnapSize(int _SnapSize) = 0;
-	virtual void Render() = 0;
+	virtual void DoFrame() {}
+	virtual void Render(WPARAM wParam) = 0;
 	virtual void UpdateView() = 0;
 
 	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL) = 0;
 
 	virtual BOOL OnIdle();
 	virtual bool hasChanged() = 0;
+
+	virtual bool DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle = _T("Untitled"), WPARAM wParam = NULL, LPARAM lParam = NULL) = 0;
+	virtual bool DoFileClose() = 0;
+	virtual bool DoFileSave(LPCTSTR lpszFilePath) = 0;
+	virtual bool DoFileSaveAs() = 0;
+	virtual bool DoFileReload() = 0;
 };

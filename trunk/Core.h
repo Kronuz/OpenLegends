@@ -60,19 +60,48 @@ struct _OpenZeldaFile {
 	DWORD dwDataOffset;		// Where the data begins. (Start + Index Size). 0 if no data.
 };
 #pragma pack()
+
+typedef _OpenZeldaFile OZFILE;
+typedef _OpenZeldaFile *LPOZFILE;
+typedef const _OpenZeldaFile *LPCOZFILE;
+
 // List of valid file types, their IDs and Signatures:
-const WORD OZF_SIGNATURE = 0x5a4f;
+#define OZ_NAME				"Open Zelda"
+
+const char OZF_ID[]			= OZ_NAME;
+const WORD OZF_SIGNATURE	= 0x5a4f;
+
 #define MAKEOZSIGN(w) (((DWORD)(w&0xffff)<<16) | OZF_SIGNATURE)
+#define MAKEOZID(str) OZ_NAME " " str
 
 const DWORD OZF_SPRITE_SET_SIGNATURE	= MAKEOZSIGN(0xff01);
 const DWORD OZF_MAP_GROUP_SIGNATURE		= MAKEOZSIGN(0xff02);
 const DWORD OZF_WORLD_SIGNATURE			= MAKEOZSIGN(0xff03);
 const DWORD OZF_SPRITE_SHEET_SIGNATURE	= MAKEOZSIGN(0xff04);
 
-const char OZF_SPRITE_SET_ID[]			= "Quest Designer Sprite Set";
-const char OZF_MAP_GROUP_ID[]			= "Quest Designer Map Group";
-const char OZF_WORLD_ID[]				= "Quest Designer World";
-const char OZF_SPRITE_SHEET_GROUP_ID[]	= "Quest Designer Sprite Sheet";
+const char OZF_SPRITE_SET_ID[]			= MAKEOZID("Sprite Set");
+const char OZF_MAP_GROUP_ID[]			= MAKEOZID("Map Group");
+const char OZF_WORLD_ID[]				= MAKEOZID("World");
+const char OZF_SPRITE_SHEET_GROUP_ID[]	= MAKEOZID("Sprite Sheet");
+
+// verifies that the pointer passed as pOZFile is a valid Open Zelda file in memory
+inline bool VerifyOZFile(LPCOZFILE *ppOZFile)
+{
+	LPCOZFILE pOZFile = *ppOZFile;
+	*ppOZFile = NULL;
+
+	if(!pOZFile) return false;
+
+	if(::IsBadReadPtr(pOZFile, sizeof(_OpenZeldaFile))) return false;
+	if(strncmp(pOZFile->ID, OZF_ID, sizeof(OZF_ID)-1)) return false;
+	if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) return false;
+
+	// Assert that we have access to all of the memory stated in the file header:
+	ASSERT(::IsBadReadPtr(pOZFile, pOZFile->dwSize) == 0);
+
+	*ppOZFile = pOZFile;
+	return true;
+}
 
 ////////////////////////////////////////////////////////////////////
 

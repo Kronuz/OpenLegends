@@ -50,7 +50,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface Version Definition:
-const WORD IGraphics::Version = 0x0200;
+const WORD IGraphics::Version = 0x0300;
 
 //////////////////////////////////////////////////////////////////////////////
 // Needed Libraries:
@@ -1015,41 +1015,55 @@ bool CGraphicsD3D8::BeginPaint()
 }
 bool CGraphicsD3D8::DrawFrame()
 {
+	// Now we hide what's not needed
+	DWORD color = ::GetSysColor(COLOR_APPWORKSPACE);
+	return DrawFrame( m_RectClip, 
+		COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)), 
+		COLOR_ARGB(0,0,0,0) );
+}
+
+bool CGraphicsD3D8::DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLOR rgbBoundaries)
+{
 	if(!m_bInitialized) return false;
 	ASSERT(ms_pD3DDevice);
 #ifdef _USE_SWAPCHAINS
 	ASSERT((m_pSwapChain || !ms_bWindowed));
 #endif
-	// Now we hide what's not needed
-	DWORD color = GetSysColor(COLOR_APPWORKSPACE);
 	// we don't want zoom or translation for this
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_IdentityMatrix));
 
-
-	//  We now need to clear the parts surroundint the view...
-	//  +-------------+------+
-	//  +             +      +
-	//  +    View     +      +
-	//  +             +  R2  +
-	//  +-------------+      +
-	//  +     R1      +      +
-	//  +-------------+------+
-	//  (see bellow)
-	
-	// First the rectangle exactly dow the view is cleared (R1):
 	RECT Rect;
-	::SetRect(&Rect, (int)((float)m_RectClip.left*m_Zoom), (int)((float)m_RectClip.bottom*m_Zoom), (int)((float)m_RectClip.right*m_Zoom), m_RectView.bottom);
-	::IntersectRect(&Rect, &Rect, &m_RectView);
-	::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
-	if(!::IsRectEmpty(&Rect)) // if it isn't empty, then we actually clear it
-		RenderFill(Rect, COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)));
+	if(rgbColor.rgbAlpha != 0) {
+		//  We now need to clear the parts surroundint the view...
+		//  +-------------+------+
+		//  +             +      +
+		//  +    View     +      +
+		//  +             +  R2  +
+		//  +-------------+      +
+		//  +     R1      +      +
+		//  +-------------+------+
+		//  (see bellow)
+		
+		// First the rectangle exactly dow the view is cleared (R1):
+		::SetRect(&Rect, (int)((float)RectClip.left*m_Zoom), (int)((float)RectClip.bottom*m_Zoom), (int)((float)RectClip.right*m_Zoom), m_RectView.bottom);
+		::IntersectRect(&Rect, &Rect, &m_RectView);
+		::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
+		// if it isn't empty, then we actually clear it:
+		if(!::IsRectEmpty(&Rect)) RenderFill(Rect, rgbColor); 
 
-	// Next the rectangle at the right of the view is cleared (R2):
-	::SetRect(&Rect, (int)((float)m_RectClip.right*m_Zoom), (int)((float)m_RectClip.top*m_Zoom), m_RectView.right, m_RectView.bottom);
-	::IntersectRect(&Rect, &Rect, &m_RectView);
-	::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
-	if(!::IsRectEmpty(&Rect)) 
-		RenderFill(Rect, COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)));
+		// Next the rectangle at the right of the view is cleared (R2):
+		::SetRect(&Rect, (int)((float)RectClip.right*m_Zoom), (int)((float)RectClip.top*m_Zoom), m_RectView.right, m_RectView.bottom);
+		::IntersectRect(&Rect, &Rect, &m_RectView);
+		::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
+		// if it isn't empty, then we actually clear it:
+		if(!::IsRectEmpty(&Rect)) RenderFill(Rect, rgbColor);
+	}
+
+	if(rgbBoundaries.rgbAlpha != 0) {
+		::SetRect(&Rect, (int)((float)RectClip.left*m_Zoom), (int)((float)RectClip.top*m_Zoom), (int)((float)RectClip.right*m_Zoom), (int)((float)RectClip.bottom*m_Zoom));
+		::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
+		if(!::IsRectEmpty(&Rect)) RenderRect(Rect, rgbBoundaries);
+	}
 
 	return true;
 }

@@ -406,7 +406,7 @@ bool CGameManager::Load(CVFile &vfFile)
 	DWORD dwInitTicks = GetTickCount();
 
 	m_sProjectName = vfFile.GetFileDesc();
-	if(m_sProjectName == "") m_sProjectName = "Unnamed Project";
+	if(m_sProjectName == "") m_sProjectName = "Untitled Project";
 
 	CONSOLE_PRINTF("Loading project: '%s' at %s...\n", m_sProjectName, vfFile.GetPath());
 
@@ -460,6 +460,17 @@ float CGameManager::UpdateFPS(float fpsLock)
 	static DWORD s_dwLastTick = 0L;	// this is the real last tick
 	static float s_fFPS = 0.0f;
 	static int s_nAdjust = 0;
+
+	if(fpsLock == 0.0f) {
+		s_fFPS = 0.0f;
+		s_nAdjust = 0;
+
+		s_dwLastTick = GetTickCount();
+		s_dwLastTime = s_dwLastTick;
+		ms_dwLastTick = s_dwLastTick;
+		ms_fDelta = 0.0f;
+		return s_fFPS;
+	}
 
 	// Find out the wasted milliseconds and sleep
 	int msw = 0;

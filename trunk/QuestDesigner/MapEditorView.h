@@ -64,17 +64,9 @@ public:
 
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
-	// Called to translate window messages before they are dispatched 
-	virtual BOOL PreTranslateMessage(MSG *pMsg);
-	// Called to clean up after window is destroyed
-	virtual void OnFinalMessage(HWND /*hWnd*/);
-
 	BEGIN_MSG_MAP(CMapEditorView)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-
-		COMMAND_CODE_HANDLER(CBN_SELCHANGE, OnSelChange)
-		COMMAND_CODE_HANDLER(CBN_STATECHANGE, OnStateChange)
 
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
@@ -103,7 +95,15 @@ public:
 		MENU_COMMAND_HANDLER(ID_MAPED_GRIDSNAP,		ToggleSnap)
 		MENU_COMMAND_HANDLER(ID_MAPED_SELHOLD,		ToggleHold)
 		
-		MENU_COMMAND_HANDLER(ID_APP_NOSOUND,		OnNoSound)
+		MENU_COMMAND_HANDLER(ID_APP_SOUND,			OnSound)
+		MENU_COMMAND_HANDLER(ID_APP_ANIM,			OnAnim)
+		MENU_COMMAND_HANDLER(ID_APP_PARALLAX,		OnParallax)
+
+		MESSAGE_HANDLER(WM_CHAR, OnChar)
+		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnLButtonDblClk)
+
+		COMMAND_CODE_HANDLER(CBN_SELCHANGE, OnSelChange)
+		COMMAND_CODE_HANDLER(CBN_STATECHANGE, OnStateChange)
 
 		CHAIN_MSG_MAP(baseClass);
 	END_MSG_MAP()
@@ -117,17 +117,17 @@ public:
 	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
+	LRESULT OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	
-	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	LRESULT OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-
-	bool DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle = _T("Untitled"));
-
 	void UIUpdateMenuItems();
 	void UIUpdateStatusBar();
 
-	void OnNoSound();
+	void OnAnim();
+	void OnParallax();
+	void OnSound();
 
 	BOOL CanUndo();
 	BOOL CanRedo();
@@ -142,7 +142,7 @@ public:
 	// has the content of the control changed?
 	virtual bool hasChanged();
 
-	virtual HWND SetFocus() { return baseClass::baseClass::SetFocus(); }
+	virtual HWND SetFocus() { return ::SetFocus(m_hWnd); }
 //////////////////////
 	virtual void GetWorldPosition(CPoint *_pPoint);
 
@@ -185,8 +185,15 @@ public:
 	virtual bool GetMouseStateAt(const CPoint &_Point, CURSOR *_pCursor);
 	virtual void CalculateLimits();
 	virtual void UpdateSnapSize(int _SnapSize);
-	virtual void Render();
+	virtual void DoFrame();
+	virtual void Render(WPARAM wParam);
 	virtual void UpdateView();
 
 	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL);
+
+	virtual bool DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle = _T("Untitled"), WPARAM wParam = NULL, LPARAM lParam = NULL);
+	virtual bool DoFileClose();
+	virtual bool DoFileSave(LPCTSTR lpszFilePath);
+	virtual bool DoFileSaveAs();
+	virtual bool DoFileReload();
 };
