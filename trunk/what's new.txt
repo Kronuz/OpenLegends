@@ -32,7 +32,13 @@ Open Zelda Project v.0.8.5: (not yet released)
 > QD: Sprite Sets with names saved as Sprite Sets in the maps.
 > QD: Debugger inspection watches.
 
-Open Zelda Project v.0.8.2: (not yet released)
+Open Zelda Project v.0.8.4: (September 10, 2004)
+- QZ: Fixed a bug on the graphics engine.
+
+Open Zelda Project v.0.8.2: (never released)
+- QZ: Fixed some major bugs on the graphics engine.
+
+Open Zelda Project v.0.8.2: (never released)
 * First release of the new Open Zelda.
 * A "What's new" file has been added.
 - QD: Some bug Fixes.
