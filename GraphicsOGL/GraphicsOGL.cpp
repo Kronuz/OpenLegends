@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003. System_Failure 
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		GraphicsOGL.cpp
-	\brief		Implementation of the OpenGL 2D Graphics plugin for Open Zelda.
+	\brief		Implementation of the OpenGL 2D Graphics plugin for Open Legends.
 	\date		Nov. 10, 2003: 
 					* Initial Release.
 				

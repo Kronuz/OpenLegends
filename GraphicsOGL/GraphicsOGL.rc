@@ -69,7 +69,7 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "2D graphics engine using OpenGL designed for Open Zelda. http://www.openzelda.com/"
+            VALUE "Comments", "2D graphics engine using OpenGL designed for Open Legends. http://www.openlegends.com/"
             VALUE "CompanyName", "by System_Failure"
             VALUE "FileDescription", "OpenGL Engine plugin v0.1"
             VALUE "FileVersion", "0, 0, 0, 1"
@@ -77,7 +77,7 @@ BEGIN
             VALUE "LegalCopyright", "Copyright © 2003 by System_Failure. All rights reserved."
             VALUE "LegalTrademarks", "All trademarks are property of their respective owners."
             VALUE "OriginalFilename", "GraphicsOGL.dll"
-            VALUE "ProductName", "Open Zelda library"
+            VALUE "ProductName", "Open Legends library"
             VALUE "ProductVersion", "0, 0, 0, 1"
         END
     END

@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -517,7 +517,7 @@ private:
 #pragma pack(1)
 struct _SpriteSet {
 	struct _SpriteSetInfo {
-		_OpenZeldaFile Header;
+		_OpenLegendsFile Header;
 		UINT nObjects;
 		CRect rcBoundaries;
 	} Info;

@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -390,7 +390,8 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 
 	CBString sID;
 	ReadStringFromFile(sID, vfFile);
-	if(sID == "Open Zelda Quest Designer Map File") {
+	if( sID == "Open Legends Quest Designer Map File" ||
+		sID == "Open Zelda Quest Designer Map File" ) {
 		if(ReadMaps(vfFile)) {
 			if(ReadMapGroups(vfFile)) {
 				if(!ReadProperties(vfFile)) bRet = false;

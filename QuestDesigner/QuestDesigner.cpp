@@ -1,9 +1,9 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
 */
-/*! \mainpage Quest Designer: <br>First Part of Open Zelda's Project
-	\section license Open Zelda's Project License
+/*! \mainpage Quest Designer: <br>First Part of Open Legends's Project
+	\section license Open Legends's Project License
 	This program is free software; you can redistribute it and/or
 	modify it under the terms of the GNU General Public License
 	as published by the Free Software Foundation; either version 2
@@ -14,31 +14,31 @@
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU General Public License for more details.
 
-	\section intro Concerning Open Zelda
-	Open Zelda is a 2D page scrolling game engine for Win32 that uses scripts or 
+	\section intro Concerning Open Legends
+	Open Legends is a 2D page scrolling game engine for Win32 that uses scripts or 
 	rules, sprites, and a number of sounds to render many types of 2D based games. 
 	Its uses, with a little of immagination and creativity, can vary from the 
-	classic Zelda-style orthogonal views (on which the engine was based) to the 
+	classic Legends-style orthogonal views (on which the engine was based) to the 
 	popular side view scrolling view, and even fake 3D isometric views!
 
 	The Quest Designer, as his name suggests, is an editor of quests. A quest,
-	in Open Zelda, is nothing more than the set of sprites, maps, sound and rules
+	in Open Legends, is nothing more than the set of sprites, maps, sound and rules
 	that make all this types of games possible.
 
 
 	\section QD Quest Designer
 
 	\subsection motivation Motivation:
-	In the dawn of games, Nintendo gave us the SNES with Zelda 3 and 
+	In the dawn of games, Nintendo gave us the SNES with Legends 3 and 
 	opened our eyes, but after some great years, SNES sadly expired. It was 
 	not over, and not everything was lost, for the emulators came and gave 
 	us back some hope.
 	
 	Soon our hope was diminished when we finally knew by heart the whole game,
-	and we just yearned for those long gone days when we first played Zelda 3.
+	and we just yearned for those long gone days when we first played Legends 3.
 
 	Oh, but then there was Greg Denness, who gave us the light and showed
-	us new ways with his magnificent creation: Open Zelda and the Quest 
+	us new ways with his magnificent creation: Open Legends and the Quest 
 	Designer. Our joy ended soon when he had to stall the project, but it was
 	once again restrengthened when he released the source code. Now we are 
 	illuminated with all the existent possibilities, and for that we are 
@@ -55,10 +55,10 @@
 	just the beginning...
  
 	\subsection goal Goal
-	Our goal is to build a fully featured quest editor for Open Zelda.
+	Our goal is to build a fully featured quest editor for Open Legends.
 	The intended Quest Designer will have a much robust and user friendly 
 	interface along with a better file management for smaller quest files 
-	and higher efficiency in their use than the current Open Zelda's 
+	and higher efficiency in their use than the current Open Legends's 
 	Quest Designer by Greg Denness.
 
  	\subsection road The road ahead

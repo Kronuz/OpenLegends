@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		GraphicsD3D8.cpp
-	\brief		Implementation of the DirectGraphics 2D Graphics plugin for Open Zelda.
+	\brief		Implementation of the DirectGraphics 2D Graphics plugin for Open Legends.
 	\date		May 19, 2003: 
 					* Initial Release.
 				June 9, 2003
@@ -852,6 +852,8 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 #ifndef _USE_SWAPCHAINS
 	ms_nScreenWidth = ms_PreferredMode.Width;
 	ms_nScreenHeight = ms_PreferredMode.Height;
+
+	// KingOfHeart repored that Intel 82815 doesn't create these helper textures (at 16 bits?):
 
 	// Now we create a helper surface we'll be needing later for the some effects (pixelate and others)
 	// Keep which surface is the old Render Target.
@@ -2180,7 +2182,7 @@ void CGraphicsD3D8::Render(
 		if(ms_D3DCaps.TextureOpCaps & D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR) {
 			// Strider asked for this black to full white lightness system, but it doesn't work 
 			// on all the video cards (doesn't work on the Intel 82815) why? maybe stages not supported.
-			// Raichu19192 repored the Intel 82815 bug on this (all sprites are shown grey)
+			// KingOfHeart repored the Intel 82815 bug on this (all sprites are shown grey)
 			float lightnessAlpha;
 			BYTE lightnessValue;
 			if(lightness<0.5f) {

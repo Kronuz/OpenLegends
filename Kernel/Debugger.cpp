@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -142,7 +142,7 @@ int CALLBACK CDebugScript::Request(SOCKET s)
 	ms_bBreakRequest = true;
 
 	BeginSend();
-	Send("100 Welcome to the Open Zelda debugger v1.0.\r\n");
+	Send("100 Welcome to the Open Legends debugger v1.0.\r\n");
 	Send("200 Type HELP for help.\r\n\r\n");
 	EndSend();
 
@@ -221,7 +221,7 @@ void CDebugScript::ListCommands(LPCSTR command)
 			"\tWATCH n var\tchange watch \"n\" to variable \"var\"\r\n");
 	} else {
 		Send(
-			"\tSTOP\t\tstops debugging (close Open Zelda)\r\n"
+			"\tSTOP\t\tstops debugging (close Open Legends)\r\n"
 			"\tBREAK\t\tset breakpoint at line number or variable name\r\n"
 			"\tCALLS\t\tshow call stack\r\n"
 			"\tCBREAK\t\tremove breakpoint\r\n"
@@ -493,7 +493,7 @@ int AMXAPI amx_InternalDebugProc(AMX *amx)
 				ASSERT(pFile->m_sName.length() < MAX_PATH);
 				CDebugScript::Send("502 FILE: %d %s\r\n", (int)amx->curline, pFile->m_sName.c_str());
 			} else {
-				CDebugScript::Send("410 Open Zelda's debugger internal error!\r\n");
+				CDebugScript::Send("410 Open Legends's debugger internal error!\r\n");
 			}
 			CDebugScript::EndSend();
 

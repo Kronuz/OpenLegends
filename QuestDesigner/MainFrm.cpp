@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -39,7 +39,7 @@ static int nStatusBarPanes [] =
 	ID_READONLY_PANE
 };
 
-static LPCTSTR lpcszQuestDesignerRegKey = _T("SOFTWARE\\OpenZelda\\QuestDesigner");
+static LPCTSTR lpcszQuestDesignerRegKey = _T("SOFTWARE\\OpenLegends\\QuestDesigner");
 
 bool PathToParam(LPCSTR szPath, LPSTR szBuffer, int nSize)
 {
@@ -761,13 +761,13 @@ HRESULT CMainFrame::OnRunProject()
     StatusBar("Connecting debugger...", IDI_ICO_WAIT);
 	OnIdle(); // Force idle processing to update the toolbar.
 
-	// Try connecting to an already open "Open Zelda" with an active debugger
+	// Try connecting to an already open "Open Legends" with an active debugger
 	SOCKET s = Connect("localhost", 7683, Dispatch, Request);
 	if(s == INVALID_SOCKET) {
 		if(OnBuildProject(false) == 1) {
 			CONSOLE_PRINTF("Debugger error: Couldn't build the quest!\n");
 		}
-		// Get the Open Zelda's exe path
+		// Get the Open Legends's exe path
 		char szFilename[MAX_PATH];
 		GetModuleFileName(_Module.GetModuleInstance(), szFilename, MAX_PATH);
 
@@ -775,7 +775,7 @@ HRESULT CMainFrame::OnRunProject()
 		while(aux != szFilename && *aux != '\\') aux--;
 		if(*aux == '\\') aux++;
 		*aux = '\0';
-		strcat(szFilename, "OpenZelda.exe");
+		strcat(szFilename, "OpenLegends.exe");
 
 		if(g_sHomeDir=="" || g_sQuestFile=="") {
 			CONSOLE_PRINTF("Debugger error: No quest, try openning a quest first!\n");
@@ -786,9 +786,9 @@ HRESULT CMainFrame::OnRunProject()
 			PathToParam(g_sHomeDir, szGame, sizeof(szGame));
 			PathToParam(g_sQuestFile, szQuest, sizeof(szQuest));
 
-			// Try to load Open Zelda:
+			// Try to load Open Legends:
 			if(_spawnl( _P_NOWAIT, szFilename, "1", "-d", szGame, szQuest, NULL) == -1) {
-				MessageBox("Couldn't launch Open Zelda", "Quest Designer");
+				MessageBox("Couldn't launch Open Legends", "Quest Designer");
 			} else {
 				// wait for connection with the debugger.
 				for(int i=0; i<3; i++) {
@@ -797,8 +797,8 @@ HRESULT CMainFrame::OnRunProject()
 					Sleep(100); // wait for the connection to stabilize
 				}
 				if(s == INVALID_SOCKET) {
-					CONSOLE_PRINTF("Debugger error: Couldn't connect with Open Zelda's debugger!");
-					StatusBar("Couldn't connect with Open Zelda's debugger!", IDI_ICO_ERROR);
+					CONSOLE_PRINTF("Debugger error: Couldn't connect with Open Legends's debugger!");
+					StatusBar("Couldn't connect with Open Legends's debugger!", IDI_ICO_ERROR);
 				}
 			}
 		}

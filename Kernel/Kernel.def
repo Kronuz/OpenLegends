@@ -1,4 +1,4 @@
-;DESCRIPTION	'Open Zelda core engine.'
+;DESCRIPTION	'Open Legends core engine.'
 LIBRARY			Kernel.dll
 EXPORTS
 	QueryGameInterface
