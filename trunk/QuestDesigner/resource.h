@@ -40,6 +40,7 @@
 #define IDI_ICO_QUESTION                241
 #define IDI_ICO_ERROR                   242
 #define IDI_ICO_OK                      243
+#define IDI_ICO_WAIT                    244
 #define IDB_DRAGIMG                     250
 #define IDB_TAB_ICONS                   251
 #define IDI_BEGIN                       260
@@ -64,20 +65,22 @@
 #define IDI_FOLDER_OPEN                 271
 #define IDI_FOLDER_LIB                  272
 #define IDI_END                         272
+#define IDI_ICON2                       273
 #define IDD_ACK                         282
 #define IDI_ICON1                       286
 #define IDB_LOGO                        287
 #define IDB_COMBO_ICONS                 293
 #define IDB_COMBO_ICONS2                294
 #define ID_VIEW_PANEFIRST               500
-#define ID_PANE_THINGSTODO              500
-#define ID_PANE_PROJECTDESCRIPTION      501
-#define ID_PANE_OUTPUTWINDOW            502
-#define ID_PANE_PROPERTIES              503
-#define ID_PANE_PROJECTEXPLORER         504
-#define ID_PANE_QUESTEXPLORER           505
-#define ID_PANE_SPRITESETEXPLORER       506
-#define ID_VIEW_PANELAST                506
+#define ID_PANE_THUMBNAILS              500
+#define ID_PANE_THINGSTODO              501
+#define ID_PANE_PROJECTDESCRIPTION      502
+#define ID_PANE_OUTPUTWINDOW            503
+#define ID_PANE_PROPERTIES              504
+#define ID_PANE_PROJECTEXPLORER         505
+#define ID_PANE_QUESTEXPLORER           506
+#define ID_PANE_SPRITESETEXPLORER       507
+#define ID_VIEW_PANELAST                507
 #define IDC_ARROWADD                    1000
 #define IDC_ARROWDEL                    1001
 #define IDC_ARROWSELECT                 1002
@@ -222,7 +225,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        265
+#define _APS_NEXT_RESOURCE_VALUE        274
 #define _APS_NEXT_COMMAND_VALUE         32420
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           105

@@ -49,6 +49,18 @@ private:
 
 	CSize m_szMap;
 
+	bool ToTop();
+	bool ObjectDown();
+	bool ObjectUp();
+	bool ToBottom();
+
+	bool AlignTop();
+	bool AlignBottom();
+	bool AlignRight();
+	bool AlignLeft();
+	bool AlignCenter();
+	bool AlignMiddle();
+
 	bool Flip();
 	bool Mirror();
 	bool CWRotate();
@@ -58,9 +70,17 @@ private:
 	bool ToggleMask();
 	bool ToggleBounds();
 
+	CString m_sPasting;
+
 public:
 	// Construction/Destruction
 	CMapEditorView(CMapEditorFrame *pParentFrame);
+
+	// Called to translate window messages before they are dispatched 
+	virtual BOOL PreTranslateMessage(MSG *pMsg) { return FALSE; }
+
+	// Called to clean up after window is destroyed
+	virtual void OnFinalMessage(HWND /*hWnd*/) { delete this; }
 
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
@@ -72,7 +92,20 @@ public:
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
 
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
+
 		
+		MENU_COMMAND_HANDLER(ID_MAPED_TOTOP,		ToTop)
+		MENU_COMMAND_HANDLER(ID_MAPED_OBJDWN,		ObjectDown)
+		MENU_COMMAND_HANDLER(ID_MAPED_OBJUP,		ObjectUp)
+		MENU_COMMAND_HANDLER(ID_MAPED_TOBOTTOM,		ToBottom)
+
+		MENU_COMMAND_HANDLER(ID_MAPED_ALTOP,		AlignTop)
+		MENU_COMMAND_HANDLER(ID_MAPED_ALBOTTOM,		AlignBottom)
+		MENU_COMMAND_HANDLER(ID_MAPED_ALRIGHT,		AlignRight)
+		MENU_COMMAND_HANDLER(ID_MAPED_ALLEFT,		AlignLeft)
+		MENU_COMMAND_HANDLER(ID_MAPED_ALCX,			AlignCenter)
+		MENU_COMMAND_HANDLER(ID_MAPED_ALCY,			AlignMiddle)
+
 		MENU_COMMAND_HANDLER(ID_MAPED_FLIP,			Flip)
 		MENU_COMMAND_HANDLER(ID_MAPED_MIRROR,		Mirror)
 		MENU_COMMAND_HANDLER(ID_MAPED_C90,			CWRotate)
@@ -101,6 +134,7 @@ public:
 
 		MESSAGE_HANDLER(WM_CHAR, OnChar)
 		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnLButtonDblClk)
+		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
 
 		COMMAND_CODE_HANDLER(CBN_SELCHANGE, OnSelChange)
 		COMMAND_CODE_HANDLER(CBN_STATECHANGE, OnStateChange)
@@ -119,6 +153,7 @@ public:
 
 	LRESULT OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	
@@ -128,6 +163,8 @@ public:
 	void OnAnim();
 	void OnParallax();
 	void OnSound();
+
+	void OnZoom();
 
 	BOOL CanUndo();
 	BOOL CanRedo();
@@ -147,7 +184,7 @@ public:
 	virtual void GetWorldPosition(CPoint *_pPoint);
 
 	virtual void HoldOperation();
-	virtual void CancelOperation();
+	virtual void CancelOperation(bool bPropagate = true);
 
 	virtual bool isResizing();
 	virtual bool isMoving();

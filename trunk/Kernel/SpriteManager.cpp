@@ -58,6 +58,7 @@ CSprite::CSprite(LPCSTR szName) :
 	m_bDefined(false),
 	m_pSpriteSheet(NULL),
 	m_pSpriteData(NULL),
+	m_nCatalog(-1),
 	CDrawableObject(szName)
 {
 }
@@ -258,17 +259,33 @@ CSpriteSheet::~CSpriteSheet()
 {
 	if(m_pTexture) m_pTexture->Release();
 
-	std::map<CBString, CSprite*>::iterator Iterator = m_Sprites.begin();
+	/*
+	for_each(m_Sprites.begin(), m_Sprites.end(), ptr_delete());
+	/*/
+	mapSprite::iterator Iterator = m_Sprites.begin();
 	while(Iterator != m_Sprites.end()) {
 		delete Iterator->second;
 		Iterator++;
 	}
+	/**/
 	m_Sprites.clear();
 }
 int CSpriteSheet::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 {
 	int cnt = 0;
-	std::map<CBString, CSprite*>::iterator Iterator = m_Sprites.begin();
+
+	BuildCatalog();
+
+	vectorSprite::iterator Iterator = m_Catalog.begin();
+	while(Iterator != m_Catalog.end()) {
+		ASSERT(*Iterator);
+		int aux = ForEach((LPVOID)(*Iterator), lParam);
+		if(aux < 0) return aux-cnt;
+		cnt += aux;
+		Iterator++;
+	}
+	/*/
+	mapSprite::iterator Iterator = m_Sprites.begin();
 	while(Iterator != m_Sprites.end()) {
 		ASSERT(Iterator->second);
 		int aux = ForEach((LPVOID)(Iterator->second), lParam);
@@ -276,6 +293,8 @@ int CSpriteSheet::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 		cnt += aux;
 		Iterator++;
 	}
+	/**/
+
 	return cnt;
 }
 bool CSpriteContext::GetInfo(SInfo *pI) const 
@@ -528,7 +547,7 @@ void CSpriteSelection::BuildRealSelectionBounds()
 	CRect RectTmp;
 	m_rcSelection.SetRectEmpty();
 	vectorObject::iterator Iterator;
-	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+	for(Iterator = m_Objects[0].begin(); Iterator != m_Objects[0].end(); Iterator++) {
 		Iterator->pContext->GetAbsFinalRect(RectTmp);
 		m_rcSelection.UnionRect(m_rcSelection, RectTmp);
 		// We need to keep the initial size and location of every selected object:
@@ -536,98 +555,125 @@ void CSpriteSelection::BuildRealSelectionBounds()
 	}
 }
 
+void CSpriteSelection::SetSelectionName(LPCSTR szName)
+{
+	m_ObjectsNames[m_nCurrentGroup] = szName;
+}
+
+LPCSTR CSpriteSelection::GetSelectionName(LPSTR szName, int size)
+{
+	SObjProp *pSel = GetFirstSelection();
+	*szName = '\0';
+
+	ASSERT(m_Objects.size() == m_ObjectsNames.size());
+	if(m_nCurrentGroup>0 && m_nCurrentGroup<(int)m_ObjectsNames.size()) {
+		strncpy(szName+1, m_ObjectsNames[m_nCurrentGroup].c_str(), size-2);
+		*szName = '@'; // To recognize them from regular sprites, Sprite Sets names internally start with '@' (as long as the name is not changed)
+	} else if(pSel) {
+		strncpy(szName, (LPCSTR)pSel->pContext->GetObjName(), size-1);
+	}
+
+	szName[size - 1] = '\0';
+
+	return szName;
+}
+
 bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	CRect Rect(0,0,0,0);
 	CRect RectTmp;
 
-	int nObjects = (int)m_Objects.size();
+	// Always draws what's in group 0
+	int nObjects = (int)m_Objects[0].size();
 	const CSpriteContext *scontext = NULL;
 
-	vectorObject::iterator Iterator = m_Objects.begin();
-	while(Iterator != m_Objects.end()) {
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
 		scontext = static_cast<const CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 		Rect.UnionRect(Rect, RectTmp);
 		if(nObjects>1) {
-			if(Iterator->bSubselected || !m_bHoldSelection) {
-				if(m_bHoldSelection) {
-					// if the object is subselected and the selection is held, draw in other color:
-					pGraphics_->FillRect(RectTmp, COLOR_ARGB(92,128,128,255));
-				} else {
-					// only fill the selection if it isn't held:
-//					if(!m_bHoldSelection) pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
+			if(!m_bHighlightOnly && !m_bFloating) {
+				if(Iterator->bSubselected || !m_bHoldSelection) {
+					if(m_bHoldSelection) {
+						// if the object is subselected and the selection is held, draw in other color:
+						pGraphics_->FillRect(RectTmp, COLOR_ARGB(92,128,128,255));
+					} else {
+						// only fill the selection if it isn't held:
+//						if(!m_bHoldSelection) pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
+					}
+					// draw a bounding rect over the selected object:
+					pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(80,255,255,225));
 				}
-				// draw a bounding rect over the selected object:
-				pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(80,255,255,225));
 			}
-
-			// Draw the horizontal chain of the object:
-			CRect rcSpecial, rcArrow;
-			rcSpecial = RectTmp;
-			if(Iterator->eXChain == left) {
-				rcSpecial.right = rcSpecial.left+2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->eXChain == right) {
-				rcSpecial.left = rcSpecial.right-2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->eXChain == fixed) {
-				rcSpecial.right = rcSpecial.left+2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+			if(!m_bHighlightOnly) {
+				// Draw the horizontal chain of the object:
+				CRect rcSpecial, rcArrow;
 				rcSpecial = RectTmp;
-				rcSpecial.left = rcSpecial.right-2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-			} else if(Iterator->eXChain == stretch) {
-				rcSpecial.top = rcSpecial.top+rcSpecial.Height()/2;
-				rcSpecial.bottom = rcSpecial.top+1;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+				if(Iterator->eXChain == left) {
+					rcSpecial.right = rcSpecial.left+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(Iterator->eXChain == right) {
+					rcSpecial.left = rcSpecial.right-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(Iterator->eXChain == fixed) {
+					rcSpecial.right = rcSpecial.left+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+					rcSpecial = RectTmp;
+					rcSpecial.left = rcSpecial.right-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+				} else if(Iterator->eXChain == stretch) {
+					rcSpecial.top = rcSpecial.top+rcSpecial.Height()/2;
+					rcSpecial.bottom = rcSpecial.top+1;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 
-				rcArrow = rcSpecial;
-				rcArrow.bottom++;
-				rcArrow.top--;
-				rcArrow.left++;
-				rcArrow.right = rcArrow.left+1;
-				pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+					rcArrow = rcSpecial;
+					rcArrow.bottom++;
+					rcArrow.top--;
+					rcArrow.left++;
+					rcArrow.right = rcArrow.left+1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
 
-				rcArrow = rcSpecial;
-				rcArrow.bottom++;
-				rcArrow.top--;
-				rcArrow.right--;
-				rcArrow.left = rcArrow.right-1;
-				pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
-			}
+					rcArrow = rcSpecial;
+					rcArrow.bottom++;
+					rcArrow.top--;
+					rcArrow.right--;
+					rcArrow.left = rcArrow.right-1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+				}
 
-			// Draw the vertical chain of the object:
-			rcSpecial = RectTmp;
-			if(Iterator->eYChain == up) {
-				rcSpecial.bottom = rcSpecial.top+2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->eYChain == down) {
-				rcSpecial.top = rcSpecial.bottom-2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->eYChain == fixed) {
-				rcSpecial.bottom = rcSpecial.top+2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+				// Draw the vertical chain of the object:
 				rcSpecial = RectTmp;
-				rcSpecial.top = rcSpecial.bottom-2;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-			} else if(Iterator->eYChain == stretch) {
-				rcSpecial.left = rcSpecial.left+rcSpecial.Width()/2;
-				rcSpecial.right = rcSpecial.left+1;
-				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+				if(Iterator->eYChain == up) {
+					rcSpecial.bottom = rcSpecial.top+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(Iterator->eYChain == down) {
+					rcSpecial.top = rcSpecial.bottom-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(Iterator->eYChain == fixed) {
+					rcSpecial.bottom = rcSpecial.top+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+					rcSpecial = RectTmp;
+					rcSpecial.top = rcSpecial.bottom-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+				} else if(Iterator->eYChain == stretch) {
+					rcSpecial.left = rcSpecial.left+rcSpecial.Width()/2;
+					rcSpecial.right = rcSpecial.left+1;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 
-				rcArrow = rcSpecial;
-				rcArrow.right++;
-				rcArrow.left--;
-				rcArrow.top++;
-				rcArrow.bottom = rcArrow.top+1;
-				pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+					rcArrow = rcSpecial;
+					rcArrow.right++;
+					rcArrow.left--;
+					rcArrow.top++;
+					rcArrow.bottom = rcArrow.top+1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
 
-				rcArrow = rcSpecial;
-				rcArrow.right++;
-				rcArrow.left--;
-				rcArrow.bottom--;
-				rcArrow.top = rcArrow.bottom-1;
-				pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+					rcArrow = rcSpecial;
+					rcArrow.right++;
+					rcArrow.left--;
+					rcArrow.bottom--;
+					rcArrow.top = rcArrow.bottom-1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+				}
 			}
 		}
 
@@ -636,15 +682,28 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	m_bCanMove = true;
 	m_bCanResize = true;
 
-	if(nObjects>1) {
-		if(m_bHoldSelection) pGraphics_->SelectionBox(Rect, COLOR_ARGB(128,160,160,160));
-		else pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
-	} else if(nObjects==1) {
-		if(scontext->isTiled()) {
-			pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,255,200));
+	if(!m_bFloating) {
+		if(m_bHighlightOnly) {
+			if(nObjects>0) {
+				// draw a bounding rect over the selected objects:
+				pGraphics_->FillRect(Rect, COLOR_ARGB(64,255,255,0));
+				pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,0,0));
+			}
 		} else {
-			m_bCanResize = false;
-			pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,255,200));
+			if(nObjects>1) {
+				if(m_bHoldSelection) pGraphics_->SelectionBox(Rect, COLOR_ARGB(128,160,160,160));
+				else {
+					if(isGroup()) pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,192,96));
+ 					else pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
+				}
+			} else if(nObjects==1) {
+				if(scontext->isTiled()) {
+					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,255,200));
+				} else {
+					m_bCanResize = false;
+					pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,255,200));
+				}
+			}
 		}
 	}
 
@@ -746,7 +805,7 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 	}
 
 	if(rcOldBounds_.Width() != rcNewBounds_.Width()) {
-		if((bAllowResize_ && xChain == relative) || (bAllowResize_ && xChain == stretch)) {
+		if(/*(bAllowResize_ && xChain == relative) ||*/ (bAllowResize_ && xChain == stretch)) {
 			w = Rect.Width();
 			Rect.left = m_nSnapSize*(Rect.left/m_nSnapSize);
 			if(Rect.Width() <= 0) Rect.left = Rect.right-m_nSnapSize;
@@ -758,7 +817,7 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 	}
 
 	if(rcOldBounds_.Height() != rcNewBounds_.Height()) {
-		if((bAllowResize_ && yChain == relative) || (bAllowResize_ && yChain == stretch)) {
+		if(/*(bAllowResize_ && yChain == relative) ||*/ (bAllowResize_ && yChain == stretch)) {
 			h = Rect.Height();
 			Rect.top = m_nSnapSize*(Rect.top/m_nSnapSize);
 			if(Rect.Height() <= 0) Rect.top = Rect.bottom-m_nSnapSize;
@@ -783,7 +842,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	// we start by sorting the selected objects (in the selection):
 	SortSelection();
 
-	if(m_Objects.size() == 0) {
+	if(m_Objects[0].size() == 0) {
 		if(bDeleteBitmap && ppBitmap) {
 			*ppBitmap = NULL;
 			delete []pBitmap;
@@ -802,8 +861,8 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	// we need a map to hold every different object (to make an object index.)
 	std::map<CDrawableObject*, int> ObjectsNames;
 
-	vectorObject::iterator Iterator = m_Objects.begin();
-	for(int i=0; Iterator != m_Objects.end(); i++) {
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	for(int i=0; Iterator != m_Objects[0].end(); i++) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		ASSERT(scontext);
 		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
@@ -875,7 +934,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	strcat(CopyBoard->Info.Header.ID, "\nUntitled Sprite Set\nDescription goes here.");
 	CopyBoard->Info.Header.dwSignature = OZF_SPRITE_SET_SIGNATURE;
 	CopyBoard->Info.Header.dwSize = asize + bmpsize;
-	CopyBoard->Info.nObjects = (int)m_Objects.size();
+	CopyBoard->Info.nObjects = (int)m_Objects[0].size();
 
 	CopyBoard->Info.rcBoundaries = rcBoundaries;
 	CopyBoard->Info.rcBoundaries.OffsetRect(-rcBoundaries.TopLeft());
@@ -900,8 +959,8 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		IndexIterator++;
 	}
 
-	Iterator = m_Objects.begin();
-	for(i=0; Iterator != m_Objects.end(); i++) {
+	Iterator = m_Objects[0].begin();
+	for(i=0; Iterator != m_Objects[0].end(); i++) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		ASSERT(scontext);
 		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
@@ -1020,55 +1079,85 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	}
 	return hglbCopy;
 }
-bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite) 
+CRect CSpriteSelection::PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoint *pPoint, bool bPaste) 
 {
-	CSprite *pSprite = CGameManager::Instance()->FindSprite(szSprite);
-	if(!pSprite) {
-		CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szSprite);
-		return false;
-	}
+	CRect RetRect(0,0,0,0);
+
+	// PasteSprite needs no paste group, so we clear the paste group if set:
+	m_nPasteGroup = 0;
+	m_nCurrentGroup = 0;
+
 	if(pSprite->GetSpriteType() == tMask) {
-		CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", szSprite);
-		return false;
+		if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", pSprite->GetName());
+		return RetRect;
 	}
 	if(!pLayer) {
-		CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", szSprite);
-		return false;
+		if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", pSprite->GetName());
+		return RetRect;
 	}
-	CleanSelection();
-
-	CSpriteContext *pSpriteContext = new CSpriteContext("");
 
 	CSize Size;
-	pSpriteContext->SetDrawableObj(pSprite);
-	pSpriteContext->GetSize(Size);
-	if(pSprite->GetSpriteType() == tBackground) pSpriteContext->Tile();
-	pSpriteContext->SetObjSubLayer(static_cast<CBackground *>(pSprite)->GetObjSubLayer());
-	pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
+	pSprite->GetSize(Size);
+	RetRect.SetRect(0, 0, Size.cx, Size.cy);
 
-	pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
-	m_Objects.push_back(SObjProp(this, pSpriteContext));
-	pSpriteContext->MoveTo(0, 0);
-	pSpriteContext->SelectContext();
+	if(bPaste) {
+		if(!pPoint) CleanSelection();
 
-	m_bFloating = true;
-	StartMoving(CPoint(Size.cx/2, Size.cy/2));
+		CSpriteContext *pSpriteContext = new CSpriteContext("");
+		pSpriteContext->SetDrawableObj(pSprite);
 
-	return true;
+		if(pSprite->GetSpriteType() == tBackground) pSpriteContext->Tile();
+		pSpriteContext->SetObjSubLayer(static_cast<CBackground *>(pSprite)->GetObjSubLayer());
+		pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
+
+		pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
+		if(!pPoint) {
+			m_Objects[0].push_back(SObjProp(this, pSpriteContext));
+			pSpriteContext->MoveTo(0, 0);
+			pSpriteContext->SelectContext();
+
+			m_bFloating = true;
+			StartMoving(CPoint(Size.cx/2, Size.cy/2));
+		} else {
+			pSpriteContext->MoveTo(*pPoint);
+		}
+	}
+
+	if(pPoint) RetRect.OffsetRect(*pPoint);
+
+	return RetRect;
 }
-bool CSpriteSelection::PasteSpriteSet(CLayer *pLayer, LPBYTE pRawBuffer)
+
+CRect CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite, const CPoint *pPoint, bool bPaste) 
 {
+	CSprite *pSprite = CGameManager::Instance()->FindSprite(szSprite);
+
+	if(!pSprite) {
+		if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szSprite);
+		return CRect(0,0,0,0);
+	}
+	return PasteSprite(pLayer, pSprite, pPoint, bPaste);
+}
+CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, const CPoint *pPoint, bool bPaste)
+{
+	CRect RetRect(0,0,0,0);
+
 	ASSERT(pRawBuffer);
 
 	_SpriteSet *CopyBoard = (_SpriteSet*)pRawBuffer;
 
-	CleanSelection();
+	if(!pPoint && bPaste) CleanSelection();
 	LPSTR szName = NULL;
 
 	LPWORD pIndexOffset = (LPWORD)((LPBYTE)CopyBoard + sizeof(_SpriteSet::_SpriteSetInfo));
 	LPBYTE pData = (LPBYTE)CopyBoard + CopyBoard->Info.Header.dwDataOffset;
 
 	UINT nLayer = -1;
+
+	char szSpriteSetName[200];
+	// get the next availible paste group:
+	m_nCurrentGroup = SetNextPasteGroup(GetNameFromOZFile(&CopyBoard->Info.Header, szSpriteSetName, sizeof(szSpriteSetName)));
+	CONSOLE_DEBUG("Sprite Set to be pasted as group #%d\n", m_nPasteGroup);
 
 	for(UINT i=0; i<CopyBoard->Info.nObjects; i++) {
 
@@ -1109,82 +1198,133 @@ bool CSpriteSelection::PasteSpriteSet(CLayer *pLayer, LPBYTE pRawBuffer)
 
 		CSprite *pSprite = CGameManager::Instance()->FindSprite(szName);
 		if(!pSprite) {
-			CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szName);
+			if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szName);
 			continue;
 		}
 		if(pSprite->GetSpriteType() == tMask) {
-			CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", szName);
+			if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", szName);
 			continue;
 		}
 		if(!pLayer) {
-			CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", szName);
+			if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", szName);
 			continue;
 		}
 
-		CSpriteContext *pSpriteContext = new CSpriteContext(""); // New sprite context with no name.
-		pSpriteContext->SetDrawableObj(pSprite);
-
-		// Fill sprite context data:
-
-		ARGBCOLOR rgbColor = COLOR_ARGB(255,128,128,128);
-		int rotation = 0;
-		bool mirrored = false;
-		bool flipped = false;
-		
-		_Chain XChain = relative;
-		_Chain YChain = relative;
 		CRect RectTmp(pSpriteSetData->X, pSpriteSetData->Y, pSpriteSetData->X - 1, pSpriteSetData->Y - 1);
-		pSpriteContext->SetObjSubLayer(pSpriteSetData->SubLayer);
-
-		if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
-			ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
-			RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
-			RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
-			pSpriteContext->Tile();
-		}
-		if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
-			ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
-			rotation = pSpriteSetData02->rotation;
-			mirrored = pSpriteSetData02->mirrored;
-			flipped = pSpriteSetData02->flipped;
-			if((pSpriteSetData->Mask & SSD_CHAIN_X) == SSD_CHAIN_X)
-				XChain = (_Chain)(pSpriteSetData02->XChain + 1);
-			if((pSpriteSetData->Mask & SSD_CHAIN_Y) == SSD_CHAIN_Y)
-				YChain = (_Chain)(pSpriteSetData02->YChain + 1);
-		}
-		if(pSpriteSetData03) { //SSD_ALPHA
-			ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
-			rgbColor.rgbAlpha = pSpriteSetData03->Alpha;
-		}
-		if(pSpriteSetData04) { //SSD_RGBL
-			ASSERT((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL);
-			rgbColor.rgbRed = pSpriteSetData04->Red;
-			rgbColor.rgbGreen = pSpriteSetData04->Green;
-			rgbColor.rgbBlue = pSpriteSetData04->Blue;
+		if(RectTmp.right == -1 || RectTmp.bottom == -1) {
+			CSize Size;
+			pSprite->GetSize(Size);
+			if(RectTmp.right == -1) RectTmp.right = RectTmp.left + Size.cx;
+			if(RectTmp.bottom == -1) RectTmp.bottom = RectTmp.top + Size.cy;
 		}
 
-		pSpriteContext->Rotate(rotation);
-		pSpriteContext->Mirror(mirrored);
-		pSpriteContext->Flip(flipped);
-		pSpriteContext->ARGB(rgbColor);
+		if(bPaste) {
+			// Fill sprite context data:
 
-		pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
-		m_Objects.push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+			ARGBCOLOR rgbColor = COLOR_ARGB(255,128,128,128);
+			int rotation = 0;
+			bool mirrored = false;
+			bool flipped = false;
+			
+			_Chain XChain = relative;
+			_Chain YChain = relative;
 
-		// the sprite absolute postion must be set after inserting it in the layer.
-		pSpriteContext->SetAbsFinalRect(RectTmp);
-		pSpriteContext->SelectContext();
+			CSpriteContext *pSpriteContext = new CSpriteContext(""); // New sprite context with no name.
+			pSpriteContext->SetDrawableObj(pSprite);
+
+			pSpriteContext->SetObjSubLayer(pSpriteSetData->SubLayer);
+
+			if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
+				ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
+				RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
+				RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
+				pSpriteContext->Tile();
+			}
+			if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
+				ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
+				rotation = pSpriteSetData02->rotation;
+				mirrored = pSpriteSetData02->mirrored;
+				flipped = pSpriteSetData02->flipped;
+				if((pSpriteSetData->Mask & SSD_CHAIN_X) == SSD_CHAIN_X)
+					XChain = (_Chain)(pSpriteSetData02->XChain + 1);
+				if((pSpriteSetData->Mask & SSD_CHAIN_Y) == SSD_CHAIN_Y)
+					YChain = (_Chain)(pSpriteSetData02->YChain + 1);
+			}
+			if(pSpriteSetData03) { //SSD_ALPHA
+				ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
+				rgbColor.rgbAlpha = pSpriteSetData03->Alpha;
+			}
+			if(pSpriteSetData04) { //SSD_RGBL
+				ASSERT((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL);
+				rgbColor.rgbRed = pSpriteSetData04->Red;
+				rgbColor.rgbGreen = pSpriteSetData04->Green;
+				rgbColor.rgbBlue = pSpriteSetData04->Blue;
+			}
+
+			pSpriteContext->Rotate(rotation);
+			pSpriteContext->Mirror(mirrored);
+			pSpriteContext->Flip(flipped);
+			pSpriteContext->ARGB(rgbColor);
+
+			pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
+			if(!pPoint) {
+				// the sprite absolute postion must be set after inserting it in the layer.
+				pSpriteContext->SelectContext();
+				pSpriteContext->SetAbsFinalRect(RectTmp);
+				// push to the main group:
+				m_Objects[0].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+				// push to the current paste group:
+				if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+			} else {
+				RectTmp.OffsetRect(*pPoint);
+				pSpriteContext->SetAbsFinalRect(RectTmp);
+				// push to the current paste group:
+				if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+			}
+		} else {
+			if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
+				ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
+				RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
+				RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
+			}
+			if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
+				ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
+			}
+			if(pSpriteSetData03) { //SSD_ALPHA
+				ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
+			}
+			if(pSpriteSetData04) { //SSD_RGBL
+				ASSERT((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL);
+			}
+			if(pPoint) RectTmp.OffsetRect(*pPoint);
+		}
+
+		RetRect.UnionRect(RetRect, RectTmp);
 	}
 
-	m_bFloating = true;
-	StartMoving(CopyBoard->Info.rcBoundaries.CenterPoint());
+	// there was only a single sprite in the sprite set, so we set the 
+	// paste group to 0 and clear the used group:
+	if(m_nPasteGroup != 0 && m_Objects[m_nPasteGroup].size() <= 1) {
+		m_Objects[m_nPasteGroup].clear();
+		m_nCurrentGroup = m_nPasteGroup = 0;
+	}
 
-	return true;
+	if(!pPoint && bPaste) {
+		m_bFloating = true;
+		StartMoving(CopyBoard->Info.rcBoundaries.CenterPoint());
+	}
+
+	return RetRect;
 }
-bool CSpriteSelection::PasteFile(CLayer *pLayer, LPCSTR szFilePath)
+CRect CSpriteSelection::PasteFile(CLayer *pLayer, LPCSTR szFilePath, const CPoint *pPoint, bool bPaste)
 {
+	CRect RetRect(0,0,0,0);
+
+	// validate the possibility of receiving a group:
+	if(*szFilePath == '@') szFilePath++;
+
 	CVFile fnFile(szFilePath);
-	if(!fnFile.FileExists()) return false;
+	if(!fnFile.FileExists()) return RetRect;
 
 	BYTE Header[sizeof(_SpriteSet::_SpriteSetInfo)];
 	_SpriteSet *CopyBoard = (_SpriteSet*)Header;
@@ -1192,23 +1332,23 @@ bool CSpriteSelection::PasteFile(CLayer *pLayer, LPCSTR szFilePath)
 	fnFile.Open("r");
 	fnFile.Read(Header, sizeof(_SpriteSet::_SpriteSetInfo));
 	fnFile.Close();
-	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) return false;
-	else if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) return false;
+	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) return RetRect;
+	else if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) return RetRect;
 
 	fnFile.Open("r");
 	LPBYTE pRawBuffer = (LPBYTE)fnFile.ReadFile();
-	bool bRet = PasteSpriteSet(pLayer, pRawBuffer);
+	RetRect = PasteSpriteSet(pLayer, pRawBuffer, pPoint, bPaste);
 	fnFile.Close();
 
-	return bRet;
+	return RetRect;
 }
-bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
+bool CSpriteSelection::GetPastedSize(LPCVOID pBuffer, SIZE *pSize)
 {
-	ASSERT(pBuffer);
-	if(m_bHoldSelection) {
-		CONSOLE_PRINTF("Warning: Can not paste on held selection, release the selection first.\n");
-		return false;
-	}
+	pSize->cx = 0;
+	pSize->cy = 0;
+
+	CPoint Point(0,0);
+	CRect RetRect(0,0,0,0);
 
 	// get the current selected layer:
 	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
@@ -1216,27 +1356,217 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
 	// is it a sprite set?
 	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) {
-		if(!PasteFile(pLayer, (LPCSTR)pBuffer)) {
-			if(!PasteSprite(pLayer, (LPCSTR)pBuffer)) return false;
+		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &Point, false);
+		if(RetRect.IsRectNull()) {
+			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &Point, false);
+			if(RetRect.IsRectNull()) return false;
 		}
 	} else {
 		if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) {
 			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
 			return false;
 		}
-		if(!PasteSpriteSet(pLayer, (LPBYTE)pBuffer)) return false;
+		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer, &Point, false);
+		if(RetRect.IsRectNull()) return false;
+	}
+	pSize->cx = RetRect.Width();
+	pSize->cy = RetRect.Height();
+	return true;
+}
+bool CSpriteSelection::GetPastedSize(CSprite *pSprite, SIZE *pSize)
+{
+	CSize Size;
+
+	if(pSprite->GetSpriteType() == tMask) {
+		pSize->cx = 0;
+		pSize->cy = 0;
+		return false;
 	}
 
-	if(m_Objects.empty()) {
+	pSprite->GetSize(Size);
+	*pSize = Size;
+	return true;
+}
+
+bool CSpriteSelection::FastPaste(CSprite *pSprite, const CPoint &point_ )
+{
+	CRect RetRect(0,0,0,0);
+
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+	RetRect = PasteSprite(pLayer, pSprite, &point_);
+	return (RetRect.IsRectNull() == false);
+}
+
+bool CSpriteSelection::FastPaste(LPCVOID pBuffer, const CPoint &point_ )
+{
+	CRect RetRect(0,0,0,0);
+
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
+	// is it a sprite set?
+	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) {
+		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &point_);
+		if(RetRect.IsRectNull()) {
+			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &point_);
+			if(RetRect.IsRectNull()) return false;
+		}
+	} else {
+		if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) {
+			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
+			return false;
+		}
+		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer, &point_);
+		if(RetRect.IsRectNull()) return false;
+	}
+
+	return true;
+}
+
+bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
+{
+	ASSERT(pBuffer);
+	if(m_bHoldSelection) {
+		CONSOLE_PRINTF("Warning: Can not paste on held selection, release the selection first.\n");
+		return false;
+	}
+
+	CRect RetRect(0,0,0,0);
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
+	// is it a sprite set?
+	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) {
+		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer);
+		if(RetRect.IsRectNull()) {
+			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer);
+			if(RetRect.IsRectNull()) return false;
+		}
+	} else {
+		if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) {
+			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
+			return false;
+		}
+		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer);
+		if(RetRect.IsRectNull()) return false;
+	}
+
+	if(m_Objects[m_nPasteGroup].empty()) {
 		EndMoving(point_);
-		CONSOLE_PRINTF("Paste error : Attempt to paste an empty Quest Designer Sprite Set!\n");
+		if(m_nPasteGroup) CONSOLE_PRINTF("Paste error : Attempt to paste an empty Sprite!\n");
+		else CONSOLE_PRINTF("Paste error : Attempt to paste an empty Quest Designer Sprite Set!\n");
 		return false;
 	}
 
 	MoveTo(point_);
 
-	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
+	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects[m_nPasteGroup].size(), (*m_ppMainDrawable)->Objects());
 	return true;
+}
+
+void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
+{
+	if(m_bHoldSelection) return;
+	// no new groups can be created from an empty selection or a single sprite selection.
+	if(m_Objects[0].size() <= 1) return;
+
+	// get the next availible paste group:
+	m_nCurrentGroup = SetNextPasteGroup(szGroupName);
+	CONSOLE_DEBUG("New group #%d created\n", m_nCurrentGroup);
+
+	ASSERT(m_nCurrentGroup > 0);
+
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
+		m_Objects[m_nCurrentGroup].push_back(*Iterator);
+		Iterator++;
+	}
+
+}
+// converts the currently selected group to a simple selection:
+void CSpriteSelection::GroupToSelection()
+{
+	if(m_bHoldSelection) return;
+	// no new groups can be created from an empty selection or a single sprite selection.
+	if(m_Objects[0].size() <= 1) return;
+	if(m_nCurrentGroup < 1) return;
+
+	m_Objects[m_nCurrentGroup].clear();
+	m_nCurrentGroup = 0;
+}
+void CSpriteSelection::SelectionToTop()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(1);
+
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
+		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
+			Iterator->pContext->SetObjOrder(nNextOrder++);
+		}
+		Iterator++;
+	}
+}
+void CSpriteSelection::SelectionToBottom()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(1, 0, m_Objects[0].size());
+
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
+		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
+			Iterator->pContext->SetObjOrder(nNextOrder++);
+		}
+		Iterator++;
+	}
+}
+void CSpriteSelection::SelectionDown()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
+
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
+		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
+			int nNextOrder = Iterator->pContext->GetObjOrder() - 3;
+			if(nNextOrder < 0) nNextOrder = 0;
+			Iterator->pContext->SetObjOrder(nNextOrder);
+		}
+		Iterator++;
+	}
+}
+void CSpriteSelection::SelectionUp()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
+
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
+		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
+			int nNextOrder = Iterator->pContext->GetObjOrder() + 3;
+			Iterator->pContext->SetObjOrder(nNextOrder);
+		}
+		Iterator++;
+	}
 }
 
 void CSpriteSelection::FlipSelection()
@@ -1244,8 +1574,8 @@ void CSpriteSelection::FlipSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects.begin();
-	while(Iterator != m_Objects.end()) {
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
@@ -1289,8 +1619,8 @@ void CSpriteSelection::MirrorSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects.begin();
-	while(Iterator != m_Objects.end()) {
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
@@ -1334,8 +1664,8 @@ void CSpriteSelection::CWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects.begin();
-	while(Iterator != m_Objects.end()) {
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
@@ -1392,8 +1722,8 @@ void CSpriteSelection::CCWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects.begin();
-	while(Iterator != m_Objects.end()) {
+	vectorObject::iterator Iterator = m_Objects[0].begin();
+	while(Iterator != m_Objects[0].end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 

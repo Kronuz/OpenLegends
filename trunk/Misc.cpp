@@ -18,7 +18,6 @@ int ForEachFile(LPCSTR lpFileName, FILESPROC ForEach, LPARAM lParam, int flags)
 		do {
 			if (0 == lstrcmp(FindData.cFileName, "..") ||
 				0 == lstrcmp(FindData.cFileName, ".")) continue;
-			if(FindData.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) continue;
 
 			*fin = '\0';
 			lstrcat(filename, FindData.cFileName);
@@ -36,7 +35,7 @@ int ForEachFile(LPCSTR lpFileName, FILESPROC ForEach, LPARAM lParam, int flags)
 				if((flags & FEF_LOWERCASE) == FEF_LOWERCASE) CharLower(aux);
 				else if((flags & FEF_UPPERCASE) == FEF_UPPERCASE) CharUpper(aux);
 				if((flags & FEF_BEAUTIFY) == FEF_BEAUTIFY) *aux = toupper(*aux);
-				int cnt = ForEach(aux, lParam);
+				int cnt = ForEach(aux, FindData.dwFileAttributes, lParam);
 				if(cnt < 0) {
 					files = cnt-files;
 					break;

@@ -59,32 +59,6 @@ CGEditorView::CGEditorView(CGEditorFrame *pParentFrame) :
 {
 }
 
-// Called to translate window messages before they are dispatched 
-BOOL CGEditorView::PreTranslateMessage(MSG *pMsg)
-{
-	return FALSE;
-}
-
-// Called to do idle processing
-BOOL CGEditorView::OnIdle()
-{
-	bool bModified = hasChanged();
-	if(bModified != m_bModified) {
-		m_bModified = bModified;
-		if(m_bModified) {
-			m_pParentFrame->SetTabText(m_sTitle+"*");
-		} else {
-			m_pParentFrame->SetTabText(m_sTitle);
-		}
-	}
-	return FALSE;
-}
-
-// Called to clean up after window is destroyed (called when WM_NCDESTROY is sent)
-void CGEditorView::OnFinalMessage(HWND /*hWnd*/)
-{
-	delete this;
-}
 bool CGEditorView::InitDragDrop()
 {
 	m_pDropSource = new CIDropSource;
@@ -133,6 +107,7 @@ LRESULT CGEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 {
 	InitDragDrop();
 	SetMsgHandled(FALSE);
+	OnZoom(); // called to update the zoom information (perhaps in the status bar)
 	return 0;
 }
 
@@ -146,9 +121,12 @@ LRESULT CGEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 LRESULT CGEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & bHandled)
 {
 	bHandled = FALSE;
+	::BringWindowToTop(GetParent());
 
 	// start the animations
 	SetTimer(1, 1000/30);
+
+	OnZoom(); // called to update the zoom information (perhaps in the status bar)
 
 	return 0;
 }
@@ -156,8 +134,15 @@ LRESULT CGEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 {
 	bHandled = FALSE;
 
-	// stop the animations
-	KillTimer(1);
+	// if we have lost the focus, in our own thread, cancel everything:
+	if(wParam != NULL) {
+		KillTimer(1); // stop the animations
+		KillTimer(3); // stop auto-scrolling
+		if(isFloating() || isMoving() || isResizing()) {
+			CancelOperation(false);
+			Invalidate();
+		}
+	}
 
 	return 0;
 }
@@ -179,11 +164,11 @@ LRESULT CGEditorView::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL 
 {
 	if(wParam == 1) { // Render stuf:
 		// check if we are still the topmost window in the MDI frame, if we don't, we kill the timer:
-		if(GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
-			KillTimer(1); 
-		}
+//		if(GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
+//			KillTimer(1); 
+//		}
 		DoFrame();
-		if(GetMainFrame()->m_bAllowAnimations) Render(NULL); // Animation
+		Render(NULL); // Animation
 	} else if(wParam == 2) { // Drag and drop stuff:
 		// cancel this timer
 		KillTimer(2);
@@ -259,11 +244,7 @@ bool CGEditorView::OnFileReload()
 // Save handlers
 bool CGEditorView::OnFileSave()
 {
-	if (!m_sFilePath.IsEmpty()) {
-		// save the file
-		return DoFileSave(m_sFilePath);
-	}
-	return DoFileSaveAs();
+	return DoFileSave();
 }
 bool CGEditorView::OnFileSaveAs()
 {
@@ -314,11 +295,10 @@ LRESULT CGEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 
 	return 0;
 }
-void CGEditorView::ScrollTo(int x, int y) 
+void CGEditorView::ScrollTo(CPoint ScrollPoint) 
 {
 	CRect rcClient;
 	GetClientRect(&rcClient);
-	CPoint ScrollPoint(x, y);
 
 	// Now we validate the new scrolling position:
 	if(ScrollPoint.x > m_rcScrollLimits.right-rcClient.Width()) 
@@ -334,6 +314,10 @@ void CGEditorView::ScrollTo(int x, int y)
 		ScrollPoint.y = m_rcScrollLimits.top;
 
 	SetScrollOffset(ScrollPoint);
+}
+void CGEditorView::ScrollTo(int x, int y) 
+{
+	ScrollTo(CPoint(x, y));
 }
 
 CURSOR CGEditorView::ToCursor(CURSOR cursor_)
@@ -438,11 +422,13 @@ LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 		} else {
 			OnChangeSel(OCS_AUTO, EndSelBoxRemove(Point, (LPARAM)((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
 		}
-	} else if(isMoving() || isFloating()) {
+	} else if(isFloating()) {
 		EndMoving(Point, NULL);
 		if(m_bDuplicating) {
 			Duplicate(Point);
-		}
+		} else OnChangeSel(OCS_AUTO);
+	} else if(isMoving()) {
+		EndMoving(Point, NULL);
 		OnChangeSel(OCS_UPDATE);
 	} else if(isResizing()) {
 		EndResizing(Point, NULL);
@@ -804,16 +790,6 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 		Invalidate();
 	}
 
-	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
-	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
-
-	CString sText;
-	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
-	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
-
-	// check if we are not the topmost window in the MDI frame, if we are not, we get the focus:
-	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) ::SetFocus(m_hWnd);
-
 	// If no buttons are pressed, cancel the current operations and release the mouse capture:
 	if((wParam&MK_LBUTTON)!=MK_LBUTTON && (wParam&MK_MBUTTON)!=MK_MBUTTON && (wParam&MK_RBUTTON)!=MK_RBUTTON) {
 		if(isFloating()) {
@@ -857,6 +833,10 @@ LRESULT CGEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOO
 			EndMoving(Rect.TopLeft(), NULL);
 			OnChangeSel(OCS_UPDATE);
 		}
+	} 
+	if(SelectedCount() == 0) {
+		// propagate the message to the container (thumbnails window, for example):
+		if(::IsWindow(m_hContainer)) ::SendMessage(m_hContainer, WM_KEYDOWN, wParam, lParam);
 	}
 
 	return 0;
@@ -901,16 +881,19 @@ LRESULT CGEditorView::OnDropObject(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		return 0;
 	}
 
-	::SetForegroundWindow(GetMainFrame()->m_hWnd);
+	//::SetForegroundWindow(GetMainFrame()->m_hWnd);
 
-	GetMainFrame()->BringWindowToTop();
-	GetParentFrame()->BringWindowToTop();
-	GetParentFrame()->SetFocus();
+	::BringWindowToTop(::GetAncestor(m_hWnd, GA_ROOT));
+	::BringWindowToTop(m_hWnd);
+	::SetFocus(m_hWnd);
+
+	CancelOperation();
+	CleanSelection();
+	OnChangeSel(OCS_AUTO);
 
 	PasteSelection((LPVOID)wParam, CPoint(lParam));
     SetCapture();
 
-	OnChangeSel(OCS_AUTO);
 	return 0;
 }
 
@@ -922,7 +905,7 @@ bool CGEditorView::Delete()
 }
 bool CGEditorView::Duplicate(const CPoint &Point)
 {
-	ASSERT(!isHeld());
+	if(isHeld() || isFloating()) return false;
 	m_bDuplicating = true;
 	Copy();
 	Paste(Point);
@@ -930,7 +913,7 @@ bool CGEditorView::Duplicate(const CPoint &Point)
 }
 bool CGEditorView::Duplicate()
 {
-	ASSERT(!isHeld());
+	if(isHeld() || isFloating()) return false;
 	m_bDuplicating = true;
 	CPoint Point;
 	GetCursorPos(&Point);
@@ -941,6 +924,8 @@ bool CGEditorView::Duplicate()
 }
 bool CGEditorView::Copy()
 {
+	if(isFloating()) return false;
+
 	// Using Ole clipboard:
 	CIDataObject *pDataObject = CreateOleObj(NULL);
 	if(!pDataObject) return false;
@@ -954,7 +939,7 @@ bool CGEditorView::Copy()
 }
 bool CGEditorView::Cut()
 {
-	ASSERT(!isHeld());
+	if(isHeld() || isFloating()) return false;
 	if(!Copy()) return false;
 	DeleteSelection();
 	Invalidate();
@@ -963,7 +948,7 @@ bool CGEditorView::Cut()
 }
 bool CGEditorView::Paste()
 {
-	ASSERT(!isHeld());
+	if(isHeld() || isFloating()) return false;
 	CPoint Point;
 	GetCursorPos(&Point);
 	ScreenToClient(&Point);
@@ -1014,14 +999,8 @@ bool CGEditorView::Zoom(float zoom)
 	if(m_Zoom>10.0f) m_Zoom = 10.0f;
 	if(m_Zoom<0.10f) m_Zoom = 0.10f;
 
+	OnZoom();
 	if(oldZoom == m_Zoom) return false;
-
-	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
-	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
-
-	CString sText;
-	sText.Format(_T("%4d%%"), (int)(100.0f * m_Zoom));
-	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
 
 	// We need to recalculate the new map size (in pixeles)
 	CalculateLimits();

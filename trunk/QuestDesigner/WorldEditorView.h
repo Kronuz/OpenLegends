@@ -118,6 +118,7 @@ public:
 
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled);
 
+	void OnZoom();
 	void DoPaint(CDCHandle dc);
 	CURSOR ToCursor(CURSOR cursor_);
 

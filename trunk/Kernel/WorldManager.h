@@ -98,6 +98,23 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////////
+/*! \class		CThumbnails
+	\brief		CThumbnails class.
+	\author		Kronuz
+	\version	1.0
+	\date		Oct 9, 2003
+
+	CThumbnails is a Drawable context that contains a single layer and
+	a bunch of sprites to be painted as thumbnails
+*/
+class CThumbnails :
+	public CDrawableContext
+{
+public:
+	CThumbnails();
+	virtual void CleanThumbnails();
+};
+/////////////////////////////////////////////////////////////////////////////
 /*! \class		CMapGroup
 	\brief		CMapGroup class.
 	\author		Kronuz
@@ -114,6 +131,7 @@ class CMapGroup :
 	CBString m_sMapID;
 	CRect m_rcPosition;
 	const CWorld *m_pWorld;
+	BITMAP *m_pOriginalBitmap;
 	BITMAP *m_pBitmap;
 	bool m_bLoaded;
 	ISound *m_pMusic;
@@ -136,6 +154,7 @@ public:
 
 	// Interface:
 	virtual bool Load();
+	virtual bool Close();
 	virtual bool Save();
 
 	virtual void CalculateParallax(RECT *ViewRect);
@@ -157,7 +176,7 @@ public:
 	virtual void OffsetMapGroup(int x, int y);
 
 	virtual void SetThumbnail(BITMAP *pBitmap) { 
-		delete []m_pBitmap;
+		if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 		m_pBitmap = pBitmap; 
 	}
 	virtual BITMAP* GetThumbnail(RECT *pRect) const;

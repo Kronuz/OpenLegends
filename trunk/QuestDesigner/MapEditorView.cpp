@@ -74,7 +74,14 @@ LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 			m_pSoundManager->SwitchMusic(NULL, 0, false);
 	}
 
-	m_SelectionI->CleanSelection();
+	// Now close:
+	if(m_SelectionI && m_pMapGroupI) {
+		m_SelectionI->Cancel();
+		m_SelectionI->CleanSelection();
+		m_SelectionI->CleanPasteGroups();
+		if(!m_pMapGroupI->Close()) return false;
+	}
+
 	OnChangeSel(OCS_AUTO);
 
 	CProjectFactory::Delete(&m_SelectionI); m_SelectionI = NULL;
@@ -252,16 +259,15 @@ bool CMapEditorView::DoFileClose()
 					MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR); 
 					return false; 
 				}
-			case IDNO: 
-				return true;
 		}
 	}
-
+	// OnDestroy closes the file.
 	return true;
 }
 bool CMapEditorView::DoFileSave(LPCTSTR lpszFilePath)
 {
-	return false;
+	if(m_sFilePath.IsEmpty()) return DoFileSaveAs();
+	return m_pMapGroupI->Save();
 }
 bool CMapEditorView::DoFileSaveAs()
 {
@@ -327,6 +333,9 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	}
 	if(SelectedCount() == 1) {
 		menu.AppendMenu(MF_STRING, 12, "Edit &Sprite");
+	} else if(SelectedCount() > 1) {
+		if(m_SelectionI->isGroup())	menu.AppendMenu(MF_STRING, 14, "&Ungroup");
+		else menu.AppendMenu(MF_STRING, 13, "&Group");
 	}
 
 	menu.EnableMenuItem(9, MF_GRAYED);
@@ -378,8 +387,8 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		case 2:		Flip();						break;
 		case 3:		CWRotate();					break;
 		case 4:		CCWRotate();				break;
-		case 5:									break;
-		case 6:									break;
+		case 5:		ToTop();					break;
+		case 6:		ToBottom();					break;
 		case 7:		
 			if(isFloating()) {
 				EndMoving(Point, NULL);
@@ -412,6 +421,14 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 
 				GetMainFrame()->SptShtFileOpen(pSpriteSheet, (LPCSTR)pSprite->GetName());
 			}
+			break;
+		}
+		case 13: {
+			m_SelectionI->SelectionToGroup();
+			break;
+		}
+		case 14: {
+			m_SelectionI->GroupToSelection();
 			break;
 		}
 	}
@@ -465,6 +482,14 @@ void CMapEditorView::UIUpdateMenuItems()
 		pMainFrm->m_bLayers = TRUE;
 		pMainFrm->m_ctrlLayers.EnableWindow(TRUE);
 	}
+	if(pMainFrm->m_PaneWindows.size() >= (ID_VIEW_PANELAST-ID_VIEW_PANEFIRST)) {
+		CTabbedDockingWindow *pThumbnails = pMainFrm->m_PaneWindows[ID_PANE_THUMBNAILS-ID_VIEW_PANEFIRST];
+		if(pThumbnails->IsWindowVisible() == FALSE) {
+			pThumbnails->Toggle();
+			pThumbnails->Activate();
+		}
+		m_hContainer = pThumbnails->GetClient();
+	}
 	pMainUpdateUI->UIEnable(ID_APP_SAVE, hasChanged());	
 
 /* Undo features and stuff will be left pending for the next major release */
@@ -480,43 +505,98 @@ void CMapEditorView::UIUpdateMenuItems()
 BOOL CMapEditorView::CanUndo()
 {
 	if(!m_SelectionI) return FALSE;
-	if(isHeld()) return FALSE;
+	if(isHeld() || isFloating()) return FALSE;
 	return FALSE;
 }
 BOOL CMapEditorView::CanRedo()
 {
 	if(!m_SelectionI) return FALSE;
-	if(isHeld()) return FALSE;
+	if(isHeld() || isFloating()) return FALSE;
 	return FALSE;
 }
 BOOL CMapEditorView::CanCut()
 {
 	if(!m_SelectionI) return FALSE;
-	if(isHeld()) return FALSE;
+	if(isHeld() || isFloating()) return FALSE;
 	return (m_SelectionI->Count() != 0);
 }
 BOOL CMapEditorView::CanCopy()
 {
 	if(!m_SelectionI) return FALSE;
+	if(isFloating()) return FALSE;
 	return (m_SelectionI->Count() != 0);
 }
 BOOL CMapEditorView::CanPaste()
 {
 	if(!m_SelectionI) return FALSE;
-	if(isHeld()) return FALSE;
+	if(isHeld() || isFloating()) return FALSE;
 	return TRUE;
 }
 
 BOOL CMapEditorView::IsSelection()
 {
 	if(!m_SelectionI) return FALSE;
-	if(isHeld()) return FALSE;
+	if(isHeld() || isFloating()) return FALSE;
 	return (m_SelectionI->Count() != 0);
 }
 BOOL CMapEditorView::IsReadOnly()
 {
 	if(!m_SelectionI) return FALSE;
 	return FALSE;
+}
+
+inline bool CMapEditorView::ToTop()
+{
+	m_SelectionI->SelectionToTop();
+	Invalidate();
+	OnChangeSel(OCS_UPDATE);
+	return true;
+}
+inline bool CMapEditorView::ToBottom()
+{
+	m_SelectionI->SelectionToBottom();
+	Invalidate();
+	OnChangeSel(OCS_UPDATE);
+	return true;
+}
+inline bool CMapEditorView::ObjectDown()
+{
+	m_SelectionI->SelectionDown();
+	Invalidate();
+	OnChangeSel(OCS_UPDATE);
+	return true;
+}
+inline bool CMapEditorView::ObjectUp()
+{
+	m_SelectionI->SelectionUp();
+	Invalidate();
+	OnChangeSel(OCS_UPDATE);
+	return true;
+}
+
+inline bool CMapEditorView::AlignTop()
+{
+	return false;
+}
+inline bool CMapEditorView::AlignBottom()
+{
+	return false;
+}
+inline bool CMapEditorView::AlignRight()
+{
+	return false;
+}
+inline bool CMapEditorView::AlignLeft()
+{
+	return false;
+}
+inline bool CMapEditorView::AlignCenter()
+{
+	return false;
+}
+inline bool CMapEditorView::AlignMiddle()
+{
+	return false;
 }
 
 inline bool CMapEditorView::Flip() 
@@ -585,7 +665,16 @@ BOOL CMapEditorView::OnIdle()
 	pMapUpdateUI->UIUpdateToolBar();
 	pMainUpdateUI->UIUpdateToolBar();
 
-	return CGEditorView::OnIdle();
+	bool bModified = hasChanged();
+	if(bModified != m_bModified) {
+		m_bModified = bModified;
+		if(m_bModified) {
+			m_pParentFrame->SetTabText(m_sTitle+"*");
+		} else {
+			m_pParentFrame->SetTabText(m_sTitle);
+		}
+	}
+	return FALSE;
 }
 bool CMapEditorView::hasChanged()
 {
@@ -603,8 +692,13 @@ void CMapEditorView::HoldOperation()
 	return m_SelectionI->HoldOperation();
 }
 
-void CMapEditorView::CancelOperation()
+void CMapEditorView::CancelOperation(bool bPropagate)
 {
+	if(bPropagate) {
+		CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+		pMainFrm->m_ThumbnailsBox.m_sSelected = "";
+	}
+	m_sPasting = "";
 	return m_SelectionI->Cancel();
 }
 
@@ -727,6 +821,17 @@ BITMAP* CMapEditorView::CaptureSelection(float _fZoom)
 	return pBitmap;
 }
 
+// Called after a zooming:
+void CMapEditorView::OnZoom()
+{
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("%4d%%"), (int)(100.0f * m_Zoom));
+	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
+}
+
 void CMapEditorView::CleanSelection()
 {
 	m_SelectionI->CleanSelection();
@@ -787,6 +892,9 @@ void CMapEditorView::DoFrame()
 void CMapEditorView::Render(WPARAM wParam)
 {
 	ASSERT(m_SelectionI);
+	if(!m_SelectionI) return;
+
+	if(!GetMainFrame()->m_bAllowAnimations && wParam == NULL) return;
 
 	CRect rcView = m_pGraphicsI->GetVisibleRect();
 
@@ -824,7 +932,8 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 
 	HWND hWnd = GetMainFrame()->m_hWnd;
 
-	if(isHeld() && type == OCS_AUTO || type == OCS_UPDATE) {
+	if( isHeld() && type == OCS_AUTO || 
+		type == OCS_UPDATE ) {
 		::SendMessage(hWnd, WMP_UPDATE, 0, 0);
 		return;
 	}
@@ -844,15 +953,17 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 
 	// Add te map group to the properties window:
 	m_pMapGroupI->GetInfo(&Information);
-	m_pMapGroupI->Flag((m_SelectionI->Count() == 0));
+	m_pMapGroupI->Flag(m_SelectionI->Count() == 0 || m_SelectionI->isFloating());
 	::SendMessage(hWnd, WMP_ADDINFO, NULL, (LPARAM)&Information);
 
-	// add every selected object to the properties window:
-	SObjProp *pOP = m_SelectionI->GetFirstSelection();
-	while(pOP) {
-		pOP->GetInfo(&Information);
-		::SendMessage(hWnd, WMP_ADDINFO, (WPARAM)pPropObj, (LPARAM)&Information);
-		pOP = m_SelectionI->GetNextSelection();
+	if(!m_SelectionI->isFloating()) {
+		// add every selected object to the properties window:
+		SObjProp *pOP = m_SelectionI->GetFirstSelection();
+		while(pOP) {
+			pOP->GetInfo(&Information);
+			::SendMessage(hWnd, WMP_ADDINFO, (WPARAM)pPropObj, (LPARAM)&Information);
+			pOP = m_SelectionI->GetNextSelection();
+		}
 	}
 	::SendMessage(hWnd, WMP_SETPROP, 0, 0);
 }
@@ -878,6 +989,42 @@ LRESULT CMapEditorView::OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lPa
 
 		GetMainFrame()->SptShtFileOpen(pSpriteSheet, (LPCSTR)pSprite->GetName());
 	}
+
+	return 0;
+}
+LRESULT CMapEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+{
+	CPoint Point(lParam);
+	GetWorldPosition(&Point);
+
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	if(m_SelectionI && !m_bPanning) {
+		bool bNewSelected = m_sPasting != pMainFrm->m_ThumbnailsBox.m_sSelected;
+		if( bNewSelected || !m_SelectionI->isFloating()) {
+			if(bNewSelected || !m_sPasting.IsEmpty()) {
+				m_SelectionI->Cancel();
+				m_SelectionI->CleanSelection();
+				OnChangeSel(OCS_AUTO);
+			}
+			m_sPasting = pMainFrm->m_ThumbnailsBox.m_sSelected;
+			if(!m_sPasting.IsEmpty()) {
+				//LPCSTR szToPaste = pMainFrm->m_ThumbnailsBox.FindSpriteSet(m_sPasting);
+				if(!m_SelectionI->Paste((LPVOID)(LPCSTR)m_sPasting, Point))
+					pMainFrm->m_ThumbnailsBox.m_sSelected = ""; // there was an error pasting the sprite
+			}
+		}
+		if(!m_sPasting.IsEmpty()) ReleaseCapture();
+	}
+
+	::CGEditorView::OnMouseMove(uMsg, wParam, lParam, bHandled);
+
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
+	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
+
+	if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
 
 	return 0;
 }

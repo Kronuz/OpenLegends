@@ -27,7 +27,7 @@
 
 #include "FoldersTreeBox.h"
 
-const WORD IGame::Version = 0x0400;
+const WORD IGame::Version = 0x0401;
 CProjectFactory *CProjectFactory::_instance = NULL;
 
 CProjectFactory::CProjectFactory() :

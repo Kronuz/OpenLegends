@@ -45,6 +45,7 @@ LRESULT CGEditorFrame::OnClose(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bH
 {
 	if(m_pGEditorView->DoFileClose()) {
 		DefWindowProc();
+		return 0;
 	}
-	return 0;
+	return 1;
 }

@@ -17,7 +17,7 @@
 #define FEF_BEAUTIFY	0x14
 #define FEF_UPPERCASE	0x20
 
-typedef int CALLBACK FILESPROC(LPCSTR lpFile, LPARAM lParam);
+typedef int CALLBACK FILESPROC(LPCSTR lpFile, DWORD dwFileAtributes, LPARAM lParam);
 int ForEachFile(LPCSTR lpFileName, FILESPROC ForEach, LPARAM lParam, int flags = FEF_BEAUTIFY);
 
 /////////////////////////////////////////////////////////////////////////////

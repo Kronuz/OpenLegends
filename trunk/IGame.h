@@ -401,6 +401,8 @@ interface IGame :
 	virtual CMapGroup *FindMapGroup(int x, int y) const = 0; //!< Get the mapgroup at location (x,y)
 	virtual CMapGroup* BuildMapGroup(int x, int y, int width, int height) = 0;
 
+	virtual CThumbnails* GetThumbnails() = 0;
+
 	virtual LPCSTR GetProjectName() const = 0;
 	virtual int CountScripts() const = 0;
 	virtual const IScript* GetScript(int idx) const = 0;

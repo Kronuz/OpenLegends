@@ -143,11 +143,29 @@ bool CSptShtEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPAR
 	CalculateLimits();
 	SetScrollSize(m_rcScrollLimits.Size());
 
+	CSprite *pSprite = LocateInitSprite();
+	if(pSprite) m_Sprites.push_back(pSprite);
+
 	OnChangeSel(OCS_RENEW);
 
 	UpdateView();
 	Invalidate();
 	return true;
+}
+
+CSprite* CSptShtEditorView::LocateInitSprite()
+{
+	CSprite *pSprite = m_pSpriteSheet->FindSprite(m_sInitSprite);
+	if(pSprite) {
+		CRect rcClient;
+		pSprite->GetBaseRect(rcClient);
+		CPoint WorldPoint = rcClient.CenterPoint();
+
+		GetClientRect(&rcClient);
+
+		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-rcClient.CenterPoint().x, (int)((float)WorldPoint.y*m_Zoom)-rcClient.CenterPoint().y);
+	}
+	return pSprite;
 }
 // must return true if the file was truly closed, false otherwise.
 bool CSptShtEditorView::DoFileClose()
@@ -172,6 +190,8 @@ bool CSptShtEditorView::DoFileClose()
 }
 bool CSptShtEditorView::DoFileSave(LPCTSTR lpszFilePath)
 {
+	if(m_sFilePath.IsEmpty()) return DoFileSaveAs();
+
 	return false;
 }
 bool CSptShtEditorView::DoFileSaveAs()
@@ -254,7 +274,16 @@ BOOL CSptShtEditorView::OnIdle()
 	// Update all the toolbar items
 	pMainUpdateUI->UIUpdateToolBar();
 
-	return CGEditorView::OnIdle();
+	bool bModified = hasChanged();
+	if(bModified != m_bModified) {
+		m_bModified = bModified;
+		if(m_bModified) {
+			m_pParentFrame->SetTabText(m_sTitle+"*");
+		} else {
+			m_pParentFrame->SetTabText(m_sTitle);
+		}
+	}
+	return FALSE;
 }
 bool CSptShtEditorView::hasChanged()
 {
@@ -274,7 +303,7 @@ void CSptShtEditorView::HoldOperation()
 {
 }
 
-void CSptShtEditorView::CancelOperation()
+void CSptShtEditorView::CancelOperation(bool bPropagate)
 {
 }
 
@@ -378,6 +407,16 @@ BITMAP* CSptShtEditorView::CaptureSelection(float _fZoom)
 	return NULL;
 }
 
+void CSptShtEditorView::OnZoom()
+{
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("%4d%%"), (int)(100.0f * m_Zoom));
+	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
+}
+
 void CSptShtEditorView::CleanSelection()
 {
 }
@@ -415,13 +454,16 @@ void CSptShtEditorView::UpdateSnapSize(int _SnapSize)
 void CSptShtEditorView::Render(WPARAM wParam)
 {
 	if(!wParam) return; 
+	if(!GetMainFrame()->m_bAllowAnimations) return;
 
 	RECT rcSrc = {0, 0, m_szSptSht.cx, m_szSptSht.cy};
 
 	CMemDC memdc( wParam ? (HDC)wParam : GetDC(), NULL );
 
+	// Background:
 	memdc.FillSolidRect(&memdc.m_rc, ::GetSysColor(COLOR_APPWORKSPACE));
 
+	// Draw the squares for transparency:
 	RECT rc = {0,0,0,0};
 	for(int i=m_rcScrollLimits.top; i<m_rcScrollLimits.bottom; i+=m_nStep) {
 		rc.top = rc.bottom;
@@ -439,9 +481,81 @@ void CSptShtEditorView::Render(WPARAM wParam)
 		}
 	}
 
+	// Alpha blend the sprite sheet:
 	m_Image.AlphaBlend(memdc, m_rcScrollLimits, rcSrc);
+	vectorSprite::iterator Iterator = m_Sprites.begin();
+	while(Iterator!=m_Sprites.end()) {
+		CRect Rect;
+		(*Iterator)->GetBaseRect(Rect);
+		SelectionBox(memdc, Rect, RGB(255,255,225));
+		Iterator++;
+	}
 }
+void CSptShtEditorView::SelectionBox(HDC hDC, const CRect &rectDest, COLORREF rgbColor)
+{
+	CDC dc;
+	dc.Attach(hDC);
 
+	CRect Rects(
+		(int)((float)rectDest.left * m_Zoom + 0.5f),
+		(int)((float)rectDest.top * m_Zoom + 0.5f),
+		(int)((float)rectDest.right * m_Zoom + 0.5f),
+		(int)((float)rectDest.bottom * m_Zoom + 0.5f) 
+	);
+
+	// This is just enhance the selecting box (cosmetics)
+	int cbsz = 2;
+	if(m_Zoom<1) {
+		cbsz -= (int)( 2.0f / (m_Zoom * 10.0f));
+	} else 	if(m_Zoom>1) {
+		cbsz += (int)( 2.0f * (m_Zoom / 20.0f));
+	}
+
+	HPEN hPen = CreatePen(PS_SOLID, 1, rgbColor);
+	HBRUSH hOldBrush = dc.SelectStockBrush(NULL_BRUSH);
+	HPEN hOldPen = dc.SelectPen(hPen);
+
+	// Bounding box:
+	CRect rcb = Rects;
+	dc.Rectangle(rcb);
+
+	// rubber bands (Small boxes at the corners):
+	rcb.SetRect(Rects.left-cbsz, Rects.top-cbsz, Rects.left+cbsz+1, Rects.top+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	rcb.SetRect(Rects.left-cbsz, Rects.bottom-1-cbsz, Rects.left+cbsz+1, Rects.bottom-1+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	rcb.SetRect(Rects.right-1-cbsz, Rects.top-cbsz, Rects.right-1+cbsz+1, Rects.top+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	rcb.SetRect(Rects.right-1-cbsz, Rects.bottom-1-cbsz, Rects.right-1+cbsz+1, Rects.bottom-1+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	// rubber bands (Small boxes in the middles):
+	int my = Rects.top + (Rects.bottom-Rects.top)/2;
+	int mx = Rects.left + (Rects.right-Rects.left)/2;
+
+	rcb.SetRect(mx-cbsz, Rects.top-cbsz, mx+cbsz+1, Rects.top+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	rcb.SetRect(mx-cbsz, Rects.bottom-1-cbsz, mx+cbsz+1, Rects.bottom-1+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	rcb.SetRect(Rects.left-cbsz, my-cbsz, Rects.left+cbsz+1, my+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	rcb.SetRect(Rects.right-1-cbsz, my-cbsz, Rects.right-1+cbsz+1, my+cbsz+1);
+	dc.FillSolidRect(rcb, rgbColor);
+
+	// Clean up:
+	dc.SelectPen(hOldPen);
+	dc.SelectBrush(hOldBrush);
+
+	if(hPen) DeleteObject(hPen);
+
+	dc.Detach();
+}
 void CSptShtEditorView::UpdateView()
 {
 	// We need to recalculate the window's size and position:
@@ -458,3 +572,21 @@ void CSptShtEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 	::SendMessage(hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
 }
 
+LRESULT CSptShtEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+{
+	CGEditorView::OnMouseMove(uMsg, wParam, lParam, bHandled);
+
+	CPoint Point(lParam);
+	GetWorldPosition(&Point);
+
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
+	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
+
+	if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
+
+	return 0;
+}

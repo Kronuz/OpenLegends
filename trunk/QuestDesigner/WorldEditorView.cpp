@@ -87,6 +87,8 @@ LRESULT CWorldEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lP
 
 	SetMsgHandled(FALSE);
 
+	OnZoom(); // called to update the zoom information (perhaps in the status bar)
+
 	return nResult;
 }
 LRESULT CWorldEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
@@ -245,6 +247,16 @@ CMapGroup* CWorldEditorView::DrawThumbnail(CDC &dc, int x, int y, CSize &szMap)
 	}
 	return pMapGroup;
 }
+// Called after a zooming:
+void CWorldEditorView::OnZoom()
+{
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("%4d%%"), (int)(100.0f / (float)m_Zoom));
+	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
+}
 
 LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
@@ -289,6 +301,8 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 	if(ScrollPoint.x > m_WorldFullSize.cx-rcClient.right) ScrollPoint.x = m_WorldFullSize.cx-rcClient.right;
 	if(ScrollPoint.y > m_WorldFullSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldFullSize.cy-rcClient.bottom;
 	SetScrollOffset(ScrollPoint);
+	
+	OnZoom();
 
 	return 0;
 }
@@ -414,6 +428,8 @@ LRESULT CWorldEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam
 	::SendMessage(hWnd, WMP_CLEAR, 0, 0);
 
 	Invalidate();
+
+	OnZoom(); // called to update the zoom information (perhaps in the status bar)
 
 	return 0;
 }

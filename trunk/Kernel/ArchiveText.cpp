@@ -45,6 +45,7 @@ bool CSpriteSheetTxtArch::ReadObject(CVFile &vfFile)
 	CGameManager *pGameManager = CGameManager::Instance();
 	if(!pGameManager->MakeSpriteSheet(m_pSpriteSheet)) return false;
 
+	m_nCatalog = 0; // Initialize the catalog number.
 	while(ReadSprite(vfFile)>=0);
 
 	vfFile.Close();
@@ -74,6 +75,7 @@ int CSpriteSheetTxtArch::ReadSprite(CVFile &vfFile)
 	CHAR buff[100];
 	CBString sLine;
 	int iFrame=0, iFrames = 1;
+	int nCatalog = -1;
 
 	const CVFile &fnSheetFile = m_pSpriteSheet->GetFile();
 	CGameManager *pGameManager = CGameManager::Instance();
@@ -98,12 +100,16 @@ retry:
 				pSpriteData = pEntityData;
 				sptType = tEntity;
 				state = eName;
+				// Backgrounds and entities are to be shown as thumbnails in catalogs
+				if(nCatalog == -1) nCatalog = m_nCatalog++;
 			} else if(sLine=="[BACKGROUND]") {
 				pBackgroundData = new SBackgroundData;
 				memset(pBackgroundData, 0, sizeof(SBackgroundData));
 				pSpriteData = pBackgroundData;
 				sptType = tBackground;
 				state = eName;
+				// Backgrounds and entities are to be shown as thumbnails in catalogs
+				if(nCatalog == -1) nCatalog = m_nCatalog++;
 			} else {
 				pMaskData = new SBackgroundData;
 				memset(pMaskData, 0, sizeof(SBackgroundData));
@@ -182,7 +188,10 @@ retry:
 			}
 		} else if(state == eFill) {
 			state = eMask;
-			if(sLine!="[FILL]") goto retry;
+			if(sLine!="[FILL]") {
+				if(nCatalog != -1) nCatalog = -nCatalog;
+				goto retry;
+			}
 		} else if(state == eMask) {
 			state = eLayer;
 			if(	sptType == tBackground ||
@@ -219,8 +228,9 @@ retry:
 				}
 			}
 			if(state != eError) {
-				if(pGameManager->MakeSprite(pSprite->GetName(), sptType, m_pSpriteSheet) == NULL) 
-					state = eError;
+				// for thumbnails display, we use this catalog number for the showing order:
+				pSprite->SetCatalogOrder(nCatalog);
+				if(pGameManager->MakeSprite(pSprite->GetName(), sptType, m_pSpriteSheet) == NULL) state = eError;
 			}
 		}
 		if(sLine=="[EE]") break;

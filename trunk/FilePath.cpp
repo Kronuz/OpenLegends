@@ -75,6 +75,7 @@ inline int wildcardcmp(const char *a, const char *b)
 	while(*a && *b) {
 		if(*a=='*' && *(a+1)==*b) a++;
 		if(*a!=*b && *a!='*' && *a!='?') return *a-*b;
+		if(*a!=*b && (*a=='\\' || *a=='/' || *b=='\\' || *b=='/')) return *a-*b;
 		if(*a!='*') a++;
 		b++;
 	}
@@ -94,13 +95,23 @@ int CVFile::ForEachVirtualFile(FILESPROC ForEach, LPARAM lParam)
 	int err = unzGoToFirstFile(file);
 
 	while(err == UNZ_OK) {
+		unz_file_info file_info;
 		char szCurrentFileName[MAX_PATH];
-		err = unzGetCurrentFileInfo(file, NULL,
+		err = unzGetCurrentFileInfo(file, &file_info,
 							szCurrentFileName, MAX_PATH-1,
 							NULL, 0, NULL, 0);
+		
 		if(err == UNZ_OK) {
-			if(wildcardcmp(sInFile, szCurrentFileName) == 0) {
-				int cnt = ForEach(sFile + '\\' + szCurrentFileName, lParam);
+			char *pcLastChar = &(szCurrentFileName[strlen(szCurrentFileName)-1]);
+			
+			if(*pcLastChar == '\\' || *pcLastChar == '/') {
+				*pcLastChar = '\0';
+				file_info.external_fa |= FILE_ATTRIBUTE_DIRECTORY;
+			} else if(file_info.external_fa == 0) file_info.external_fa |= FILE_ATTRIBUTE_NORMAL;
+
+			if( (file_info.external_fa & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY ||
+				wildcardcmp(sInFile, szCurrentFileName) == 0 ) {
+				int cnt = ForEach(sFile + '\\' + szCurrentFileName, file_info.external_fa, lParam);
 				if(cnt < 0) {
 					files = cnt-files;
 					break;
@@ -136,12 +147,11 @@ int CVFile::ForEachFile(FILESPROC ForEach, LPARAM lParam)
 		do {
 			if (0 == lstrcmp(FindData.cFileName, "..") ||
 				0 == lstrcmp(FindData.cFileName, ".")) continue;
-			if(FindData.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) continue;
 
 			*fin = '\0';
 			lstrcat(filename, FindData.cFileName);
 
-			int cnt = ForEach(filename, lParam);
+			int cnt = ForEach(filename, FindData.dwFileAttributes, lParam);
 			if(cnt < 0) {
 				files = cnt-files;
 				break;

@@ -44,10 +44,34 @@ CLayer::~CLayer()
 {
 	delete m_ArchiveIn;
 }
+
+CThumbnails::CThumbnails() :
+	CDrawableContext()
+{
+	// Build all layers for the map:
+	CLayer *pLayer = NULL;
+	for(int i=0; i<MAX_SUBLAYERS; i++) {
+		pLayer = new CLayer;
+		pLayer->SetName(g_szLayerNames[i]);
+		pLayer->SetObjSubLayer(i);	// tell the newly created layer what layer it is.
+		AddChild(pLayer);			// add the new layer to the map group
+	}
+}
+void CThumbnails::CleanThumbnails()
+{
+	// Clean all layers of the map:
+	CLayer *pLayer = NULL;
+	for(int i=0; i<MAX_SUBLAYERS; i++) {
+		pLayer = static_cast<CLayer *>(GetChild(i));
+		pLayer->Clean();
+	}
+}
+
 CMapGroup::CMapGroup() :
 	CDrawableContext(),
 	m_pWorld(NULL),
 	m_pBitmap(NULL),
+	m_pOriginalBitmap(NULL),
 	m_rcPosition(0,0,0,0),
 	m_sMapID("New Map Group"),
 	m_bLoaded(false),
@@ -65,7 +89,8 @@ CMapGroup::CMapGroup() :
 }
 CMapGroup::~CMapGroup()
 {
-	delete []m_pBitmap;
+	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
+	delete []m_pOriginalBitmap;
 }
 
 bool CMapGroup::isFlagged()
@@ -235,13 +260,38 @@ bool CMapGroup::Load()
 		}
 	}
 
+	if(m_pBitmap != m_pOriginalBitmap) delete []m_pOriginalBitmap;
+	m_pOriginalBitmap = m_pBitmap;
+
 	m_bLoaded = true;			// Map group loaded.
+	return true;
+}
+bool CMapGroup::Close()
+{
+	if(!m_bLoaded) return true;
+
+	// Clean all layers of the map:
+	CLayer *pLayer = NULL;
+	for(int i=0; i<MAX_SUBLAYERS; i++) {
+		pLayer = static_cast<CLayer *>(GetChild(i));
+		pLayer->Clean();
+	}
+	m_bLoaded = false;			// Map group not loaded.
+	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
+	m_pBitmap = m_pOriginalBitmap;
 	return true;
 }
 
 bool CMapGroup::Save()
 {
 	return false;
+
+	// Save here:
+
+	if(m_pBitmap != m_pOriginalBitmap) delete []m_pOriginalBitmap;
+	m_pOriginalBitmap = m_pBitmap;
+
+	return true;
 }
 
 LPCSTR CMapGroup::GetMapGroupID() const

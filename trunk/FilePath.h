@@ -292,6 +292,7 @@ inline void CVFile::SetFilePath(LPCSTR szNewName, bool bGlobalize)
 	m_sTitle = szTitle;
 	m_sExt = szExt;
 
+	m_bReadOnly = false;
 	m_dwFileAttributes = 0;
 	if(!FileExists()) FindVirtual();
 }
@@ -347,7 +348,7 @@ inline FILETIME* CVFile::GetVirtualFileDate() const
 	if(err==UNZ_OK) {
 		char cLastChar = filename_inzip[strlen(filename_inzip)-1];
 		if(cLastChar == '\\' || cLastChar == '/') m_dwFileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
-		else m_dwFileAttributes |= FILE_ATTRIBUTE_NORMAL;
+		else if(m_dwFileAttributes == 0) m_dwFileAttributes |= FILE_ATTRIBUTE_NORMAL;
 		DosDateTimeToFileTime(HIWORD(file_info.dosDate), LOWORD(file_info.dosDate), &m_FileDate);
 		return &m_FileDate;
 	}
@@ -1023,7 +1024,7 @@ inline bool CVFile::IsDirectory() const
 	if(m_dwFileAttributes == 0) {
 		if(GetFileDate()==NULL) return false;
 	}
-	if((m_dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)== FILE_ATTRIBUTE_DIRECTORY) return true;
+	if((m_dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY) return true;
 
 	return false;
 }
@@ -1033,7 +1034,7 @@ inline bool CVFile::FileExists() const
 	if(m_dwFileAttributes == 0) {
 		if(GetFileDate()==NULL) return false;
 	}
-	if((m_dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)!= FILE_ATTRIBUTE_DIRECTORY) return true;
+	if((m_dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != FILE_ATTRIBUTE_DIRECTORY) return true;
 
 	return false;
 }
