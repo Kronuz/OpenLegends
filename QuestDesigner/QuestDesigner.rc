@@ -463,7 +463,7 @@ BEGIN
                     IDC_STATIC,146,149,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
     GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
-    CTEXT           "Quest Designer v0.6.1\nfor Open Zelda",IDC_STATIC,7,122,
+    CTEXT           "Quest Designer v0.6.2\nfor Open Zelda",IDC_STATIC,7,122,
                     132,17,0,WS_EX_TRANSPARENT
     EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
     LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
@@ -495,21 +495,21 @@ BEGIN
                     SS_CENTERIMAGE
 END
 
-IDD_PROPERTYVIEW DIALOGEX 0, 0, 187, 194
+IDD_PROPERTYVIEW DIALOGEX 0, 0, 187, 196
 STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     COMBOBOX        IDC_COMBO,1,15,184,67,CBS_DROPDOWNLIST | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
-    LISTBOX         IDC_LIST,1,32,184,120,LBS_OWNERDRAWVARIABLE | 
+    LISTBOX         IDC_LIST,1,33,184,120,LBS_OWNERDRAWVARIABLE | 
                     LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | NOT WS_BORDER | 
                     WS_VSCROLL | WS_TABSTOP,WS_EX_STATICEDGE
-    CONTROL         "",IDC_FRAME,"Static",SS_GRAYFRAME | SS_NOTIFY,0,155,185,
-                    38,WS_EX_TRANSPARENT
-    LTEXT           "Description",IDC_TITLE,3,159,49,10
-    LTEXT           "The description of the property.",IDC_DESCRIPTION,3,172,
-                    179,17
+    CONTROL         "",IDC_FRAME,"Static",SS_GRAYFRAME | SS_NOTIFY,0,158,185,
+                    35,WS_EX_TRANSPARENT
+    LTEXT           "Description",IDC_TITLE,3,159,179,10
+    LTEXT           "The description of the property.",IDC_DESCRIPTION,3,167,
+                    179,24
 END
 
 IDD_PROPERTIES_NOTIMPLEMENTED DIALOGEX 0, 0, 250, 170
@@ -554,6 +554,11 @@ BEGIN
         VERTGUIDE, 146
         TOPMARGIN, 7
         BOTTOMMARGIN, 167
+    END
+
+    IDD_PROPERTYVIEW, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 200
     END
 
     IDD_ACK, DIALOG
@@ -615,7 +620,7 @@ BEGIN
         BEGIN
             VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Quest Designer v0.6.1 alpha"
+            VALUE "FileDescription", "Quest Designer v0.6.2 alpha"
             VALUE "FileVersion", "1, 0, 0, 6"
             VALUE "InternalName", "QuestDesigner"
             VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
@@ -856,6 +861,29 @@ STRINGTABLE
 BEGIN
     ID_QUEST_OPEN           "Open a Quest Project.\nOpen Quest"
     ID_QUEST_NEW            "Create a New Quest Project.\nNew Quest"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_DESC_SPRITESHEET    "Sprite sheet to which the object belongs to."
+    IDS_DESC_ISVISIBLE      "Object is visible in the world (not used)."
+    IDS_DESC_VCHAIN         "If the object is part of a Sprite Set, what type of vertical chain it uses."
+    IDS_DESC_HCHAIN         "If the object is part of a Sprite Set, what type of horizontal chain it uses."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_DESC_DESC           "The description of the property."
+    IDS_DESC_NAME           "Name of the object. Map Groups, Entities, and Sprite Sheets all have names."
+    IDS_DESC_HEIGHT         "Specifies the height of the object. Some objects can not directly change their height, entities are an example of this."
+    IDS_DESC_WIDTH          "Specifies the width of the object. Some objects can not directly change their width, entities are an example of this."
+    IDS_DESC_ISFLIPPED      "Object is flipped along the horizontal plane."
+    IDS_DESC_ISMIRRORED     "Object is mirrored along the vertical plane."
+    IDS_DESC_X              "Horizontal location of the object."
+    IDS_DESC_Y              "Vertical location of the object."
+    IDS_DESC_ROTATION       "Rotation of the object."
+    IDS_DESC_LAYER          "Current layer of the object."
+    IDS_DESC_SUBLAYER       "Current Sublayer of the object."
 END
 
 #endif    // Inglés (Estados Unidos) resources

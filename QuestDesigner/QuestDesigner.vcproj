@@ -226,6 +226,9 @@
 				<File
 					RelativePath="OutputBox.cpp">
 				</File>
+				<File
+					RelativePath=".\PropertiesDockingView.cpp">
+				</File>
 			</Filter>
 			<Filter
 				Name="Properties"
@@ -613,9 +616,6 @@
 				RelativePath="res\Warning.ico">
 			</File>
 		</Filter>
-		<File
-			RelativePath=".\res\logo.gif">
-		</File>
 	</Files>
 	<Globals>
 		<Global

@@ -167,6 +167,23 @@
 #define IDS_MESSAGE_PASSED_N_OF_FILE    60001
 #define IDS_WARNING_RELOAD              60002
 
+#define IDS_DESC_EMPTY                  60100
+#define IDS_DESC_DESC                   60101
+#define IDS_DESC_NAME                   60102
+#define IDS_DESC_HEIGHT                 60103
+#define IDS_DESC_WIDTH                  60104
+#define IDS_DESC_ISFLIPPED              60105
+#define IDS_DESC_ISMIRRORED             60106
+#define IDS_DESC_X                      60107
+#define IDS_DESC_Y                      60108
+#define IDS_DESC_ROTATION               60109
+#define IDS_DESC_LAYER                  60110
+#define IDS_DESC_SUBLAYER               60111
+#define IDS_DESC_SPRITESHEET            60112
+#define IDS_DESC_ISVISIBLE              60113
+#define IDS_DESC_VCHAIN                 60114
+#define IDS_DESC_HCHAIN                 60115
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

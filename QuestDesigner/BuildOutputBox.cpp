@@ -130,6 +130,8 @@ LRESULT CBuildOutputBox::EndBuildMsg(WPARAM wParam, LPARAM lParam)
 	fmt.crTextColor = 0;
 	fmt.cbSize = sizeof(CHARFORMAT2);
 
+	if(wParam==-1) m_Errors++;
+
 	sprintf(line, "\
 \n%s - %d error(s), %d warning(s)\n\n\
 ---------------------- %s ----------------------\n\n\

@@ -135,13 +135,13 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	m_Layers.SetFont(AtlGetDefaultGuiFont());
 	m_Layers.SetParent(hMapEdToolBar);
 
-	m_Layers.AddString(_T("Layer 0"));
-    m_Layers.AddString(_T("Layer 1"));
-    m_Layers.AddString(_T("Layer 2"));
-    m_Layers.AddString(_T("Layer 3"));
-    m_Layers.AddString(_T("Layer 4"));
-    m_Layers.AddString(_T("Layer 5"));
-	m_Layers.SelectString(-1,_T("Layer 0"));
+	m_Layers.AddString(_T("0 - Ground"));
+    m_Layers.AddString(_T("1 - First Level"));
+    m_Layers.AddString(_T("2 - Second Level"));
+    m_Layers.AddString(_T("3 - Third Level"));
+    m_Layers.AddString(_T("4 - Fourth Level"));
+    m_Layers.AddString(_T("5 - Fifth Level"));
+	m_Layers.SelectString(-1,_T("0 - Ground"));
 
 	// create a rebat to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_ADJUSTABLE)) {
@@ -424,6 +424,19 @@ LRESULT CMainFrame::OnViewStatusBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*h
 	UpdateLayout();
 	return 0;
 }
+
+HWND CMainFrame::GetOldFocus(_child_type ChildType)
+{
+	ASSERT(ChildType<10); // there are 10 elements in the m_ahWnd array.
+	return m_ahWnd[ChildType];
+}
+void CMainFrame::SetOldFocus(_child_type ChildType, HWND hWnd)
+{
+	ASSERT(ChildType<10);
+	m_ahWnd[0] = hWnd;
+	m_ahWnd[ChildType] = hWnd;
+}
+
 int CMainFrame::CountChilds(_child_type ChildType)
 {
 	if(tAny == ChildType) 

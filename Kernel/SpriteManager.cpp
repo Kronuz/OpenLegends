@@ -294,8 +294,8 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 	}
 
 	pPL->AddCategory("Misc");
-	pPL->AddValue("Layer", GetObjLayer());
-	pPL->AddValue("SubLayer", GetObjSubLayer());
+	pPL->AddList("Layer", GetObjLayer(), "0 - Ground, 1 - First Level, 2 - Second Level, 3 - Third Level, 4 - Fourth Level, 5 - Fifth Level ");
+	pPL->AddList("SubLayer", GetObjSubLayer(), "0 - Background, 1 - Sprites, 2 - Entities, 3 - Top Background, 4 - Top Sprites, 5 - Top Entities");
 	pPL->AddString("Sprite Sheet", static_cast<CSprite*>(m_pDrawableObj)->GetSpriteSheet()->GetName(), false);
 	
 	pPL->AddCategory("Behavior");
@@ -305,6 +305,40 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 }
 bool CSpriteContext::SetProperties(SPropertyList &PL) 
 {
+	SProperty* pP;
+
+	CRect Rect;
+	GetAbsRect(Rect);
+
+	pP = PL.FindProperty("X", SProperty::ptValue);
+	if(pP) if(pP->bEnabled) Rect.left = (_Chain)pP->nValue;
+	
+	pP = PL.FindProperty("Y", SProperty::ptValue);
+	if(pP) if(pP->bEnabled) Rect.top = (_Chain)pP->nValue;
+
+	pP = PL.FindProperty("Width", SProperty::ptValue);
+	if(pP) if(pP->bEnabled) Rect.right = Rect.left + (_Chain)pP->nValue;
+
+	pP = PL.FindProperty("Height", SProperty::ptValue);
+	if(pP) if(pP->bEnabled) Rect.bottom = Rect.top + (_Chain)pP->nValue;
+
+	SetAbsRect(Rect);
+
+	pP = PL.FindProperty("IsMirrored", SProperty::ptBoolean);
+	if(pP) if(pP->bEnabled) Mirror((_Chain)pP->bBoolean);
+
+	pP = PL.FindProperty("IsFlipped", SProperty::ptBoolean);
+	if(pP) if(pP->bEnabled) Flip((_Chain)pP->bBoolean);
+	
+	pP = PL.FindProperty("Rotation", SProperty::ptList);
+	if(pP) if(pP->bEnabled) Rotate((_Chain)pP->nIndex);
+
+	pP = PL.FindProperty("SubLayer", SProperty::ptList);
+	if(pP) if(pP->bEnabled) SetObjSubLayer((_Chain)pP->nIndex);
+
+	pP = PL.FindProperty("Layer", SProperty::ptList);
+	if(pP) if(pP->bEnabled) SetObjLayer((_Chain)pP->nIndex);
+
 	return true;
 }
 

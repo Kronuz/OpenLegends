@@ -205,6 +205,9 @@ LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 }
 LRESULT CMapEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
+	if(GetMainFrame()->GetOldFocus(tMapEditor) == m_hWnd) return 0;
+	GetMainFrame()->SetOldFocus(tMapEditor, m_hWnd);
+
 	if(m_pMapGroupI) {
 		ISoundManager *pSoundManager = CProjectFactory::Interface()->GetSoundManager();
 		pSoundManager->SwitchMusic(m_pMapGroupI->GetMusic(), 0);
@@ -450,7 +453,7 @@ LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		}
 	}
 	if(m_CursorStatus==eIDC_SIZEALL) {
-		ShowCursor(FALSE);
+//		ShowCursor(FALSE);
 		m_SelectionI->StartMoving(Point);
 		m_DragState = tToDrag;
 	} else if(m_CursorStatus==eIDC_SIZENESW || m_CursorStatus==eIDC_SIZENS || m_CursorStatus==eIDC_SIZENWSE ||m_CursorStatus==eIDC_SIZEWE) {
@@ -488,7 +491,7 @@ LRESULT CMapEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 		}
 	} else if(m_SelectionI->isMoving() || m_SelectionI->isFloating()) {
 		m_SelectionI->EndMoving(Point);
-		ShowCursor(TRUE);
+//		ShowCursor(TRUE);
 		OnChange();
 	} else if(m_SelectionI->isResizing()) {
 		m_SelectionI->EndResizing(Point);
@@ -754,7 +757,7 @@ LRESULT CMapEditorView::BeginDrag()
 	Invalidate();
 	UpdateWindow();
 
-	ShowCursor(TRUE);
+//	ShowCursor(TRUE);
 
 	DWORD dwEffect;
 	HRESULT hr = ::DoDragDrop(pDataObject, m_pDropSource, DROPEFFECT_COPY, &dwEffect);
@@ -815,7 +818,7 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	if(m_bFloating != m_SelectionI->isFloating()) {
 		m_bFloating = m_SelectionI->isFloating();
 		if(m_bFloating) {
-			ShowCursor(FALSE);
+//			ShowCursor(FALSE);
 //			SetCapture();
 		}
 	}
@@ -870,7 +873,7 @@ LRESULT CMapEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOO
 	} else if(wParam == VK_SHIFT) {
 		ToCursor(m_OldCursorStatus);
 	} else if(wParam == VK_ESCAPE) {
-		if(m_SelectionI->isMoving() || m_SelectionI->isFloating()) ShowCursor(TRUE);
+//		if(m_SelectionI->isMoving() || m_SelectionI->isFloating()) ShowCursor(TRUE);
 		m_SelectionI->Cancel();
 		m_DragState = tNone;
 		ReleaseCapture();
