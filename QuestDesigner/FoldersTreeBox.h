@@ -27,26 +27,11 @@
 #include "Controls.h"
 #include "ToolBarBox.h"
 
-class CTreeInfo {
-public:
-	LPTSTR m_szPath;
-	DWORD_PTR m_dwData;
-	CTreeInfo(LPCSTR szPath, DWORD_PTR dwData) {
-		m_szPath = new char[strlen(szPath)+1];
-		strcpy(m_szPath, szPath);
-		m_dwData = dwData;
-	}
-	~CTreeInfo() {
-		delete []m_szPath;
-	}
-};
+#include <WtlFileTreeCtrl.h>
 
 class CFoldersTreeBox :
 	public CWindowImpl<CFoldersTreeBox>
 {
-	typedef CFoldersTreeBox thisClass;
-	typedef CTreeBox baseClass;
-
 protected:
 	CToolBarBox m_ctrlToolbar;
 	CTreeBox m_ctrlTree;
@@ -55,14 +40,13 @@ protected:
 	int m_nIcoIndex[II_END];
 
 public:
-	DECLARE_WND_SUPERCLASS(NULL, CTreeViewCtrl::GetWndClassName())
+	BOOL PreTranslateMessage(MSG* pMsg);
 
-	BOOL PreTranslateMessage(MSG* /*pMsg*/);
-
-	BEGIN_MSG_MAP(thisClass)
+	BEGIN_MSG_MAP(CFoldersTreeBox)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
+		MESSAGE_HANDLER(WM_SETREDRAW, OnSetRedraw)
 		MESSAGE_HANDLER(WM_SIZE, OnSize)
 
 		REFLECT_NOTIFICATIONS()
@@ -73,6 +57,13 @@ public:
 //	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 //	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
 
+	LRESULT OnSetRedraw(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		bHandled = FALSE;
+		::SendMessage(m_ctrlTree, WM_SETREDRAW, wParam, 0);
+		return 0;
+	}
+
 	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
 		return 0;
@@ -81,8 +72,9 @@ public:
 	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
-	LRESULT DelTree(WPARAM wParam, LPARAM lParam);
-	LRESULT AddTree(WPARAM wParam, LPARAM lParam);
+	LRESULT OnDelTree(WPARAM wParam, LPARAM lParam);
+	LRESULT OnAddTree(WPARAM wParam, LPARAM lParam);
+	void PopulateTree(LPCSTR szRootFolder);
 
 	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 	{
@@ -102,7 +94,7 @@ public:
 		m_ctrlTree.SetWindowPos(NULL, &rcTree, SWP_NOZORDER | SWP_NOACTIVATE);
 		return 0;
 	}
-
+	bool InitDragDrop();
 protected:
 	HTREEITEM FindPath(HTREEITEM hParent, LPSTR szPath);
 	HTREEITEM FindLeaf(HTREEITEM hParent, LPSTR szName);

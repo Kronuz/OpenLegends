@@ -581,8 +581,12 @@ CGraphicsD3D8::CGraphicsD3D8() :
 	m_Zoom(0.0f),
 	m_rgbClearColor(0)
 {
+	m_pGrid[0] = NULL;
+	m_pGrid[1] = NULL;
+
 	::SetRect(&m_RectView, 0, 0, 0, 0);
 	::SetRect(&m_RectClip, 0, 0, 0, 0);
+	::SetRect(&m_RectWorld, 0, 0, 0, 0);
 	::SetRect(&m_RectOldClip, 0, 0, 0, 0);
 
 #ifdef _USE_SWAPCHAINS
@@ -591,6 +595,8 @@ CGraphicsD3D8::CGraphicsD3D8() :
 }
 CGraphicsD3D8::~CGraphicsD3D8()
 {
+	delete []m_pGrid[0];
+	delete []m_pGrid[1];
 	Finalize();
 #ifdef _USE_SWAPCHAINS
 	ms_SwapChains.erase(&m_pSwapChain);
@@ -747,7 +753,8 @@ bool CGraphicsD3D8::BuildSwapChain()
 	return true;
 }
 #endif
-bool CGraphicsD3D8::SetWindowView(HWND hWnd, const RECT &client, const RECT &clipping, float zoom)
+
+bool CGraphicsD3D8::SetWindowView(HWND hWnd, const RECT &client, const RECT &world, float zoom)
 {
 	if(!m_bInitialized) return true;
 	if(client.right-client.left == 0 || client.bottom-client.top == 0) return true;
@@ -757,7 +764,12 @@ bool CGraphicsD3D8::SetWindowView(HWND hWnd, const RECT &client, const RECT &cli
 	D3DXMatrixTranslation(&matTmp, -0.5f-(float)client.left, -0.5f-(float)client.top, 0.0);
 	m_WorldMatrix *= matTmp;
 
-	m_Zoom = zoom;
+	if(!::EqualRect(&m_RectWorld, &world) || m_Zoom!=zoom) {
+		m_Zoom = zoom;
+		m_RectWorld = world;
+		delete [](m_pGrid[0]); m_pGrid[0] = NULL;
+		delete [](m_pGrid[1]); m_pGrid[1] = NULL;
+	}
 
 	RECT rcWorldView;
 	::SetRect(&rcWorldView, 
@@ -767,7 +779,7 @@ bool CGraphicsD3D8::SetWindowView(HWND hWnd, const RECT &client, const RECT &cli
 		(int)(((float)client.bottom + m_Zoom) / m_Zoom));
 
 	// We need the intersecting rectangle:
-	::IntersectRect(&m_RectClip, &clipping, &rcWorldView);
+	::IntersectRect(&m_RectClip, &world, &rcWorldView);
 
 	if( ms_bWindowed==false ||
 		m_RectView.right-m_RectView.left == client.right-client.left &&
@@ -816,7 +828,7 @@ bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, f
 		if(FAILED( D3DXCreateTextureFromFileEx(ms_pD3DDevice, filename, 
 				0, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
 				D3DCOLOR_ARGB(255,0,255,0), &imageInfo, NULL, &pTexture) )) {
-			CONSOLE_OUTPUT("ERROR (D3D8): Couldn't create texture from '%s'.\n", filename);
+			CONSOLE_OUTPUT("WARNING (D3D8): Couldn't create texture from '%s'.\n", filename);
 			return false;
 		}
 
@@ -842,7 +854,7 @@ bool CGraphicsD3D8::CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcD
 		if(FAILED( D3DXCreateTextureFromFileInMemoryEx(ms_pD3DDevice, pSrcData, SrcData, 
 				0, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
 				D3DCOLOR_ARGB(255,0,255,0), &imageInfo, NULL, &pTexture) )) {
-			CONSOLE_OUTPUT("ERROR (D3D8): Couldn't create texture from memory.\n");
+			CONSOLE_OUTPUT("WARNING (D3D8): Couldn't create texture from memory.\n");
 			return false;
 		}
 
@@ -1163,6 +1175,116 @@ void CGraphicsD3D8::SelectingBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA));
 	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA));
 	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD));
+
+	Pattern.wRepeatFactor=0;
+	Pattern.wLinePattern=0;
+	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_LINEPATTERN , *((DWORD*)&Pattern)));
+
+}
+void CGraphicsD3D8::UpdateGrid(int nGridSize, ARGBCOLOR rgbColor)
+{
+	static int s_nGridSize;
+	static ARGBCOLOR s_rgbColor;
+
+	if(m_Zoom<2) rgbColor.rgbAlpha = (int)((float)rgbColor.rgbAlpha * m_Zoom * 0.8f);
+	int newAlpha = (int)((float)rgbColor.rgbAlpha * 1.8f);
+	ARGBCOLOR rgbColor2 = rgbColor;
+	rgbColor2.rgbAlpha = (newAlpha>255) ? 255 : newAlpha;
+
+	// If either the grid does not exist or the grid size is different, the grid buffers are invalid:
+	if(m_pGrid[0] == NULL || s_nGridSize != nGridSize) {
+		BuildGrid(0, nGridSize, rgbColor);
+		BuildGrid(1, nGridSize*2, rgbColor2); // second grid (lloks nicer with it)
+		s_nGridSize = nGridSize;
+		s_rgbColor = rgbColor;
+		return;
+	}
+
+	// the grid buffer is still valid, so we check if it needs a color change:
+	if( s_rgbColor.dwColor == rgbColor.dwColor) return;
+
+	for(int lines=0; lines<m_nGridLines[0]; lines++) {
+		m_pGrid[0][lines].dwColor = rgbColor.dwColor;
+		m_pGrid[0][lines+1].dwColor = rgbColor.dwColor;
+	}
+
+	for(int lines=0; lines<m_nGridLines[1]; lines++) {
+		m_pGrid[1][lines].dwColor = rgbColor2.dwColor;
+		m_pGrid[1][lines+1].dwColor = rgbColor2.dwColor;
+	}
+
+	s_rgbColor = rgbColor;
+}
+void CGraphicsD3D8::BuildGrid(int nGridIdx, int nGridSize, ARGBCOLOR rgbColor)
+{
+	int cols = 1 + (m_RectWorld.right - m_RectWorld.left + nGridSize - 1) / nGridSize;
+	int rows = 1 + (m_RectWorld.bottom - m_RectWorld.top + nGridSize - 1) / nGridSize;
+	m_nGridLines[nGridIdx] = rows+cols;
+
+	delete [](m_pGrid[nGridIdx]);
+	m_pGrid[nGridIdx] = new D3DCDVERTEX[m_nGridLines[nGridIdx]*2];
+
+	int offset = 0;
+	for(int y=0; y<rows; y++) {
+		m_pGrid[nGridIdx][offset].x = 0;
+		m_pGrid[nGridIdx][offset].y = (float)(y*nGridSize)*m_Zoom;
+		m_pGrid[nGridIdx][offset].z = 1;
+		m_pGrid[nGridIdx][offset].dwColor = rgbColor.dwColor;
+		m_pGrid[nGridIdx][offset+1].x = (float)(m_RectWorld.right-m_RectWorld.left)*m_Zoom;
+		m_pGrid[nGridIdx][offset+1].y = (float)(y*nGridSize)*m_Zoom;
+		m_pGrid[nGridIdx][offset+1].z = 1;
+		m_pGrid[nGridIdx][offset+1].dwColor = rgbColor.dwColor;
+		offset += 2;
+	}
+	for(int x=0; x<cols; x++) {
+		m_pGrid[nGridIdx][offset].x = (float)(x*nGridSize)*m_Zoom;
+		m_pGrid[nGridIdx][offset].y = 0;
+		m_pGrid[nGridIdx][offset].z = 1;
+		m_pGrid[nGridIdx][offset].dwColor = rgbColor.dwColor;
+		m_pGrid[nGridIdx][offset+1].x = (float)(x*nGridSize)*m_Zoom;
+		m_pGrid[nGridIdx][offset+1].y = (float)(m_RectWorld.bottom-m_RectWorld.top)*m_Zoom;
+		m_pGrid[nGridIdx][offset+1].z = 1;
+		m_pGrid[nGridIdx][offset+1].dwColor = rgbColor.dwColor;
+		offset += 2;
+	}
+
+}
+
+bool CGraphicsD3D8::DrawGrid(int size, ARGBCOLOR rgbColor)
+{
+	if(!m_bInitialized) return false;
+	ASSERT(ms_pD3DDevice);
+#ifdef _USE_SWAPCHAINS
+	ASSERT((m_pSwapChain || !ms_bWindowed));
+#endif
+
+	UpdateGrid(size, rgbColor);
+
+	D3DVERIFY(ms_pD3DDevice->SetTexture(0, NULL));
+	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE));
+
+	// we don't want zoom for this
+	D3DXMATRIX matTmp;
+	D3DXMatrixTranslation(&matTmp, -(float)m_RectView.left, -(float)m_RectView.top, 0.0);
+	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &matTmp));
+
+	D3DLINEPATTERN Pattern;
+	Pattern.wRepeatFactor=2;
+	Pattern.wLinePattern=0xcccc;
+	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_LINEPATTERN , *((DWORD*)&Pattern)));
+
+	D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_LINELIST, m_nGridLines[0], m_pGrid[0], sizeof(D3DCDVERTEX)));
+
+	Pattern.wRepeatFactor=1;
+	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_LINEPATTERN , *((DWORD*)&Pattern)));
+
+	D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_LINELIST, m_nGridLines[1], m_pGrid[1], sizeof(D3DCDVERTEX)));
+
+	Pattern.wRepeatFactor=0;
+	Pattern.wLinePattern=0;
+	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_LINEPATTERN , *((DWORD*)&Pattern)));
+
+	return true;
 }
 
 void CGraphicsD3D8::BoundingBox(const RECT &rectDest, ARGBCOLOR rgbColor) const

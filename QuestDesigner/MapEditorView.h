@@ -96,6 +96,8 @@ private:
 	bool ToggleGrid();
 	bool TogleSnap();
 
+	bool Zoom(float zoom);
+	void ScrollTo(int x, int y);
 public:
 
 	// Initialize drag and drop

@@ -26,12 +26,11 @@
 #define ID_OVERTYPE_PANE                151
 #define ID_READONLY_PANE                152
 #define ID_ICON_PANE                    153
-#define IDB_MSDEV_TAB_ICONS             207
+#define IDB_TAB_ICONS                   207
 #define IDI_ICO_WARNING                 209
 #define IDI_ICO_QUESTION                210
 #define IDI_ICO_ERROR                   211
 #define IDI_ICO_OK                      212
-#define IDR_TB_PROJECT                  213
 #define IDR_TB_SCRIPTED                 214
 #define IDR_TB_MAPED_OBJECT             215
 #define IDR_TB_FOLDERS                  216
@@ -50,6 +49,16 @@
 #define ID_CLOSE_ACA                    241
 #define IDB_DRAGIMG                     243
 #define IDD_PROPERTYVIEW                244
+#define ID_VIEW_OTHERWINDOWS            245
+#define ID_VIEW_PANEFIRST               500
+#define ID_PANE_THINGSTODO              500
+#define ID_PANE_PROJECTDESCRIPTION      501
+#define ID_PANE_OUTPUTWINDOW            502
+#define ID_PANE_PROPERTIES              503
+#define ID_PANE_PROJECTEXPLORER         504
+#define ID_PANE_QUESTEXPLORER           505
+#define ID_PANE_SPRITESETEXPLORER       506
+#define ID_VIEW_PANELAST                506
 #define IDC_COMBO                       1000
 #define IDC_LIST                        1001
 #define IDC_TITLE                       1002
@@ -58,11 +67,9 @@
 #define ID_APP_BUILD                    32770
 #define ID_APP_CLOSE                    32771
 #define ID_APP_HELP                     32772
-#define ID_APP_INFORMATION              32773
 #define ID_APP_MAPED                    32774
 #define ID_APP_NEW                      32775
 #define ID_APP_OPEN                     32776
-#define ID_APP_PROPERTIES               32777
 #define ID_APP_SAVE                     32778
 #define ID_APP_SPTSHTED                 32779
 #define ID_APP_STATUS_BAR               32780
@@ -110,18 +117,32 @@
 #define ID_SCRIPTED_GOTO_PREV_BOOKMARK  32829
 #define ID_SCRIPTED_LOWERCASE           32830
 #define ID_SCRIPTED_MATCH_BRACE         32831
+#define ID_WORLDED_NEW                  32832
 #define ID_SCRIPTED_NEW                 32832
+#define ID_MAPED_OPEN                   32833
+#define ID_WORLDED_OPEN                 32833
 #define ID_SCRIPTED_OPEN                32833
 #define ID_SCRIPTED_PAGE_SETUP          32834
 #define ID_PASTE                        32835
+#define ID_MAPED_PRINT                  32836
+#define ID_WORLDED_PRINT                32836
 #define ID_SCRIPTED_PRINT               32836
 #define ID_SCRIPTED_PRINT_PREVIEW       32837
+#define ID_MAPED_PRINT_SETUP            32838
+#define ID_WORLDED_PRINT_SETUP          32838
 #define ID_SCRIPTED_PRINT_SETUP         32838
 #define ID_SCRIPTED_READ_ONLY           32839
 #define ID_REDO                         32840
+#define ID_MAPED_RELOAD                 32841
+#define ID_WORLDED_RELOAD               32841
 #define ID_SCRIPTED_RELOAD              32841
+#define ID_MAPED_SAVE                   32842
+#define ID_WORLDED_SAVE                 32842
 #define ID_SCRIPTED_SAVE                32842
+#define ID_MAPED_SAVE_ALL               32843
+#define ID_WORLDED_SAVE_ALL             32843
 #define ID_SCRIPTED_SAVE_ALL            32843
+#define ID_WORLDED_SAVE_AS              32844
 #define ID_SCRIPTED_SAVE_AS             32844
 #define ID_SCRIPTED_SHOW_WHITE_SPACE    32845
 #define ID_SCRIPTED_TAB                 32846
@@ -145,6 +166,11 @@
 #define IDC_PROPERTIES_TREE             32884
 #define ID_APP_CONFIG                   32885
 #define ID_MAPED_MASK                   32888
+#define ID_MAPED_LAYER                  32889
+#define ID_APP_SAVEALL                  32896
+#define ID_APP_PRINT                    32897
+#define ID_BUTTON32898                  32898
+#define ID_PROJECT_OPEN                 32898
 #define ID_FOLDERS_PROPERTIES           33000
 #define ID_PROP_CAT                     33001
 #define ID_PROP_SORT                    33002
@@ -157,8 +183,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        245
-#define _APS_NEXT_COMMAND_VALUE         32889
+#define _APS_NEXT_RESOURCE_VALUE        253
+#define _APS_NEXT_COMMAND_VALUE         32899
 #define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -47,7 +47,7 @@ public:
 
 		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnLButtonDoubleClick)
 	
-		CHAIN_MSG_MAP_ALT(CRichEditCommands<COutputBox>, 1)
+		CHAIN_MSG_MAP(COutputBox)
 		DEFAULT_REFLECTION_HANDLER()
 
 	END_MSG_MAP()

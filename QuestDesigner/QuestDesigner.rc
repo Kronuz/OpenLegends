@@ -52,38 +52,36 @@ END
 
 IDR_TB_SCRIPTED TOOLBAR  18, 18
 BEGIN
-    BUTTON      ID_SCRIPTED_NEW
-    BUTTON      ID_SCRIPTED_OPEN
-    BUTTON      ID_SCRIPTED_SAVE
-    BUTTON      ID_SCRIPTED_SAVE_ALL
+    BUTTON      ID_SCRIPTED_TAB
+    BUTTON      ID_SCRIPTED_UNTAB
+END
+
+IDR_MAINFRAME TOOLBAR  18, 18
+BEGIN
+    BUTTON      ID_PROJECT_OPEN
     SEPARATOR
-    BUTTON      ID_SCRIPTED_PRINT
+    BUTTON      ID_APP_NEW
+    BUTTON      ID_APP_OPEN
+    BUTTON      ID_APP_SAVE
+    BUTTON      ID_APP_SAVEALL
     SEPARATOR
-    BUTTON      ID_UNDO
-    BUTTON      ID_REDO
+    BUTTON      ID_APP_PRINT
     SEPARATOR
     BUTTON      ID_CUT
     BUTTON      ID_COPY
     BUTTON      ID_PASTE
     BUTTON      ID_ERASE
     SEPARATOR
-    BUTTON      ID_SCRIPTED_TAB
-    BUTTON      ID_SCRIPTED_UNTAB
-END
-
-IDR_TB_PROJECT TOOLBAR  18, 18
-BEGIN
-    BUTTON      ID_APP_NEW
-    BUTTON      ID_APP_OPEN
-    BUTTON      ID_APP_SAVE
+    BUTTON      ID_UNDO
+    BUTTON      ID_REDO
     SEPARATOR
     BUTTON      ID_APP_WORLDED
     BUTTON      ID_APP_MAPED
     SEPARATOR
+    BUTTON      ID_APP_CONFIG
+    SEPARATOR
     BUTTON      ID_APP_BUILD
     BUTTON      ID_APP_STOPBUILD
-    SEPARATOR
-    BUTTON      ID_APP_CONFIG
     SEPARATOR
     BUTTON      ID_APP_HELP
     BUTTON      ID_APP_ABOUT
@@ -111,15 +109,7 @@ END
 
 IDR_TB_MAPED_MAIN TOOLBAR  18, 18
 BEGIN
-    BUTTON      ID_MAPED_NEW
-    SEPARATOR
-    BUTTON      ID_UNDO
-    BUTTON      ID_REDO
-    SEPARATOR
-    BUTTON      ID_CUT
-    BUTTON      ID_COPY
-    BUTTON      ID_PASTE
-    BUTTON      ID_ERASE
+    BUTTON      ID_MAPED_LAYER
 END
 
 IDR_TB_MAPED_BASIC TOOLBAR  18, 18
@@ -165,8 +155,8 @@ END
 //
 
 IDR_TB_SCRIPTED         BITMAP                  "res\\ScriptsToolbar.bmp"
-IDR_TB_PROJECT          BITMAP                  "res\\ProjectToolbar.bmp"
-IDB_MSDEV_TAB_ICONS     BITMAP                  "res\\msdev_tab_icons.bmp"
+IDR_MAINFRAME           BITMAP                  "res\\ProjectToolbar.bmp"
+IDB_TAB_ICONS           BITMAP                  "res\\tab_icons.bmp"
 IDR_TB_MAPED_MAIN       BITMAP                  "res\\MapEdToolbarMain.bmp"
 IDR_TB_MAPED_BASIC      BITMAP                  "res\\MapEdToolbarBasic.bmp"
 IDR_TB_MAPED_OBJECT     BITMAP                  "res\\MapEdToolbarObject.bmp"
@@ -200,8 +190,20 @@ BEGIN
         MENUITEM "Map Editor",                  ID_APP_MAPED
         MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
         MENUITEM SEPARATOR
-        MENUITEM "Information",                 ID_APP_INFORMATION
-        MENUITEM "Properties",                  ID_APP_PROPERTIES
+        POPUP "Other Windows"
+        BEGIN
+            MENUITEM "Project Explorer",            ID_PANE_PROJECTEXPLORER
+            MENUITEM "Quest Explorer",              ID_PANE_QUESTEXPLORER
+            MENUITEM "Sprite Set Explorer",         ID_PANE_SPRITESETEXPLORER
+
+            MENUITEM SEPARATOR
+            MENUITEM "Things To Do",                ID_PANE_THINGSTODO
+            MENUITEM "Project Description",         ID_PANE_PROJECTDESCRIPTION
+
+            MENUITEM "Output Window",               ID_PANE_OUTPUTWINDOW
+            MENUITEM SEPARATOR
+            MENUITEM "Properties",                  ID_PANE_PROPERTIES
+        END
     END
     POPUP "&Help"
     BEGIN
@@ -276,8 +278,135 @@ BEGIN
         MENUITEM "Map Editor",                  ID_APP_MAPED
         MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
         MENUITEM SEPARATOR
-        MENUITEM "Information",                 ID_APP_INFORMATION
-        MENUITEM "Properties",                  ID_APP_PROPERTIES
+    END
+    POPUP "&Window"
+    BEGIN
+        MENUITEM "&Cascade",                    ID_WINDOW_CASCADE
+        MENUITEM "&Tile",                       ID_WINDOW_TILE_HORZ
+        MENUITEM "Arrange &Icons",              ID_WINDOW_ARRANGE
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About QuestDesigner...",     ID_APP_ABOUT
+    END
+END
+
+IDR_MDIMAPED MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                32875
+        MENUITEM "&Open...\tCtrl+O",            ID_MAPED_OPEN
+        MENUITEM "Reload",                      ID_MAPED_RELOAD
+        MENUITEM "&Save\tCtrl+S",               ID_MAPED_SAVE
+        MENUITEM "Save A&ll",                   ID_MAPED_SAVE_ALL
+        MENUITEM SEPARATOR
+        MENUITEM "&Print...\tCtrl+P",           ID_MAPED_PRINT
+        MENUITEM "P&rint Setup...",             ID_MAPED_PRINT_SETUP
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",               ID_UNDO
+        MENUITEM "&Redo\tCtrl+Y",               ID_REDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                ID_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_PASTE
+        MENUITEM "&Delete\tDel",                ID_ERASE
+        MENUITEM "Select &All\tCtrl+A",         ID_MAPED_SELECT_ALL
+        MENUITEM SEPARATOR
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Toolbar",                    ID_APP_TOOLBAR
+        MENUITEM "&Status Bar",                 ID_APP_STATUS_BAR
+        MENUITEM SEPARATOR
+        MENUITEM "World Editor",                ID_APP_WORLDED
+        MENUITEM "Map Editor",                  ID_APP_MAPED
+        MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
+        MENUITEM SEPARATOR
+    END
+    POPUP "&Window"
+    BEGIN
+        MENUITEM "&Cascade",                    ID_WINDOW_CASCADE
+        MENUITEM "&Tile",                       ID_WINDOW_TILE_HORZ
+        MENUITEM "Arrange &Icons",              ID_WINDOW_ARRANGE
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About QuestDesigner...",     ID_APP_ABOUT
+    END
+END
+
+IDR_MDIWORLDED MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_WORLDED_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_WORLDED_OPEN
+        MENUITEM "Reload",                      ID_WORLDED_RELOAD
+        MENUITEM "&Save\tCtrl+S",               ID_WORLDED_SAVE
+        MENUITEM "Save A&ll",                   ID_WORLDED_SAVE_ALL
+        MENUITEM "Save &As...",                 ID_WORLDED_SAVE_AS
+        MENUITEM SEPARATOR
+        MENUITEM "&Print...\tCtrl+P",           ID_WORLDED_PRINT
+        MENUITEM "P&rint Setup...",             ID_WORLDED_PRINT_SETUP
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",               ID_UNDO
+        MENUITEM "&Redo\tCtrl+Y",               ID_REDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                ID_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_PASTE
+        MENUITEM "&Delete\tDel",                ID_ERASE
+        MENUITEM "Select &All\tCtrl+A",         ID_SCRIPTED_SELECT_ALL
+        MENUITEM SEPARATOR
+        MENUITEM "&Find...\tCtrl+F",            ID_SCRIPTED_FIND
+        MENUITEM "Find Ne&xt\tF3",              ID_SCRIPTED_FIND_NEXT
+        MENUITEM "Find Pre&vious\tShift+F3",    ID_SCRIPTED_FIND_PREV
+        MENUITEM "Find &Selection\tCtrl+F3",    ID_SCRIPTED_FIND_SELECTION
+        MENUITEM "R&eplace...\tCtrl+H",         ID_SCRIPTED_REPLACE
+        MENUITEM SEPARATOR
+        MENUITEM "&Goto Line...\tCtrl+G",       ID_SCRIPTED_GOTO_LINE
+        MENUITEM "&Match Brace\tCtrl+]",        ID_SCRIPTED_MATCH_BRACE
+        MENUITEM SEPARATOR
+        POPUP "Advanced"
+        BEGIN
+            MENUITEM "&Upper case\tCtrl+U",         ID_SCRIPTED_UPPERCASE
+            MENUITEM "&Lower case\tCtrl+Shift+U",   ID_SCRIPTED_LOWERCASE
+            MENUITEM "&Tabify Selection",           ID_SCRIPTED_TABIFY
+            MENUITEM "U&ntabify Selection",         ID_SCRIPTED_UNTABIFY
+            MENUITEM "Show &Whitespace",            ID_SCRIPTED_SHOW_WHITE_SPACE
+
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Read &Only",                  ID_SCRIPTED_READ_ONLY
+        MENUITEM SEPARATOR
+        MENUITEM "Toggle &Bookmark\tCtrl+F2",   ID_SCRIPTED_TOGGLE_BOOKMARK
+        MENUITEM "&Next Bookmark\tF2",          ID_SCRIPTED_GOTO_NEXT_BOOKMARK
+
+        MENUITEM "Prev&ious bookmark\tShift+F2", 
+                                                ID_SCRIPTED_GOTO_PREV_BOOKMARK
+
+        MENUITEM "Clear All Boo&kmarks\tCtrl+Shift+F2", 
+                                                ID_SCRIPTED_CLEAR_ALL_BOOKMARKS
+
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Toolbar",                    ID_APP_TOOLBAR
+        MENUITEM "&Status Bar",                 ID_APP_STATUS_BAR
+        MENUITEM SEPARATOR
+        MENUITEM "World Editor",                ID_APP_WORLDED
+        MENUITEM "Map Editor",                  ID_APP_MAPED
+        MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
+        MENUITEM SEPARATOR
     END
     POPUP "&Window"
     BEGIN
@@ -321,21 +450,21 @@ IDI_DOC_WAV             ICON                    "res\\QuestDesignerWav.ico"
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 244, 157
+IDD_ABOUTBOX DIALOGEX 0, 0, 244, 149
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About Quest Designer"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,180,127,50,14
-    CTEXT           "Quest Designer v0.1.0\nfor Open Zelda\n\nCopyright (C) 2003 by Kronuz",
+    DEFPUSHBUTTON   "OK",IDOK,180,123,50,14
+    CTEXT           "Quest Designer v0.5.0\nfor Open Zelda\n\nCopyright (C) 2003 by Kronuz",
                     IDC_STATIC,14,34,215,32
-    ICON            IDR_MAINFRAME,IDC_STATIC,111,14,20,20
+    ICON            IDR_MAINFRAME,IDC_STATIC,111,14,21,20
     GROUPBOX        "",IDC_STATIC,7,7,230,110
     LTEXT           "Portions of this software use:\n    CodeMax, Copyright 1997-2000 by Barry Allyn\n    and Small Compiler, Copyright (c) 1997-2002 by ITB CompuPhase",
-                    IDC_STATIC,13,77,219,26
+                    IDC_STATIC,13,85,219,26,WS_DISABLED
 END
 
-IDD_PROPERTIES DIALOGEX 0, 0, 360, 207
+IDD_PROPERTIES DIALOGEX 0, 0, 360, 206
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Options"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
@@ -371,6 +500,14 @@ BEGIN
                     179,17
 END
 
+IDD_PROPERTIES_NOTIMPLEMENTED DIALOGEX 0, 0, 250, 170
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CTEXT           "Properties sheet under construction.",IDC_STATIC_INFO,0,
+                    76,250,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -385,7 +522,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 237
         TOPMARGIN, 7
-        BOTTOMMARGIN, 150
+        BOTTOMMARGIN, 142
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -409,7 +546,7 @@ BEGIN
     "X",            ID_CUT,                 VIRTKEY, CONTROL, NOINVERT
     "V",            ID_PASTE,               VIRTKEY, CONTROL, NOINVERT
     VK_INSERT,      ID_PASTE,               VIRTKEY, SHIFT, NOINVERT
-    "P",            ID_SCRIPTED_PRINT,      VIRTKEY, CONTROL, NOINVERT
+    "P",            ID_MAPED_PRINT,         VIRTKEY, CONTROL, NOINVERT
     VK_BACK,        ID_UNDO,                VIRTKEY, ALT, NOINVERT
     "Z",            ID_UNDO,                VIRTKEY, CONTROL, NOINVERT
 END
@@ -421,8 +558,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1
- PRODUCTVERSION 1,0,0,1
+ FILEVERSION 1,0,0,5
+ PRODUCTVERSION 1,0,0,5
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -439,14 +576,14 @@ BEGIN
         BEGIN
             VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Quest Designer v0.1.0 alpha"
-            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "FileDescription", "Quest Designer v0.5.0 alpha"
+            VALUE "FileVersion", "1, 0, 0, 5"
             VALUE "InternalName", "QuestDesigner"
             VALUE "LegalCopyright", "Copyright © 2002-2003 by Kronuz. All rights reserved."
             VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Zelda\r\n"
             VALUE "OriginalFilename", "QuestDesigner.exe"
             VALUE "ProductName", "Quest Designer for Open Zelda"
-            VALUE "ProductVersion", "1, 0, 0, 1"
+            VALUE "ProductVersion", "1, 0, 0, 5"
         END
     END
     BLOCK "VarFileInfo"
@@ -507,16 +644,16 @@ END
 STRINGTABLE 
 BEGIN
     ID_SCRIPTED_NEW         "Create a new script file.\nNew Script"
-    ID_SCRIPTED_OPEN        "Open an existing document.\nOpen"
+    ID_MAPED_OPEN           "Open an existing document.\nOpen"
     ID_SCRIPTED_PAGE_SETUP  "Change the printing options.\nPage Setup"
     ID_PASTE                "Insert Clipboard contents.\nPaste"
-    ID_SCRIPTED_PRINT       "Print current script.\nPrint"
+    ID_MAPED_PRINT          "Print current script.\nPrint"
     ID_SCRIPTED_PRINT_PREVIEW "Display full pages.\nPrint Preview"
-    ID_SCRIPTED_PRINT_SETUP "Change the printer and printing options.\nPrint Setup"
+    ID_MAPED_PRINT_SETUP    "Change the printer and printing options.\nPrint Setup"
     ID_SCRIPTED_READ_ONLY   "Sets the current documment as read-only.\nRead Only"
     ID_REDO                 "Redo the previously undone action.\nRedo"
-    ID_SCRIPTED_SAVE        "Save the active document.\nSave"
-    ID_SCRIPTED_SAVE_ALL    "Save all open scripts.\nSave All"
+    ID_MAPED_SAVE           "Save the active document.\nSave"
+    ID_MAPED_SAVE_ALL       "Save all open scripts.\nSave All"
     ID_SCRIPTED_SAVE_AS     "Save the active document with a new name.\nSave As"
     ID_SCRIPTED_SHOW_WHITE_SPACE 
                             "Shows or hides tab characters.\nShow Whitespace"
@@ -661,6 +798,13 @@ STRINGTABLE
 BEGIN
     ID_APP_CONFIG           "Open Zelda and Quest Designer Preferences.\nPreferences"
     ID_MAPED_MASK           "Show or hide every object's mask.\nToggle Mask"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_APP_SAVEALL          "Save all open files.\nSave All"
+    ID_APP_PRINT            "Print current document.\nPrint"
+    ID_PROJECT_OPEN         "Open a Game Project.\nOpen Game"
 END
 
 #endif    // English (U.S.) resources

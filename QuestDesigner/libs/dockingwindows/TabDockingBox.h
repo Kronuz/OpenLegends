@@ -394,8 +394,17 @@ public:
 		else
 		{
 			bRes=n<2;
-			if(!bRes)
-				bRes=baseClass::CanBeClosed(param);
+			if(!bRes) {
+				int curSel=m_tabs.GetCurSel();
+				assert(curSel!=-1);
+				HWND hWnd=GetItemHWND(curSel);
+				assert(hWnd);
+				if(hWnd) {
+					::PostMessage(hWnd, WM_CLOSE, 0, 0);
+					bRes = false;
+				} else
+					bRes=baseClass::CanBeClosed(param);
+			}
 		}
 		return bRes;
 	}

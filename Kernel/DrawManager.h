@@ -53,6 +53,8 @@
 using namespace std;
 
 #define MAX_SUBLAYERS	6
+#define MAX_LAYERS		MAX_SUBLAYERS
+
 #define CONTEXT_BUFFERS 2
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
@@ -371,7 +373,9 @@ protected:
 	bool m_bCursorRight;
 	bool m_bCursorBottom;
 
+	bool m_bShowGrid;
 	int m_nSnapSize;
+	int m_nLayer;
 
 	bool m_bChanged;
 	bool m_bFloating;
@@ -420,7 +424,9 @@ public:
 
 	virtual void CleanSelection();
 
-	virtual void SetSnapSize(int nSnapSize_);
+	virtual void SetSnapSize(int nSnapSize_, bool bShowGrid_);
+	virtual void SetLayer(int nLayer_);
+	virtual int GetLayer();
 
 	virtual bool isResizing();
 	virtual bool isMoving();

@@ -245,6 +245,9 @@ interface IGraphics
 	//! Draws the frame for all objects in the world
 	virtual bool DrawFrame() = 0;
 
+	//! Draws the grid with the given size and color
+	virtual bool DrawGrid(int nGridSize, ARGBCOLOR rgbColor) = 0;
+
 	/*! \brief Ends painting and presents the results on the screen.
 
 		\return Returns true if the device could be closed and the painting has been presented.

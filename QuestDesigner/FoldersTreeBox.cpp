@@ -25,7 +25,7 @@
 
 #include "FoldersTreeBox.h"
 
-BOOL CFoldersTreeBox::PreTranslateMessage(MSG* /*pMsg*/)
+BOOL CFoldersTreeBox::PreTranslateMessage(MSG* pMsg)
 {
 	return FALSE;
 }
@@ -52,14 +52,20 @@ LRESULT CFoldersTreeBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 					IMAGE_ICON, cx, cy, LR_SHARED);
 		m_nIcoIndex[nIcoIdx] = m_ImageList.AddIcon(hIcon);
 	}
-	DWORD dwStyle = WS_BORDER | WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS; //TVS_LINESATROOT
+	DWORD dwStyle = WS_BORDER | WS_CHILD | WS_VISIBLE | TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_LINESATROOT; //TVS_LINESATROOT
+
 	m_ctrlTree.Create(m_hWnd, rcDefault, NULL, dwStyle);
 	// Hook up the image list to the tree view
-	m_ctrlTree.SetImageList(m_ImageList, TVSIL_NORMAL);
-
-	m_ctrlTree.InitDragDrop();
+	m_ctrlTree.UseImageList(m_ImageList);
+	m_ctrlTree.AddFileType("Folder", ICO_FOLDER);
+	m_ctrlTree.AddFileType("File", ICO_SCRIPT);
+	m_ctrlTree.AddFileType(".txt", ICO_MAP);
 
 	return 0;
+}
+bool CFoldersTreeBox::InitDragDrop()
+{
+	return m_ctrlTree.InitDragDrop();
 }
 LRESULT CFoldersTreeBox::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
@@ -67,7 +73,7 @@ LRESULT CFoldersTreeBox::OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 	bHandled = FALSE;
 	return 0;
 }
-LRESULT CFoldersTreeBox::DelTree(WPARAM wParam, LPARAM lParam)
+LRESULT CFoldersTreeBox::OnDelTree(WPARAM wParam, LPARAM lParam)
 {
 	HTREEITEM hParentItem, hItem;
 	CTreeInfo *pTI = (CTreeInfo *)lParam;
@@ -86,8 +92,11 @@ LRESULT CFoldersTreeBox::DelTree(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-LRESULT CFoldersTreeBox::AddTree(WPARAM wParam, LPARAM lParam)
+LRESULT CFoldersTreeBox::OnAddTree(WPARAM wParam, LPARAM lParam)
 {
+	static char szOldPath[MAX_PATH];
+	static HTREEITEM hOldItem;
+
 	HTREEITEM hItem;
 	CTreeInfo *pTI = (CTreeInfo *)lParam;
 	ATLASSERT(pTI);
@@ -95,9 +104,13 @@ LRESULT CFoldersTreeBox::AddTree(WPARAM wParam, LPARAM lParam)
 	char *szAux;
 	char *szTmp = pTI->m_szPath;
 	szAux = strrchr(szTmp, '\\');
+
 	if(szAux) {
 		*szAux++='\0';
-		hItem = FindPath(NULL, szTmp);
+		if(strcmp(szOldPath, szTmp)) {
+			strcpy(szOldPath, szTmp);
+			hOldItem = hItem = FindPath(NULL, szTmp);
+		} else hItem = hOldItem;
 	} else {
 		szAux = szTmp;
 		hItem = m_ctrlTree.GetRootItem();
@@ -139,4 +152,9 @@ HTREEITEM CFoldersTreeBox::FindLeaf(HTREEITEM hParent, LPSTR szName)
 	} while((hLeaf = m_ctrlTree.GetNextSiblingItem(hLeaf)));
 
 	return hLeaf;
+}
+void CFoldersTreeBox::PopulateTree(LPCSTR szRootFolder)
+{
+	m_ctrlTree.SetRootFolder(szRootFolder);
+	m_ctrlTree.PostMessage(WM_POPULATE_TREE);
 }

@@ -43,6 +43,7 @@ LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 				MAKEINTRESOURCE(IDI_DOC_WORLD),
 				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
 	SetIcon(hIcon, ICON_SMALL);
+	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIWORLDED)));
 
 	m_pWorldEditorView = new CWorldEditorView(this);
 
@@ -57,10 +58,12 @@ LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 		return FALSE;
 	}
 
-	CChildFrame::Register(tWorldEditor);
-	SetMsgHandled(FALSE);
 	m_sChildName = _T("World Editor");
 	SetTitle(m_sChildName);
+
+	CChildFrame::Register(tWorldEditor);
+	SetMsgHandled(FALSE);
+
 	return TRUE;
 }
 LRESULT CWorldEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)

@@ -37,9 +37,8 @@ class CPropertiesDlg :
 {
 private:
 	CTreeViewCtrl	m_PropertiesTree;
-	CSimpleArray<CPropertiesSheet *> m_PropertiesSheets;
+	CSimpleArray<CPropertiesSheet*> m_PropertiesSheets;
 	CPropertiesSheet *m_pActiveSheet;
-
 
 	CDlgContainerCtrl m_CtrlContainer;
 	CNotImplementedSheet m_NotImplementedSheet;
@@ -73,8 +72,8 @@ public:
 		DLGRESIZE_CONTROL(IDC_STATIC_INFO,				DLSZ_SIZE_X)
 		DLGRESIZE_CONTROL(IDC_PROPERTIES_PLACEHOLDER,	DLSZ_SIZE_X | DLSZ_SIZE_Y)
 
-		DLGRESIZE_CONTROL(IDOK,		DLSZ_MOVE_X | DLSZ_MOVE_Y)
-		DLGRESIZE_CONTROL(IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDOK,							DLSZ_MOVE_X | DLSZ_MOVE_Y)
+		DLGRESIZE_CONTROL(IDCANCEL,						DLSZ_MOVE_X | DLSZ_MOVE_Y)
 	END_DLGRESIZE_MAP()
 
 

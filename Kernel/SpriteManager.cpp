@@ -467,6 +467,7 @@ HGLOBAL CSpriteSelection::Copy()
  	// Lock the handle and copy the text to the buffer. 
 	_SpriteSet *CopyBoard = (_SpriteSet*)::GlobalLock(hglbCopy);
 	strcpy(CopyBoard->Info.ID, "Quest Designer Sprite Set");
+	CopyBoard->Info.dwSignature = QUEST_SET_SIGNATURE;
 	CopyBoard->Info.nSize = (int)m_Objects.size();
 
 	CopyBoard->Info.rcBoundaries = rcBoundaries;
@@ -500,7 +501,6 @@ HGLOBAL CSpriteSelection::Copy()
 }
 bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite) 
 {
-	ASSERT(pLayer);
 	CSprite *pSprite = CGameManager::Instance()->FindSprite(szSprite);
 	if(!pSprite) {
 		CONSOLE_OUTPUT("Paste error : Couldn't find the requested sprite: '%s'!\n", szSprite);
@@ -508,6 +508,10 @@ bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite)
 	}
 	if(pSprite->GetSpriteType() == tMask) {
 		CONSOLE_OUTPUT("Paste error: Attempt to use mask '%s' as a sprite\n", szSprite);
+		return false;
+	}
+	if(!pLayer) {
+		CONSOLE_OUTPUT("Paste error : Couldn't paste '%s' in the requested layer!\n", szSprite);
 		return false;
 	}
 
@@ -529,7 +533,6 @@ bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite)
 }
 bool CSpriteSelection::PasteObj(CLayer *pLayer, _SpriteSet::_SpriteSetData *pData)
 {
-	ASSERT(pLayer);
 	CSprite *pSprite = CGameManager::Instance()->FindSprite(pData->szName);
 	if(!pSprite) {
 		CONSOLE_OUTPUT("Paste error : Couldn't find the requested sprite: '%s'!\n", pData->szName);
@@ -537,6 +540,10 @@ bool CSpriteSelection::PasteObj(CLayer *pLayer, _SpriteSet::_SpriteSetData *pDat
 	}
 	if(pSprite->GetSpriteType() == tMask) {
 		CONSOLE_OUTPUT("Paste error: Attempt to use mask '%s' as a sprite\n", pData->szName);
+		return false;
+	}
+	if(!pLayer) {
+		CONSOLE_OUTPUT("Paste error : Couldn't paste '%s' in the requested layer!\n", pData->szName);
 		return false;
 	}
 
@@ -565,10 +572,15 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
 	// is it a sprite set?
 	if(strcmp(CopyBoard->Info.ID, "Quest Designer Sprite Set")) {
-		pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(0)); // ACA: current layer
+		pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
 		if(!PasteSprite(pLayer, (LPCSTR)pBuffer)) return false;
 		m_bFloating = true;
 	} else {
+		if(CopyBoard->Info.dwSignature != QUEST_SET_SIGNATURE) {
+			CONSOLE_OUTPUT("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
+			return false;
+		}
+
 		m_Objects.clear();
 		Point = CopyBoard->Info.rcBoundaries.CenterPoint();
 

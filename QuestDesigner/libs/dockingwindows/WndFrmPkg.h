@@ -60,7 +60,7 @@ public:
 
 	operator position() const
 	{
-		return m_pos;
+		return (position)m_pos;
 	}
 
 	CWndFrame& operator += (position val)
@@ -80,6 +80,17 @@ public:
 		return *this;
 	}
 	
+	CWndFrame& operator = (double pos)
+	{
+		m_pos=pos;
+		return *this;
+	}
+
+	double get_real()
+	{
+		return m_pos;
+	}
+
 	HDWP DeferFramePos(HDWP hdwp,long x1,long y1,long x2,long y2) const
 	{
 		return ::DeferWindowPos(hdwp,hwnd(),
@@ -102,7 +113,7 @@ public:
 		return ::SendMessage(dockHdr.hBar,WMDF_DOCK,NULL,reinterpret_cast<LPARAM>(&dockHdr));
 	}
 protected:
-	position m_pos;
+	double m_pos;
 	mutable HWND m_hWnd;
 };
 
@@ -761,7 +772,7 @@ public:
 
 	operator position() const
 	{
-		return m_pos;
+		return (position)m_pos;
 	}
 
 	thisClass& operator += (position val)
@@ -781,6 +792,17 @@ public:
 		return *this;
 	}
 
+	thisClass& operator = (double pos)
+	{
+		m_pos=pos;
+		return *this;
+	}
+
+	double get_real()
+	{
+		return m_pos;
+	}
+
 	HDWP DeferFramePos(HDWP hdwp,long x1,long y1,long x2,long y2) const
 	{
 		return m_ptr->DeferFramePos(hdwp,x1,y1,x2,y2);
@@ -798,7 +820,7 @@ public:
 		return m_ptr->MinDistance();
 	}
 protected:
-	position m_pos;
+	double m_pos;
 #ifdef USE_BOOST
 	mutable boost::shared_ptr<T> m_ptr;
 #else
@@ -949,8 +971,9 @@ protected:
 	};
 public:
 	CSubWndFramesPackage(bool bHorizontal)
-		:CRect(0,0,0,0), baseClass(bHorizontal), m_pDecl(0)
+		:baseClass(bHorizontal),m_pDecl(0)
 	{
+		SetRectEmpty();
 	}
 	HCURSOR GetCursor(const CPoint& pt) const
 	{

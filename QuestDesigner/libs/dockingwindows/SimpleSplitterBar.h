@@ -30,6 +30,7 @@ public:
 	CSimpleSplitterBar(bool bHorizontal=true)
 		:m_bHorizontal(bHorizontal)
 	{
+		SetRectEmpty();
 	}
 	CSimpleSplitterBar(const CSimpleSplitterBar& ref)
 		:CRect(ref),m_bHorizontal(ref.IsHorizontal())
@@ -51,7 +52,11 @@ public:
 
 	bool IsPtIn(const CPoint& pt) const
 	{
-		return (PtInRect(pt)!=FALSE);
+    // Hydra - make the handle bigger, PtInRect doesn't include the
+    //bottom or right.
+    return( pt.x >= left && pt.x <= right+1 &&
+    pt.y >= top && pt.y <= bottom+1);
+		//return (PtInRect(pt)!=FALSE);
 	}
 
 	HCURSOR GetCursor(const CPoint& pt) const

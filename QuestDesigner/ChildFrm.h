@@ -55,6 +55,7 @@ public:
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
 
 	BEGIN_MSG_MAP(CChildFrame)
+		MESSAGE_HANDLER(WM_SIZE, OnSize)
 		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 		CHAIN_MSG_MAP(baseClass)
 	END_MSG_MAP()
@@ -65,5 +66,7 @@ public:
 	// Return the main frame
 	CMainFrame* GetMainFrame() { ATLASSERT(m_pMainFrame); return m_pMainFrame; }
 	LRESULT OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
+
+	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 };
 

@@ -313,8 +313,9 @@ int CALLBACK RemoveMask(LPVOID sprite, LPARAM lParam)
 bool CGameManager::Load(CVFile &vfFile)
 {
 
+	DWORD dwInitTicks = GetTickCount();
 	m_sProjectName = vfFile.GetFileDesc();
-	g_sHomeDir = "C:\\qd\\Quest Designer 2.1.4\\";
+	g_sHomeDir = vfFile.GetPath();
 	CONSOLE_OUTPUT("Loading project: '%s' at %s...\n", vfFile.GetFileName(), vfFile.GetPath());
 
 	if(m_sProjectName == "") m_sProjectName = "Unnamed Project";
@@ -343,7 +344,7 @@ bool CGameManager::Load(CVFile &vfFile)
 	}
 	m_UndefSprites.clear();
 
-	CONSOLE_OUTPUT("Done!\n");
+	CONSOLE_OUTPUT("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 
 	return true;
 }

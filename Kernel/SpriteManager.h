@@ -62,6 +62,8 @@
 #include <map>
 #include <vector>
 
+#define QUEST_SET_SIGNATURE 0xae1d229e
+
 #define SPRITE_BOUNDS	1
 #define SPRITE_MASKS	2
 
@@ -438,6 +440,7 @@ public:
 struct _SpriteSet {
 	struct _SpriteSetInfo {
 		char ID[30];
+		DWORD dwSignature;
 		UINT nSize;
 		UINT nMinOrder;		// minimum birth order of all objects in the sprite set
 		CRect rcBoundaries;

@@ -55,7 +55,9 @@ interface IDrawableSelection :
 
 	virtual void CleanSelection() = 0;
 
-	virtual void SetSnapSize(int nSnapSize_) = 0;
+	virtual void SetSnapSize(int nSnapSize_, bool bShowGrid_) = 0;
+	virtual void SetLayer(int nLayer_) = 0;
+	virtual int GetLayer() = 0;
 
 	virtual bool isResizing() = 0;
 	virtual bool isMoving() = 0;

@@ -8,6 +8,8 @@
 #ifndef __TREEDROPTARGET_H__
 #define __TREEDROPTARGET_H__
 
+#include "../IGame.h"
+
 class CTreeDropTarget : public CIDropTarget
 {
 public:
@@ -17,18 +19,33 @@ public:
 	{
 		if(pFmtEtc->cfFormat == CF_TEXT && medium.tymed == TYMED_HGLOBAL)
 		{
-			TCHAR* pStr = (TCHAR*)GlobalLock(medium.hGlobal);
-			if(pStr != NULL)
-			{
-				TVINSERTSTRUCT tvins;
-				tvins.hParent = TVI_ROOT;
-				tvins.hInsertAfter = TVI_LAST;
-				TVITEM tvit={0};
-				tvit.mask = TVIF_TEXT;
-				tvit.pszText = pStr;
-				tvins.item = tvit;
-				TreeView_InsertItem(m_hTargetWnd, &tvins);
-			}
+			BYTE *pData = (BYTE*)GlobalLock(medium.hGlobal);
+
+			_SpriteSet *pSpriteSet = (_SpriteSet*)pData;
+			TCHAR* pStr = (TCHAR*)pData;
+
+			if(strcmp(pSpriteSet->Info.ID, "Quest Designer Sprite Set")) pSpriteSet = NULL;
+			else if(pSpriteSet->Info.dwSignature != QUEST_SET_SIGNATURE) pSpriteSet = NULL;
+
+			if(pSpriteSet) {
+				int size = (int)(sizeof(_SpriteSet::_SpriteSetInfo)+sizeof(_SpriteSet::_SpriteSetData)*pSpriteSet->Info.nSize);
+				pData = new BYTE[size];
+				memcpy(pData, pSpriteSet, size);
+			} else pData = NULL;
+
+			TVINSERTSTRUCT tvins;
+			tvins.hParent = TVI_ROOT;
+			tvins.hInsertAfter = TVI_LAST;
+			TVITEM tvit = {0};
+			tvit.mask = TVIF_TEXT;
+			tvit.pszText = pStr;
+			tvins.item = tvit;
+			tvins.item.mask = TVIF_PARAM | TVIF_TEXT;
+			tvins.item.lParam = (LPARAM)pData;
+			tvins.item.pszText = pStr;
+			tvins.item.cchTextMax = strlen(pStr)+1;
+			TreeView_InsertItem(m_hTargetWnd, &tvins);
+
 			GlobalUnlock(medium.hGlobal);
 		}
 		if(pFmtEtc->cfFormat == CF_HDROP && medium.tymed == TYMED_HGLOBAL)

@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
+				AdditionalIncludeDirectories=".\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -81,7 +81,7 @@
 				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="1"
 				OptimizeForWindowsApplication="TRUE"
-				AdditionalIncludeDirectories=".\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
+				AdditionalIncludeDirectories=".\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -140,9 +140,6 @@
 				RelativePath="Console.cpp">
 			</File>
 			<File
-				RelativePath="..\FilePath.cpp">
-			</File>
-			<File
 				RelativePath="GraphicsFactory.cpp">
 			</File>
 			<File
@@ -156,9 +153,6 @@
 			</File>
 			<File
 				RelativePath="QuestDesigner.cpp">
-			</File>
-			<File
-				RelativePath="SCompiler.cpp">
 			</File>
 			<File
 				RelativePath="stdafx.cpp">
@@ -189,6 +183,9 @@
 				</File>
 				<File
 					RelativePath="MapEditorView.cpp">
+				</File>
+				<File
+					RelativePath="SCompiler.cpp">
 				</File>
 				<File
 					RelativePath="ScriptEditorFrm.cpp">
@@ -226,9 +223,23 @@
 			<Filter
 				Name="Libs"
 				Filter="">
-				<File
-					RelativePath="libs\dragdrop\DragDropImpl.cpp">
-				</File>
+				<Filter
+					Name="dragdrop"
+					Filter="">
+					<File
+						RelativePath="libs\dragdrop\DragDropImpl.cpp">
+					</File>
+				</Filter>
+				<Filter
+					Name="filetree"
+					Filter="">
+					<File
+						RelativePath="libs\filetree\FileFind.cpp">
+					</File>
+					<File
+						RelativePath="libs\filetree\WtlFileTreeCtrl.cpp">
+					</File>
+				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
@@ -239,9 +250,6 @@
 			</File>
 			<File
 				RelativePath="Console.h">
-			</File>
-			<File
-				RelativePath="..\FilePath.h">
 			</File>
 			<File
 				RelativePath="GraphicsFactory.h">
@@ -349,6 +357,138 @@
 					RelativePath="WindowDropTarget.h">
 				</File>
 			</Filter>
+			<Filter
+				Name="Libs"
+				Filter="">
+				<File
+					RelativePath="libs\CMAXWTL.h">
+				</File>
+				<File
+					RelativePath="libs\DlgContainer.h">
+				</File>
+				<File
+					RelativePath="libs\ssfiledialog.h">
+				</File>
+				<Filter
+					Name="propertylist"
+					Filter="">
+					<File
+						RelativePath="libs\propertylist\PropertyItem.h">
+					</File>
+					<File
+						RelativePath="libs\propertylist\PropertyItemEditors.h">
+					</File>
+					<File
+						RelativePath="libs\propertylist\PropertyItemImpl.h">
+					</File>
+					<File
+						RelativePath="libs\propertylist\PropertyList.h">
+					</File>
+				</Filter>
+				<Filter
+					Name="filetree"
+					Filter="">
+					<File
+						RelativePath="libs\filetree\FileFind.h">
+					</File>
+					<File
+						RelativePath="libs\filetree\WtlFileTreeCtrl.h">
+					</File>
+				</Filter>
+				<Filter
+					Name="dragdrop"
+					Filter="">
+					<File
+						RelativePath="libs\dragdrop\DragDropImpl.h">
+					</File>
+				</Filter>
+				<Filter
+					Name="dockingwindows"
+					Filter="">
+					<File
+						RelativePath="libs\dockingwindows\DDTracker.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\DWAutoHide.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\DockMisc.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\DockingBox.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\DockingFocus.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\DockingFrame.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\DockingWindow.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\ExtDockingWindow.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\FlyingTabs.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\PackageWindow.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\SimpleSplitterBar.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\TabDockingBox.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\WndFrmPkg.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\dbstate.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\dwstate.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\ssec.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\sstate.h">
+					</File>
+				</Filter>
+				<Filter
+					Name="tabctrls"
+					Filter="">
+					<File
+						RelativePath="libs\tabctrls\CustomTabCtrl.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\DotNetTabCtrl.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\PlainTextView.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\SimpleDlgTabCtrls.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\SimpleTabCtrls.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\TabbedDockingWindow.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\TabbedFrame.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\TabbedMDI.h">
+					</File>
+					<File
+						RelativePath="libs\tabctrls\atlgdix.h">
+					</File>
+				</Filter>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -447,7 +587,7 @@
 				RelativePath="res\folders.bmp">
 			</File>
 			<File
-				RelativePath="res\msdev_tab_icons.bmp">
+				RelativePath="res\tab_icons.bmp">
 			</File>
 		</Filter>
 	</Files>
