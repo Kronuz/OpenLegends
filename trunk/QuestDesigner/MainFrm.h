@@ -123,6 +123,7 @@ public:
 	CComboBox m_Layers;
 
 	bool m_bProjectLoaded;
+	HWND m_ahWnd[10];
 
 ////////////////////////////////////////////////////////
 
@@ -305,6 +306,9 @@ public:
 
 	HWND CreatePane(HWND hWndClient, LPCTSTR sName, HICON hIcon, CRect& rcDock, HWND hDockTo, dockwins::CDockingSide side);
 public:
+	HWND GetOldFocus(_child_type ChildType);
+	void SetOldFocus(_child_type ChildType, HWND hWnd);
+
 	int CountChilds(_child_type ChildType = tAny);
 	CChildFrame* FindChild(LPCSTR lpszName);
 

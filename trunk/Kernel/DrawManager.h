@@ -205,6 +205,8 @@ public:
 	void GetSize(CSize &_Size) const;
 
 	void SetObjSubLayer(int layer);
+	void SetObjLayer(int layer);
+
 	int GetObjSubLayer() const;
 	int GetObjLayer() const;
 	int GetObjOrder() const;
@@ -546,6 +548,9 @@ inline int CDrawableContext::GetObjLayer() const
 {
 	if(m_pParent) return m_pParent->m_nSubLayer;
 	return -1;
+}
+inline void CDrawableContext::SetObjLayer(int layer) 
+{
 }
 inline void CDrawableContext::SetObjSubLayer(int layer) 
 { 

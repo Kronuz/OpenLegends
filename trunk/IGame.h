@@ -26,11 +26,12 @@ struct SProperty
 	char Buffer[BUFFSIZE];
 	LPCSTR szPropName;
 	bool bEnabled;
+	UINT uMDL;	// Maximum data length
 	union {
-		LPCSTR szString;
-		bool bBoolean;
-		int nValue;
-		struct {
+		LPSTR szString;		// ptString
+		bool bBoolean;		// ptBoolean
+		int nValue;			// ptValue
+		struct {			// ptList
 			int nIndex;
 			LPCSTR *List;
 		};
@@ -55,6 +56,7 @@ struct SPropertyList
 		if(nProperties>=MAX_PROPS) return false;
 		aProperties[nProperties].szPropName = aProperties[nProperties].Buffer;
 		strncpy(aProperties[nProperties].Buffer, _szName, 29);
+		aProperties[nProperties].uMDL = BUFFSIZE - strlen(aProperties[nProperties].szPropName) - 1;
 		return true;
 	}
 	bool AddCategory(LPCSTR _szName, bool _bEnabled = true) {
@@ -70,12 +72,10 @@ struct SPropertyList
 		SetName(_szName);
 		aProperties[nProperties].bEnabled = _bEnabled;
 
-		LPSTR eob = aProperties[nProperties].Buffer;
-		LPSTR aux = eob + strlen(aProperties[nProperties].szPropName) + 1;
-		eob += BUFFSIZE;
+		LPSTR aux = aProperties[nProperties].Buffer + BUFFSIZE - aProperties[nProperties].uMDL;
 
 		aProperties[nProperties].szString = aux;
-		strncpy(aux, _szString, eob - aux - 1);
+		strncpy(aux, _szString, aProperties[nProperties].uMDL-1);
 		aProperties[nProperties].eType = SProperty::ptString;
 		nProperties++;
 		return true;
@@ -85,9 +85,8 @@ struct SPropertyList
 		SetName(_szName);
 		aProperties[nProperties].bEnabled = _bEnabled;
 		aProperties[nProperties].nIndex = _nIndex;
-		LPSTR eob = aProperties[nProperties].Buffer;
-		LPSTR list = aProperties[nProperties].Buffer + strlen(aProperties[nProperties].szPropName) + 1;
-		eob += BUFFSIZE;
+		LPSTR eob = aProperties[nProperties].Buffer + BUFFSIZE;
+		LPSTR list = eob - aProperties[nProperties].uMDL;
 
 		aProperties[nProperties].List = (LPCSTR *)list;
 		LPSTR buffer = list + 11*sizeof(LPSTR);

@@ -366,6 +366,9 @@ bool CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 }
 LRESULT CWorldEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
+	if(GetMainFrame()->GetOldFocus(tWorldEditor) == m_hWnd) return 0;
+	GetMainFrame()->SetOldFocus(tWorldEditor, m_hWnd);
+
 	Invalidate();
 	return 0;
 }

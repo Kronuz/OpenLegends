@@ -57,10 +57,10 @@ bool SObjProp::SetProperties(SPropertyList &PL)
 	if(!ret) return false;
 
 	pP = PL.FindProperty("Horizontal Chain", SProperty::ptList);
-	if(pP) eXChain = (_Chain)pP->nValue;
+	if(pP) if(pP->bEnabled)  eXChain = (_Chain)pP->nIndex;
 	
 	pP = PL.FindProperty("Vertical Chain", SProperty::ptList);
-	if(pP) eYChain = (_Chain)pP->nValue;
+	if(pP) if(pP->bEnabled)  eYChain = (_Chain)pP->nIndex;
 
 	return true;
 }
@@ -613,12 +613,6 @@ void CDrawableSelection::EndResizing(const CPoint &point_)
 	m_eCurrentState = eNone;
 	if(m_ptInitialPoint != point_) m_bModified = m_bChanged = true;
 }
-void CDrawableSelection::StartMoving(const CPoint &point_)
-{
-	m_eCurrentState = eMoving;
-	BuildRealSelectionBounds();
-	m_ptInitialPoint = point_;
-}
 void CDrawableSelection::DeleteSelection()
 {
 	mapObject::iterator Iterator = m_Objects.begin();
@@ -652,6 +646,32 @@ void CDrawableSelection::Cancel()
 		m_Objects.clear();
 	}
 }
+void CDrawableSelection::StartMoving(const CPoint &point_)
+{
+	m_eCurrentState = eMoving;
+	BuildRealSelectionBounds();
+	m_ptInitialPoint = point_;
+
+	// adjust to check if the mouse is too close to the borders
+	// of the boundaries.
+	CRect rcBoundaries = m_rcSelection;
+	rcBoundaries.bottom = rcBoundaries.bottom + m_nSnapSize - 1;
+	rcBoundaries.right = rcBoundaries.right + m_nSnapSize - 1;
+
+	rcBoundaries.top = (rcBoundaries.top/m_nSnapSize) * m_nSnapSize;
+	rcBoundaries.left = (rcBoundaries.left/m_nSnapSize) * m_nSnapSize;
+	rcBoundaries.right = (rcBoundaries.right/m_nSnapSize) * m_nSnapSize;
+	rcBoundaries.bottom = (rcBoundaries.bottom/m_nSnapSize) * m_nSnapSize;
+
+	// if the mouse is too clost to the boundaries, we move it closer to the center
+	rcBoundaries.DeflateRect(m_nSnapSize/2, m_nSnapSize/2);
+	if(m_ptInitialPoint.x < rcBoundaries.left) m_ptInitialPoint.x = rcBoundaries.left;
+	else if(m_ptInitialPoint.x > rcBoundaries.right) m_ptInitialPoint.x = rcBoundaries.right;
+	if(m_ptInitialPoint.y < rcBoundaries.top) m_ptInitialPoint.y = rcBoundaries.top;
+	else if(m_ptInitialPoint.y > rcBoundaries.bottom) m_ptInitialPoint.y = rcBoundaries.bottom;
+
+	m_ptInitialPoint.Offset(-m_nSnapSize/2, -m_nSnapSize/2);
+}
 void CDrawableSelection::MoveTo(const CPoint &Point_)
 {
 	if(m_eCurrentState!=eMoving) return;
@@ -672,7 +692,7 @@ void CDrawableSelection::MoveTo(const CPoint &Point_)
 	rcNewBoundaries.top = m_nSnapSize*(rcNewBoundaries.top/m_nSnapSize);
 	rcNewBoundaries.right = rcNewBoundaries.left + w;
 	rcNewBoundaries.bottom = rcNewBoundaries.top + h;
-
+	
 	if(rcNewBoundaries.left == rcOldBoundaries.left && rcNewBoundaries.top == rcOldBoundaries.top) return;
 
 	mapObject::const_iterator Iterator;
