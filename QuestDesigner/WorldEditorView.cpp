@@ -604,4 +604,7 @@ LRESULT CWorldEditorView::OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	return 0;
 }
 
-
+bool CWorldEditorView::hasChanged()
+{
+	return false;
+}

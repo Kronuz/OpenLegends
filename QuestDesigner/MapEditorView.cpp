@@ -90,7 +90,9 @@ CMapEditorView::CMapEditorView(CMapEditorFrame *pParentFrame) :
 	m_bShowMasks(false),
 	m_bShowBoundaries(false),
 	m_bShowGrid(false),
-	m_bAnimated(true)
+	m_bAnimated(true),
+
+	m_bModified(false)
 {
 }
 
@@ -117,6 +119,18 @@ BOOL CMapEditorView::OnIdle()
 	// Update all the toolbar items
 	pMapUpdateUI->UIUpdateToolBar();
 	pMainUpdateUI->UIUpdateToolBar();
+
+	if(!m_SelectionI) return FALSE;
+
+	bool bModified = (m_SelectionI->IsModified()?true:false);
+	if(bModified != m_bModified) {
+		m_bModified = bModified;
+		if(m_bModified) {
+			m_pParentFrame->SetTabText(m_sTitle+"*");
+		} else {
+			m_pParentFrame->SetTabText(m_sTitle);
+		}
+	}
 
 	return FALSE;
 }
@@ -155,9 +169,15 @@ bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle)
 
 	m_pMapGroupI->GetSize(m_szMap);
 
-	m_pParentFrame->m_sChildName = m_pMapGroupI->GetMapGroupID();
-	m_pParentFrame->SetTitle(lpszTitle);
-	m_pParentFrame->SetTabText(lpszTitle);
+	// Save file name for later
+	m_sFilePath = m_pMapGroupI->GetMapGroupID();
+
+	// Save the tittle for later
+	m_sTitle = lpszTitle;
+
+	m_pParentFrame->m_sChildName = m_sFilePath;
+	m_pParentFrame->SetTitle(m_sFilePath);
+	m_pParentFrame->SetTabText(m_sTitle);
 
 	SetScrollSize(10+(int)((float)m_szMap.cx*m_Zoom), 10+(int)((float)m_szMap.cy*m_Zoom));
 
@@ -188,7 +208,7 @@ LRESULT CMapEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 
 	// Capture the MapGroup (to update the world editor)
 	if(m_pMapGroupI && m_SelectionI) {
-		if(m_SelectionI->hasChanged()) {
+		if(m_SelectionI->HasChanged()) {
 			BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f);
 			m_pMapGroupI->SetThumbnail(pBitmap);
 		}
@@ -236,7 +256,7 @@ void CMapEditorView::Render()
 	ASSERT(m_pMapGroupI);
 
 	// Update timings and stuff for the animations
-	CProjectFactory::Interface(m_hWnd)->UpdateFPS();
+	CProjectFactory::Interface()->UpdateFPS();
 
 	// show entities, and if set, also sprite boundaries and masks
 	WORD wFlags = SPRITE_ENTITIES | (m_bShowBoundaries?SPRITE_BOUNDS:0) | (m_bShowMasks?SPRITE_MASKS:0);
@@ -843,8 +863,21 @@ void CMapEditorView::UIUpdateMenuItems()
 	pMapUpdateUI->UIEnable(ID_MAPED_ALCY, (nSelection>1)?TRUE:FALSE);
 	pMapUpdateUI->UIEnable(ID_MAPED_ALCX, (nSelection>1)?TRUE:FALSE);
 
-//	pMainUpdateUI->UIEnable(ID_UNDO, TRUE);
+	if(pMainFrm->m_bLayers == FALSE) {
+		pMainFrm->m_bLayers = TRUE;
+		pMainFrm->m_Layers.EnableWindow(TRUE);
+	}
+	pMainUpdateUI->UIEnable(ID_APP_SAVE, hasChanged());	
+/*
+	pUpdateUI->UIEnable(ID_UNDO, m_SelectionI->CanUndo());
+	pUpdateUI->UIEnable(ID_REDO, m_SelectionI->CanRedo());
 
+	pUpdateUI->UIEnable(ID_CUT, m_SelectionI->CanCut());
+	pUpdateUI->UIEnable(ID_COPY, m_SelectionI->CanCopy());
+	pUpdateUI->UIEnable(ID_PASTE, m_SelectionI->CanPaste());
+	pUpdateUI->UIEnable(ID_ERASE, m_SelectionI->IsSelection());
+
+*/
 }
 
 inline bool CMapEditorView::Flip() 
@@ -1062,4 +1095,9 @@ inline bool CMapEditorView::Paste(CPoint &Point)
 
 	Invalidate();
 	return true;
+}
+bool CMapEditorView::hasChanged()
+{
+	if(m_SelectionI == NULL) return false;
+	return m_SelectionI->IsModified();
 }

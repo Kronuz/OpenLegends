@@ -42,6 +42,8 @@ class CMapEditorView :
 {
 	typedef CScrollWindowImpl<CMapEditorView> baseClass;
 private:
+	bool m_bModified;
+
 	CMapGroup *m_pMapGroupI;
 	CSpriteSelection *m_SelectionI;
 
@@ -218,4 +220,5 @@ public:
 	void UIUpdateMenuItems();
 	void UIUpdateStatusBar();
 
+	bool hasChanged();
 };

@@ -30,15 +30,24 @@
 #include <zip.h>
 #include <unzip.h>
 
+#include "Misc.h"
+
 #define DIR_SEP '\\'
+#define VBUFFER_SIZE (16*1024)
 
 extern CBString g_sHomeDir;
+
+/////////////////////////////////////////////////////////////////////////////
+// Forward declarations
+class CVFile;
 
 // Virtual file system
 class CVFile {
 
+	mutable FILETIME m_FileDate;
+
 	// virtual buffer:
-	CHAR m_Buffer[16385];
+	LPBYTE m_pBuffer;
 	LPSTR m_BuffStart;
 	int m_BuffLen;
 	int m_BuffRead;
@@ -60,24 +69,27 @@ class CVFile {
 
 	CBString m_sDesc;		// file description is the file tile until changed.
 
+	FILETIME* GetFileTime(LPCSTR lpFileName) const;
 	bool FileExists(LPCSTR szFile) const;
 	bool FindVirtual();
 	bool VirtualFileExists() const;
 
 	bool OpenVirtual();
 	bool CloseVirtual();
-	int ReadVirtual(LPVOID buffer, size_t size);
-	int WriteVirtual(LPVOID buffer, size_t size);
+	int ReadVirtual(LPVOID buffer, size_t buffsize);
+	int WriteVirtual(LPVOID buffer, size_t buffsize);
 	int SeekVirtual(long offset, int origin);
 	LPSTR GetLineVirtual(LPSTR string, int n);
-	long GetVirtualFileSize();
-
+	size_t GetVirtualFileSize() const;
+	FILETIME* GetVirtualFileDate() const;
+	int ForEachVirtualFile(FILESPROC ForEach, LPARAM lParam);
 public:
 	CVFile();
-	CVFile(LPCSTR szNewName);
+	CVFile(LPCSTR szNewName, bool bGlobalize = false);
 	~CVFile();
 
 	CBString GetFileTitle() const;
+	CBString GetFileExt() const;
 	CBString GetFileName() const;
 	CBString GetPath() const;
 	CBString GetHomeFile() const;
@@ -85,27 +97,41 @@ public:
 	CBString GetFileDesc() const;
 
 	void SetFileDesc(LPCSTR szNewDesc);
-	void SetFilePath(LPCSTR szNewName);
+	void SetFilePath(LPCSTR szNewName, bool bGlobalize = false);
 	void SetFileTitle(LPCSTR szNewName);
+	void SetFileExt(LPCSTR szNewExt);
 
 	bool FileExists() const;
 
+// Operations with the files:
 	bool Open();
 	bool Close();
-	int Read(LPVOID buffer, size_t size);
-	int Write(LPVOID buffer, size_t size);
+
+	int ForEachFile(FILESPROC ForEach, LPARAM lParam);
+	// reads the complete file to a buffer or an internal buffer
+	LPCVOID ReadFile(LPVOID buffer = NULL, size_t buffsize = 0);
+
+	int Read(LPVOID buffer, size_t buffsize);
+	int Write(LPVOID buffer, size_t buffsize);
 	int Seek(long offset, int origin);
 	LPSTR GetLine(LPSTR string, int n);
-	long GetFileSize();
+	FILETIME* GetFileDate() const;
+	size_t GetFileSize() const;
 };
-inline bool CVFile::FileExists(LPCSTR szFile) const
+inline FILETIME* CVFile::GetFileTime(LPCSTR lpFileName) const
 {
-	FILE *f = fopen(szFile, "r");
-	if(f) {
-		fclose(f);
-		return true;
+	WIN32_FIND_DATA FindData;
+	HANDLE FindHandle = FindFirstFile(lpFileName, &FindData);
+	if(INVALID_HANDLE_VALUE != FindHandle) {
+		if(FindData.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY) return NULL;
+		m_FileDate = FindData.ftLastWriteTime;
+		return &m_FileDate;
 	}
-	return false;
+	return NULL;
+}
+inline bool CVFile::FileExists(LPCSTR lpFileName) const
+{
+	return (GetFileTime(lpFileName)!=NULL);
 }
 inline bool CVFile::FindVirtual() 
 {
@@ -142,6 +168,10 @@ inline CBString CVFile::GetFileTitle() const
 { 
 	return m_sTitle; 
 }
+inline CBString CVFile::GetFileExt() const 
+{ 
+	return m_sExt; 
+}
 inline CBString CVFile::GetFileName() const 
 { 
 	return m_sTitle + m_sExt; 
@@ -174,26 +204,34 @@ inline void CVFile::SetFileDesc(LPCSTR szNewDesc)
 {
 	m_sDesc = szNewDesc;
 }
-inline void CVFile::SetFilePath(LPCSTR szNewName) 
+inline void CVFile::SetFilePath(LPCSTR szNewName, bool bGlobalize) 
 {
+	ASSERT(szNewName);
 	if(!*szNewName) return;
+
+	if(m_bOpenFile) Close();
+	ASSERT(!m_vFile);
+	ASSERT(!m_File);
 
 	char szDrive[_MAX_DRIVE];
 	char szPath[_MAX_DIR];
 	char szTitle[_MAX_FNAME];
 	char szExt[_MAX_EXT];
 
-	if(m_vFile) unzClose(m_vFile); m_vFile = NULL;
-	if(m_File) fclose(m_File); m_File = NULL;
-
 	_splitpath(szNewName, szDrive, szPath, szTitle, szExt);
 	CBString sPath = szDrive;
 	sPath += szPath;
 
+	if(bGlobalize) {
+		ASSERT(g_sHomeDir == "");
+		g_sHomeDir = sPath;
+	}
+
 	if(*szNewName != DIR_SEP && *(szNewName+1) != ':') {
 		m_sPath = sPath;
 		m_bRelative = true;
-	} else if(sPath.Find(g_sHomeDir)) {
+	} else if(sPath.Find(g_sHomeDir)!=-1) {
+		ASSERT(g_sHomeDir != "");
 		m_sPath = sPath.Mid(g_sHomeDir.GetLength());
 		m_bRelative = true;
 	} else {
@@ -209,7 +247,14 @@ inline void CVFile::SetFilePath(LPCSTR szNewName)
 }
 inline void CVFile::SetFileTitle(LPCSTR szNewName) 
 {
+	if(m_bOpenFile) Close();
 	m_sTitle = szNewName;
+	m_nExists = 0;
+}
+inline void CVFile::SetFileExt(LPCSTR szNewExt) 
+{
+	if(m_bOpenFile) Close();
+	m_sExt = szNewExt;
 	m_nExists = 0;
 }
 
@@ -220,7 +265,9 @@ inline bool CVFile::FileExists() const
 			if(VirtualFileExists()) m_nExists = 1;
 			else m_nExists = -1;
 		} else {
-			if(FileExists(GetFilePath())) m_nExists = 1;
+			CBString sFile = GetFilePath();
+			if(sFile=="") return false;
+			if(FileExists(sFile)) m_nExists = 1;
 			else m_nExists = -1;
 		}
 	}
@@ -229,9 +276,18 @@ inline bool CVFile::FileExists() const
 }
 inline bool CVFile::VirtualFileExists() const 
 {
-	unzFile file = unzOpen(GetHomeFile());
+	CBString sFile = GetHomeFile();
+	if(sFile=="") return false;
+
+	unzFile file = unzOpen(sFile);
 	if(file==NULL) return false;
-	if(unzLocateFile(file, GetFilePath(), 0) == UNZ_OK) {
+
+	sFile = GetFilePath();
+	if(sFile=="") {
+		unzClose(file);
+		return false;
+	}
+	if(unzLocateFile(file, sFile, 0) == UNZ_OK) {
 		unzClose(file);
 		return true;
 	}
@@ -239,17 +295,71 @@ inline bool CVFile::VirtualFileExists() const
 	return false;
 }
 
+inline int CVFile::ReadVirtual(LPVOID buffer, size_t buffsize)
+{
+	ASSERT(m_vFile != NULL);
+	return unzReadCurrentFile(m_vFile, buffer, (long)buffsize);
+}
+
+inline int CVFile::WriteVirtual(LPVOID buffer, size_t buffsize)
+{
+	ASSERT(m_vFile != NULL);
+	ASSERT(!*"No writes allowed on virtual files, yet...");
+	return -1;
+}
+inline int CVFile::SeekVirtual(long offset, int origin)
+{
+	ASSERT(m_vFile != NULL);
+	long curr = (long)unztell(m_vFile);
+	long lastbyte = (long)GetVirtualFileSize() - 1;
+	if(lastbyte<0) return -1;
+
+	long newpos = offset;
+	if(origin == SEEK_CUR) newpos = curr + offset;
+	if(origin == SEEK_END) newpos = lastbyte + offset;
+	if(newpos<0) return -1;
+	if(newpos>lastbyte) return -1;
+
+	// is the current position ahead of the wanted position, re-open the file:
+	if(curr>newpos) {
+		if(unzCloseCurrentFile(m_vFile) != UNZ_OK) return -1;
+		if(unzOpenCurrentFile(m_vFile) != UNZ_OK) return -1;
+		curr = 0;
+	}
+
+	long diff = newpos-curr;
+	int cycles = diff/VBUFFER_SIZE;
+	int mod = diff%VBUFFER_SIZE;
+	for(; cycles; cycles--) if(ReadVirtual(m_pBuffer, VBUFFER_SIZE)!= VBUFFER_SIZE) return -1;
+	for(; mod; mod--) if(ReadVirtual(m_pBuffer, 1) != 1) return -1;
+
+	m_BuffStart = (LPSTR)m_pBuffer;
+	m_BuffLen = 0;
+	m_BuffRead = 0;
+
+	return 0;
+}
 inline bool CVFile::OpenVirtual()
 {
-	if(m_vFile == NULL) m_vFile = unzOpen(GetHomeFile());
+	if(m_vFile == NULL) {
+		CBString sFile = GetHomeFile();
+		if(sFile=="") return false;
+		m_vFile = unzOpen(sFile);
+	}
 	if(m_vFile) {
-		if(unzLocateFile(m_vFile, GetFilePath(), 0) == UNZ_OK) {
-			unzOpenCurrentFile(m_vFile);
+		CBString sFile = GetFilePath();
+		if(sFile=="") {
+			unzClose(m_vFile);
+			return false;
+		}
+		if(unzLocateFile(m_vFile, sFile, 0) == UNZ_OK) {
+			if(unzOpenCurrentFile(m_vFile) != UNZ_OK) return false;
 			m_bOpenFile = true;
 
 			// Initialize the buffer:
-			m_Buffer[sizeof(m_Buffer)-1] = '\0';
-			m_BuffStart = m_Buffer;
+			if(!m_pBuffer) m_pBuffer = new BYTE[VBUFFER_SIZE+1];
+			m_pBuffer[VBUFFER_SIZE] = '\0';
+			m_BuffStart = (LPSTR)m_pBuffer;
 			m_BuffLen = 0;
 			m_BuffRead = 0;
 
@@ -260,6 +370,7 @@ inline bool CVFile::OpenVirtual()
 }
 inline bool CVFile::CloseVirtual()
 {
+	ASSERT(m_vFile != NULL);
 	if(unzCloseCurrentFile(m_vFile) == UNZ_OK) {
 		if(unzClose(m_vFile) == UNZ_OK) {
 			m_vFile = NULL;
@@ -268,21 +379,6 @@ inline bool CVFile::CloseVirtual()
 		}
 	}
 	return false;
-}
-inline int CVFile::ReadVirtual(LPVOID buffer, size_t size)
-{
-	ASSERT(m_vFile != NULL);
-	return unzReadCurrentFile(m_vFile, buffer, (long)size);
-}
-
-inline int CVFile::WriteVirtual(LPVOID buffer, size_t size)
-{
-	ASSERT(m_vFile != NULL);
-	return -1;
-}
-inline int CVFile::SeekVirtual(long offset, int origin)
-{
-	return -1;
 }
 inline LPSTR CVFile::GetLineVirtual(LPSTR string, int n)
 {
@@ -293,8 +389,8 @@ inline LPSTR CVFile::GetLineVirtual(LPSTR string, int n)
 	while(left>0 && !bufferAux) {
 		if(m_BuffRead == m_BuffLen) {
 			m_BuffRead = 0;
-			m_BuffStart = m_Buffer;
-			if((m_BuffLen = ReadVirtual(m_Buffer, sizeof(m_Buffer)-1)) == 0) 
+			m_BuffStart = (LPSTR)m_pBuffer;
+			if((m_BuffLen = ReadVirtual(m_pBuffer, VBUFFER_SIZE)) == 0) 
 				break;
 		}
 
@@ -323,7 +419,9 @@ inline bool CVFile::Open()
 	if(m_bOpenFile) return true;
 	if(m_bVirtual) return OpenVirtual();
 
-	if(m_File == NULL) m_File = fopen(GetHomeFile(), "r+b");
+	CBString sFile = GetHomeFile();
+	if(sFile=="") return false;
+	if(m_File == NULL) m_File = fopen(sFile, "r+b");
 	if(m_File) {
 		m_bOpenFile = true;
 		return true;
@@ -333,6 +431,10 @@ inline bool CVFile::Open()
 inline bool CVFile::Close()
 {
 	if(!m_bOpenFile) return false;
+
+	delete []m_pBuffer;
+	m_pBuffer = NULL;
+
 	if(m_bVirtual) return CloseVirtual();
 
 	ASSERT(m_File);
@@ -343,25 +445,25 @@ inline bool CVFile::Close()
 	}
 	return false;
 }
-inline int CVFile::Read(LPVOID buffer, size_t size)
+inline int CVFile::Read(LPVOID buffer, size_t buffsize)
 {
 	if(!m_bOpenFile) return 0;
-	if(m_bVirtual) return ReadVirtual(buffer, size);
+	if(m_bVirtual) return ReadVirtual(buffer, buffsize);
 
 	ASSERT(m_File);
-	return (int)fread(buffer, 1, size, m_File);
+	return (int)fread(buffer, 1, buffsize, m_File);
 }
-inline int CVFile::Write(LPVOID buffer, size_t size)
+inline int CVFile::Write(LPVOID buffer, size_t buffsize)
 {
 	if(!m_bOpenFile) return 0;
-	if(m_bVirtual) return WriteVirtual(buffer, size);
+	if(m_bVirtual) return WriteVirtual(buffer, buffsize);
 
 	ASSERT(m_File);
-	return (int)fwrite(buffer, 1, size, m_File);
+	return (int)fwrite(buffer, 1, buffsize, m_File);
 }
 inline int CVFile::Seek(long offset, int origin)
 {
-	if(!m_bOpenFile) return 0;
+	if(!m_bOpenFile) return -1;
 	if(m_bVirtual) return SeekVirtual(offset, origin);
 
 	ASSERT(m_File);
@@ -376,9 +478,9 @@ inline LPSTR CVFile::GetLine(LPSTR string, int n)
 	ASSERT(m_File);
 	return fgets(string, n, m_File);
 }
-inline long CVFile::GetFileSize()
+inline size_t CVFile::GetFileSize() const
 {
-	if(!m_bOpenFile) return NULL;
+	if(!m_bOpenFile) return -1;
 	if(m_bVirtual) return GetVirtualFileSize();
 
 	ASSERT(m_File);
@@ -388,7 +490,7 @@ inline long CVFile::GetFileSize()
 	fseek(m_File, curr, SEEK_SET);
 	return ret;
 }
-inline long CVFile::GetVirtualFileSize()
+inline size_t CVFile::GetVirtualFileSize() const
 {
 	char filename_inzip[256];
 	unz_file_info file_info;
@@ -397,8 +499,43 @@ inline long CVFile::GetVirtualFileSize()
 		filename_inzip, sizeof(filename_inzip)-1,
 		NULL,0,NULL,0);
 
-	if (err!=UNZ_OK) {
+	if(err==UNZ_OK) {
 		return file_info.uncompressed_size;
 	}
 	return 0;
+}
+inline LPCVOID CVFile::ReadFile(LPVOID buffer, size_t buffsize)
+{
+	if(!m_bOpenFile) return NULL;
+
+	// go to the start of the file:
+	Seek(0, SEEK_SET);
+
+	size_t size = GetFileSize();
+	if(buffer) {
+		if(size>buffsize) size = buffsize;
+	} else {
+		size_t tmpsize = size;
+		// the minimum buffer size is always VBUFFER_SIZE+1
+		if(tmpsize<VBUFFER_SIZE+1) tmpsize = VBUFFER_SIZE+1;
+
+		delete []m_pBuffer;
+		m_pBuffer = new BYTE[tmpsize];
+		buffer = m_pBuffer;
+	}
+	Read(buffer, size);
+
+	return buffer;
+}
+inline FILETIME* CVFile::GetFileDate() const
+{
+	if(m_bVirtual) return GetVirtualFileDate();
+
+	CBString sFile = GetFilePath();
+	if(sFile=="") return NULL;
+	return GetFileTime(sFile);
+}
+inline FILETIME* CVFile::GetVirtualFileDate() const
+{
+	return NULL;
 }

@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
+				AdditionalIncludeDirectories=".\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -31,10 +31,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20d.lib zlib.lib"
+				AdditionalDependencies="zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories=".\libs\codemax; ..\libs\zlib"
+				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				TargetMachine="1"/>
@@ -87,7 +87,7 @@
 				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="1"
 				OptimizeForWindowsApplication="TRUE"
-				AdditionalIncludeDirectories=".\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
+				AdditionalIncludeDirectories=".\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -98,10 +98,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20.lib zlib.lib"
+				AdditionalDependencies="zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories=".\libs\codemax; ..\libs\zlib"
+				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -169,6 +169,9 @@
 				RelativePath="QuestDesigner.cpp">
 			</File>
 			<File
+				RelativePath="SCompiler.cpp">
+			</File>
+			<File
 				RelativePath="stdafx.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -197,9 +200,6 @@
 				</File>
 				<File
 					RelativePath="MapEditorView.cpp">
-				</File>
-				<File
-					RelativePath="SCompiler.cpp">
 				</File>
 				<File
 					RelativePath="ScriptEditorFrm.cpp">
@@ -375,7 +375,7 @@
 				Name="Libs"
 				Filter="">
 				<File
-					RelativePath="libs\CMAXWTL.h">
+					RelativePath=".\libs\CMCSWTL.h">
 				</File>
 				<File
 					RelativePath="libs\DlgContainer.h">
@@ -535,6 +535,12 @@
 				RelativePath="res\FoldersToolbar.bmp">
 			</File>
 			<File
+				RelativePath=".\res\logo.bmp">
+			</File>
+			<File
+				RelativePath=".\res\logo.ico">
+			</File>
+			<File
 				RelativePath="res\MapEdToolbar.bmp">
 			</File>
 			<File
@@ -604,7 +610,13 @@
 				RelativePath="res\Warning.ico">
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\res\logo.gif">
+		</File>
 	</Files>
 	<Globals>
+		<Global
+			Name="RESOURCE_FILE"
+			Value="QuestDesigner.rc"/>
 	</Globals>
 </VisualStudioProject>

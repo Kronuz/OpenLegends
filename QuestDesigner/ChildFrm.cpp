@@ -25,12 +25,17 @@
 
 #include "MainFrm.h"
 #include "ChildFrm.h"
+#include "ChildView.h"
 
 CChildFrame::CChildFrame(CMainFrame *pMainFrame, _child_type ChildType) :
 	m_pMainFrame(pMainFrame),
 	m_ChildType(ChildType),
 	m_pCmdBar(NULL)
 {
+}
+bool CChildFrame::hasChanged() 
+{ 
+	return m_pChildView->hasChanged(); 
 }
 void CChildFrame::SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar)
 {

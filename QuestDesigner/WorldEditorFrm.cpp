@@ -45,7 +45,7 @@ LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 	SetIcon(hIcon, ICON_SMALL);
 	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIWORLDED)));
 
-	m_pWorldEditorView = new CWorldEditorView(this);
+	m_pChildView = m_pWorldEditorView = new CWorldEditorView(this);
 
 	// create our view
 	m_hWndClient = m_pWorldEditorView->Create(m_hWnd, 

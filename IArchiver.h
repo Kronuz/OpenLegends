@@ -102,7 +102,7 @@ interface CDocumentObject
 
 	virtual bool Close(bool bForce = false) {
 		if(bForce) return true;
-		return !hasChanged();
+		return !IsModified();
 	}
 
 
@@ -113,7 +113,7 @@ protected:
 	IArchive *m_ArchiveOut;
 public:
 	void Touch() { m_hasChanged = true; }
-	bool hasChanged() { return m_hasChanged; }
+	bool IsModified() { return m_hasChanged; }
 	CVFile m_fnFile;
 };
 

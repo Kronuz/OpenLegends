@@ -13,6 +13,13 @@
 // Forward declarations
 struct GameInfo;
 
+interface IScript
+{
+	virtual bool NeedToCompile() const = 0;
+	virtual LPCSTR GetScriptFilePath(LPSTR szPath, size_t buffsize) const = 0;
+	virtual LPCSTR GetCompiledFilePath(LPSTR szPath, size_t buffsize) const = 0;
+};
+
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IGame
 	\brief		Interface for the game engine.
@@ -29,6 +36,7 @@ interface IGame :
 	static const WORD Version;
 
 	virtual float UpdateFPS(float fpsLock = -1.0f) = 0;
+	virtual void WaitScripts() = 0;
 
 	// CDocumentObject override:
 	virtual bool Load(LPCSTR szFile) = 0;
@@ -53,6 +61,9 @@ interface IGame :
 	virtual CMapGroup *FindMapGroup(int x, int y) const = 0; //!< Get the mapgroup at location (x,y)
 	virtual CMapGroup* BuildMapGroup(int x, int y, int width, int height) = 0;
 
+	virtual LPCSTR GetProjectName() const = 0;
+	virtual int CountScripts() const = 0;
+	virtual const IScript* GetScript(int idx) const = 0;
 	/*	\brief Sets the callback function for different objects.
 
 		\remarks 
@@ -121,7 +132,7 @@ struct ScriptInfo
 {
 	InfoReason eInfoReason;
 	LPCSTR lpszString;
-	CScript *pInterface;
+	IScript *pInterface;
 };
 struct GameInfo
 {

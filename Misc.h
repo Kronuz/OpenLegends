@@ -4,6 +4,11 @@
 #include <cstdlib>
 #include <climits>
 
+#ifndef ASSERT
+	#include <cassert>
+	#define ASSERT assert
+#endif
+
 #define FEF_NOEXT		0x01
 #define FEF_NODIR		0x02
 
@@ -1872,3 +1877,10 @@ inline char * __cdecl stristr (
         return(NULL);
 
 }
+
+UINT RegGetProfileInt( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, int nDefault );
+LPCSTR RegGetProfileString( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, LPSTR pszValue, LPCSTR pszDefault );
+BOOL RegGetProfileBinary( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry,	BYTE** ppData, UINT* pBytes );
+BOOL RegWriteProfileInt( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, int nValue );
+BOOL RegWriteProfileString( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, LPCSTR pszValue );
+BOOL RegWriteProfileBinary( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, LPBYTE pData, UINT nBytes );

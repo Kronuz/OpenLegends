@@ -117,4 +117,6 @@ public:
 	void UpdateSelections();
 	void UpdateMouse(const CPoint &point);
 	bool ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap);
+
+	bool hasChanged();
 };

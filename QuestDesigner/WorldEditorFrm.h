@@ -58,6 +58,7 @@ public:
 		// Pass all unhandled WM_COMMAND messages to the client window or 'view'
 		CHAIN_CLIENT_COMMANDS ()
 		// Reflect all the WM_NOTIFY messages to the client window
+
 		REFLECT_NOTIFICATIONS()
 
 	END_MSG_MAP()

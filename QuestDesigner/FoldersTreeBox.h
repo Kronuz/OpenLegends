@@ -29,6 +29,10 @@
 
 #include <WtlFileTreeCtrl.h>
 
+/////////////////////////////////////////////////////////////////////////////
+// Forward declarations
+class CMainFrame;
+
 class CFoldersTreeBox :
 	public CWindowImpl<CFoldersTreeBox>
 {
@@ -40,6 +44,9 @@ protected:
 	int m_nIcoIndex[II_END];
 
 public:
+	// Pointer to main frame
+	CMainFrame *m_pMainFrame;
+
 	BOOL PreTranslateMessage(MSG* pMsg);
 
 	BEGIN_MSG_MAP(CFoldersTreeBox)
@@ -48,6 +55,7 @@ public:
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
 		MESSAGE_HANDLER(WM_SETREDRAW, OnSetRedraw)
 		MESSAGE_HANDLER(WM_SIZE, OnSize)
+		MESSAGE_HANDLER(WM_ITEM_SELECTED, OnFileItemSelected )
 
 		REFLECT_NOTIFICATIONS()
 	END_MSG_MAP()
@@ -56,6 +64,8 @@ public:
 //	LRESULT MessageHandler(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 //	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 //	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
+
+	LRESULT OnFileItemSelected(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnSetRedraw(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{

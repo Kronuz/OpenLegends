@@ -1,20 +1,23 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-//	cmaxwtl.h - Simple WTL wraper classes for CodeMax
+//	cmcswtl.h - Simple WTL wraper classes for CodeSense
 //
 /////////////////////////////////////////////////////////////////////////////
 //
-//	 Version:	1.0
+//	 Version:	2.0
 //	 Created:	2001/1/29 - 8:00 pm
-//	Filename: 	cmaxwtl.h
-//	  Author:	Ben Burnett
+//  Modified:   2003/9/20 - 6:32 pm
+//	Filename: 	cmcswtl.h
+//	 Authors:	Ben Burnett
+//				German Mendez Bravo (a.k.a. Kronuz)
 //	   Email:	ben.burnett@quaggait.com
-//				
-//	 Purpose:	Simple WTL wraper classes for CodeMax
+//				kronuz@users.sourceforge.net
+//
+//	 Purpose:	Simple WTL wraper classes for CodeSense
 //
 /////////////////////////////////////////////////////////////////////////////
 //
-// Copyright (C) 2000 - 2001, Quagga IT - All rights reserved.
+// Copyright (C) 2000 - 2003, Quagga IT - All rights reserved.
 //
 // The code and information is provided "as-is" without warranty of 
 //	any kind, either expressed or implied.
@@ -22,38 +25,40 @@
 // Send any bug fixes and/or suggestions to the e-mail listed above.
 //
 /////////////////////////////////////////////////////////////////////////////
-#if !defined ( _cmaxwtl_h_included_ )
-#define _cmaxwtl_h_included_
+#if !defined ( _cmcswtl_h_included_ )
+#define _cmcswtl_h_included_
 
 #if _MSC_VER >= 1000
 #	pragma once
 #endif // _MSC_VER >= 1000
 
 #ifndef __cplusplus
-#	error CodeMax WTL wrapers require C++ compilation (use a .cpp suffix)
+#	error CodeSense WTL wrapers require C++ compilation (use a .cpp suffix)
 #endif
 
-#ifndef __CODEMAX_H__
-#	pragma message ( "'cmaxwtl.h'' requires codemax.h to be included first. Once you include it" )
+#ifndef _CODESENSE_H__INCLUDED_
+#	pragma message ( "'cmcswtl.h'' requires CodeSense.h to be included first. Once you include it" )
 #	pragma message ( " you will not get this message." )
-#	include <codemax.h>
-#endif // __CODEMAX_H__
+#	include <CodeSense.h>
+#endif // _CODESENSE_H__INCLUDED_
 
 /////////////////////////////////////////////////////////////////////////////
 
-namespace cmax
+namespace cmcs
 {
 
 /////////////////////////////////////////////////////////////////////////////
-// CodeMax library
-
-#pragma comment ( lib, "cmax20.lib" )
-
+// CodeSense library
+#ifdef _DEBUG
+#pragma comment ( lib, "cmcs21d.lib" )
+#else
+#pragma comment ( lib, "cmcs21.lib" )
+#endif
 ////////////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 
-// CodeMax library interface
-class CodeMaxLibrary;
+// CodeSense library interface
+class CodeSenseLibrary;
 
 // Simple blocked undo helper ( Undo block start when the object is created and ends 
 //	when it is detroyed )
@@ -64,15 +69,15 @@ class CodeMaxLibrary;
 template < class TControl > class UndoBlockT;
 	// class UndoBlock
 
-// Template for the CodeMax window
-template < class TBase > class CodeMaxControlT;
-	// class CodeMaxControl
+// Template for the CodeSense window
+template < class TBase > class CodeSenseControlT;
+	// class CodeSenseControl
 
-// Template used to handle the CodeMax window's notifications (reflected or not)
-template < class T > class CodeMaxControlNotifications;
+// Template used to handle the CodeSense window's notifications (reflected or not)
+template < class T > class CodeSenseControlNotifications;
 
-// Template used to handle the CodeMax window's standard commands
-template < class T > class CodeMaxControlCommands;
+// Template used to handle the CodeSense window's standard commands
+template < class T > class CodeSenseControlCommands;
 
 ////////////////////////////////////////////////////////////////////////////////////
 // Simple Macros & Defines
@@ -88,28 +93,28 @@ template < class T > class CodeMaxControlCommands;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-// CodeMaxLibrary : a wraper for the general CodeMax library function calls
+// CodeSenseLibrary : a wraper for the general CodeSense library function calls
 
-class CodeMaxLibrary  
+class CodeSenseLibrary  
 {
 
 // Data
 private:
 	
-	// Set as true when the CodeMax library has been initialized
+	// Set as true when the CodeSense library has been initialized
 	static bool m_bInitialized;
 
 // Constructors / Destructors
 public:
 	
-	CodeMaxLibrary ()
+	CodeSenseLibrary ()
 	{ /**/ }
 	
-	virtual ~CodeMaxLibrary ()
+	virtual ~CodeSenseLibrary ()
 	{
 		if ( m_bInitialized ) {
 			
-			// Unregister the CodeMax control
+			// Unregister the CodeSense control
 			::CMUnregisterControl ();
 		}		
 	}	
@@ -124,7 +129,7 @@ public:
 			return FALSE;
 		}		
 		
-		// Register the CodeMax control	
+		// Register the CodeSense control	
 		CME_CODE lRet = ::CMRegisterControl ( dwVersion );
 		
 		if ( CME_FAILED ( lRet ) ) {
@@ -173,7 +178,7 @@ public:
 #endif // __ATLSTR_H__
 	
 	//
-	// Functions to save/restores the CodeMax keystroke assignments 
+	// Functions to save/restores the CodeSense keystroke assignments 
 	//
 
 	static int GetHotKeys ( LPBYTE pBuff )
@@ -249,12 +254,12 @@ public:
 		// No check because if pHotKeys = NULL, the total number of hotkeys is 
 		// returned, and can be used to allocate a sufficiently sized array.
 		
-		// Retrieve a list of hotkeys assigned to a specific CodeMax Command.
+		// Retrieve a list of hotkeys assigned to a specific CodeSense Command.
 		return ::CMGetHotKeysForCmd ( wCmd, pHotKeys );
 	}
 	
 	//
-	// Return the name or description of a specific CodeMax editing command.  
+	// Return the name or description of a specific CodeSense editing command.  
 	//
 
 	static void GetCommandString ( WORD wCmd, BOOL bDescription, LPTSTR pszBuff, int nBuffLen )
@@ -364,25 +369,25 @@ public:
 };
 
 // static data init.
-__declspec ( selectany ) bool CodeMaxLibrary::m_bInitialized = false;
+__declspec ( selectany ) bool CodeSenseLibrary::m_bInitialized = false;
 
 /////////////////////////////////////////////////////////////////////////////
-// CodeMaxControlT : a wraper for the CodeMax window control
+// CodeSenseControlT : a wraper for the CodeSense window control
 
 template < class TBase >
-class CodeMaxControlT : public TBase 
+class CodeSenseControlT : public TBase 
 {
 	
 // Constructors / Destructors
 public:
 	
-	CodeMaxControlT ( HWND hWnd = NULL ) : TBase ( hWnd ) 
+	CodeSenseControlT ( HWND hWnd = NULL ) : TBase ( hWnd ) 
 	{ /**/ };
 
-	virtual ~CodeMaxControlT () 
+	virtual ~CodeSenseControlT () 
 	{ /**/ };
 	
-	CodeMaxControlT < TBase > & operator = ( HWND hWnd )
+	CodeSenseControlT < TBase > & operator = ( HWND hWnd )
 	{
 		m_hWnd = hWnd;
 		return (*this);
@@ -401,7 +406,7 @@ public:
 	
 	static LPCTSTR GetWndClassName ()
 	{
-		return CODEMAXWNDCLASS;
+		return CODESENSEWNDCLASS;
 	}
 	
 // Operations 
@@ -672,6 +677,8 @@ public:
 	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_GetFontOwnership ( m_hWnd ); }
 	int GetCurrentView() const
 	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_GetCurrentView ( m_hWnd ); }
+	CME_CODE SetCurrentView(int nLine)
+	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_SetCurrentView ( m_hWnd, nLine ); }
 	int GetViewCount() const
 	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_GetViewCount ( m_hWnd ); }
 	CME_CODE ShowScrollBar( BOOL bHorz, BOOL bShow = TRUE )
@@ -804,10 +811,17 @@ public:
 	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_SetBorderStyle ( m_hWnd, dwStyle ); }
 	DWORD GetBorderStyle() const
 	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_GetBorderStyle ( m_hWnd ); }
-	
+
+	//
+	// CodeSense 2.1.0.22
+	//
+	DWORD GetCurrentToken() const
+	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_GetCurrentToken ( m_hWnd ); }
+	void UpdateControlPositions()
+	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); CM_UpdateControlPositions ( m_hWnd ); }
+
 // Commands
 public:
-
 	LRESULT WordUpperCase ()
 	{ return ExecuteCmd ( CMD_WORDUPPERCASE ); }
 	LRESULT WordTranspose ()
@@ -1094,25 +1108,33 @@ public:
 	{ return ExecuteCmd ( CMD_OVERTYPEON ); }
 	LRESULT OverTypeOff ()
 	{ return ExecuteCmd ( CMD_OVERTYPEOFF ); }	
-	
+
+	//
+	// CodeSense 2.1.0.22
+	//
+	LRESULT CodeTip ()
+	{ return ExecuteCmd ( CMD_CODETIP ); }
+	LRESULT CodeList ()
+	{ return ExecuteCmd ( CMD_CODELIST ); }
+
 };
 
 // simple typedef for standard use
-typedef CodeMaxControlT < CWindow > CodeMaxControl;
+typedef CodeSenseControlT < CWindow > CodeSenseControl;
 
 ////////////////////////////////////////////////////////////////////////////////////
-// CodeMaxControlNotifications - notification handlers for CodeMax
+// CodeSenseControlNotifications - notification handlers for CodeSense
 
-// Chain to CodeMaxControlNotifications message map. Your class must also derive from 
-//	CodeMaxControl.
+// Chain to CodeSenseControlNotifications message map. Your class must also derive from 
+//	CodeSenseControl.
 // Example:
-// class CMyCodeMaxControl : public CWindowImpl < CMyCodeMaxControl, CodeMaxControl >,
-//							 public CodeMaxControlNotifications < CMyCodeMaxControl >
+// class CMyCodeSenseControl : public CWindowImpl < CMyCodeSenseControl, CodeSenseControl >,
+//							 public CodeSenseControlNotifications < CMyCodeSenseControl >
 // {
 // public:
-//      BEGIN_MSG_MAP(CMyCodeMaxControl)
+//      BEGIN_MSG_MAP(CMyCodeSenseControl)
 //              // your handlers...
-//              CHAIN_MSG_MAP_ALT ( CodeMaxControlNotifications < CMyCodeMaxControl >, 1 )
+//              CHAIN_MSG_MAP_ALT ( CodeSenseControlNotifications < CMyCodeSenseControl >, 1 )
 //      END_MSG_MAP()
 //      // other stuff...
 //
@@ -1127,12 +1149,12 @@ typedef CodeMaxControlT < CWindow > CodeMaxControl;
 #define CMAX_REFLECTED_NOTIFY_CODE_HANDLERS	2
 
 template < class T >
-class CodeMaxControlNotifications
+class CodeSenseControlNotifications
 {
 
 public:
 
-	BEGIN_MSG_MAP ( CodeMaxControlNotifications < T > )
+	BEGIN_MSG_MAP ( CodeSenseControlNotifications < T > )
 
 	ALT_MSG_MAP ( 1 ) // Start of alternate message map
 	
@@ -1147,7 +1169,7 @@ public:
 		NOTIFY_CODE_HANDLER ( CMN_VIEWCHANGE, _OnViewChange )
 		NOTIFY_CODE_HANDLER ( CMN_MODIFIEDCHANGE, _OnModifiedChange )
 		NOTIFY_CODE_HANDLER ( CMN_SHOWPROPS, _OnShowProperties )
-		NOTIFY_CODE_HANDLER ( CMN_PROPSCHANGE, _OnNotifyCreate )
+		NOTIFY_CODE_HANDLER ( CMN_PROPSCHANGE, _OnPropertiesChange )
 		NOTIFY_CODE_HANDLER ( CMN_CREATE, _OnNotifyCreate )
 		NOTIFY_CODE_HANDLER ( CMN_DESTROY, _OnNotifyDestroy )
 
@@ -1172,7 +1194,25 @@ public:
 		//		
 
 		NOTIFY_CODE_HANDLER ( CMN_FINDWRAPPED, _OnFindWrapped )
-		
+
+		//
+		// CodeSense Version 2.1.0.22
+		//		
+
+		NOTIFY_CODE_HANDLER ( CMN_CODELIST, _OnCodeList )
+		NOTIFY_CODE_HANDLER ( CMN_CODELISTSELMADE, _OnCodeListSelMade )
+		NOTIFY_CODE_HANDLER ( CMN_CODELISTCANCEL, _OnCodeListCancel )
+		NOTIFY_CODE_HANDLER ( CMN_CODELISTCHAR, _OnCodeListChar ) // CM_CODELISTKEYDATA
+
+		NOTIFY_CODE_HANDLER ( CMN_CODETIP, _OnCodeTip )
+		NOTIFY_CODE_HANDLER ( CMN_CODETIPINITIALIZE, _OnCodeTipInitialize ) 
+		NOTIFY_CODE_HANDLER ( CMN_CODETIPCANCEL, _OnCodeTipCancel ) // CM_CODETIPDATA 
+		NOTIFY_CODE_HANDLER ( CMN_CODETIPUPDATE, _OnCodeTipUpdate )
+
+		NOTIFY_CODE_HANDLER ( CMN_CODELISTSELWORD, _OnCodeListSelWord )
+		NOTIFY_CODE_HANDLER ( CMN_CODELISTSELCHANGE, _OnCodeListSelChange )
+		NOTIFY_CODE_HANDLER ( CMN_CODELISTHOTTRACK, _OnCodeListHotTrack )
+
 	ALT_MSG_MAP ( 2 ) // Start of alternate message map ( for reflected messages )
 
 		//
@@ -1186,7 +1226,7 @@ public:
 		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_VIEWCHANGE, _OnViewChange )
 		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_MODIFIEDCHANGE, _OnModifiedChange )
 		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_SHOWPROPS, _OnShowProperties )
-		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_PROPSCHANGE, _OnNotifyCreate )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_PROPSCHANGE, _OnPropertiesChange )
 		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CREATE, _OnNotifyCreate )
 		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_DESTROY, _OnNotifyDestroy )
 
@@ -1211,6 +1251,24 @@ public:
 		//		
 
 		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_FINDWRAPPED, _OnFindWrapped )
+
+		//
+		// CodeSense Version 2.1.0.22
+		//		
+
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODELIST, _OnCodeList )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODELISTSELMADE, _OnCodeListSelMade )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODELISTCANCEL, _OnCodeListCancel )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODELISTCHAR, _OnCodeListChar )
+
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODETIP, _OnCodeTip )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODETIPINITIALIZE, _OnCodeTipInitialize ) 
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODETIPCANCEL, _OnCodeTipCancel )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODETIPUPDATE, _OnCodeTipUpdate )
+
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODELISTSELWORD, _OnCodeListSelWord )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODELISTSELCHANGE, _OnCodeListSelChange )
+		REFLECTED_NOTIFY_CODE_HANDLER ( CMN_CODELISTHOTTRACK, _OnCodeListHotTrack )
 
 	END_MSG_MAP ()
 
@@ -1362,6 +1420,75 @@ private:
 		return pT->OnFindWrapped ( reinterpret_cast < CM_FINDWRAPPEDDATA * > ( pnmh ) );
 	}
 
+	// CodeList / CodeTip support
+	LRESULT _OnCodeList ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeList ( reinterpret_cast < CM_CODELISTDATA * > ( pnmh ) );
+	}
+
+	LRESULT	_OnCodeListSelMade ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeListSelMade ( reinterpret_cast < CM_CODELISTDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeListCancel ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeListCancel ( reinterpret_cast < CM_CODELISTDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeListChar ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeListChar ( reinterpret_cast < CM_CODELISTKEYDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeTipCancel ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeTipCancel ( reinterpret_cast < CM_CODETIPDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeTip ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeTip ( reinterpret_cast < CM_CODETIPDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeTipInitialize  ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeTipInitialize ( reinterpret_cast < CM_CODETIPDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeTipUpdate ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeTipUpdate ( reinterpret_cast < CM_CODETIPDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeListSelWord ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeListSelWord ( reinterpret_cast < CM_CODELISTSELWORDDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeListSelChange ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		return pT->OnCodeListSelChange ( reinterpret_cast < CM_CODELISTSELCHANGEDATA * > ( pnmh ) );
+	}
+
+	LRESULT _OnCodeListHotTrack ( int /* idCtrl */, LPNMHDR pnmh, BOOL & /* bHandled */ )
+	{
+		T * pT = static_cast < T * > ( this );
+		pT->OnCodeListHotTrack ( reinterpret_cast < CM_CODELISTHOTTRACKDATA * > ( pnmh ) );
+		return 0;
+	}
+
+
 // Overidables
 public:
 
@@ -1463,21 +1590,76 @@ public:
 	{ 
 		return FALSE; // allow wrapping.
 	}
-	
+
+	// CodeList / CodeTip support
+
+	virtual BOOL OnCodeList ( CM_CODELISTDATA * )
+	{ 
+		return FALSE; // the list view control should not be displayed.
+	}
+
+	virtual BOOL OnCodeListSelMade ( CM_CODELISTDATA * )
+	{ 
+		return FALSE; // control should be hidden.
+	}
+
+	virtual BOOL OnCodeListCancel ( CM_CODELISTDATA * )
+	{ 
+		return FALSE; // the list view control should be hidden.
+	}
+
+	virtual BOOL OnCodeListChar ( CM_CODELISTKEYDATA * )
+	{ 
+		return FALSE; // the control should perform the default action.
+	}
+
+	virtual LRESULT OnCodeTip ( CM_CODETIPDATA * )
+	{ 
+		return CM_TIPSTYLE_NONE; // no tooltip control should be displayed. 
+	}
+
+	virtual BOOL OnCodeTipInitialize ( CM_CODETIPDATA * ) 
+	{
+		return FALSE; // no changes.
+	}
+
+	virtual BOOL OnCodeTipCancel ( CM_CODETIPDATA * ) 
+	{
+		return FALSE; // the tooltip control should be hidden
+	}
+
+	virtual BOOL OnCodeTipUpdate ( CM_CODETIPDATA * )
+	{
+		return FALSE; // no changes.
+	}
+
+	virtual BOOL OnCodeListSelWord ( CM_CODELISTSELWORDDATA * )
+	{ 
+		return TRUE; // automatic selection.
+	}
+
+	virtual BOOL OnCodeListSelChange ( CM_CODELISTSELCHANGEDATA * )
+	{ 
+		return FALSE; // no tooltip text provided.
+	}
+
+	virtual void OnCodeListHotTrack ( CM_CODELISTHOTTRACKDATA * )
+	{ /**/ }
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
-// CodeMaxControlCommands - message handlers for standard CodeMax commands
+// CodeSenseControlCommands - message handlers for standard CodeSense commands
 
-// Chain to CodeMaxControlCommands message map. Your class must also derive from CodeMaxControl.
+// Chain to CodeSenseControlCommands message map. Your class must also derive from CodeSenseControl.
 // Example:
-// class CMyCodeMaxControl : public CWindowImpl < CMyCodeMaxControl, CodeMaxControl >,
-//							 public CodeMaxControlCommands < CMyCodeMaxControl >
+// class CMyCodeSenseControl : public CWindowImpl < CMyCodeSenseControl, CodeSenseControl >,
+//							 public CodeSenseControlCommands < CMyCodeSenseControl >
 // {
 // public:
-//      BEGIN_MSG_MAP(CMyCodeMaxControl)
+//      BEGIN_MSG_MAP(CMyCodeSenseControl)
 //              // your handlers...
-//              CHAIN_MSG_MAP_ALT ( CodeMaxControlCommands < CMyCodeMaxControl >, 1 )
+//              CHAIN_MSG_MAP_ALT ( CodeSenseControlCommands < CMyCodeSenseControl >, 1 )
 //      END_MSG_MAP()
 //      // other stuff...
 // };
@@ -1485,13 +1667,13 @@ public:
 #define CMAX_BASIC_COMMAND_ID_HANDLERS 1
 
 template < class T >
-class CodeMaxControlCommands
+class CodeSenseControlCommands
 {
 
 public:
 
-	// Message map for common CodeMax commands
-	BEGIN_MSG_MAP ( CodeMaxControlCommands < T > )
+	// Message map for common CodeSense commands
+	BEGIN_MSG_MAP ( CodeSenseControlCommands < T > )
 
 	ALT_MSG_MAP ( 1 ) // Start of alternate message map
 
@@ -1582,7 +1764,7 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
-// UndoBlock : a block undo wraper for the CodeMax window
+// UndoBlock : a block undo wraper for the CodeSense window
 //
 //	Blocked undo - A method by which series of undoable commands 'blocked' together 
 //				   so that they can be undone all at once
@@ -1594,38 +1776,38 @@ class UndoBlockT
 // Data
 private:
 
-	TControl * m_pCodeMaxControl;
+	TControl * m_pCodeSenseControl;
 
 // Constructors / Destructors
 public:
 	
-	UndoBlockT ( TControl * pCtrl ) : m_pCodeMaxControl ( pCtrl ) 
+	UndoBlockT ( TControl * pCtrl ) : m_pCodeSenseControl ( pCtrl ) 
 	{ 
-		ATLASSERT ( m_pCodeMaxControl->IsWindow () );
-		m_pCodeMaxControl->BeginUndo (); 
+		ATLASSERT ( m_pCodeSenseControl->IsWindow () );
+		m_pCodeSenseControl->BeginUndo (); 
 	}
 
 	~UndoBlockT ()
 	{
-		m_pCodeMaxControl->EndUndo (); 
+		m_pCodeSenseControl->EndUndo (); 
 	}
 
 };
 
 // simple typedef for standard use
-typedef UndoBlockT < CodeMaxControl > UndoBlock;
+typedef UndoBlockT < CodeSenseControl > UndoBlock;
 
 /////////////////////////////////////////////////////////////////////////////
 
-}; // namespace cmax
+}; // namespace cmcs
 
 #if !defined ( _CMAX_NO_AUTOMATIC_NAMESPACE )
-using namespace cmax;
+using namespace cmcs;
 #endif // !defined ( _CMAX_NO_AUTOMATIC_NAMESPACE )
 
 /////////////////////////////////////////////////////////////////////////////
 
-#endif // !defined ( _cmaxwtl_h_included_ )
+#endif // !defined ( _cmcswtl_h_included_ )
 
 /////////////////////////////////////////////////////////////////////////////
 // EOF //////////////////////////////////////////////////////////////////////

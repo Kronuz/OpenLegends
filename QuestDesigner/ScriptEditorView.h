@@ -26,9 +26,45 @@
 
 #include "ChildView.h"
 
-#include <codemax.h>
-#include "cmaxwtl.h"
+#include <CodeSense.h>
+#include "CMCSWTL.h"
+
 #define CMLANG_ZES _T("OZ Script file")
+
+#define CMD_HELP	CMD_USER_BASE + 0
+
+#define MAX_FUNC_NAME	100
+#define MAX_FUNC_PROTO	1000
+
+// Registry keys
+#define SCRIPT_SECTION "Script Editor"
+#define KEY_WINDOWPOS "WINPOS"
+#define KEY_COLORSYNTAX "COLORSYNTAX"
+#define KEY_COLORS "COLORS"
+#define KEY_WHITESPACEDISPLAY "WHITESPACEDISPLAY"
+#define KEY_TABEXPAND "TABEXPAND"
+#define KEY_SMOOTHSCROLLING "SMOOTHSCROLLING"
+#define KEY_TABSIZE "TABSIZE"
+#define KEY_LINETOOLTIPS "LINETOOLTIPS"
+#define KEY_LEFTMARGIN "LEFTMARGIN"
+#define KEY_COLUMNSEL "COLUMNSEL"
+#define KEY_DRAGDROP "DRAGDROP"
+#define KEY_CASESENSITIVE "CASESENSITIVE"
+#define KEY_PRESERVECASE "PRESERVECASE"
+#define KEY_WHOLEWORD "WHOLEWORD"
+#define KEY_AUTOINDENTMODE "AUTOINDENTMODE"
+#define KEY_HSCROLLBAR "HSCROLLBAR"
+#define KEY_VSCROLLBAR "VSCROLLBAR"
+#define KEY_HSPLITTER "HSPLITTER"
+#define KEY_VSPLITTER "VSPLITTER"
+#define KEY_HOTKEYS "HOTKEYS"
+#define KEY_FINDMRULIST "FINDMRULIST"
+#define KEY_REPLMRULIST "REPLMRULIST"
+#define KEY_FONT "FONT"
+#define KEY_LINENUMBERING "LINENUMBERING"
+#define KEY_FONTSTYLES "FONTSTYLES"
+#define KEY_NORMALIZECASE "NORMALIZECASE"
+#define KEY_SELBOUNDS "SELBOUNDS"
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
@@ -36,17 +72,22 @@ class CScriptEditorFrame;
 
 class CScriptEditorView:
 	public CChildView,
-	public CWindowImpl<CScriptEditorView, CodeMaxControl>,
-	public CodeMaxControlNotifications<CScriptEditorView>,
-	public CodeMaxControlCommands<CScriptEditorView>
+	public CWindowImpl<CScriptEditorView, CodeSenseControl>,
+	public CodeSenseControlNotifications<CScriptEditorView>,
+	public CodeSenseControlCommands<CScriptEditorView>
 {
+	HFONT m_hFont;
+	CM_POSITION m_posSel;
+	TCHAR m_szTipFunc[MAX_FUNC_NAME];
+
 public:
 	bool m_bModified;
 
 	// Construction/Destruction
 	CScriptEditorView(CScriptEditorFrame *pParentFrame);
+	~CScriptEditorView();
 
-	DECLARE_WND_SUPERCLASS(NULL, CodeMaxControl::GetWndClassName())
+	DECLARE_WND_SUPERCLASS(NULL, CodeSenseControl::GetWndClassName())
 
 	// Called to translate window messages before they are dispatched 
 	BOOL PreTranslateMessage(MSG *pMsg);
@@ -59,11 +100,16 @@ public:
 		
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+		MESSAGE_HANDLER(WM_MOVE, OnMove)
 
-		COMMAND_ID_HANDLER(ID_SCRIPTED_RELOAD, OnFileReload)
-		COMMAND_ID_HANDLER(ID_SCRIPTED_SAVE, OnFileSave)
-		COMMAND_ID_HANDLER(ID_SCRIPTED_SAVE_AS, OnFileSaveAs)
+		COMMAND_ID_HANDLER(ID_APP_RELOAD, OnFileReload)
+		COMMAND_ID_HANDLER(ID_APP_SAVE, OnFileSave)
+		COMMAND_ID_HANDLER(ID_APP_SAVE_AS, OnFileSaveAs)
 		
+		COMMAND_ID_HANDLER(ID_SCRIPTED_CODELIST, OnCodeList1)
+		COMMAND_ID_HANDLER(ID_SCRIPTED_CODETIP1, OnCodeTip1)
+		COMMAND_ID_HANDLER(ID_SCRIPTED_CODETIP2, OnCodeTip2)
+
 		COMMAND_ID_HANDLER(ID_SCRIPTED_TAB, OnEditTab)
 		COMMAND_ID_HANDLER(ID_SCRIPTED_UNTAB, OnEditUntab)
 		
@@ -87,9 +133,10 @@ public:
 		COMMAND_ID_HANDLER(ID_SCRIPTED_GOTO_PREV_BOOKMARK, OnUpdateEditGotoPrevBookmark)
 		COMMAND_ID_HANDLER(ID_SCRIPTED_CLEAR_ALL_BOOKMARKS, OnEditClearAllBookmarks)
 
+
 		// Make sure that the notification and default message handlers get a crack at the messages
-		CHAIN_MSG_MAP_ALT(CodeMaxControlNotifications<CScriptEditorView>, CMAX_REFLECTED_NOTIFY_CODE_HANDLERS)
-		CHAIN_MSG_MAP_ALT(CodeMaxControlCommands<CScriptEditorView>, CMAX_BASIC_COMMAND_ID_HANDLERS)
+		CHAIN_MSG_MAP_ALT(CodeSenseControlNotifications<CScriptEditorView>, CMAX_REFLECTED_NOTIFY_CODE_HANDLERS)
+		CHAIN_MSG_MAP_ALT(CodeSenseControlCommands<CScriptEditorView>, CMAX_BASIC_COMMAND_ID_HANDLERS)
 
 	END_MSG_MAP()
 
@@ -100,6 +147,7 @@ public:
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
+	LRESULT OnMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,6 +159,10 @@ public:
 	// Save handlers
 	LRESULT OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFileSaveAs(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+	LRESULT OnCodeList1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCodeTip1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCodeTip2(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	// Indent/Unindent the current selection
 	LRESULT OnEditTab(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -156,4 +208,23 @@ public:
 
 	void UIUpdateStatusBar();
 	void UIUpdateMenuItems();
+
+	// has the content of the control changed?
+	bool hasChanged();
+
+	void SaveProfile();
+	void LoadProfile();
+
+	int GetCurrentArgument();
+	BOOL GetCurrentFunction( LPSTR pszName, bool bMustExist = false );
+	BOOL GetPrototype( LPCSTR pszFunc, LPSTR pszProto, CM_CODETIPMULTIFUNCDATA *pmfData );
+
+	// Overloads:
+	void OnPropertiesChange();
+	void OnRegisteredCommand ( CM_REGISTEREDCMDDATA *prcd );
+	BOOL OnKeyPress ( CM_KEYDATA *pkd );
+	LRESULT OnCodeTip ( CM_CODETIPDATA * );
+	BOOL OnCodeTipInitialize( CM_CODETIPDATA *pctd );
+	BOOL OnCodeTipUpdate( CM_CODETIPDATA *pctd );
+
 };

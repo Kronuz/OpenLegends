@@ -54,10 +54,14 @@ IDR_MAINFRAME TOOLBAR  18, 18
 BEGIN
     BUTTON      ID_PROJECT_OPEN
     SEPARATOR
+    BUTTON      ID_QUEST_NEW
+    BUTTON      ID_QUEST_OPEN
+    SEPARATOR
     BUTTON      ID_APP_WORLDED
     BUTTON      ID_APP_MAPED
+    BUTTON      ID_APP_SCRIPTED
     SEPARATOR
-    BUTTON      ID_APP_CONFIG
+    BUTTON      ID_APP_PREFERENCES
     SEPARATOR
     BUTTON      ID_APP_BUILD
     BUTTON      ID_APP_STOPBUILD
@@ -88,10 +92,8 @@ END
 
 IDR_TB_MAIN TOOLBAR  18, 18
 BEGIN
-    BUTTON      ID_APP_NEW
-    BUTTON      ID_APP_OPEN
     BUTTON      ID_APP_SAVE
-    BUTTON      ID_APP_SAVEALL
+    BUTTON      ID_APP_SAVE_ALL
     SEPARATOR
     BUTTON      ID_APP_PRINT
     SEPARATOR
@@ -105,8 +107,12 @@ BEGIN
     SEPARATOR
     BUTTON      ID_MAPED_LAYER
     SEPARATOR
-    BUTTON      ID_SCRIPTED_TAB
+    BUTTON      ID_SCRIPTED_CODELIST
+    BUTTON      ID_SCRIPTED_CODETIP1
+    BUTTON      ID_SCRIPTED_CODETIP2
+    SEPARATOR
     BUTTON      ID_SCRIPTED_UNTAB
+    BUTTON      ID_SCRIPTED_TAB
 END
 
 IDR_TB_MAPED_BASIC TOOLBAR  18, 18
@@ -159,6 +165,7 @@ IDR_TB_MAPED_OBJECT     BITMAP                  "res\\MapEdToolbarObject.bmp"
 IDR_TB_FOLDERS          BITMAP                  "res\\FoldersToolbar.bmp"
 IDR_TB_PROPVIEW         BITMAP                  "res\\PropertyViewToolbar.bmp"
 IDB_DRAGIMG             BITMAP                  "res\\DragImg.bmp"
+IDB_LOGO                BITMAP                  "res\\logo.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -211,15 +218,15 @@ IDR_MDISCRIPTED MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&New\tCtrl+N",                ID_SCRIPTED_NEW
-        MENUITEM "&Open...\tCtrl+O",            ID_SCRIPTED_OPEN
-        MENUITEM "Reload",                      ID_SCRIPTED_RELOAD
-        MENUITEM "&Save\tCtrl+S",               ID_SCRIPTED_SAVE
-        MENUITEM "Save A&ll",                   ID_SCRIPTED_SAVE_ALL
-        MENUITEM "Save &As...",                 ID_SCRIPTED_SAVE_AS
+        MENUITEM "&New\tCtrl+N",                ID_APP_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
+        MENUITEM "Reload",                      ID_APP_RELOAD
+        MENUITEM "&Save\tCtrl+S",               ID_APP_SAVE
+        MENUITEM "Save A&ll",                   ID_APP_SAVE_ALL
+        MENUITEM "Save &As...",                 ID_APP_SAVE_AS
         MENUITEM SEPARATOR
-        MENUITEM "&Print...\tCtrl+P",           ID_SCRIPTED_PRINT
-        MENUITEM "P&rint Setup...",             ID_SCRIPTED_PRINT_SETUP
+        MENUITEM "&Print...\tCtrl+P",           ID_APP_PRINT
+        MENUITEM "P&rint Setup...",             ID_APP_PRINT_SETUP
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -291,14 +298,14 @@ IDR_MDIMAPED MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&New\tCtrl+N",                32875
-        MENUITEM "&Open...\tCtrl+O",            ID_MAPED_OPEN
-        MENUITEM "Reload",                      ID_MAPED_RELOAD
-        MENUITEM "&Save\tCtrl+S",               ID_MAPED_SAVE
-        MENUITEM "Save A&ll",                   ID_MAPED_SAVE_ALL
+        MENUITEM "&New\tCtrl+N",                ID_APP_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
+        MENUITEM "Reload",                      ID_APP_RELOAD
+        MENUITEM "&Save\tCtrl+S",               ID_APP_SAVE
+        MENUITEM "Save A&ll",                   ID_APP_SAVE_ALL
         MENUITEM SEPARATOR
-        MENUITEM "&Print...\tCtrl+P",           ID_MAPED_PRINT
-        MENUITEM "P&rint Setup...",             ID_MAPED_PRINT_SETUP
+        MENUITEM "&Print...\tCtrl+P",           ID_APP_PRINT
+        MENUITEM "P&rint Setup...",             ID_APP_PRINT_SETUP
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -340,15 +347,15 @@ IDR_MDIWORLDED MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&New\tCtrl+N",                ID_WORLDED_NEW
-        MENUITEM "&Open...\tCtrl+O",            ID_WORLDED_OPEN
-        MENUITEM "Reload",                      ID_WORLDED_RELOAD
-        MENUITEM "&Save\tCtrl+S",               ID_WORLDED_SAVE
-        MENUITEM "Save A&ll",                   ID_WORLDED_SAVE_ALL
-        MENUITEM "Save &As...",                 ID_WORLDED_SAVE_AS
+        MENUITEM "&New\tCtrl+N",                ID_APP_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
+        MENUITEM "Reload",                      ID_APP_RELOAD
+        MENUITEM "&Save\tCtrl+S",               ID_APP_SAVE
+        MENUITEM "Save A&ll",                   ID_APP_SAVE_ALL
+        MENUITEM "Save &As...",                 ID_APP_SAVE_AS
         MENUITEM SEPARATOR
-        MENUITEM "&Print...\tCtrl+P",           ID_WORLDED_PRINT
-        MENUITEM "P&rint Setup...",             ID_WORLDED_PRINT_SETUP
+        MENUITEM "&Print...\tCtrl+P",           ID_APP_PRINT
+        MENUITEM "P&rint Setup...",             ID_APP_PRINT_SETUP
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -446,18 +453,26 @@ IDI_DOC_WAV             ICON                    "res\\QuestDesignerWav.ico"
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 244, 149
+IDD_ABOUTBOX DIALOGEX 0, 0, 403, 167
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About Quest Designer"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,180,123,50,14
-    CTEXT           "Quest Designer v0.5.0\nfor Open Zelda\n\nCopyright (C) 2003 by Kronuz",
-                    IDC_STATIC,14,34,215,32
-    ICON            IDR_MAINFRAME,IDC_STATIC,111,14,21,20
-    GROUPBOX        "",IDC_STATIC,7,7,230,110
-    LTEXT           "Portions of this software use:\n    CodeMax, Copyright 1997-2000 by Barry Allyn\n    and Small Compiler, Copyright (c) 1997-2002 by ITB CompuPhase",
-                    IDC_STATIC,13,85,219,26,WS_DISABLED
+    DEFPUSHBUTTON   "OK",IDOK,7,146,50,14
+    CTEXT           "Copyright (C) 2003. Germán Méndez Bravo (Kronuz)",
+                    IDC_STATIC,146,149,250,8
+    GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
+    GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
+    CTEXT           "Quest Designer v0.5.0\nfor Open Zelda",IDC_STATIC,7,122,
+                    132,17,0,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | ES_AUTOHSCROLL | 
+                    WS_VSCROLL
+    LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
+                    98,8
+    LTEXT           "Author e-mail:",IDC_STATIC,175,130,44,8
+    LTEXT           "Open Zelda Website:",IDC_STATIC,175,119,68,8
+    LTEXT           "http://www.openzelda.com",IDC_URL1_STATIC,259,119,88,8
+    PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,146,70,14
 END
 
 IDD_PROPERTIES DIALOGEX 0, 0, 360, 206
@@ -504,6 +519,24 @@ BEGIN
                     76,250,8
 END
 
+IDD_ACK DIALOGEX 0, 0, 268, 253
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Acknowledgments"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,109,232,50,14
+    LTEXT           "Portions of this software use:\n    CodeMax, Copyright 1997-2000 Barry Allyn,\n    CodeSense, Copyright 2000-2003 Nathan Lewis, and",
+                    IDC_STATIC,21,21,219,27
+    LTEXT           "    Small Compiler, Copyright (c) 1997-2002 ITB CompuPhase.\n    All rights reserved.\n\nZelda is a registered trademark of Nintendo of America Inc.",
+                    IDC_STATIC,21,44,219,36
+    LTEXT           "Code based in the conceptual design and original idea by Greg Denness.",
+                    IDC_STATIC,20,7,232,8
+    GROUPBOX        "Many Thanks to:",IDC_STATIC,15,83,239,142
+    EDITTEXT        IDC_THANKS_EDIT,24,94,222,124,ES_MULTILINE | 
+                    ES_AUTOHSCROLL | WS_VSCROLL
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -516,9 +549,19 @@ BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 237
+        RIGHTMARGIN, 396
+        VERTGUIDE, 139
+        VERTGUIDE, 146
         TOPMARGIN, 7
-        BOTTOMMARGIN, 142
+        BOTTOMMARGIN, 160
+    END
+
+    IDD_ACK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 261
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 246
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -542,7 +585,7 @@ BEGIN
     "X",            ID_CUT,                 VIRTKEY, CONTROL, NOINVERT
     "V",            ID_PASTE,               VIRTKEY, CONTROL, NOINVERT
     VK_INSERT,      ID_PASTE,               VIRTKEY, SHIFT, NOINVERT
-    "P",            ID_MAPED_PRINT,         VIRTKEY, CONTROL, NOINVERT
+    "P",            ID_APP_PRINT,           VIRTKEY, CONTROL, NOINVERT
     VK_BACK,        ID_UNDO,                VIRTKEY, ALT, NOINVERT
     "Z",            ID_UNDO,                VIRTKEY, CONTROL, NOINVERT
 END
@@ -607,6 +650,10 @@ STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "QuestDesigner"
     IDR_MDICHILD            "Open Zelda Document"
+END
+
+STRINGTABLE 
+BEGIN
     IDR_MDISCRIPTED         "Open Zelda Script"
     IDR_MDIMAPED            "Open Zelda Map"
     IDR_MDIWORLDED          "Open Zelda World"
@@ -616,7 +663,7 @@ END
 STRINGTABLE 
 BEGIN
     ID_POSITION_PANE        "Ln: 9999, Col: 9999"
-    ID_OVERTYPE_PANE        "9999%"
+    ID_OVERTYPE_PANE        " OVR "
     ID_READONLY_PANE        "READ"
     ID_ICON_PANE            "ICI"
 END
@@ -627,9 +674,17 @@ BEGIN
     ID_APP_CLOSE            "Close the active project.\nClose Project"
     ID_APP_HELP             "Quest Designer Help Files.\nHelp"
     ID_APP_MAPED            "Show a map editor.\nOpen Map Editor"
-    ID_APP_NEW              "Create a New Quest Project.\nNew Quest"
-    ID_APP_OPEN             "Open a Quest Project.\nOpen Quest"
-    ID_APP_SAVE             "Save the Quest Project.\nSave Quest"
+    ID_APP_NEW              "Create a new document\nNew"
+    ID_APP_OPEN             "Open an existent document.\nOpen"
+    ID_APP_PREFERENCES      "Open Zelda and Quest Designer Preferences.\nPreferences"
+    ID_APP_PRINT            "Print current document.\nPrint"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_APP_PRINT_SETUP      "Change the printer and printing options.\nPrint Setup"
+    ID_APP_PRINT_PREVIEW    "Display full pages.\nPrint Preview"
+    ID_APP_SAVE_ALL         "Save all open files.\nSave All"
     ID_APP_SPTSHTED         "Show a sprite sheet editor.\nOpen Sprite Sheet Editor"
     ID_APP_STATUS_BAR       "Show or hide the status bar.\nToggle StatusBar"
     ID_APP_STOPBUILD        "Stop building the Quest File.\nCancel Build"
@@ -639,22 +694,66 @@ END
 
 STRINGTABLE 
 BEGIN
-    ID_SCRIPTED_NEW         "Create a new script file.\nNew Script"
-    ID_MAPED_OPEN           "Open an existing document.\nOpen"
-    ID_SCRIPTED_PAGE_SETUP  "Change the printing options.\nPage Setup"
-    ID_PASTE                "Insert Clipboard contents.\nPaste"
-    ID_MAPED_PRINT          "Print current script.\nPrint"
-    ID_SCRIPTED_PRINT_PREVIEW "Display full pages.\nPrint Preview"
-    ID_MAPED_PRINT_SETUP    "Change the printer and printing options.\nPrint Setup"
+    ID_APP_SAVE             "Save the active document\nSave"
+    ID_APP_SAVE_AS          "Save the active document with a new name.\nSave As"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_SCRIPTED_FIND_NEXT   "Finds the next occurance of the specified text.\nFind Next"
+    ID_SCRIPTED_FIND_PREV   "Finds the previous occurance of the specified text.\nFind Previous"
+    ID_SCRIPTED_FIND_SELECTION 
+                            "Find the next occurrence of the selected text.\nFind Selection"
+    ID_SCRIPTED_GOTO_LINE   "Move to the specified line number.\nGoto Line"
+    ID_SCRIPTED_GOTO_NEXT_BOOKMARK 
+                            "Go to the next bookmark in the active document.\nNext Bookmark"
+    ID_SCRIPTED_GOTO_PREV_BOOKMARK 
+                            "Go to the previous bookmark in the active document.\nPrevious Bookmark"
+    ID_SCRIPTED_LOWERCASE   "Change selection to lower case.\nMake Lower"
+    ID_SCRIPTED_MATCH_BRACE "Finds the matching brace.\nMatch Brace"
     ID_SCRIPTED_READ_ONLY   "Sets the current documment as read-only.\nRead Only"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_MAPED_OBJUP          "Move selected objects up in their sub-layer.\nMove To Top"
+    ID_MAPED_PLAYER         "Select player start location.\nStart Location"
+    ID_MAPED_RULE           "Togle top and left rules.\nRules"
+    ID_MAPED_SELECT         "Togle multiple object selection mode.\nMultiple Selection Mode"
+    ID_MAPED_SELECT_ALL     "Select all objects in the map.\nSelect All"
+    ID_MAPED_SELECT_NONE    "Deselect all selections.\nSelect None"
+    ID_MAPED_TOBOTTOM       "Send selected objects to the bottom of their sub-layer.\nSend To Bottom"
+    ID_MAPED_TOTOP          "Bring selected objects to the top of their sub-layer.\nBring To Top"
+    ID_MAPED_ZOOMIN         "Zoom in.\nZoom In"
+    ID_MAPED_ZOOMOUT        "Zoom out.\nZoom Out"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_ERASE                "Erase the selection.\nErase"
+    ID_SCRIPTED_CLEAR_ALL   "Erase everything.\nErase All"
+    ID_COPY                 "Copy the selection and put it on the Clipboard.\nCopy"
+    ID_CUT                  "Cut the selection and put it on the Clipboard.\nCut"
+    ID_SCRIPTED_FIND        "Find the specified text.\nFind"
+    ID_PASTE                "Insert Clipboard contents.\nPaste"
+    ID_SCRIPTED_REPEAT      "Repeat the last action.\nRepeat"
+    ID_SCRIPTED_REPLACE     "Replace specific text with different text.\nReplace"
+    ID_SCRIPTED_SELECT_ALL  "Select the entire document.\nSelect All"
+    ID_UNDO                 "Undo the last action\nUndo"
     ID_REDO                 "Redo the previously undone action.\nRedo"
-    ID_MAPED_SAVE           "Save the active document.\nSave"
-    ID_MAPED_SAVE_ALL       "Save all open scripts.\nSave All"
-    ID_SCRIPTED_SAVE_AS     "Save the active document with a new name.\nSave As"
+END
+
+STRINGTABLE 
+BEGIN
     ID_SCRIPTED_SHOW_WHITE_SPACE 
                             "Shows or hides tab characters.\nShow Whitespace"
     ID_SCRIPTED_TAB         "Indents the selected text right one tab stop.\nIndent Selection"
     ID_SCRIPTED_TABIFY      "Replaces spaces with tabs in the selection.\nTabify Selection"
+    ID_SCRIPTED_TOGGLE_BOOKMARK 
+                            "Toggle a bookmark on the current line.\nToggle Bookmark"
+    ID_SCRIPTED_UNTAB       "Unindents the selected text one tab stop.\nUnindent Selection"
+    ID_SCRIPTED_UNTABIFY    "Replaces tabs with spaces in the selection.\nUntabify Selection"
+    ID_SCRIPTED_UPPERCASE   "Change selection to upper case.\nMake Upper"
 END
 
 STRINGTABLE 
@@ -677,21 +776,6 @@ BEGIN
     ID_WINDOW_TILE_HORZ     "Arrange windows as non-overlapping tiles.\nTile Windows"
     ID_WINDOW_TILE_VERT     "Arrange windows as non-overlapping tiles.\nTile Windows"
     ID_WINDOW_SPLIT         "Split the active window into panes.\nSplit"
-END
-
-STRINGTABLE 
-BEGIN
-    ID_SCRIPTED_TOGGLE_BOOKMARK 
-                            "Toggle a bookmark on the current line.\nToggle Bookmark"
-    ID_UNDO                 "Undo the last action\nUndo"
-    ID_SCRIPTED_UNTAB       "Unindents the selected text one tab stop.\nUnindent Selection"
-    ID_SCRIPTED_UNTABIFY    "Replaces tabs with spaces in the selection.\nUntabify Selection"
-    ID_SCRIPTED_UPPERCASE   "Change selection to upper case.\nMake Upper"
-    ID_SCRIPTED_SELECT_ALL  "Select the entire document.\nSelect All"
-    ID_SCRIPTED_FIND        "Find the specified text.\nFind"
-    ID_SCRIPTED_REPLACE     "Replace specific text with different text.\nReplace"
-    ID_SCRIPTED_CLEAR_ALL   "Erase everything.\nErase All"
-    ID_SCRIPTED_REPEAT      "Repeat the last action.\nRepeat"
 END
 
 STRINGTABLE 
@@ -730,30 +814,26 @@ END
 
 STRINGTABLE 
 BEGIN
-    ID_MAPED_NEW            "Create a new map on the quest.\nNew Map"
-    ID_MAPED_PLAYER         "Select player start location.\nStart Location"
+    ID_MAPED_ARROW          "Togle single object selection mode.\nSingle Selection Mode"
+    ID_MAPED_BOUNDS         "Show or hide every object's boundaries.\nToggle Boundaries"
+    ID_MAPED_C90            "Rotate selected objects 90º in clockwise direction.\nRotate Clockwise 90º"
+    ID_MAPED_CC90           "Rotate selected objects 90º in counter-clockwise direction.\nRotate Counter-clockwise 90º"
+    ID_MAPED_EQSIZE         "Resize all selected objects to the size of the first one selected.\nMatch Size"
+    ID_MAPED_EQXSIZE        "Horizontally resize all selected objects to the size of the first one selected.\nMatch Horizontal Size"
+    ID_MAPED_EQYSIZE        "Vertically resize all selected objects to the size of the first one selected.\nMatch Vertical Size"
+    ID_MAPED_FLIP           "Flip selected objects.\nFlip"
+    ID_MAPED_GRID           "Show or hide the map grid.\nToggle Grid"
+    ID_MAPED_GRIDSNAP       "Snap to grid.\nSnap to Grid"
+    ID_MAPED_MASK           "Show or hide every object's mask.\nToggle Mask"
+    ID_MAPED_MIRROR         "Mirror selected objects.\nMirror"
+    ID_MAPED_NOZOOM         "Zoom back to 100%.\nNo Zoom"
+    ID_MAPED_OBJDWN         "Move selected objects down in their sub-layer.\nMove Down"
 END
 
 STRINGTABLE 
 BEGIN
-    ID_MAPED_ZOOMIN         "Zoom in.\nZoom In"
-    ID_MAPED_ZOOMOUT        "Zoom out.\nZoom Out"
     ID_SCRIPTED_CLEAR_ALL_BOOKMARKS 
                             "Clear all bookmark in the active document.\nClear All Bookmarks"
-    ID_COPY                 "Copy the selection and put it on the Clipboard.\nCopy"
-    ID_CUT                  "Cut the selection and put it on the Clipboard.\nCut"
-    ID_ERASE                "Erase the selection.\nErase"
-    ID_SCRIPTED_FIND_NEXT   "Finds the next occurance of the specified text.\nFind Next"
-    ID_SCRIPTED_FIND_PREV   "Finds the previous occurance of the specified text.\nFind Previous"
-    ID_SCRIPTED_FIND_SELECTION 
-                            "Find the next occurrence of the selected text.\nFind Selection"
-    ID_SCRIPTED_GOTO_LINE   "Move to the specified line number.\nGoto Line"
-    ID_SCRIPTED_GOTO_NEXT_BOOKMARK 
-                            "Go to the next bookmark in the active document.\nNext Bookmark"
-    ID_SCRIPTED_GOTO_PREV_BOOKMARK 
-                            "Go to the previous bookmark in the active document.\nPrevious Bookmark"
-    ID_SCRIPTED_LOWERCASE   "Change selection to lower case.\nMake Lower"
-    ID_SCRIPTED_MATCH_BRACE "Finds the matching brace.\nMatch Brace"
 END
 
 STRINGTABLE 
@@ -764,43 +844,17 @@ BEGIN
     ID_MAPED_ALLEFT         "Align all selected objects to the left of the first selected one.\nAlign Left"
     ID_MAPED_ALRIGHT        "Align all selected objects to the right of the first selected one.\nAlign Right"
     ID_MAPED_ALTOP          "Align all selected objects to the top of the first selected one.\nAlign Top"
-    ID_MAPED_ARROW          "Togle single object selection mode.\nSingle Selection Mode"
-    ID_MAPED_BOUNDS         "Show or hide every object's boundaries.\nToggle Boundaries"
-    ID_MAPED_C90            "Rotate selected objects 90º in clockwise direction.\nRotate Clockwise 90º"
-    ID_MAPED_CC90           "Rotate selected objects 90º in counter-clockwise direction.\nRotate Counter-clockwise 90º"
-    ID_MAPED_EQSIZE         "Resize all selected objects to the size of the first one selected.\nMatch Size"
-    ID_MAPED_EQXSIZE        "Horizontally resize all selected objects to the size of the first one selected.\nMatch Horizontal Size"
-    ID_MAPED_EQYSIZE        "Vertically resize all selected objects to the size of the first one selected.\nMatch Vertical Size"
 END
 
 STRINGTABLE 
 BEGIN
-    ID_MAPED_FLIP           "Flip selected objects.\nFlip"
-    ID_MAPED_GRID           "Show or hide the map grid.\nToggle Grid"
-    ID_MAPED_GRIDSNAP       "Snap to grid.\nSnap to Grid"
-    ID_MAPED_MIRROR         "Mirror selected objects.\nMirror"
-    ID_MAPED_NOZOOM         "Zoom back to 100%.\nNo Zoom"
-    ID_MAPED_OBJDWN         "Move selected objects down in their sub-layer.\nMove Down"
-    ID_MAPED_OBJUP          "Move selected objects up in their sub-layer.\nMove To Top"
-    ID_MAPED_RULE           "Togle top and left rules.\nRules"
-    ID_MAPED_SELECT         "Togle multiple object selection mode.\nMultiple Selection Mode"
-    ID_MAPED_SELECT_ALL     "Select all objects in the map.\nSelect All"
-    ID_MAPED_SELECT_NONE    "Deselect all selections.\nSelect None"
-    ID_MAPED_TOBOTTOM       "Send selected objects to the bottom of their sub-layer.\nSend To Bottom"
-    ID_MAPED_TOTOP          "Bring selected objects to the top of their sub-layer.\nBring To Top"
-END
-
-STRINGTABLE 
-BEGIN
-    ID_APP_CONFIG           "Open Zelda and Quest Designer Preferences.\nPreferences"
-    ID_MAPED_MASK           "Show or hide every object's mask.\nToggle Mask"
-END
-
-STRINGTABLE 
-BEGIN
-    ID_APP_SAVEALL          "Save all open files.\nSave All"
-    ID_APP_PRINT            "Print current document.\nPrint"
     ID_PROJECT_OPEN         "Open a Game Project.\nOpen Game"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_QUEST_OPEN           "Open a Quest Project.\nOpen Quest"
+    ID_QUEST_NEW            "Create a New Quest Project.\nNew Quest"
 END
 
 #endif    // Inglés (Estados Unidos) resources

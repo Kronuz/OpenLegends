@@ -126,6 +126,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 		WS_CHILD | WS_VISIBLE | WS_VSCROLL |
 		CBS_DROPDOWNLIST | CBS_HASSTRINGS,
 		0, ID_MAPED_LAYER );
+	m_bLayers = TRUE;
 	 
 	m_Layers.SetFont(AtlGetDefaultGuiFont());
 	m_Layers.SetParent(hMapEdToolBar);
@@ -179,12 +180,6 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	UISetCheck(ID_APP_MAPED, FALSE);
 	UISetCheck(ID_APP_SPTSHTED, FALSE);
 
-	UIEnableToolbar(FALSE);
-
-	// Update all the toolbar items
-	UIUpdateToolBar();
-
-	UIEnableToolbar(TRUE);
 	UIUpdateMenuItems();
 
 	// register object for message filtering and idle updates
@@ -273,6 +268,7 @@ void CMainFrame::InitializeDefaultPanes()
 	//////////////////////// Third Pane:
 
 	m_GameProject.Create(m_hWnd);
+	m_GameProject.m_pMainFrame = this;
 	m_Quest.Create(m_hWnd);
 	m_SpriteSets.Create(m_hWnd);
 	m_SpriteSets.InitDragDrop();
@@ -376,22 +372,30 @@ LRESULT CMainFrame::OnProjectOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWn
 	if(!CProjectFactory::Interface(m_hWnd)->Close()) {
 		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
 		if(nChoice == IDYES) {
-			if(!CProjectFactory::Interface(m_hWnd)->Save()) {
+			if(!CProjectFactory::Interface()->Save()) {
 				MessageBox("Couldn't save!");
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		CProjectFactory::Interface(m_hWnd)->Close(true);
+		CProjectFactory::Interface()->Close(true);
 	} 
+
+	UIEnableToolbar(FALSE);
+	// Update all the toolbar items
+	UIUpdateToolBar();
+	UpdateWindow();
 
 	::SendMessage(m_GameProject, WM_SETREDRAW, FALSE, 0);
 	g_sHomeDir = "C:\\qd\\Quest Designer 2.1.4\\";
-	CProjectFactory::Interface(m_hWnd)->Load(g_sHomeDir);
+	CProjectFactory::Interface()->Load(g_sHomeDir);
 	::SendMessage(m_GameProject, WM_SETREDRAW, TRUE, 0);
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 	m_SpriteSets.PopulateTree(g_sHomeDir + "Sprite Sets");
+
+	UIEnableToolbar(TRUE);
+
 	return 0;
 }
 
@@ -496,7 +500,7 @@ LRESULT CMainFrame::OnWindowArrangeIcons(WORD /*wNotifyCode*/, WORD /*wID*/, HWN
 LRESULT CMainFrame::OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 //	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
-	CProjectFactory::Instance()->StartBuild();
+	CProjectFactory::Instance(m_hWnd)->StartBuild();
 	return 0;
 }
 
@@ -570,17 +574,17 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
-	if(!CProjectFactory::Interface(m_hWnd)->CloseWorld()) {
+	if(!CProjectFactory::Interface()->CloseWorld()) {
 		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
 		if(nChoice == IDYES) {
-			if(!CProjectFactory::Interface(m_hWnd)->SaveWorld()) {
+			if(!CProjectFactory::Interface()->SaveWorld()) {
 				MessageBox("Couldn't save!");
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		CProjectFactory::Interface(m_hWnd)->CloseWorld(true);
+		CProjectFactory::Interface()->CloseWorld(true);
 	} 
 	CProjectFactory::Interface()->LoadWorld(szFilename);
 
@@ -631,11 +635,11 @@ void CMainFrame::UIUpdateMenuItems()
 	_child_type ActiveChildType = tAny;
 	CChildFrame *pChildFrame;
 	HWND hWndMDIActive = MDIGetActive();
-	int OpenScripts=0;
+	int nChanges = 0;
 	for(int i=0; i<m_ChildList.GetSize(); i++) {
 		pChildFrame = m_ChildList[i];
-		if(pChildFrame->m_ChildType == tScriptEditor) OpenScripts++;
-		if(pChildFrame->m_hWnd==hWndMDIActive) ActiveChildType=tScriptEditor;
+		if(pChildFrame->hasChanged()) nChanges++;
+		if(pChildFrame->m_hWnd==hWndMDIActive) ActiveChildType = pChildFrame->m_ChildType;
 	}
 	
 	int nChildWindows = m_ChildList.GetSize();
@@ -649,13 +653,19 @@ void CMainFrame::UIUpdateMenuItems()
 
 	UISetCheck(ID_APP_WORLDED, CountChilds(tWorldEditor));
 
+	if( ActiveChildType!=tMapEditor ) {
+		m_Layers.EnableWindow(FALSE);
+		m_bLayers = FALSE;
+	}
+
 	if( ActiveChildType!=tScriptEditor ) {
-		UIEnable(ID_SCRIPTED_RELOAD, FALSE);
-		UIEnable(ID_SCRIPTED_SAVE, FALSE);
-		UIEnable(ID_SCRIPTED_SAVE_ALL, FALSE);
-		UIEnable(ID_SCRIPTED_SAVE_AS, FALSE);
-		UIEnable(ID_SCRIPTED_PRINT, FALSE);
-		UIEnable(ID_SCRIPTED_PRINT_SETUP, FALSE);
+		UIEnable(ID_APP_SAVE, FALSE);
+		UIEnable(ID_APP_SAVE_ALL, FALSE);
+		UIEnable(ID_APP_SAVE_AS, FALSE);
+
+		UIEnable(ID_APP_RELOAD, FALSE);
+		UIEnable(ID_APP_PRINT, FALSE);
+		UIEnable(ID_APP_PRINT_SETUP, FALSE);
 
 		UIEnable(ID_UNDO, FALSE);
 		UIEnable(ID_REDO, FALSE);	
@@ -663,6 +673,10 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_COPY, FALSE);
 		UIEnable(ID_PASTE, FALSE);
 		UIEnable(ID_ERASE, FALSE);
+
+		UIEnable(ID_SCRIPTED_CODELIST, FALSE );
+		UIEnable(ID_SCRIPTED_CODETIP1, FALSE );
+		UIEnable(ID_SCRIPTED_CODETIP2, FALSE );
 
 		UIEnable(ID_SCRIPTED_TAB, FALSE);
 		UIEnable(ID_SCRIPTED_UNTAB, FALSE);
@@ -684,12 +698,11 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_SCRIPTED_GOTO_PREV_BOOKMARK, FALSE);
 		UIEnable(ID_SCRIPTED_CLEAR_ALL_BOOKMARKS, FALSE);
 	} 
-	else {
-		if(OpenScripts > 1) {
-			UIEnable(ID_SCRIPTED_SAVE_ALL, TRUE);
-		} else {
-			UIEnable(ID_SCRIPTED_SAVE_ALL, FALSE);
-		}
+
+	if(nChanges > 1) {
+		UIEnable(ID_APP_SAVE_ALL, TRUE);
+	} else {
+		UIEnable(ID_APP_SAVE_ALL, FALSE);
 	}
 
 }
@@ -701,4 +714,6 @@ void CMainFrame::UIEnableToolbar(BOOL bEnable)
 		UIEnable(pMap->m_nID, bEnable);
 		pMap++;
 	}
+	m_Layers.EnableWindow(bEnable);
+	m_bLayers = bEnable;
 }

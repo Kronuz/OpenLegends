@@ -52,17 +52,12 @@ LRESULT COutputBox::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPara
 	CMenu menu;
 	if(!menu.CreatePopupMenu())
 		return 0;
-	menu.AppendMenu(MF_STRING, 1, "Clear");
+	menu.AppendMenu(MF_STRING, 1, "Copy");
 	menu.AppendMenu(MF_SEPARATOR);
-	menu.AppendMenu(MF_STRING, 2, "Copy");
+	menu.AppendMenu(MF_STRING, 2, "Clear All");
+	menu.AppendMenu(MF_STRING, 3, "Select All");
 	int nCmd = menu.TrackPopupMenu(TPM_RETURNCMD,LOWORD(lParam),HIWORD(lParam),m_hWnd);
 	if(nCmd == 1) {
-		SetRedraw(FALSE);
-		SetSel(0,-1);
-		ReplaceSel("");
-		SetRedraw(TRUE);
-		RedrawWindow();
-	} else if(nCmd == 2) {
 		long nStartChar, nEndChar;
 		SetRedraw(FALSE);
 		GetSel(nStartChar, nEndChar);
@@ -70,6 +65,15 @@ LRESULT COutputBox::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPara
 		Copy();
 		SetSel(nStartChar, nEndChar);
 		SetRedraw(TRUE);
+		RedrawWindow();
+	} else if(nCmd == 2) {
+		SetRedraw(FALSE);
+		SetSel(0,-1);
+		ReplaceSel("");
+		SetRedraw(TRUE);
+		RedrawWindow();
+	} else if(nCmd == 3) {
+		SetSel(0,-1);
 		RedrawWindow();
 	}
 
