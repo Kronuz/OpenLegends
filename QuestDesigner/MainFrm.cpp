@@ -98,7 +98,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	}	
 
 	AddSimpleReBarBand(hWndCmdBar);
-	AddSimpleReBarBand(hScriptToolBar, NULL, TRUE, 400);
+	AddSimpleReBarBand(hScriptToolBar, NULL, TRUE, 385);
 	AddSimpleReBarBand(hViewsToolBar, NULL, FALSE);
 
 	// create a status bar

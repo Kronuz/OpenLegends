@@ -70,19 +70,34 @@ public:
 class CDrawableContext
 {
 protected:
-	CPoint m_Position;
 	IDrawableObject *m_pDrawableObj;
+	DWORD m_dwStatus;
+	CPoint m_Position;		//!< object position.
 
 	CDrawableContext() : m_pDrawableObj(NULL) {}
 public:
 	virtual ~CDrawableContext();
 
-	virtual void MoveTo(POINT NewPos) = 0; //!< Moves the sprite
-	virtual void SetStatus(DWORD Flags) = 0;
+	//! Moves the object to a new position.
+	void MoveTo(POINT NewPos) {
+		m_Position = NewPos;
+	}
+	//! Gets the object's current position.
+	POINT GetPosition() {
+		return m_Position;
+	}
+	//! Sets extra status flags.
+	void SetStatus(DWORD dwStatus) {
+		m_dwStatus = dwStatus;
+	}
+	//! Gets the current status flags.
+	DWORD GetStatus() {
+		return m_dwStatus;
+	}
+	virtual bool Draw() = 0;
 
 	void SetDrawableObj(IDrawableObject *pDrawableObj) { m_pDrawableObj = pDrawableObj; }
 	IDrawableObject* GetDrawableObj() { return m_pDrawableObj; }
-
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -192,7 +207,7 @@ interface IDocumentObject
 		\sa Save()
 	*/
 	virtual bool Load(LPCSTR szFile) {
-		ATLASSERT(m_ArchiveIn);
+		ASSERT(m_ArchiveIn);
 		return m_ArchiveIn->ReadObject(szFile);
 	}
 
@@ -202,7 +217,7 @@ interface IDocumentObject
 		\sa Load()
 	*/
 	virtual bool Save(LPCSTR szFile) {
-		ATLASSERT(m_ArchiveOut);
+		ASSERT(m_ArchiveOut);
 		return m_ArchiveOut->WriteObject(szFile);
 	}
 

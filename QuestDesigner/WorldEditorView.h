@@ -82,5 +82,5 @@ public:
 	void DoPaint(CDCHandle dc);
 
 	void UpdateMouse(CPoint point);
-	void ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap);
+	bool ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap);
 };
