@@ -1397,9 +1397,42 @@ inline bool CDrawableSelection::BeginPaint(IGraphics *pGraphicsI, WORD wFlags)
 {
 	ASSERT(m_ppMainDrawable);
 	if(!*m_ppMainDrawable) return false;
+
+	static bool bret = false;
+	static DWORD qq = GetTickCount();
+	static float fAux = 1.00f;
 	CSprite::SetShowOptions(wFlags);
+
+	ARGBCOLOR argb = COLOR_ARGB((int)(255.0f*(0.5f+(fAux/2.0f))), 128, 128, 128);
+
+	int move = (int)(400.0f - 800.0f * fAux);
+	DWORD color = ::GetSysColor(COLOR_APPWORKSPACE);
+	pGraphicsI->SetFilterBkColor(COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)));
+	pGraphicsI->SetFilter(Alpha, &COLOR_ARGB(255,128,128,128));
+
+	float pixelate = 17.0f - 16.0f * fAux;
+	pGraphicsI->SetFilter(Pixelate, &pixelate);
+	//pGraphicsI->SetFilter(Alpha, &argb);
+	//pGraphicsI->SetFilter(HorzMove, &move);
 	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
-	if(pGraphicsI->BeginPaint()) return true;
+	if(pGraphicsI->BeginPaint()) {
+
+	if(GetTickCount() > qq + 60) {
+		qq = GetTickCount();
+		if(bret) fAux /= 0.8f;
+		else fAux *= 0.8f;
+		if(fAux<0.025f) {
+			fAux = 0.025f;
+			bret = true;
+		} else if(fAux>1.0f) {
+			fAux = 1.0f;
+			qq+=2000;
+			bret = false;
+		}
+	}
+	return true;
+	}
+
 	return false;
 }
 inline bool CDrawableSelection::EndPaint(IGraphics *pGraphicsI)
@@ -1409,10 +1442,10 @@ inline bool CDrawableSelection::EndPaint(IGraphics *pGraphicsI)
 inline bool CDrawableSelection::DrawAll(IGraphics *pGraphicsI)
 {
 	bool bRet = true;
-
 	if(m_bHoldSelection) bRet &= (*m_ppMainDrawable)->DrawSelectedH(pGraphicsI);
 	else bRet &= (*m_ppMainDrawable)->Draw(pGraphicsI);
-	bRet &= pGraphicsI->DrawFrame();
+	pGraphicsI->FlushFilters(true);
+	pGraphicsI->SetFilter(ClearFilters, NULL);
 
 	if(m_bShowGrid) 
 		bRet &= pGraphicsI->DrawGrid(16, COLOR_ARGB(100,0,0,255));
@@ -1423,10 +1456,10 @@ inline bool CDrawableSelection::DrawAll(IGraphics *pGraphicsI)
 	// Get the current layer's size and draw a frame around it:
 	CRect Rect;
 	(*m_ppMainDrawable)->GetChild(m_nLayer)->GetRect(Rect);
-	pGraphicsI->SelectingBox(Rect, COLOR_ARGB(128, 0, 255, 0)); 
+	if(!Rect.IsRectEmpty()) pGraphicsI->SelectingBox(Rect, COLOR_ARGB(128, 0, 255, 0)); 
 
 	bRet &= Draw(pGraphicsI);
-		
+
 	return bRet;
 }
 bool CDrawableSelection::SetClip(const CRect *pRect, ARGBCOLOR rgbColor)

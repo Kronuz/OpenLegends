@@ -169,6 +169,8 @@ inline ARGBCOLOR HSL2RGB(AHSLCOLOR hslColor)
 	return rgbColor;
 }
 
+enum GpxFilters { ClearFilters, EnableFilters, Pixelate, Colorize, Alpha, HorzMove, VertMove };
+
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IBuffer
 	\brief		Interface for the textures.
@@ -357,7 +359,7 @@ interface IGraphics
 	*/
 	virtual void GetWorldRect(RECT *Rect_) const = 0;
 	virtual void GetWorldPosition(POINT *Point_) const = 0;
-	virtual void SetWorldPosition(POINT &Point_) = 0;
+	virtual void SetWorldPosition(const POINT *Point_) = 0;
 
 	virtual void WorldToView(POINT *Point_) const = 0;
 	virtual void WorldToView(RECT *Rect_) const = 0;
@@ -391,9 +393,6 @@ interface IGraphics
 	*/
 	virtual bool BeginPaint() = 0;
 
-	//! Draws the frame for all objects in the world (current clipping)
-	virtual bool DrawFrame() = 0;
-
 	//! Draws a clipping frame with the given clipping rectangle and color
 	virtual bool DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLOR rgbBoundaries) = 0;
 
@@ -416,7 +415,12 @@ interface IGraphics
 	virtual bool BeginCapture(RECT *rectDesired, float zoom) = 0;
 	virtual bool EndCapture(WORD *pDest, RECT &rcPortion, RECT &rcFull) = 0;
 
+	// Sets the background color.
 	virtual void SetClearColor(ARGBCOLOR rgbColor) = 0;
+
+	// Sets the Filter Background clear color *and* the Clear color to the desired rgbColor:
+	// SetClearColor Should be used again after this call to change the Clear Color value.
+	virtual void SetFilterBkColor(ARGBCOLOR rgbColor) = 0;
 
 	virtual void SetFont(LPCSTR lpFont, int CharHeight, ARGBCOLOR rgbColor, LONG Weight) = 0;
 	virtual void DrawText(const POINT &pointDest, LPCSTR lpString, ...) const = 0;
@@ -526,6 +530,46 @@ interface IGraphics
 	// scale tells if the texture must be rescaled from the source file, either at load time or at render time.
 	virtual bool CreateTextureFromFile(LPCSTR filename, ITexture **texture, float scale) const = 0;
 	virtual bool CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcData, UINT SrcData, ITexture **texture, float scale) const = 0;
+
+	// 
+	/*! \brief Sets and configures the filters for the next render.
+
+		\param eFilter Filter to use.
+		\param vParam Parameter of the filter. 
+
+		\return Returns true if the filter was successfully applied.
+
+		\remarks 
+		eFilter can be:
+			* Clear			To clear all filters (vParam is not used and must be set to NULL)
+
+			* Pixelate		Where vParam is an integer stating the width or height 
+							of the resulting pixels in the pixelated scene.
+
+			* Alpha or		Where vParam is an ARGB color satating the desired Alpha and the RGB
+			  Colorize		values of the colorization. if the RGB components are (128, 128, 128)
+							no colorization is applied and only the alpha is used.
+
+			* HorzMove		Where vParam is an integer stating the horizontal displacement of
+							everything to be drawn before painting it to the screen.
+
+			* VertMove		Where vParam is an integer stating the Vertical displacement of
+							everything to be drawn before painting it to the screen.
+
+		If any filter is going to be used, at least the first filter should be set before
+		the call to BeginPaint(). Further filters can be set any time after BeginPaint() call.
+		If a filter is set, that filter is kept until it is overwritten or the filters are cleared.
+
+		\sa SetClearColor(), SetFilterBkColor(), BeginPaint()
+	*/
+	virtual bool SetFilter(GpxFilters eFilter, void *vParam) = 0;
+
+	// Flushes the filters, drawing everything to the back buffer. Returns false if no filters
+	// where set before the call to BeginPaint(). If bClear is true, the background is cleared before
+	// painting using the color set by the call to SetFilterBkColor() or (0,0,0)
+	// bClear should only be set to true on the first flush, otherwise the clear would cover 
+	// previously flushed filters.
+	virtual bool FlushFilters(bool bClear) = 0;
 
 	// Sets the console for the interface. All messages will be sent to that console.
 	virtual void SetConsole(IConsole *pConsole) = 0;

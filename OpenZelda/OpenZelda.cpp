@@ -431,7 +431,7 @@ void OnSize()
 	g_pGraphicsI->GetWorldRect(&rcClip);
 	g_pGraphicsI->SetWindowView(g_hWnd, fZoom, &rcWindow, &rcClip);
 
-	g_pGraphicsI->SetWorldPosition(Point);
+	g_pGraphicsI->SetWorldPosition(&Point);
 }
 
 HRESULT LoadGame(LPCSTR szQuest)
@@ -541,8 +541,29 @@ void Render()
 		// 2. DRAW THE WORLD
 		// wait until we are allowed to paint something (during debug or after running all the scripts):
 		if(g_bDebug) WaitForSingleObject(g_hSemaphore, INFINITE);
+		
+		// **** This should be set by the user in the scripts:
+		g_pGraphicsI->SetFilterBkColor(COLOR_RGB(0,0,0));
+
+		// Select the background color of the map (the first map when wiping):
+		g_pGraphicsI->SetClearColor(g_pMapGroupI->GetBkColor());
+
+		// Begin Painting:
 		if(g_pGraphicsI->BeginPaint()) {
+			// Draw the first map:
 			g_pMapGroupI->Draw(g_pGraphicsI);
+
+			// flush the first map or filters to the back buffer:
+			g_pGraphicsI->FlushFilters(true);
+
+			//If wiping, set the filters for the second map, 
+			//select the background color of the second map, and draw the second map:
+			//g_pGraphicsI->SetFilter();
+			//g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
+			//g_pSecondMapGroupI->Draw(g_pGraphicsI);
+
+			bool bFilters = g_pGraphicsI->SetFilter(EnableFilters, false);
+			// Draw information about the frame rate and other things:
 			g_pGraphicsI->DrawText(CPoint(10,10), COLOR_ARGB(255,255,255,255), "%4.1f fps", fps);
 			if(g_bDebug) {
 				if(g_bRunningScripts) {
@@ -552,6 +573,9 @@ void Render()
 					g_pGraphicsI->DrawText(CPoint(10,25), COLOR_ARGB(255,255,225,128), "Start the debugger now! (%d seconds left)", nTimeLeft/1000);
 				}
 			}
+			g_pGraphicsI->SetFilter(EnableFilters, (void*)bFilters);
+
+			// End painting:
 			g_pGraphicsI->EndPaint();
 		}
 
@@ -560,6 +584,7 @@ void Render()
 		// check if a compete frame has been drawn (without debugging in the middle):
 		if(!g_bRunningScripts) {
 			g_bClearToGo = true;
+
 			// if so, delete temporary stuff, such as primitives, temporary sprites, 
 			// and marked-as-deleted sprites.
 			g_pMapGroupI->CleanTemp();

@@ -364,7 +364,7 @@ public:
 	LRESULT OnWindowArrangeIcons();
 
 	int OnSaveAll();
-	HRESULT OnBuildProject();
+	HRESULT OnBuildProject(bool bForce = true);
 	HRESULT OnRunProject();
 	HRESULT OnStopBuild();
 

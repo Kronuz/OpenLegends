@@ -759,7 +759,7 @@ HRESULT CMainFrame::OnRunProject()
 	// Try connecting to an already open "Open Zelda" with an active debugger
 	SOCKET s = Connect("localhost", 7683, Dispatch, Request);
 	if(s == INVALID_SOCKET) {
-		if(OnBuildProject() == 1) {
+		if(OnBuildProject(false) == 1) {
 			CONSOLE_PRINTF("Debugger error: Couldn't build the quest!\n");
 		}
 		// Get the Open Zelda's exe path
@@ -802,12 +802,12 @@ HRESULT CMainFrame::OnRunProject()
 
 	return S_OK;
 }
-HRESULT CMainFrame::OnBuildProject()
+HRESULT CMainFrame::OnBuildProject(bool bForce)
 {
 //	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
 	int nSaved = OnSaveAll();
 	if(nSaved<0) return E_FAIL;
-	if(nSaved > 0) m_pProjectFactory->StartBuild();
+	if(nSaved > 0 || bForce) m_pProjectFactory->StartBuild();
 	OnIdle(); // Force idle processing to update the toolbar.
 	return S_OK;
 }

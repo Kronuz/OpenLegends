@@ -111,6 +111,54 @@ static cell AMX_NATIVE_CALL UpdateWorldCo(AMX *amx, cell *params)
 	CGameManager::UpdateWorldCo(params[1], params[2]);
 	return 0;
 }
+static cell AMX_NATIVE_CALL SetFilter(AMX *amx, cell *params)
+{
+	GpxFilters eFilter = (GpxFilters)params[1];
+	void *vParam = NULL;
+	ARGBCOLOR rgbColor;
+	int nAux;
+	float fAux;
+
+	cell *args[10];
+	// get the number of parameters:
+	int num = min((int)(params[0]/sizeof(cell))-1, 10);
+	for(int i=0; i<num; i++) {
+		amx_GetAddr(amx, params[i+2], &args[i]);
+	}
+
+	switch(eFilter) {
+		case EnableFilters:
+		case ClearFilters:
+			if(num != 0) return 1;
+			break;
+		case Pixelate:
+			if(num != 1) return 1;
+			fAux = fConvertCellToFloat(*args[0]);
+			vParam = &fAux;
+			break;
+		case Alpha:
+			if(num != 3) return 1;
+			rgbColor = COLOR_RGB((int)*args[1], (int)*args[2], (int)*args[3]);
+			vParam = &rgbColor;
+			break;
+		case Colorize:
+			if(num != 4) return 1;
+			rgbColor = COLOR_ARGB((int)*args[4], (int)*args[1], (int)*args[2], (int)*args[3]);
+			vParam = &rgbColor;
+			break;
+		case VertMove:
+		case HorzMove:
+			if(num != 1) return 1;
+			nAux = (int)*args[0];
+			vParam = &nAux;
+			break;
+		default: return 1;
+	}
+
+	CGameManager::SetFilter(eFilter, vParam);
+	return 0;
+}
+
 //-----------------------------------------------------------------------------
 // Name: FirstRun()
 //-----------------------------------------------------------------------------
@@ -125,6 +173,7 @@ static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "UpdateWorldCo",  UpdateWorldCo },
 	{ "GetTimeDelta",  GetTimeDelta },
+	{ "SetFilter", SetFilter },
 	{ "FirstRun",  FirstRun},
 	{ NULL, NULL }        /* terminator */
 };
