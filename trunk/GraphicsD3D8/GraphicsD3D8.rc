@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// Inglés (Estados Unidos) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,1
- PRODUCTVERSION 1,0,0,1
+ FILEVERSION 2,0,0,1
+ PRODUCTVERSION 2,0,0,1
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -72,12 +72,12 @@ BEGIN
             VALUE "Comments", "2D graphics engine using DirectGraphics 8 designed for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
             VALUE "FileDescription", "DirectX 8 2D Graphics Engine plugin v1.0"
-            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "FileVersion", "2, 0, 0, 1"
             VALUE "InternalName", "GraphicsD3D8"
             VALUE "LegalCopyright", "Copyright © 2002-2003 by Kronuz. All rights reserved."
             VALUE "OriginalFilename", "GraphicsD3D8.dll"
             VALUE "ProductName", "Open Zelda library"
-            VALUE "ProductVersion", "1, 0, 0, 1"
+            VALUE "ProductVersion", "2, 0, 0, 1"
         END
     END
     BLOCK "VarFileInfo"
@@ -86,7 +86,7 @@ BEGIN
     END
 END
 
-#endif    // English (U.S.) resources
+#endif    // Inglés (Estados Unidos) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

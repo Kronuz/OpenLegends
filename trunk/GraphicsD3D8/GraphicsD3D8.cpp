@@ -40,7 +40,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface Version Definition:
-const WORD IGraphics::Version = 0x0100;
+const WORD IGraphics::Version = 0x0200;
 
 //////////////////////////////////////////////////////////////////////////////
 // Needed Libraries:
@@ -52,7 +52,8 @@ const WORD IGraphics::Version = 0x0100;
 
 HRESULT QueryGfxInterface(WORD Version, IGraphics **pInterface, IConsole *Output)
 {
-	if(Version > IGraphics::Version) return E_FAIL;
+	if( HIBYTE(Version) != HIBYTE(IGraphics::Version) ) return E_FAIL;
+	if(	LOBYTE(Version) > LOBYTE(IGraphics::Version) ) return E_FAIL;
 
 	if(!*pInterface) {
 		// Convert our interface pointer to a CGraphicsD3D8 object
@@ -118,6 +119,10 @@ bool CGraphicsD3D8::ms_bWindowed = true;
 IDirect3D8 *CGraphicsD3D8::ms_pD3D = NULL;
 IDirect3DDevice8 *CGraphicsD3D8::ms_pD3DDevice = NULL;
 std::map<std::string, CTextureD3D8*> CGraphicsD3D8::ms_Textures;
+
+#ifdef _USE_HWVB
+std::vector<CBufferD3D8*> CGraphicsD3D8::ms_Buffers;
+#endif
 
 #ifdef _USE_SWAPCHAINS
 HWND CGraphicsD3D8::ms_hWnd = 0;
@@ -447,6 +452,19 @@ inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 	}
 	(*vbuffer)->m_texTop = rectSrc.top;
 	(*vbuffer)->m_texLeft = rectSrc.left;
+
+#ifdef _USE_HWVB
+	if(!(*vbuffer)->m_pD3DVB) {
+		BuildHWVertexBuffer(*vbuffer);
+	} else {
+		BYTE *Ptr;
+		if(SUCCEEDED((*vbuffer)->m_pD3DVB->Lock(0, 0, (BYTE**)&Ptr, 0))) {
+			memcpy(Ptr, (*vbuffer)->m_pVertices, sizeof(D3DCDTVERTEX) * (*vbuffer)->m_nVertices);
+			(*vbuffer)->m_pD3DVB->Unlock();
+		}
+	}
+#endif
+
 }
 
 inline void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITexture *texture, const RECT &rectSrc, const RECT &rectDest, int rotate, int transform, ARGBCOLOR rgbColor) const
@@ -523,24 +541,16 @@ inline void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 
 	*vbuffer = new SVertexBuffer(tile, (xVert)*(yVert)*6, xVert*yVert*2, rectSrc.top, rectSrc.left);
 }
+
 inline bool CGraphicsD3D8::Recover()
 {
 	CONSOLE_DEBUG1("DEBUG: Recovering device...\n"); 
-	Invalidate();
 
-	if(FAILED(ms_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &ms_PreferredMode))) {
-		CONSOLE_OUTPUT("ERROR (D3D8): Couldn't receive the current display mode.\n");
-		return false;
-	}
-	ms_d3dpp.BackBufferFormat = ms_PreferredMode.Format; 
-
-	if(FAILED(ms_pD3DDevice->Reset(&ms_d3dpp))) {
-			CONSOLE_OUTPUT("ERROR (D3D8): Couldn't reset the device.\n");
-			return false;
-	}
-#ifndef _USE_SWAPCHAINS
-	PostInitialize(ms_nScreenWidth, ms_nScreenHeight);
+#ifdef _USE_SWAPCHAINS
+	HWND m_hWnd = ms_hWnd;
 #endif
+	if(!SetMode(m_hWnd, ms_bWindowed, ms_nScreenWidth, ms_nScreenHeight)) return false;
+
 	return true;
 }
 inline void CGraphicsD3D8::Invalidate()
@@ -555,6 +565,24 @@ inline void CGraphicsD3D8::Invalidate()
 		texIter++;
 	}
 	ms_Textures.clear();
+
+#ifdef _USE_HWVB
+	// Release all hardware vertex buffers
+	std::vector<CBufferD3D8*>::const_iterator buffIter = ms_Buffers.begin();
+	while(buffIter != ms_Buffers.end()) {
+		SVertexBuffer *VB = static_cast<SVertexBuffer*>((*buffIter)->GetBuffer());
+		if(VB->m_pD3DVB) {
+			VB->m_pD3DVB->Release();
+			VB->m_pD3DVB = NULL;
+		}
+		buffIter++;
+	}
+#endif
+
+	if(m_pD3DFont) {
+		m_pD3DFont->Release();
+		m_pD3DFont = NULL;
+	}
 
 #ifdef _USE_SWAPCHAINS
 	// Release all swap chains:
@@ -579,7 +607,9 @@ CGraphicsD3D8::CGraphicsD3D8() :
 	m_hWnd(NULL),
 #endif
 	m_Zoom(0.0f),
-	m_rgbClearColor(0)
+	m_rgbClearColor(0),
+	m_rgbFontColor(0),
+	m_pD3DFont(NULL)
 {
 	m_pGrid[0] = NULL;
 	m_pGrid[1] = NULL;
@@ -603,6 +633,68 @@ CGraphicsD3D8::~CGraphicsD3D8()
 #endif
 }
 
+bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight)
+{
+	Invalidate();
+
+	if(FAILED(ms_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &ms_PreferredMode))) {
+		CONSOLE_OUTPUT("ERROR (D3D8): Couldn't receive the current display mode.\n");
+		return false;
+	}
+
+	if(bWindowed) {
+		ms_d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
+		//ms_PreferredMode.Width = nScreenWidth;
+		//ms_PreferredMode.Height = nScreenHeight;
+	} else {
+		ASSERT(nScreenWidth && nScreenHeight);
+		FigureOutDisplayMode(ms_PreferredMode.Format, nScreenWidth, nScreenHeight);
+
+		ms_d3dpp.SwapEffect = D3DSWAPEFFECT_FLIP;
+		ms_d3dpp.FullScreen_RefreshRateInHz = ms_PreferredMode.RefreshRate;
+	}
+	ms_d3dpp.BackBufferWidth  = ms_PreferredMode.Width;		// The back buffer width
+	ms_d3dpp.BackBufferHeight = ms_PreferredMode.Height;	// The back buffer height
+	ms_d3dpp.BackBufferFormat = ms_PreferredMode.Format; 
+
+	ms_d3dpp.hDeviceWindow = hWnd;							// Handle to the parent window
+	ms_d3dpp.Windowed = bWindowed;							// Set windowed mode
+	ms_d3dpp.EnableAutoDepthStencil = FALSE;
+	ms_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // for screenshots
+
+	if(ms_pD3DDevice) {
+		// Reset the device
+		if(FAILED(ms_pD3DDevice->Reset(&ms_d3dpp))) {
+				CONSOLE_OUTPUT("ERROR (D3D8): Couldn't reset the device.\n");
+				return false;
+		}
+	} else {
+		// Create the device
+		if(FAILED( ms_pD3D->CreateDevice(D3DADAPTER_DEFAULT, m_devType, hWnd,
+				FigureOutVertexProcessing(), &ms_d3dpp, &ms_pD3DDevice) )) { 
+			CONSOLE_OUTPUT("ERROR (D3D8): Couldn't create the device.\n");
+			return false;
+		}
+	}
+	
+	SetFont("Arial", 12, COLOR_ARGB(255,255,255,255), FW_BOLD); // initialize a default font.
+
+	ms_bWindowed = bWindowed;
+#ifndef _USE_SWAPCHAINS
+	ms_nScreenWidth = ms_PreferredMode.Width;
+	ms_nScreenHeight = ms_PreferredMode.Height;
+#else
+	ms_hWnd = hWnd;
+	ms_nScreenWidth = nScreenWidth;
+	ms_nScreenHeight = nScreenHeight;
+#endif
+
+#ifndef _USE_SWAPCHAINS
+	PostInitialize(ms_nScreenWidth, ms_nScreenHeight);
+#endif
+	return true;
+}
+
 // On windowed evironments, this function must receive a handler to the parent window (main frame) 
 // and not to the child view that is requesting the graphics device.
 bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight)
@@ -618,47 +710,8 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 			return false;
 		}
 	}
-	if(FAILED(ms_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &ms_PreferredMode))) {
-		CONSOLE_OUTPUT("ERROR (D3D8): Couldn't receive the current display mode.\n");
-		return false;
-	}
-
 	if(ms_pD3DDevice == NULL) {
-		ZeroMemory(&ms_d3dpp, sizeof(D3DPRESENT_PARAMETERS)); // clear it
-		
-		if(bWindowed) {
-			ms_d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
-		} else {
-			ASSERT(nScreenWidth && nScreenHeight);
-			FigureOutDisplayMode(ms_PreferredMode.Format, nScreenWidth, nScreenHeight);
-
-			ms_d3dpp.SwapEffect = D3DSWAPEFFECT_FLIP;
-			ms_d3dpp.FullScreen_RefreshRateInHz = ms_PreferredMode.RefreshRate;
-		}
-		ms_d3dpp.BackBufferWidth  = ms_PreferredMode.Width;		// The back buffer width
-		ms_d3dpp.BackBufferHeight = ms_PreferredMode.Height;	// The back buffer height
-		ms_d3dpp.BackBufferFormat = ms_PreferredMode.Format; 
-
-		ms_d3dpp.hDeviceWindow = hWnd;							// Handle to the parent window
-		ms_d3dpp.Windowed = bWindowed;							// Set windowed mode
-		ms_d3dpp.EnableAutoDepthStencil = FALSE;
-		ms_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // for screenshots
-
-		// Create the device
-		if(FAILED( ms_pD3D->CreateDevice(D3DADAPTER_DEFAULT, m_devType, hWnd,
-				FigureOutVertexProcessing(), &ms_d3dpp, &ms_pD3DDevice) )) { 
-			CONSOLE_OUTPUT("ERROR (D3D8): Couldn't create the device.\n");
-			return false;
-		}
-		ms_bWindowed = bWindowed;
-#ifndef _USE_SWAPCHAINS
-		ms_nScreenWidth = ms_PreferredMode.Width;
-		ms_nScreenHeight = ms_PreferredMode.Height;
-#else
-		ms_hWnd = hWnd;
-		ms_nScreenWidth = nScreenWidth;
-		ms_nScreenHeight = nScreenHeight;
-#endif
+		if(!SetMode(hWnd, bWindowed, nScreenWidth, nScreenHeight)) return false;
 	}
 
 	ms_nCount++;
@@ -1102,14 +1155,51 @@ bool CGraphicsD3D8::EndCapture(WORD *pData, RECT &rcPortion, RECT &rcFull)
 	return true;
 }
 
-void CGraphicsD3D8::SetFont(LPCSTR lpFont, const SIZE &sizeChar)
+void CGraphicsD3D8::SetFont(LPCSTR lpFont, int CharHeight, ARGBCOLOR rgbColor, LONG Weight)
 {
+	ASSERT(ms_pD3DDevice);
+	LOGFONT lf;
+
+	if(m_pD3DFont) {
+		m_pD3DFont->Release();
+		m_pD3DFont = NULL;
+	}
+
+	ZeroMemory(&lf, sizeof(LOGFONT));
+	strcpy(lf.lfFaceName, lpFont);
+	lf.lfHeight = -CharHeight;
+	lf.lfWeight = Weight;
+
+	D3DXCreateFontIndirect(ms_pD3DDevice, &lf, &m_pD3DFont);
+	m_rgbFontColor = rgbColor;
 }
 void CGraphicsD3D8::DrawText(const POINT &pointDest, LPCSTR lpString, ...) const
 {
+	ASSERT(m_pD3DFont);
+
+	char lpBuffer[200];
+	va_list argptr;
+	va_start(argptr, lpString);
+	vsprintf(lpBuffer, lpString, argptr);
+	va_end(argptr);
+
+	RECT rect;
+	::SetRect(&rect, pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300);
+	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, m_rgbFontColor.dwColor);
 }
 void CGraphicsD3D8::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR lpString, ...) const
 {
+	ASSERT(m_pD3DFont);
+
+	char lpBuffer[200];
+	va_list argptr;
+	va_start(argptr, lpString);
+	vsprintf(lpBuffer, lpString, argptr);
+	va_end(argptr);
+
+	RECT rect;
+	::SetRect(&rect, pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300);
+	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, rgbColor.dwColor);
 }
 
 void CGraphicsD3D8::SetClearColor(ARGBCOLOR rgbColor)
@@ -1375,18 +1465,22 @@ void CGraphicsD3D8::SelectionBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 	RenderFill(rcb, rgbColor);
 }
 
+
 /*!
 	\param texture Texture from which render the sprite.
 	\param rectSrc Sprite's location in the texture (part of the texture to be rendered).
 	\param rectDest Desired location of the rendered the sprite. 
 		(this can be bigger than the sprite to render a tile)
-	\param rotate Rotation of the sprite. 
+	\param rotate Initial basic rotation of the sprite. 
 		It can be GFX_ROTATE_0, GFX_ROTATE_90, GFX_ROTATE_180, or GFX_ROTATE_270.
 	\param transform Transformations to apply to the sprite. 
 		It can be GFX_NORMAL, GFX_MIRRORED, GFX_FLIPPED, or GFX_MIRRORED|GFX_FLIPPED.
 	\param alpha Overall alpha blending value to render the sprite.
 		The value can be between 0 (transparent) to 255 (solid).
-	\param vuffer Address of a virtual buffer to contain precalculated vertices.
+	\param buffer Address of a virtual buffer to contain precalculated vertices.
+	\param rotation Relative extra rotation of the sprite. 
+		Initial basic rotation + relative rotation = Final rotation of the sprite.
+	\param scale Relative extra scale factor for the sprite.
 
 	\remarks This method renders a sprite or a sprites tile to the graphics
 		device using Direct3D8. Since it does clipping on the
@@ -1400,7 +1494,9 @@ void CGraphicsD3D8::Render(
 	int rotate, 
 	int transform, 
 	ARGBCOLOR rgbColor, 
-	IBuffer **buffer
+	IBuffer **buffer,
+	float rotation,
+	float scale
 ) const
 {
 	ASSERT(texture);
@@ -1427,6 +1523,8 @@ void CGraphicsD3D8::Render(
 			VertexBuffer = retVertexBuffer = static_cast<SVertexBuffer *>((*buffer)->GetBuffer());
 		}
 	}
+
+	// create or update the vertex buffers:
 	if(!VertexBuffer) CreateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
 	else if((static_cast<CBufferD3D8*>(*buffer))->isDirty()) UpdateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
 	/////////////////////////////////////////////////////////
@@ -1435,12 +1533,23 @@ void CGraphicsD3D8::Render(
 	float trY = (float)((cRenderTable[transform][rotate].startTop)?rectDest.top:rectDest.top+destHeight);
 
 	// Draw the sprite
-	D3DXMATRIX matrix, matRo, matTr, matSc, matTexSc;
+	D3DXMATRIX matrix, matCenter, matCenter2, matRo, matTr, matSc, matTexSc;
 
+	D3DXVECTOR2 center;
+	center.x = (float)(rectDest.right - rectDest.left) / 2;
+	center.y = (float)(rectDest.bottom - rectDest.top) / 2;
+
+	D3DXMatrixTranslation(&matCenter, -center.x, -center.y, 0);
+	D3DXMatrixRotationZ(&matRo, -rotation);
+	D3DXMatrixScaling(&matSc, scale, scale, 1.0f);
+	D3DXMatrixTranslation(&matCenter2, center.x, center.y, 0);
+	matrix = matCenter * matRo * matSc * matCenter2;
+
+	D3DXMatrixRotationZ(&matRo, cRenderTable[transform][rotate].angle);
 	D3DXMatrixScaling(&matSc, (transform&GFX_MIRRORED)?-1.0f:1.0f, (transform&GFX_FLIPPED)?-1.0f:1.0f, 1.0f);
 	D3DXMatrixTranslation(&matTr, trX, trY, 0);
-	D3DXMatrixRotationZ(&matRo, cRenderTable[transform][rotate].angle);
-	matrix = matRo * matSc *  matTr * m_WorldMatrix;
+	matrix = matrix * matRo * matSc *  matTr * m_WorldMatrix;
+
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &matrix));
 
 	float fScale = 1/texture->GetScale();
@@ -1451,13 +1560,43 @@ void CGraphicsD3D8::Render(
 		ASSERT((IDirect3DBaseTexture8*)texture->GetTexture());
 		D3DVERIFY(ms_pD3DDevice->SetTexture(0, (IDirect3DBaseTexture8*)texture->GetTexture()));
 		D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
+#ifdef _USE_HWVB
+		if(!VertexBuffer->m_pD3DVB) BuildHWVertexBuffer(VertexBuffer);
+		if(VertexBuffer->m_pD3DVB) {
+			D3DVERIFY(ms_pD3DDevice->SetStreamSource(0, VertexBuffer->m_pD3DVB, sizeof(D3DCDTVERTEX)));
+			D3DVERIFY(ms_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLELIST, 0, VertexBuffer->m_nPrimitives));
+		}
+#else
 		D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, VertexBuffer->m_nPrimitives, VertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX)));
+#endif
 	}
 
 	if(buffer) {
-		if(!(*buffer)) (*buffer) = new CBufferD3D8(VertexBuffer);
-		else if(!retVertexBuffer) (*buffer)->SetBuffer(VertexBuffer);
+		if(!(*buffer)) {
+			(*buffer) = new CBufferD3D8(VertexBuffer);
+#ifdef _USE_HWVB
+			ms_Buffers.push_back(static_cast<CBufferD3D8*>(*buffer));
+#endif
+		} else if(!retVertexBuffer) (*buffer)->SetBuffer(VertexBuffer);
 	} else {
 		delete VertexBuffer;
 	}
 }
+
+#ifdef _USE_HWVB
+void CGraphicsD3D8::BuildHWVertexBuffer(SVertexBuffer *pVertexBuffer) const
+{
+	if(FAILED(ms_pD3DDevice->CreateVertexBuffer(
+		sizeof(D3DCDTVERTEX) * pVertexBuffer->m_nVertices,
+		D3DUSAGE_WRITEONLY,
+		D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1,
+		D3DPOOL_MANAGED,
+		&(pVertexBuffer->m_pD3DVB) ))) return;
+
+	BYTE *Ptr;
+	if(SUCCEEDED(pVertexBuffer->m_pD3DVB->Lock(0, 0, (BYTE**)&Ptr, 0))) {
+		memcpy(Ptr, pVertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX) * pVertexBuffer->m_nVertices);
+		pVertexBuffer->m_pD3DVB->Unlock();
+	}
+}
+#endif

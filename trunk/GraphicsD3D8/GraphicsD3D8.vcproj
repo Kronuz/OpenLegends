@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding = "Windows-1252"?>
+<?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.00"
+	Version="7.10"
 	Name="GraphicsD3D8"
 	ProjectGUID="{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}"
 	Keyword="Win32Proj">
@@ -32,6 +32,7 @@
 				Name="VCLinkerTool"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="2"
+				IgnoreDefaultLibraryNames="libci.lib"
 				ModuleDefinitionFile="GraphicsD3D8.def"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
@@ -53,7 +54,13 @@
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
 				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
@@ -82,6 +89,7 @@
 				Name="VCLinkerTool"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="1"
+				IgnoreDefaultLibraryNames="libci.lib"
 				ModuleDefinitionFile="GraphicsD3D8.def"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -104,9 +112,17 @@
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
 				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 	</Configurations>
+	<References>
+	</References>
 	<Files>
 		<Filter
 			Name="Source Files"
