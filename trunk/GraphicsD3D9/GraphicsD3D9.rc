@@ -69,9 +69,9 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "2D graphics engine using DirectGraphics 9.0 designed for Open Legends. http://www.openlegends.com/"
+            VALUE "Comments", "2D graphics engine using DirectGraphics 9.0c designed for Open Legends. http://www.openlegends.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "DirectX 9.0 2D Graphics Engine plugin v1.0"
+            VALUE "FileDescription", "DirectX 9.0c 2D Graphics Engine plugin v1.0"
             VALUE "FileVersion", "1, 0, 0, 0"
             VALUE "InternalName", "GraphicsD3D9"
             VALUE "LegalCopyright", "Copyright © 2003-2004 by Kronuz. All rights reserved."
