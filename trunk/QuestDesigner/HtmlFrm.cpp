@@ -90,7 +90,7 @@ LRESULT CHtmlFrame::OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 {
 	bHandled = TRUE;
 
-	POINT ptPopup = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+	CPoint ptPopup(lParam);
 
 	// Build up the menu to show
 	CMenu mnuContext;

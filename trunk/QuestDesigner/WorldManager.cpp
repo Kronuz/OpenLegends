@@ -46,7 +46,7 @@ inline void CLayer::SetLoadPoint(int x, int y)
 {
 	m_ptLoadPoint.SetPoint(x,y);
 }
-inline void CLayer::SetLoadPoint(const POINT &point_)
+inline void CLayer::SetLoadPoint(const CPoint &point_)
 {
 	m_ptLoadPoint = point_;
 }

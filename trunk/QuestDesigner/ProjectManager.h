@@ -124,7 +124,7 @@ public:
 	CSound *FindSound(LPCSTR szName); //!< Finds a sound using its name.
 	CScript *FindScript(LPCSTR szName); //!< Finds a script using its name.
 
-	CSprite *FindSprite(POINT MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
+	CSprite *FindSprite(CPoint MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
 	
 	static CProjectManager* Instance() {
 		if(_instance == NULL) {

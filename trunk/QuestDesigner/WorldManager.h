@@ -57,7 +57,7 @@ class CLayer :
 
 public:
 	void SetLoadPoint(int x, int y);
-	void SetLoadPoint(const POINT &point_);
+	void SetLoadPoint(const CPoint &point_);
 	CLayer();
 	~CLayer();
 

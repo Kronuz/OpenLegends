@@ -42,7 +42,7 @@ class CScriptEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDISCRIPTED)
+	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDISCRIPTED)
 	virtual BOOL OnIdle();
 
 	// The window's view (the child control)
@@ -68,7 +68,7 @@ public:
 
 		CHAIN_MSG_MAP(CChildFrame)
 		// Pass all unhandled WM_COMMAND messages to the client window or 'view'
-		CHAIN_CLIENT_COMMANDS ()
+		CHAIN_CLIENT_COMMANDS()
 		// Reflect all the WM_NOTIFY messages to the client window
 		REFLECT_NOTIFICATIONS()
 

@@ -145,7 +145,7 @@ public:
 	bool BeginPaint();
 	bool EndPaint();
 
-	void Render(const ITexture *texture, const RECT &rectSrc, const POINT &pointDest, int rotate, int transform, int alpha, IBuffer **buffer) const;
+	void Render(const ITexture *texture, const RECT &rectSrc, const CPoint &pointDest, int rotate, int transform, int alpha, IBuffer **buffer) const;
 	void Render(const ITexture *texture, const RECT &rectSrc, const RECT &rectDest, int rotate, int transform, int alpha, IBuffer **buffer) const;
 	void Clear(const RECT *rectDest, BYTE alpha, BYTE red, BYTE green, BYTE blue) const;
 	void FillRect(const RECT &rectDest, BYTE alpha, BYTE red, BYTE green, BYTE blue) const;

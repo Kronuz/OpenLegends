@@ -36,6 +36,7 @@ CMapEditorView::CMapEditorView(CMapEditorFrame *pParentFrame) :
 	m_szMap(320, 240),
 	m_nTimer(0),
 	m_Zoom(2),
+	m_nSnapSize(8),
 	m_CursorStatus(eIDC_ARROW),
 	m_OldCursorStatus(eIDC_ARROW),
 	m_Selection(reinterpret_cast<CDrawableContext**>(&m_MapGroup))
@@ -226,24 +227,49 @@ void CMapEditorView::ToCursor(CURSOR cursor_)
 	}
 	SetCursor(hCursor);
 }
+LRESULT CMapEditorView::OnFlipObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	m_Selection.FlipSelection();
+	return 0;
+}
+
+LRESULT CMapEditorView::OnMirrorObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	m_Selection.MirrorSelection();
+	return 0;
+}
+LRESULT CMapEditorView::OnCWRotateObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	m_Selection.CWRotateSelection();
+	return 0;
+}
+LRESULT CMapEditorView::OnCCWRotateObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	m_Selection.CCWRotateSelection();
+	return 0;
+}
+
 
 LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	CPoint Point(lParam);
 	m_CursorStatus = m_Selection.GetMouseStateAt(m_pGraphics, Point);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	ToCursor(m_CursorStatus);
 
 	m_pGraphics->GetWorldPosition(Point);
+
+	m_Selection.SetSnapSize(m_nSnapSize);
 	if(m_CursorStatus==eIDC_ARROW || m_CursorStatus==eIDC_ARROWADD || m_CursorStatus==eIDC_ARROWDEL) 
 		m_Selection.StartSelBox(Point);
-	else if(m_CursorStatus==eIDC_SIZEALL)
+	else if(m_CursorStatus==eIDC_SIZEALL) {
+		ShowCursor(FALSE);
 		m_Selection.StartMoving(Point);
-	else if(m_CursorStatus==eIDC_SIZENESW || m_CursorStatus==eIDC_SIZENS || m_CursorStatus==eIDC_SIZENWSE ||m_CursorStatus==eIDC_SIZEWE)
+	} else if(m_CursorStatus==eIDC_SIZENESW || m_CursorStatus==eIDC_SIZENS || m_CursorStatus==eIDC_SIZENWSE ||m_CursorStatus==eIDC_SIZEWE) {
 		m_Selection.StartResizing(Point);
-	
+	}
 	SetCapture();
 
 	return 0;
@@ -253,23 +279,27 @@ LRESULT CMapEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	CPoint Point(lParam);
 	m_CursorStatus = m_Selection.GetMouseStateAt(m_pGraphics, Point);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	ToCursor(m_CursorStatus);
 
 	m_pGraphics->GetWorldPosition(Point);
+
+	if((wParam&MK_CONTROL)==MK_CONTROL) m_Selection.SetSnapSize(1);
+	else m_Selection.SetSnapSize(m_nSnapSize);
+
 	if(m_Selection.isSelecting()) {
-		if((wParam&MK_SHIFT)==MK_SHIFT) m_Selection.EndSelBoxRemove(Point);
+		if((wParam&MK_CONTROL)==MK_CONTROL) m_Selection.EndSelBoxRemove(Point);
 		else {
-			if((wParam&MK_CONTROL)==0) m_Selection.CleanSelection();
+			if((wParam&MK_SHIFT)==0) m_Selection.CleanSelection();
 			m_Selection.EndSelBoxAdd(Point);
 		}
 	} else if(m_Selection.isMoving()) {
 		m_Selection.EndMoving(Point);
+		ShowCursor(TRUE);
 	} else if(m_Selection.isResizing()) {
 		m_Selection.EndResizing(Point);
 	}
-
 	ReleaseCapture();
 
 	return 0;
@@ -279,8 +309,8 @@ LRESULT CMapEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	CPoint Point(lParam);
 	m_CursorStatus = m_Selection.GetMouseStateAt(m_pGraphics, Point);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	ToCursor(m_CursorStatus);
 
 	if(m_Selection.isSelecting()) {
@@ -299,8 +329,8 @@ LRESULT CMapEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	CPoint Point(lParam);
 	m_CursorStatus = m_Selection.GetMouseStateAt(m_pGraphics, Point);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	ToCursor(m_CursorStatus);
 
 	return 0;
@@ -310,8 +340,8 @@ LRESULT CMapEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	CPoint Point(lParam);
 	m_CursorStatus = m_Selection.GetMouseStateAt(m_pGraphics, Point);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	ToCursor(m_CursorStatus);
 
 	return 0;
@@ -321,8 +351,8 @@ LRESULT CMapEditorView::OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	CPoint Point(lParam);
 	m_CursorStatus = m_Selection.GetMouseStateAt(m_pGraphics, Point);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	ToCursor(m_CursorStatus);
 
 	return 0;
@@ -333,13 +363,19 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	CPoint Point(lParam);
 	m_CursorStatus = m_Selection.GetMouseStateAt(m_pGraphics, Point);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
+	if((wParam&MK_LBUTTON)==0) {
+		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
+	}
 	ToCursor(m_CursorStatus);
 
 	m_pGraphics->GetWorldPosition(Point);
 
 	if((wParam&MK_LBUTTON)==MK_LBUTTON) {
+
+		if((wParam&MK_CONTROL)==MK_CONTROL) m_Selection.SetSnapSize(1);
+		else m_Selection.SetSnapSize(m_nSnapSize);
+
 		if(m_Selection.isSelecting()) {
 			m_Selection.SizeSelBox(Point);
 		} else if(m_Selection.isMoving()) {
@@ -364,11 +400,13 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CMapEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	if(wParam == VK_CONTROL) {
-		ToCursor(eIDC_ARROWADD);
-	}
-	if(wParam == VK_SHIFT) {
-		ToCursor(eIDC_ARROWDEL);
+	if(!m_Selection.isMoving() && !m_Selection.isResizing() && !m_Selection.isSelecting()) {
+		if(wParam == VK_CONTROL) {
+			ToCursor(eIDC_ARROWDEL);
+		}
+		if(wParam == VK_SHIFT) {
+			ToCursor(eIDC_ARROWADD);
+		}
 	}
 	return 0;
 }

@@ -36,6 +36,33 @@ void CMapEditorFrame::OnFinalMessage(HWND /*hWnd*/)
 	delete this;
 }
 
+/* Note that vertical toolbars need a WTL bugfix to work. Change in the WTL include file 'atlframe.h' :
+	void UpdateBarsPosition(RECT& rect, BOOL bResizeBars = TRUE) {
+		// resize toolbar
+		DWORD dwStyles = (DWORD)::GetWindowLong(m_hWndToolBar, GWL_STYLE);
+			if(m_hWndToolBar != NULL && (dwStyles & WS_VISIBLE)) {
+			if(bResizeBars)
+				::SendMessage(m_hWndToolBar, WM_SIZE, 0, 0);
+			RECT rectTB;
+			::GetWindowRect(m_hWndToolBar, &rectTB);
+
+			if(dwStyles & CCS_VERT) rect.left += rectTB.right - rectTB.left;	// <<- Changed/Added
+			else rect.top += rectTB.bottom - rectTB.top;						// <<- Changed/Added
+		}
+			// resize status bar
+		if(m_hWndStatusBar != NULL && ((DWORD)::GetWindowLong(m_hWndStatusBar, GWL_STYLE) & WS_VISIBLE)) {
+			if(bResizeBars)
+				::SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
+			RECT rectSB;
+			::GetWindowRect(m_hWndStatusBar, &rectSB);
+			rect.bottom -= rectSB.bottom - rectSB.top;
+			if(dwStyles & CCS_VERT) {											// <<- Changed/Added
+				::SetWindowPos(m_hWndStatusBar , HWND_TOP, 0, 0, 0, 0,			// <<- Changed/Added
+				SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE );						// <<- Changed/Added
+			}																	// <<- Changed/Added
+		}
+	}
+*/
 LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
 	m_pMapEditorView = new CMapEditorView(this);
@@ -50,6 +77,19 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 		ATLTRACE(_T("Error: failed to create child window\n"));
 		return FALSE;
 	}
+
+	// create a toolbar
+	HWND hMapEdBasicToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPED_BASIC, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_VERT | TBSTYLE_WRAPABLE );
+	HWND hMapEdObjectToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPED_OBJECT, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_VERT | TBSTYLE_WRAPABLE );
+	// add the toolbar to the UI update map
+
+	// create a rebat to hold both: the command bar and the toolbar
+	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_VERT)) {
+		ATLTRACE("Failed to create applications rebar\n");
+		return -1;      // fail to create
+	}	
+	AddSimpleReBarBand(hMapEdBasicToolBar, NULL, TRUE);
+	AddSimpleReBarBand(hMapEdObjectToolBar, NULL, TRUE);
 
 	CChildFrame::Register(tMapEditor);
 	SetMsgHandled(FALSE);

@@ -48,12 +48,13 @@ private:
 	IGraphics *m_pGraphics;
 
 	float m_Zoom;
+	int m_nSnapSize;
+
 	UINT_PTR m_nTimer;
 	CURSOR m_CursorStatus;
 	CURSOR m_OldCursorStatus;
 public:
 	CLayer *layer;
-
 
 	// Construction/Destruction
 	CMapEditorView(CMapEditorFrame *pParentFrame);
@@ -92,6 +93,11 @@ public:
 		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
 		MESSAGE_HANDLER(WM_KEYUP, OnKeyUp)
 
+		COMMAND_ID_HANDLER(ID_MAPED_FLIP, OnFlipObject);
+		COMMAND_ID_HANDLER(ID_MAPED_MIRROR, OnMirrorObject);
+		COMMAND_ID_HANDLER(ID_MAPED_C90, OnCWRotateObject);
+		COMMAND_ID_HANDLER(ID_MAPED_CC90, OnCCWRotateObject);
+
 		CHAIN_MSG_MAP(CScrollWindowImpl<CMapEditorView>);
 	END_MSG_MAP()
 
@@ -120,6 +126,11 @@ public:
 
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
+	LRESULT OnFlipObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnMirrorObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCWRotateObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnCCWRotateObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	void DoPaint(CDCHandle dc);
 

@@ -82,30 +82,30 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	SetMenu(NULL);
 
 	// create a toolbar
-	HWND hScriptToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_SCRIPTS, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	HWND hScriptToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_SCRIPTED, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | TBSTYLE_WRAPABLE | CCS_ADJUSTABLE);
 	// add the toolbar to the UI update map
 	UIAddToolBar(hScriptToolBar);
 
 	// create a toolbar
-	HWND hProjectToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_PROJECT, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	HWND hProjectToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_PROJECT, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | TBSTYLE_WRAPABLE | CCS_ADJUSTABLE);
 	// add the toolbar to the UI update map
 	UIAddToolBar(hProjectToolBar);
 
 	// create a toolbar
-	HWND hMapEdToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPEDITOR, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	HWND hMapEdToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPED_MAIN, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | TBSTYLE_WRAPABLE | CCS_ADJUSTABLE);
 	// add the toolbar to the UI update map
 	UIAddToolBar(hMapEdToolBar);
 
 	// create a rebat to hold both: the command bar and the toolbar
-	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE)) {
+	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_ADJUSTABLE)) {
 		ATLTRACE("Failed to create applications rebar\n");
 		return -1;      // fail to create
 	}	
 
 	AddSimpleReBarBand(hWndCmdBar);
-	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 144);
-	AddSimpleReBarBand(hScriptToolBar, "Scripts", FALSE);
-	AddSimpleReBarBand(hMapEdToolBar, "Map Editor", TRUE);
+	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 250, TRUE);
+	AddSimpleReBarBand(hMapEdToolBar, "Map Editor", FALSE, 200, TRUE);
+	AddSimpleReBarBand(hScriptToolBar, "Script Editor", FALSE, 375, TRUE);
 
 	// create a status bar
 	if(!CreateSimpleStatusBar(_T("Ready")) ||
@@ -194,7 +194,7 @@ void CMainFrame::InitializeDefaultPanes()
 	m_ListFrame.Create(m_hWnd, rcFloat, _T("World List Window"), dwStyle);
 	DockWindow(
 		m_ListFrame,
-		dockwins::CDockingSide(dockwins::CDockingSide::sLeft),
+		dockwins::CDockingSide(dockwins::CDockingSide::sRight),
 		0 /*nBar*/,
 		float(0.0)/*fPctPos*/,
 		rcDock.Width() /* nWidth*/,
@@ -240,7 +240,7 @@ LRESULT CMainFrame::OnFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl
 //	CreateNewChildWnd();
 
 	CHtmlFrame *pChild = new CHtmlFrame(this);
-	pChild->CreateEx(m_hWndClient);
+	pChild->CreateChild(m_hWndClient);
 
 	// TODO: add code to initialize document
 
@@ -306,7 +306,7 @@ LRESULT CMainFrame::OnViewWorldEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /
 		SendMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
 	} else {
 		CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
-		HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+		HWND hChildWnd = pChild->CreateChild(m_hWndClient);
 	}
 	OnIdle(); // Force idle processing to update the toolbar.
 	return 0;
@@ -314,7 +314,7 @@ LRESULT CMainFrame::OnViewWorldEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /
 LRESULT CMainFrame::OnViewMapEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	CMapEditorFrame *pChild = new CMapEditorFrame(this);
-	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+	HWND hChildWnd = pChild->CreateChild(m_hWndClient);
 
 	OnIdle(); // Force idle processing to update the toolbar.
 	return 0;
@@ -379,7 +379,7 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 	// create a hiden MDI child
 	// create a new MDI child window
 	CScriptEditorFrame *pChild = new CScriptEditorFrame(this);
-	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+	HWND hChildWnd = pChild->CreateChild(m_hWndClient);
 
 	// get the child's 'view' (actually child's client control)
 	CScriptEditorView *pView = pChild->GetView();
