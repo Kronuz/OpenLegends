@@ -87,7 +87,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	UIAddToolBar(hScriptToolBar);
 
 	// create a toolbar
-	HWND hViewsToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_VIEWS, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	HWND hViewsToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_PROJECT, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
 	// add the toolbar to the UI update map
 	UIAddToolBar(hViewsToolBar);
 

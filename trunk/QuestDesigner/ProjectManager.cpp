@@ -29,12 +29,21 @@
 #include "stdafx.h"
 #include "ProjectManager.h"
 
+#include "ArchiveText.h"
+
+#include "FoldersTreeView.h"
+
+CProjectManager::CProjectManager() :
+	m_iStep(0), m_iCnt1(0), m_iCnt2(0),
+	m_World(NULL)
+{
+	m_ArchiveIn = new CProjectTxtArch(this);
+	m_ArchiveOut = m_ArchiveIn;
+}
+
 CProjectManager::~CProjectManager()
 {
-	for(int i=0; i<m_SpriteSheets.GetSize(); i++){
-		delete m_SpriteSheets[i];
-		m_SpriteSheets[i] = NULL;
-	}
+	Clean();
 }
 
 /*!
@@ -86,36 +95,70 @@ LRESULT CProjectManager::BuildNextStep(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-CSprite *CProjectManager::CreateSprite(_spt_type sptType, LPCSTR sName)
+CSprite *CProjectManager::CreateSprite(_spt_type sptType, LPCSTR szName)
 {
 	CSprite *pSprite = NULL;
 	switch(sptType) {
 		case tBackground: {
-			pSprite = new CBackground;
+			pSprite = new CBackground(szName);
 			break;
 		}
 		case tEntity: {
-			pSprite = new CEntity;
+			pSprite = new CEntity(szName);
 			break;
 		}
 		case tMask: {
-			pSprite = new CMaskMap;
+			pSprite = new CMaskMap(szName);
 			break;
 		}
 	}
 	ATLASSERT(pSprite);
-	pSprite->m_bDefined = false;
-	pSprite->m_sName = sName;
 	return pSprite;
 }
+CSprite *CProjectManager::FindSprite(LPCSTR szName)
+{
+	int idx = -1;
+	CSprite *pSprite = NULL;
 
-CScript *CProjectManager::DefineScript(CString &sName)
+	for(int i=0; i<m_SpriteSheets.GetSize(); i++) {
+		idx = m_SpriteSheets[i]->m_Sprites.FindKey(szName);
+		if(idx!=-1) {
+			pSprite = m_SpriteSheets[i]->m_Sprites.GetValueAt(idx);
+			break;
+		}
+	}
+	if(idx==-1) {
+		idx = m_UndefSprites.FindKey(szName);
+		if(idx!=-1) pSprite = m_UndefSprites.GetValueAt(idx);
+	}
+	return pSprite;
+}
+CSound *CProjectManager::FindSound(LPCSTR szName)
+{
+	CSound *pSound = NULL;
+
+	int idx = m_Sounds.FindKey(szName);
+	if(idx!=-1) pSound = m_Sounds.GetValueAt(idx);
+
+	return pSound;
+}
+CScript *CProjectManager::FindScript(LPCSTR szName)
+{
+	CScript *pScript = NULL;
+
+	int idx = m_Scripts.FindKey(szName);
+	if(idx!=-1) pScript = m_Scripts.GetValueAt(idx);
+
+	return pScript;
+}
+
+CScript *CProjectManager::MakeScript(LPCSTR szName)
 {
 
 	CScript *pScript = new CScript;
-	pScript->m_fnScriptFile.SetFilePath(g_sHomeDir + "Entities\\" + sName + ".zes");
+	pScript->m_fnScriptFile.SetFilePath(g_sHomeDir + "Entities\\" + szName + ".zes");
 	if(!pScript->m_fnScriptFile.FileExists()) {
-		CString sFileTitle = sName;
+		CString sFileTitle = szName;
 		sFileTitle.SetAt(sFileTitle.GetLength()-1, '#');
 		pScript->m_fnScriptFile.SetFileTitle(sFileTitle);
 		if(!pScript->m_fnScriptFile.FileExists()) {
@@ -131,8 +174,11 @@ CScript *CProjectManager::DefineScript(CString &sName)
 		SendMessage(m_shWnd, 
 			WMQD_ADDTREE, 
 			ICO_DOC1, 
-			(LPARAM)(LPCSTR)(m_sProjectName + "\\Entities\\" + 
-				pScript->m_fnScriptFile.GetFileTitle()));
+			(LPARAM)new CTreeInfo(
+				(LPCSTR)(m_sProjectName + "\\Entities\\" + pScript->m_fnScriptFile.GetFileTitle()), 
+				(DWORD_PTR)pScript 
+			)
+		);
 	} else {
 		delete pScript;
 		pScript = m_Scripts.GetValueAt(idx);
@@ -145,82 +191,133 @@ CScript *CProjectManager::DefineScript(CString &sName)
 	This function returns NULL if there is a conflict of types.
 	(i.e. two sprites with the same name but different types)
 */
-CSprite *CProjectManager::ReferSprite(CString &sName, _spt_type sptType)
+CSprite *CProjectManager::ReferSprite(LPCSTR szName, _spt_type sptType)
 {
-	int idx = -1;
-	CSprite *pSprite = NULL;
-
-	for(int i=0; i<m_SpriteSheets.GetSize(); i++) {
-		idx = m_SpriteSheets[i]->m_Sprites.FindKey(sName);
-		if(idx!=-1) {
-			pSprite = m_SpriteSheets[i]->m_Sprites.GetValueAt(idx);
-			break;
-		}
-	}
-	if(idx==-1) {
-		idx = m_UndefSprites.FindKey(sName);
-		if(idx!=-1) pSprite = m_UndefSprites.GetValueAt(idx);
-	}
+	CSprite *pSprite = FindSprite(szName);
 	if(pSprite) {
-		if(pSprite->m_SptType != sptType) 
+		if(pSprite->GetSpriteType() != sptType) 
 			return NULL;
 	} else {
-		pSprite = CreateSprite(sptType, sName);
-		m_UndefSprites.Add(sName, pSprite);
+		pSprite = CreateSprite(sptType, szName);
+		m_UndefSprites.Add(szName, pSprite);
 	}
 
 	return pSprite;
 }
-CSprite *CProjectManager::DefineSprite(CString &sName, _spt_type sptType, CSpriteSheet *pSpriteSheet)
+CSprite *CProjectManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet *pSpriteSheet)
 {
 	ATLASSERT(pSpriteSheet);
 
-	int idx = -1;
 	CSprite *pSprite = NULL;
-/*
-	for(int i=0; i<m_SpriteSheets.GetSize(); i++) {
-		idx = m_SpriteSheets[i]->m_Sprites.FindKey(sName);
-		if(idx!=-1) {
-			pSprite = m_SpriteSheets[i]->m_Sprites.GetValueAt(idx);
-			break;
-		}
-	}
-	if(idx!=-1) {
-		printf("Sprite '%s' already defined in '%s'\n", sName, pSprite->m_pSpriteSheet->m_sSheetName);
-		printf("\t'%s' redefinition attempt in '%s'\n", sName, pSpriteSheet->m_sSheetName);
-		return NULL;
-	}
-*/
-	idx = m_UndefSprites.FindKey(sName);
+	int idx = m_UndefSprites.FindKey(szName);
 	if(idx!=-1) {
 		pSprite = m_UndefSprites.GetValueAt(idx);
-		if(pSprite->m_SptType!=sptType) return NULL;
+		if(pSprite->GetSpriteType() != sptType) return NULL;
 		m_UndefSprites.RemoveAt(idx);
 	} else {
-		pSprite = CreateSprite(sptType, sName);
+		pSprite = CreateSprite(sptType, szName);
 	}
 
-	pSpriteSheet->m_Sprites.Add(sName, pSprite);
-	pSprite->m_pSpriteSheet = pSpriteSheet;
-	pSprite->m_bDefined = true;
+	pSpriteSheet->m_Sprites.Add(szName, pSprite);
+	pSprite->SetSpriteSheet(pSpriteSheet);
 	// We send a message letting know that a new sprite has just been defined
 	SendMessage(m_shWnd, 
 		WMQD_ADDTREE, 
 		ICO_PICTURE, 
-		(LPARAM)(LPCSTR)(m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->m_sSheetName + (LPCSTR)((sptType==tBackground)?"\\Backgrounds\\":(sptType==tEntity)?"\\Entities\\":"\\Mask maps\\") + sName));
+		(LPARAM)new CTreeInfo(
+			(LPCSTR)(m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName() + (LPCSTR)((sptType==tBackground)?"\\Backgrounds\\":(sptType==tEntity)?"\\Entities\\":"\\Mask maps\\") + szName),
+			(DWORD_PTR)pSprite
+		)
+	);
 
 	return pSprite;
 }
 
 int CALLBACK CProjectManager::LoadSheet(LPCTSTR szFile, LPARAM lParam)
 {
-	CSpriteSheet *sstmp = new CSpriteSheet;
 	CProjectManager *pProjectManager = (CProjectManager*)lParam;
-	sstmp->m_pProjectManager = pProjectManager;
+	CSpriteSheet *sstmp = new CSpriteSheet(pProjectManager);
 	pProjectManager->m_SpriteSheets.Add(sstmp);
 	sstmp->Load(szFile);
 
 	return 1;
+}
+
+void CProjectManager::DeleteScript(int nIndex)
+{
+	CScript *pScript = m_Scripts.GetValueAt(nIndex);
+	ATLASSERT(pScript);
+	SendMessage(m_shWnd, 
+		WMQD_DELTREE, 
+		NULL, 
+		(LPARAM)new CTreeInfo(		
+			(LPCSTR)(m_sProjectName + "\\Entities\\" + pScript->m_fnScriptFile.GetFileTitle()),
+			NULL
+		)
+	);
+	delete pScript;
+	m_Scripts.RemoveAt(nIndex);
+}
+void CProjectManager::DeleteSpriteSheet(int nIndex)
+{
+	CSpriteSheet *pSpriteSheet = m_SpriteSheets[nIndex];
+	ATLASSERT(pSpriteSheet);
+	SendMessage(m_shWnd, 
+		WMQD_DELTREE, 
+		0, 
+		(LPARAM)new CTreeInfo(		
+			(LPCSTR)(m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName()),
+			NULL
+		)
+	);
+	delete pSpriteSheet;
+	m_SpriteSheets.RemoveAt(nIndex);
+}
+void CProjectManager::DeleteSprite(LPCSTR szName)
+{
+	CSprite *pSprite = FindSprite(szName);
+	if(pSprite) {
+		SendMessage(m_shWnd, 
+			WMQD_DELTREE, 
+			0, 
+			(LPARAM)new CTreeInfo(
+			(LPCSTR)(m_sProjectName + "\\Sprite sheets\\" + pSprite->GetSpriteSheet()->GetName() + (LPCSTR)((pSprite->GetSpriteType()==tBackground)?"\\Backgrounds\\":(pSprite->GetSpriteType()==tEntity)?"\\Entities\\":"\\Mask maps\\") + szName),
+				NULL
+			)
+		);
+	}
+}
+
+void CProjectManager::Clean()
+{
+	int i;
+	delete m_World;
+	m_World = NULL;
+
+	if(m_SpriteSheets.GetSize()) printf("Freeing Sprite Sheets...\n");
+	while(m_SpriteSheets.GetSize()) {
+		DeleteSpriteSheet(0);
+	}
+
+	// Now we delete all undefined sprites (referred, but never really created)
+	if(m_UndefSprites.GetSize()) printf("Freeing Unreferred Sprites...\n");
+	while(m_UndefSprites.GetSize()) {
+		delete m_UndefSprites.GetValueAt(0);
+		m_UndefSprites.RemoveAt(0);
+	}
+
+	// Delete all loaded scripts
+	if(m_Scripts.GetSize()) printf("Freeing Scripts...\n");
+	while(m_Scripts.GetSize()) {
+		DeleteScript(0);
+	}
+
+	// Delete all loaded sounds
+	if(m_Sounds.GetSize()) printf("Freeing Sounds...\n");
+	while(m_Sounds.GetSize()) {
+		delete m_Sounds.GetValueAt(0);
+		m_Sounds.RemoveAt(0);
+	}
 }
 
 bool CProjectManager::Load(LPCSTR szFile)
@@ -239,5 +336,9 @@ bool CProjectManager::Load(LPCSTR szFile)
 	}
 
 	printf("Done!\n");
+
+	DeleteSprite("_itemheart");
+	//Clean();
+
 	return false;
 }

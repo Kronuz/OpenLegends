@@ -187,6 +187,9 @@
 				RelativePath="AboutDlg.cpp">
 			</File>
 			<File
+				RelativePath="Console.cpp">
+			</File>
+			<File
 				RelativePath="MainFrm.cpp">
 			</File>
 			<File
@@ -223,16 +226,22 @@
 				Name="Core"
 				Filter="">
 				<File
-					RelativePath="Console.cpp">
+					RelativePath="ArchiveBinary.cpp">
 				</File>
 				<File
-					RelativePath="FileManager.cpp">
+					RelativePath="ArchiveText.cpp">
+				</File>
+				<File
+					RelativePath="FilePath.cpp">
 				</File>
 				<File
 					RelativePath="ProjectManager.cpp">
 				</File>
 				<File
 					RelativePath="SpriteManager.cpp">
+				</File>
+				<File
+					RelativePath="WorldManager.cpp">
 				</File>
 			</Filter>
 			<Filter
@@ -287,6 +296,9 @@
 				RelativePath="AboutDlg.h">
 			</File>
 			<File
+				RelativePath="Console.h">
+			</File>
+			<File
 				RelativePath="IdleHandlerPump.h">
 			</File>
 			<File
@@ -311,10 +323,16 @@
 				Name="Core"
 				Filter="">
 				<File
-					RelativePath="Console.h">
+					RelativePath="ArchiveBinary.h">
 				</File>
 				<File
-					RelativePath="FileManager.h">
+					RelativePath="ArchiveText.h">
+				</File>
+				<File
+					RelativePath="Archiver.h">
+				</File>
+				<File
+					RelativePath="FilePath.h">
 				</File>
 				<File
 					RelativePath="Interfaces.h">
@@ -384,6 +402,12 @@
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest">
 			<File
+				RelativePath="res\Error.ico">
+			</File>
+			<File
+				RelativePath="res\Okay.ico">
+			</File>
+			<File
 				RelativePath="res\QuestDesigner.exe.manifest">
 			</File>
 			<File
@@ -396,19 +420,13 @@
 				RelativePath="res\QuestDesignerDoc.ico">
 			</File>
 			<File
+				RelativePath="res\Question.ico">
+			</File>
+			<File
+				RelativePath="res\Warning.ico">
+			</File>
+			<File
 				RelativePath="res\folders.bmp">
-			</File>
-			<File
-				RelativePath="res\ico00001.ico">
-			</File>
-			<File
-				RelativePath="res\ico00002.ico">
-			</File>
-			<File
-				RelativePath="res\icon1.ico">
-			</File>
-			<File
-				RelativePath="res\icon2.ico">
 			</File>
 			<File
 				RelativePath="res\msdev_tab_icons.bmp">

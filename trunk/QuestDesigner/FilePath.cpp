@@ -17,33 +17,16 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		ChildView.h 
-	\brief		Interface of the CChildView class.
-	\date		April 26, 2003
+/*! \file		FilePath.cpp
+	\brief		Implementation of the file manager classes.
+	\date		April 28, 2003
+
+	This file implements the CFileName to handle filenames and paths. Also
+	contains the path to the home directory of the game files.
 */
 
-#pragma once
+#include "stdafx.h"
+#include "FilePath.h"
 
-#include "Console.h"
+CString g_sHomeDir;
 
-/////////////////////////////////////////////////////////////////////////////
-// Forward declarations
-class CChildFrame;
-
-class CChildView :
-	public CConsole
-{
-protected:
-	// Pointer to parent frame
-	CChildFrame *m_pParentFrame;
-	// The view's file name
-	CString m_sFilePath;
-	// The view's title
-	CString m_sTitle;
-
-	// Construction/Destruction
-	CChildView(CChildFrame *pParentFrame);
-public:
-	CString& GetFilePath() { return m_sFilePath; }
-	CString& GetTitle() { return m_sTitle; }
-};

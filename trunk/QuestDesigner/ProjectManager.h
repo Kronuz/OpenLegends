@@ -34,23 +34,30 @@
 	sounds used by the game; and a World Manager, which provides the necessary
 	methods and structures to build the whole quest.
 	
-	The project manager is perhaps the most	important module of all, since it 
-	unites all other four modules into one working engine.
+	CProjectManager is perhaps the most important module of all, since it 
+	unites all other four modules into one working engine. Its functionality
+	is implemented as an object factory, giving birth and controling life of 
+	each object related to the game.
 */
 
 #pragma once
 
 #include "SCompiler.h"
 
+#include "Console.h"
 #include "interfaces.h"
+
 #include "SpriteManager.h"
+#include "SoundManager.h"
+#include "WorldManager.h"
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CProjectManager
 	\brief		CProjectManager class.
-	\author		Kronuz1
-	\version	1.0
+	\author		Kronuz
+	\version	1.1
 	\date		April 15, 2003
+				April 28, 2003
 
 	This class Is the one that manages everything in the project,
 	from the sprite sheets list and the sounds list, to the world and
@@ -58,32 +65,66 @@
 */
 class CProjectManager :
 	public CConsole,
-	public IIOObject
+	public IDocumentObject
 {
 	CString m_sProjectName;
-	int m_iStep, m_iCnt1, m_iCnt2;
+
 protected:
+
+	// Current state of the object:
+	int m_iStep, m_iCnt1, m_iCnt2;
+
+	CWorld *m_World;
+	CSimpleArray<CSpriteSheet*> m_SpriteSheets;
 	CSimpleMap<CString, CSprite*> m_UndefSprites;
 	CSimpleMap<CString, CScript*> m_Scripts;
-	CSimpleArray<CSpriteSheet*> m_SpriteSheets;
+	CSimpleMap<CString, CSound*> m_Sounds;
 
-	CSprite *CreateSprite(_spt_type sptType, LPCSTR sName);
+	// Helper methods:
+	CSprite *CreateSprite(_spt_type sptType, LPCSTR szName);
+
+	void DeleteScript(int nIndex);
+	void DeleteSpriteSheet(int nIndex);
+	void DeleteMap(int nIndex);
 
 public:
 	static int CALLBACK LoadSheet(LPCTSTR szFile, LPARAM lParam);
+	CString& GetProjectName() { return m_sProjectName; }
 
-	CString& GetProjectName() {return m_sProjectName; }
-
+	// Construction/Destruction:
+	CProjectManager();
 	~CProjectManager();
 
-	LRESULT StartBuild();
-	LRESULT BuildNextStep(WPARAM wParam, LPARAM lParam);
+	void Clean(); //!< Frees all allocated memory and cleans the object.
 
-	CSprite *ReferSprite(CString &sName, _spt_type sptType);
-	CSprite *DefineSprite(CString &sName, _spt_type sptType, CSpriteSheet *pSpriteSheet);
-	CScript *DefineScript(CString &sName);
+	// Building/Linking methods:
+	LRESULT StartBuild(); //!< Starts the building process
+	LRESULT BuildNextStep(WPARAM wParam, LPARAM lParam); //!< Continues the building process
 
-	bool Load(LPCSTR szFile);
-	bool Save(LPCSTR szFile) { return false; }
+	// Loading/Saving methods:
+	bool Load(LPCSTR szFile); //!< Loads the project from a file
+	bool Save(LPCSTR szFile) { return false; } //!< Saves the project to a file
+
+	// Object factory methods:
+	CSprite *ReferSprite(LPCSTR szName, _spt_type sptType);  //!< Gets or makes a reference to a sprite.
+	CScript *ReferScript(LPCSTR szName);  //!< Gets or makes a reference to a script
+	CMap	*ReferMap(int xPos, int yPos);  //!< Gets or makes a reference to a map
+
+	CSprite *MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet *pSpriteSheet);
+	CScript *MakeScript(LPCSTR szName);
+	CMap	*MakeMap(int xPos, int yPos);
+
+	void DeleteScript(LPCSTR szName); //!< Deletes a script via its name.
+	void DeleteSpriteSheet(LPCSTR szName); //!< Deletes a sprite sheet via its name.
+	void DeleteMap(LPCSTR szName); //!< Deletes a map via its name.
+	void DeleteSprite(LPCSTR szName); //!< Deletes a sprite via its name.
+
+	// Methods to find stuff in the world:
+	CSprite *FindSprite(LPCSTR szName); //!< Finds a sprite using its name.
+	CSound *FindSound(LPCSTR szName); //!< Finds a sound using its name.
+	CScript *FindScript(LPCSTR szName); //!< Finds a script using its name.
+
+	CMap *FindMap(POINT WorldPoint); //!< Finds the map at a specific location.
+	CSprite *FindSprite(POINT MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
 
 };
