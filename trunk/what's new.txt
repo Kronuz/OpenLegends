@@ -17,6 +17,7 @@ Open Zelda Project v.1.0.0: (not yet released)
 > QD: Paths & way-points edition.
 > OZ: Paths and path finding algorithms.
 > OZ: Advanced script API functions.
+> QD: Sprite Sheet editor fully functional.
 
 Open Zelda Project v.0.9.0: (not yet released)
 > QD: Saving/Loading sprite sheet files.
@@ -34,7 +35,8 @@ Open Zelda Project v.0.8.5: (not yet released)
 Open Zelda Project v.0.8.2: (not yet released)
 * First release of the new Open Zelda.
 * A "What's new" file has been added.
-+ QD: Some bug Fixes.
+- QD: Some bug Fixes.
++ QD: Improved support for video cards in the GraphicsD3D8 plugin!
 + QD: Sprite sets remain grouped as long as you don't close the map group.
 + QD: Support for the Open Zelda debugger, to debug and test scripts in real time.
 + OZ: Added the Open Zelda debugger.
