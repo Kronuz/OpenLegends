@@ -521,7 +521,7 @@ private:
 struct _SpriteSet {
 	struct _SpriteSetInfo {
 		_OpenLegendsFile Header;
-		UINT nObjects;
+		UINT nSelected;
 		CRect rcBoundaries;
 	} Info;
 

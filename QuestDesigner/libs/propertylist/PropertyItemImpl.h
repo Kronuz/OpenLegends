@@ -53,7 +53,7 @@ protected:
 
 public:
 	CProperty(LPCTSTR pstrName, LPARAM lParam) : 
-	  m_szMultivalue(_T("*VARIOUS*")),
+	  m_szMultivalue(_T("*VARIES*")),
 		  m_bMultivalue(false), 
 		  m_fEnabled(true), 
 		  m_lParam(lParam), 
