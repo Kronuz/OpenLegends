@@ -1,0 +1,57 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuestDesigner", "QuestDesigner\QuestDesigner.vcproj", "{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsD3D8", "GraphicsD3D8\GraphicsD3D8.vcproj", "{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Kernel", "Kernel\Kernel.vcproj", "{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenLegends", "OpenLegends\OpenLegends.vcproj", "{0280F8EB-BB1B-488C-BFF5-4C494926F77C}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
+		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
+	EndGlobalSection
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+		ReleaseDeb = ReleaseDeb
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}.Debug.ActiveCfg = Debug|Win32
+		{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}.Debug.Build.0 = Debug|Win32
+		{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}.Release.ActiveCfg = Release|Win32
+		{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}.Release.Build.0 = Release|Win32
+		{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}.ReleaseDeb.ActiveCfg = ReleaseDeb|Win32
+		{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}.ReleaseDeb.Build.0 = ReleaseDeb|Win32
+		{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}.Debug.ActiveCfg = Debug|Win32
+		{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}.Debug.Build.0 = Debug|Win32
+		{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}.Release.ActiveCfg = Release|Win32
+		{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}.Release.Build.0 = Release|Win32
+		{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}.ReleaseDeb.ActiveCfg = ReleaseDeb|Win32
+		{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}.ReleaseDeb.Build.0 = ReleaseDeb|Win32
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}.Debug.ActiveCfg = Debug|Win32
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}.Debug.Build.0 = Debug|Win32
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}.Release.ActiveCfg = Release|Win32
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}.Release.Build.0 = Release|Win32
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}.ReleaseDeb.ActiveCfg = ReleaseDeb|Win32
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}.ReleaseDeb.Build.0 = ReleaseDeb|Win32
+		{0280F8EB-BB1B-488C-BFF5-4C494926F77C}.Debug.ActiveCfg = Debug|Win32
+		{0280F8EB-BB1B-488C-BFF5-4C494926F77C}.Debug.Build.0 = Debug|Win32
+		{0280F8EB-BB1B-488C-BFF5-4C494926F77C}.Release.ActiveCfg = Release|Win32
+		{0280F8EB-BB1B-488C-BFF5-4C494926F77C}.Release.Build.0 = Release|Win32
+		{0280F8EB-BB1B-488C-BFF5-4C494926F77C}.ReleaseDeb.ActiveCfg = ReleaseDeb|Win32
+		{0280F8EB-BB1B-488C-BFF5-4C494926F77C}.ReleaseDeb.Build.0 = ReleaseDeb|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
