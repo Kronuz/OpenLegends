@@ -440,8 +440,7 @@ HRESULT LoadGame(LPCSTR szQuest)
 	if(!*g_szHomeDir || !*szQuest) return E_FAIL;
 	if(!g_pGraphicsI) {
 		if(FAILED(CGraphicsFactory::New(&g_pGraphicsI, "GraphicsD3D9.dll"))) {
-			MessageBox(g_hWnd, "Couldn't load graphics plugin, check plugin version.", "Open Legends", MB_OK);
-			return E_FAIL;
+			exit(1);
 		}
 
 		g_pGraphicsI->Initialize(g_hWnd);

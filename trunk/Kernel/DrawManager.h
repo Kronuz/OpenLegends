@@ -528,7 +528,7 @@ protected:
 	int m_nPasteGroup;
 	int m_nCurrentGroup;
 	vector<vectorObject> m_Objects; //!< Sprites in the selection.
-	vector<string> m_ObjectsNames;
+	vector<string> m_ObjectsNames;  //!< Sprites's name (it's either a recular name or a relative path to a sprite set)
 
 	int GetBoundingRect(CRect *pRect_, int nPasteGroup_ = 0);
 
