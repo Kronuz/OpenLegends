@@ -83,17 +83,21 @@ LRESULT CPropertyView::OnItemChanged(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*
 			break;
 	}
 
+	CONSOLE_PRINTF("Property chenged, updating...\n");
 	int idx = m_ctrlComboBox.GetFirstSel();
+	int items = 0;
 	while(idx != -1) {
 		IPropertyEnabled *pProperty = (IPropertyEnabled *)m_ctrlComboBox.GetItemDataPtr(idx);
 		if((int)pProperty == -1) return 0;
 
+		items++;
 		pProperty->SetProperties(m_PropertyList);
 
 		idx = m_ctrlComboBox.GetNextSel();
 	}
 	m_PropertyList.Touch(); // cleans all changed flags in the property list.
-	
+
+	CONSOLE_PRINTF("%d items chenged.\n", items);
 
 	return 0;
 }
