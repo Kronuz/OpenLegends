@@ -32,7 +32,6 @@ BOOL CBuildOutputBox::PreTranslateMessage(MSG* /*pMsg*/)
 	return FALSE;
 }
 
-
 LRESULT CBuildOutputBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
 	COutputBox::OnCreate(uMsg, wParam, lParam, bHandled);

@@ -319,11 +319,13 @@ interface IGraphics
 	/*! \brief Set the new window view position and size.
 
 		\param hWnd Handle to the parent window.
-		\param rect New position (and size) of the window in the graphics world.
-		\param zoom states if the window view is zoomed, and how much the zoom is. 
+		\param fZoom states if the window view is zoomed, and how much the zoom is. 
 			A value of 1 indicates no zoom while a bigger value indicates a zoom in 
 			and a smaller (from ~0 to 1) indicates a zoom out. Values should be between
 			0.25 to 4.
+		\param pClient The new client RECT of the window, to find out what parts 
+			of the world are visible in the screen (in view coordinates).
+		\param pWorld The new World or clipping size (in world coordinates).
 
 		\return Returns true if the window view could be changed or no major failures occurred.
 

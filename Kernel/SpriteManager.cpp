@@ -106,6 +106,9 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, const A
 		} 
 	}
 	if(pTexture == NULL) {
+		if(GetTickCount() - pSpriteSheet->m_dwLastTry < 10000) return false;
+		pSpriteSheet->m_dwLastTry = 0;
+
 		// We make use of lazy evaluation here to load the textures.
 		CVFile fnFile = pSpriteSheet->GetFile();
 		float scale = 1.0f;
@@ -116,6 +119,7 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, const A
 			CONSOLE_PRINTF("Kernel Warning: Couldn't find Sprite Sheet from PNG file,\n    trying to load from '%s' instead.\n", fnFile.GetFileName());
 			if(!fnFile.FileExists()) {
 				CONSOLE_PRINTF("Kernel Error: Couldn't find Sprite Sheet bitmap for '%s.spt'.\n", fnFile.GetFileTitle());
+				pSpriteSheet->m_dwLastTry = GetTickCount();
 				return false;
 			}
 		}
@@ -129,6 +133,7 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, const A
 		}
 		if(!pTexture) {
 			CONSOLE_PRINTF("Kernel Error: Couldn't open Sprite Sheet bitmap for '%s.spt'.\n", fnFile.GetFileTitle());
+			pSpriteSheet->m_dwLastTry = GetTickCount();
 			return false;
 		}
 		if(pSpriteSheet->m_pTexture) pSpriteSheet->m_pTexture->Release();
@@ -251,7 +256,8 @@ bool CEntity::Run(const CDrawableContext &context, RUNACTION action)
 CSpriteSheet::CSpriteSheet(CGameManager *pGameManager) :
 	CNamedObj(""),
 	m_pGameManager(pGameManager),
-	m_pTexture(NULL)
+	m_pTexture(NULL),
+	m_dwLastTry(0)
 {
 	m_ArchiveIn = new CSpriteSheetTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;

@@ -226,6 +226,9 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	InitializeDockingFrame();
 	InitializeDefaultPanes();
 
+	m_OutputBox.SetSel(0, 0);
+	m_OutputBox.SetSel(-1, -1);
+
 	PostMessage(CWM_INITIALIZE);
 
     StatusBar("Ready", IDI_ICO_OK);
@@ -340,6 +343,7 @@ LRESULT CMainFrame::OnInitialize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 	UpdateLayout();
 
 	ShowWindow(SW_SHOW);
+
 	Invalidate();
 	UpdateWindow();
 

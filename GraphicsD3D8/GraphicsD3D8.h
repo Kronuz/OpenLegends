@@ -120,7 +120,7 @@ class CTextureD3D8 :
 	float m_fScale;
 public:
 
-	CTextureD3D8(IDirect3DTexture8 *pTexture, D3DXIMAGE_INFO imageInfo);
+	CTextureD3D8(IDirect3DTexture8 *pTexture, D3DXIMAGE_INFO &imageInfo, D3DSURFACE_DESC &surfaceDesc);
 	~CTextureD3D8();
 
 	void *GetTexture() const { return (void*)m_pTexture; }
@@ -216,8 +216,9 @@ class CGraphicsD3D8 :
 	void BuildHWVertexBuffer(SVertexBuffer *pVertexBuffer) const;
 #endif
 
-	WORD GetBitCount();
-	WORD GetNext16ARGB(BYTE **Data);
+	LPCSTR GetFormat(D3DFORMAT Format) const;
+	WORD GetBitCount() const;
+	WORD GetNext16ARGB(BYTE **Data) const;
 	void Clear(const RECT *rectDest, ARGBCOLOR rgbColor) const;
 
 

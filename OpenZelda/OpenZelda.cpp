@@ -32,6 +32,7 @@ static bool g_bFullScreen = false;
 
 HINSTANCE hInst;								// Instancia actual
 TCHAR szTitle[MAX_LOADSTRING];					// Texto de la barra de título
+TCHAR *szTitleInfo;
 TCHAR szWindowClass[MAX_LOADSTRING];			// nombre de clase de la ventana principal
 
 // Declaraciones de funciones adelantadas incluidas en este módulo de código:
@@ -76,6 +77,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			break;
 		}
 	}
+	szTitleInfo = szTitle + strlen(szTitle);
 
 	// Realizar la inicialización de la aplicación:
 	if (!InitInstance (hInstance, nCmdShow)) {
@@ -386,6 +388,23 @@ float OnSizing(int nType, CRect *prcWindow)
 		case 2: fZoom = min(fXFactor, fYFactor); break;
 		case 3: fZoom = max(fXFactor, fYFactor); break;
 	}
+
+	// Snap the resizing:
+	int nGran = 4;
+	float fSnap = 0.02f;
+	for(int iq1=0; iq1<=nGran; iq1++) {
+		for(int iq2=0; iq2<=nGran; iq2++) {
+			float fTmp = (float)iq1 + ((float)iq2 / (float)nGran);
+			if(fZoom > fTmp - fSnap && fZoom < fTmp + fSnap) {
+				fZoom = fTmp;
+				iq1 = iq2 = nGran + 1;
+			}
+		}
+	}
+
+	// Set the new zoom level:
+	sprintf(szTitleInfo, "   (%d%%)", (int)(fZoom * 100.0f));
+	SetWindowText(g_hWnd, szTitle);
 
 	if(prcWindow) {
 		rcWindow.right = rcWindow.left + (int)((float)g_nXScreenSize * fZoom + 0.5f) + Xdif;
