@@ -158,7 +158,7 @@
 				RelativePath="..\Misc.cpp">
 			</File>
 			<File
-				RelativePath="..\Net.cpp">
+				RelativePath=".\Net.cpp">
 			</File>
 			<File
 				RelativePath="ProjectFactory.cpp">

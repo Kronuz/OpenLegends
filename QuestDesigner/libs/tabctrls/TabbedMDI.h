@@ -316,7 +316,7 @@ public:
 public:
 
 	// NOTE: CreateEx also calls this (through T*)
-	HWND Create(HWND hWndParent, WTL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
+	HWND Create(HWND hWndParent, ATL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
 			DWORD dwStyle = 0U, DWORD dwExStyle = 0U,
 			UINT nMenuID = 0U, LPVOID lpCreateParam = NULL)
 	{

@@ -393,8 +393,8 @@ public:
 		return (*this);
 	}
 	
-	HWND Create( HWND hWndParent, WTL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
-		DWORD dwStyle = 0, DWORD dwExStyle = 0, WTL::_U_MENUorID MenuOrID = 0U, 
+	HWND Create( HWND hWndParent, ATL::_U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
+		DWORD dwStyle = 0, DWORD dwExStyle = 0, ATL::_U_MENUorID MenuOrID = 0U, 
 		LPVOID lpCreateParam = NULL)
 	{
 		return CWindow::Create ( GetWndClassName(), hWndParent, rect.m_lpRect, 

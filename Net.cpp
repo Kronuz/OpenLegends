@@ -18,7 +18,7 @@
 */
 
 #include "stdafx.h"
-#include "Net.h"
+#include "..\Net.h"
 #pragma comment ( lib, "Ws2_32.lib" )
 
 #define TIMEOUT_VALUE 500

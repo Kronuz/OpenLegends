@@ -704,22 +704,22 @@ void CMapEditorView::CancelOperation(bool bPropagate)
 
 bool CMapEditorView::isResizing()
 {
-	return m_SelectionI->isResizing();
+	return m_SelectionI && m_SelectionI->isResizing();
 }
 
 bool CMapEditorView::isMoving()
 {
-	return m_SelectionI->isMoving();
+	return m_SelectionI && m_SelectionI->isMoving();
 }
 
 bool CMapEditorView::isFloating()
 {
-	return m_SelectionI->isFloating();
+	return m_SelectionI && m_SelectionI->isFloating();
 }
 
 bool CMapEditorView::isSelecting()
 {
-	return m_SelectionI->isSelecting();
+	return m_SelectionI && m_SelectionI->isSelecting();
 }
 
 void CMapEditorView::StartSelBox(const CPoint &_Point, CURSOR *_pCursor)
