@@ -224,7 +224,7 @@
 				Name="Network"
 				Filter="">
 				<File
-					RelativePath="..\Net.cpp">
+					RelativePath=".\Net.cpp">
 				</File>
 			</Filter>
 		</Filter>

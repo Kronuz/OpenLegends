@@ -255,7 +255,13 @@ LRESULT CGEditorView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHan
 {
 	LRESULT nResult = baseClass::OnSize(uMsg, wParam, lParam, bHandled);
 	UpdateView();
-	PostMessage(WM_COMMAND, ID_APP_ADJUST, 0);
+	// klorin:
+	// Looks like there's something wierd here. When i'm using WTL 7.5 and have this line uncommented,
+	// the map editor locks up. But it works fine for Kronuz with WTL 7.0. Also, for me this line
+	// doesn't do anything. But it must have some purpose.
+	// See OnAdjustLimits() which is the command handler for ID_APP_ADJUST.
+	//PostMessage(WM_COMMAND, ID_APP_ADJUST, 0);
+
 	return nResult;
 }
 

@@ -1594,6 +1594,7 @@ bool CGraphicsD3D8::EndPaint()
 		Rect.top = Rect.left = 0;
 		Rect.right = m_RectView.right-m_RectView.left;
 		Rect.bottom = m_RectView.bottom-m_RectView.top;
+		HRESULT hRes = ms_pD3DDevice->Present(&Rect, &Rect, m_hWnd, NULL);
 		if(FAILED(ms_pD3DDevice->Present(&Rect, &Rect, m_hWnd, NULL))) return false;
 #endif
 	} else {
@@ -2158,10 +2159,11 @@ void CGraphicsD3D8::Render(
 		ASSERT(VertexBuffer->m_dwPrimitives <= ms_D3DCaps.MaxPrimitiveCount);
 		ASSERT((IDirect3DBaseTexture8*)texture->GetTexture());
 
-		if(VertexBuffer->m_bOverflow)
+		if(VertexBuffer->m_bOverflow) {
 			D3DVERIFY(ms_pD3DDevice->SetTexture(0, NULL));
-		else
+		} else {
 			D3DVERIFY(ms_pD3DDevice->SetTexture(0, (IDirect3DBaseTexture8*)texture->GetTexture()));
+		}
 
 		D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
 
