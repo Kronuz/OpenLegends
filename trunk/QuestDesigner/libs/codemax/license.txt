@@ -1,0 +1,32 @@
+License Agreement
+This is a legal agreement between you, the end user, and WinMain Software.  By using this software, you are agreeing to accept ownership of this product and to be bound by the terms of this agreement.  
+
+WinMain Software License for CodeMax:
+
+Grant of License.
+WinMain Software grants a limited, non-exclusive license to use unlimited copies of the custom control called CodeMax for the purpose of developing applications for the Windows environment.
+
+Runtime Distribution License.
+WinMain Software grants you a royalty-free right to distribute copies of the runtime dynamic link libraries for use with applications you have developed using CodeMax.  CodeMax runtime files are listed in Exhibit A.  These libraries may not be distributed for any other purpose than to accompany software that you have developed using CodeMax.  You may use CodeMax in your specific purpose application programs, in which WinMain Software grants you permission under WinMain Software's copyright to use, give away or sell such programs without additional licenses or fees, as long as all copies of these programs bear a valid copyright notice stating 'Portions Copyright 1997-2000 Barry Allyn.  All rights reserved.'.  If source code is recompiled, and then packaged with your application, the executeable file must be named differently than the files listed in Exhibit A (in order to prevent file version conflicts with other applications which use CodeMax).  This permission is granted solely for the purpose set forth above, and you are not authorized to use CodeMax in any other manner without written permission from WinMain Software.
+
+Copyright.
+CodeMax is owned by WinMain Software and is protected by United States Copyright laws and international treaty provisions.
+
+Other Restrictions.
+You may not sell or profit from CodeMax as a separate, individually-installable component.  However, you may package CodeMax with an application which requires CodeMax in order to function properly.  In other words, only WinMain Software may profit from CodeMax.  CodeMax may not be bundled with a toolbox of ActiveX or DLL controls which are sold for a profit.
+
+No Warranty
+WINMAIN SOFTWARE DISCLAIMS ALL WARRANTIES, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OR MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE, WITH RESPECT TO THE SOFTWARE AND THE ACCOMPANYING WRITTEN MATERIALS.  NO LIABILITY FOR CONSEQUENTIAL DAMAGES.   IN NO EVENT SHALL WINMAIN SOFTWARE OR ITS SUPPLIERS BE LIABLE FOR ANY DAMAGES WHATSOEVER (INCLUDING, WITHOUT LIMITATION, DAMAGES FOR LOSS OF BUSINESS PROFITS, BUSINESS INTERRUPTION, LOSS OF BUSINESS INFORMATION, OR OTHER PECUNIARY LOSS) ARISING OUT OF THE USE OF OR INABILITY TO USE THIS WINMAIN SOFTWARE PRODUCT, EVEN IF WINMAIN SOFTWARE HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. 
+
+Exhibit A
+CMAX20.DLL	- The 32-bit DLL for the control
+CMAX20.OCX	- The 32-bit ActiveX control
+ 
+
+Information in this document is subject to change without notice.  Complying with all applicable copyright laws is the responsibility of the user.
+ 
+Windows and Visual Basic are trademarks of Microsoft Corporation.
+
+© 2000 WinMain Software.  All rights reserved.
+
+Other products and company names mentioned herein may be the trademarks of their respective owners.
