@@ -39,6 +39,7 @@
 class CLayer;
 class CGameManager;
 class CSpriteSheet;
+class CMapGroup;
 class CWorld;
 
 class CSpriteSheetTxtArch :
@@ -96,6 +97,7 @@ private:
 	bool ReadMaps(CVFile &vfFile);
 	bool ReadMapGroups(CVFile &vfFile);
 	bool ReadProperties(CVFile &vfFile);
+	bool LoadThumbnail(CMapGroup *pMapGroup);
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);

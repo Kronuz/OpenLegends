@@ -39,6 +39,7 @@ class CWorldEditorView :
 	typedef CScrollWindowImpl<CWorldEditorView> baseClass;
 private:
 
+	CRect m_rcOldSelect;
 	CSize m_WorldFullSize;
 	HPEN m_hPenGrid;
 	HPEN m_hPenMapGroupSelected;
@@ -49,7 +50,6 @@ private:
 	HFONT m_hFont8;
 	HFONT m_hFont6;
 
-	bool m_bClean;
 	bool m_bPanning;
 	CURSOR m_CursorStatus;
 
@@ -130,5 +130,5 @@ public:
 	// has the content of the control changed?
 	virtual bool hasChanged();
 
-	virtual HWND SetFocus() { return baseClass::SetFocus(); }
+	virtual HWND SetFocus() { return ::SetFocus(m_hWnd); }
 };

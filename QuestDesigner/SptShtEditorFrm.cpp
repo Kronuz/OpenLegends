@@ -16,4 +16,54 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
+/////////////////////////////////////////////////////////////////////////////
+/*! \file		SptShtEditorFrame.cpp 
+	\brief		Implementation of the CSptShtEditorFrame class.
+	\date		September 30, 2003
+*/
+
 #include "stdafx.h"
+#include "SptShtEditorFrm.h"
+#include "MainFrm.h"
+
+CSptShtEditorFrame::CSptShtEditorFrame(CMainFrame *pMainFrame) :
+	CGEditorFrame(pMainFrame, tSpriteEditor),
+	m_pSptShtEditorView(NULL)
+{ 
+}	
+LRESULT CSptShtEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	HICON hIcon = (HICON)::LoadImage(
+				_Module.GetResourceInstance(),
+				MAKEINTRESOURCE(IDI_DOC_SPTSHT),
+				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
+	SetIcon(hIcon, ICON_SMALL);
+	m_hMenu = ::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDISPTSHTED));
+
+	m_pChildView = m_pSptShtEditorView = new CSptShtEditorView(this);
+
+	// create our view
+	m_hWndClient = m_pSptShtEditorView->Create(m_hWnd, 
+										rcDefault,
+										NULL, 
+										WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL, 
+										WS_EX_CLIENTEDGE);
+	if ( NULL == m_hWndClient ) {
+		ATLTRACE(_T("Error: failed to create child window\n"));
+		return FALSE;
+	}
+
+	m_pGEditorView = m_pSptShtEditorView;
+
+	CGEditorFrame::Register(tSpriteEditor);
+	bHandled = FALSE;
+
+	return TRUE;
+}
+LRESULT CSptShtEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+{
+	CGEditorFrame::Unregister();
+	bHandled = FALSE;
+
+	return 0;
+}

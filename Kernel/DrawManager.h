@@ -62,8 +62,9 @@
 
 using namespace std;
 
-#define MAX_SUBLAYERS	6
-#define MAX_LAYERS		MAX_SUBLAYERS
+#define MAX_SUBLAYERS	10	// Maximum Sublayers
+#define MAX_LAYERS		10	// Maximum Layers
+#define DEFAULT_LAYER	3	// Default layer
 
 #define CONTEXT_BUFFERS 2
 /////////////////////////////////////////////////////////////////////////////
@@ -174,7 +175,8 @@ private:
 	size_t m_nOrder;						//!< Number of siblings at the time of the creation.
 
 protected:
-	CDrawableObject *m_pDrawableObj;
+	CDrawableObject *m_pDrawableObj;		//!< Drawable object for the context (if any)
+	ARGBCOLOR m_rgbBkColor;					//!< If there is no drawable object, a background color should exist
 
 	int m_nSubLayer;						//!< Object's current sub layer (relative to the layer)
 	CPoint m_Position;						//!< Object's position.
@@ -294,6 +296,8 @@ public:
 
 	void SetDrawableObj(CDrawableObject *pDrawableObj);
 	CDrawableObject* GetDrawableObj() const;
+	void SetBkColor(ARGBCOLOR rgbColor);
+	ARGBCOLOR GetBkColor() const;
 
 	// Interface:
 	virtual bool isFlagged() { return false; }
@@ -485,14 +489,20 @@ protected:
 
 	bool m_bHoldSelection;
 
+	CRect m_rcClip;
+	ARGBCOLOR m_rgbClipColor;
+
 	CRect m_rcSelection;
 	CPoint m_ptInitialPoint;
 	CDrawableContext **m_ppMainDrawable;
 
 	bool m_bLockedLayers[MAX_LAYERS]; // keeps the locked layers
 
+	CDrawableContext *m_pLastSelected;
 	typedef vector<SObjProp> vectorObject;
 	vectorObject m_Objects; //!< Sprites in the selection.
+	vectorObject::iterator m_CurrentSel;
+
 	int GetBoundingRect(CRect *pRect_);
 
 	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
@@ -513,6 +523,11 @@ public:
 	}
 
 	// Interface Definition:
+
+	virtual SObjProp* GetFirstSelection();
+	virtual SObjProp* GetNextSelection();
+
+	virtual CDrawableContext* GetLastSelected() { return m_pLastSelected; }
 
 	virtual void HoldSelection(bool bHold = true) { m_bHoldSelection = bHold; }
 	virtual bool isHeld() { return m_bHoldSelection; }
@@ -569,6 +584,7 @@ public:
 	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false) = 0;
 	virtual bool Paste(LPVOID pBuffer, const CPoint &point_) = 0;
 
+	virtual bool SetClip(const CRect *pRect, ARGBCOLOR rgbColor = COLOR_ARGB(0,0,0,0));
 	virtual bool Paint(IGraphics *pGraphicsI, WORD wFlags); // render the map group to the screen
 	virtual BITMAP* Capture(IGraphics *pGraphicsI, float zoom); // creates a new BITMAP with the map group
 	virtual BITMAP* CaptureSelection(IGraphics *pGraphicsI, float zoom); // creates a new BITMAP with the selection
@@ -848,4 +864,12 @@ inline void CDrawableContext::SetDrawableObj(CDrawableObject *pDrawableObj)
 inline CDrawableObject* CDrawableContext::GetDrawableObj() const
 { 
 	return m_pDrawableObj; 
+}
+inline void CDrawableContext::SetBkColor(ARGBCOLOR rgbColor) 
+{ 
+	m_rgbBkColor = rgbColor;
+}
+inline ARGBCOLOR CDrawableContext::GetBkColor() const
+{ 
+	return m_rgbBkColor; 
 }

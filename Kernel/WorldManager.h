@@ -47,12 +47,16 @@ class CWorld;
 #include "ArchiveText.h"
 
 const char g_szLayerNames[MAX_LAYERS][30] = {
-	"0 - Underground",
+	"0 - Background",
 	"1 - Underground",
-	"2 - Ground",
-	"3 - First Level",
-	"4 - Second Level",
-	"5 - Third Level"
+	"2 - Underground",
+	"3 - Ground",
+	"4 - First Level",
+	"5 - Second Level",
+	"6 - Third Level",
+	"7 - Top Layer",
+	"",		// HUD
+	""		// reserved
 };
 const char g_szSubLayerNames[MAX_SUBLAYERS][30] = {
 	"0 - Background",
@@ -60,7 +64,11 @@ const char g_szSubLayerNames[MAX_SUBLAYERS][30] = {
 	"2 - Entities",
 	"3 - Top Background",
 	"4 - Top Sprites",
-	"5 - Top Entities"
+	"5 - Top Entities",
+	"",		// reserved
+	"",		// reserved
+	"",		// reserved
+	""		// reserved
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -101,12 +109,15 @@ public:
 class CMapGroup :
 	public CDrawableContext
 {
+	bool m_bFlagged;
+
 	CBString m_sMapID;
 	CRect m_rcPosition;
 	const CWorld *m_pWorld;
 	BITMAP *m_pBitmap;
 	bool m_bLoaded;
 	ISound *m_pMusic;
+
 public:
 	CMapGroup();
 	~CMapGroup();
@@ -115,10 +126,19 @@ public:
 		m_pWorld = pWorld;
 	}
 
+	virtual bool isFlagged();
+	virtual void Flag(bool bFlag = true);
+	virtual bool GetInfo(SInfo *pI) const;
+	virtual bool GetProperties(SPropertyList *pPL) const;
+	virtual bool SetProperties(SPropertyList &PL);
+	virtual void Commit() const;
+	virtual void Cancel();
+
 	// Interface:
 	virtual bool Load();
 	virtual bool Save();
 
+	virtual void CalculateParallax(RECT *ViewRect);
 	virtual void ShowLayer(int nLayer, bool bShow = true);
 	virtual bool isVisible(int nLayer);
 
@@ -128,6 +148,7 @@ public:
 	virtual bool isMapGroupHead(int x, int y) const;
 
 	virtual LPCSTR GetMapGroupID() const;
+	virtual void SetMapGroupID(LPCSTR szNewID);
 	virtual void GetMapGroupRect(CRect &MapGroupRect) const;
 	virtual void GetMapGroupSize(CSize &MapGroupSize) const;
 	virtual void SetMapGroupSize(const CSize &MapGroupSize);

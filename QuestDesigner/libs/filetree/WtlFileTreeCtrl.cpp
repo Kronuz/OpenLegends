@@ -50,28 +50,29 @@ void CTreeInfo::_Data2Info(LPBYTE pRawData)
 {
 	ATLASSERT(pRawData != NULL);
 	if(pRawData == NULL) return;
-	_OpenZeldaFile *pOZFile = (_OpenZeldaFile *)pRawData;
+	LPCOZFILE pOZFile = (LPCOZFILE)pRawData;
+	if(!VerifyOZFile(&pOZFile)) return;
+
 	// Find name and description:
-	if(LOWORD(pOZFile->dwSignature) == OZF_SIGNATURE) {
-		char tmp[sizeof(pOZFile->ID)];
-		strcpy(tmp, pOZFile->ID);
-		strtok(tmp, "\n");						// signature
-		LPSTR name = strtok(NULL, "\n");		// name
-		LPSTR desc = name + strlen(name) + 1;	// description
+	char tmp[sizeof(pOZFile->ID)];
+	strcpy(tmp, pOZFile->ID);
+	strtok(tmp, "\n");						// signature
+	LPSTR name = strtok(NULL, "\n");		// name
+	LPSTR desc = name + strlen(name) + 1;	// description
 
-		if(name) m_sDisplayName = name;
-		if(desc) m_sDescription = desc;
-		m_eType = titFile;
-	}
-
+	if(name) m_sDisplayName = name;
+	if(desc) m_sDescription = desc;
+	m_eType = titFile;
 }
 void CTreeInfo::_Data2Thumbnail()
 {
 	ATLASSERT(m_pRawData != NULL);
 	if(m_pRawData == NULL) return;
-	_OpenZeldaFile *pOZFile = (_OpenZeldaFile *)m_pRawData;
+	LPCOZFILE pOZFile = (LPCOZFILE)m_pRawData;
+	if(!VerifyOZFile(&pOZFile)) return;
+
 	// Load the thumbnail:
-	if(LOWORD(pOZFile->dwSignature) == OZF_SIGNATURE && pOZFile->dwBitmapOffset) {
+	if(pOZFile->dwBitmapOffset) {
 		LPBITMAP pBitmap = (LPBITMAP)(m_pRawData + pOZFile->dwBitmapOffset);
 		pBitmap->bmBits = (LPVOID)((LPBYTE)pBitmap + sizeof(BITMAP));
 		m_bmpThumbnail = *pBitmap;
@@ -258,19 +259,23 @@ bool CTreeInfo::LoadThumbnail()
 
 	if(m_vFile.Open("r")) {
 		m_eType = titFile;
-		_OpenZeldaFile OZF;
-		if(m_vFile.Read(&OZF, sizeof(_OpenZeldaFile)) != sizeof(_OpenZeldaFile)) {
+		_OpenZeldaFile OZFile;
+		if(m_vFile.Read(&OZFile, sizeof(_OpenZeldaFile)) != sizeof(_OpenZeldaFile)) {
 			m_vFile.Close();
 			return false;
 		}
-		_Data2Info((LPBYTE)&OZF);
+		_Data2Info((LPBYTE)&OZFile);
+
+		LPCOZFILE pOZFile = &OZFile;
+		VerifyOZFile(&pOZFile);
+
 		// Load the thumbnail:
-		if(LOWORD(OZF.dwSignature) == OZF_SIGNATURE && OZF.dwBitmapOffset) {
+		if(pOZFile && OZFile.dwBitmapOffset) {
 			size_t size = m_vFile.GetFileSize();
-			if(OZF.dwBitmapOffset + sizeof(BITMAP) < size) {
-				size -= OZF.dwBitmapOffset;
+			if(OZFile.dwBitmapOffset + sizeof(BITMAP) < size) {
+				size -= OZFile.dwBitmapOffset;
 				LPBYTE pBuffer = new BYTE[size];
-				m_vFile.Seek(OZF.dwBitmapOffset, SEEK_SET);
+				m_vFile.Seek(OZFile.dwBitmapOffset, SEEK_SET);
 				m_vFile.Read(pBuffer, size);
 				SetData(pBuffer, size);
 				m_vFile.Close();
@@ -303,7 +308,10 @@ bool CTreeInfo::Update()
 		_OpenZeldaFile OZFile;
 		m_vFile.Read(&OZFile, sizeof(_OpenZeldaFile));
 
-		if(LOWORD(OZFile.dwSignature) == OZF_SIGNATURE) {
+		LPCOZFILE pOZFile = &OZFile;
+		VerifyOZFile(&pOZFile);
+
+		if(pOZFile) {
 			LPSTR aux = strchr(OZFile.ID, '\n');
 			if(aux) {
 				aux++;

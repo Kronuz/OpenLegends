@@ -51,6 +51,7 @@ CMapGroup::CMapGroup() :
 	m_rcPosition(0,0,0,0),
 	m_sMapID("New Map Group"),
 	m_bLoaded(false),
+	m_bFlagged(false),
 	m_pMusic(NULL)
 {
 	// Build all layers for the map:
@@ -66,17 +67,162 @@ CMapGroup::~CMapGroup()
 {
 	delete []m_pBitmap;
 }
+
+bool CMapGroup::isFlagged()
+{
+	return m_bFlagged;
+}
+void CMapGroup::Flag(bool bFlag)
+{
+	m_bFlagged = bFlag;
+}
+bool CMapGroup::GetInfo(SInfo *pI) const
+{
+	pI->eType = itMapGroup;
+
+	strncpy(pI->szName, GetMapGroupID(), sizeof(pI->szName) - 1);
+	strncpy(pI->szScope, "Map Group", sizeof(pI->szScope) - 1);
+
+	pI->szName[sizeof(pI->szName) - 1] = '\0';
+	pI->szScope[sizeof(pI->szScope) - 1] = '\0';
+
+	pI->pPropObject = (IPropertyEnabled*)this;
+	return true;
+}
+bool CMapGroup::GetProperties(SPropertyList *pPL) const
+{
+	ASSERT(pPL->nProperties == 0);
+	GetInfo(&pPL->Information);
+	char szFileName[MAX_PATH] = { 0 };
+
+	pPL->AddCategory("Map Group");
+	pPL->AddString("Name", GetMapGroupID());
+	pPL->AddValue("X", m_rcPosition.left, false);
+	pPL->AddValue("Y", m_rcPosition.top, false);
+	pPL->AddValue("Width", m_rcPosition.Width(), false);
+	pPL->AddValue("Height", m_rcPosition.Height(), false);
+	pPL->AddRange("Red BkColor", m_rgbBkColor.rgbRed, 0, 255, RED_SLIDER);
+	pPL->AddRange("Green BkColor", m_rgbBkColor.rgbGreen, 0, 255, GREEN_SLIDER);
+	pPL->AddRange("Blue BkColor", m_rgbBkColor.rgbBlue, 0, 255, BLUE_SLIDER);
+	pPL->AddRGBColor("RGB BkColor", m_rgbBkColor);
+	if(m_pMusic) m_pMusic->GetSoundFileName(szFileName, sizeof(szFileName));
+	pPL->AddString("Music", szFileName, false);
+
+	int defXSize = m_rcPosition.Width()*m_pWorld->m_szMapSize.cx;
+	int defYSize = m_rcPosition.Height()*m_pWorld->m_szMapSize.cy;
+	for(int i=0; i<MAX_LAYERS; i++) {
+		if(*g_szLayerNames[i] == '\0') break;
+		CSize Size;
+		CBString sCategory;
+		sCategory.Format("Layer %s", g_szLayerNames[i]);
+		pPL->AddCategory(sCategory);
+		GetChild(i)->GetSize(Size);
+		pPL->AddValue("Width", (Size.cx!=-1)?Size.cx:defXSize);
+		pPL->AddValue("Height", (Size.cy!=-1)?Size.cy:defYSize);
+//		pPL->AddBoolean("", false);
+	}
+
+	return true;
+}
+bool CMapGroup::SetProperties(SPropertyList &PL)
+{
+	bool bChanged = false;;
+	SProperty* pP;
+
+	pP = PL.FindProperty("Name", "Map Group", SProperty::ptString);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(strcmp(GetMapGroupID(), pP->szString)) {
+			SetMapGroupID(pP->szString);
+			bChanged = true;
+		}
+	}
+
+	pP = PL.FindProperty("Red BkColor", "Map Group", SProperty::ptRangeValue);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(m_rgbBkColor.rgbRed != pP->nValue) {
+			m_rgbBkColor.rgbRed = pP->nValue;
+			bChanged = true;
+		}
+	}
+	pP = PL.FindProperty("Green BkColor", "Map Group", SProperty::ptRangeValue);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(m_rgbBkColor.rgbGreen != pP->nValue) {
+			m_rgbBkColor.rgbGreen = pP->nValue;
+			bChanged = true;
+		}
+	}
+	pP = PL.FindProperty("Blue BkColor", "Map Group", SProperty::ptRangeValue);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(m_rgbBkColor.rgbBlue != pP->nValue) {
+			m_rgbBkColor.rgbBlue = pP->nValue;
+			bChanged = true;
+		}
+	}
+
+	pP = PL.FindProperty("RGB BkColor", "Map Group", SProperty::ptRGBColor);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(m_rgbBkColor.dwColor != pP->rgbColor) {
+			m_rgbBkColor = pP->rgbColor;
+			bChanged = true;
+		}
+	}
+
+	int defXSize = m_rcPosition.Width()*m_pWorld->m_szMapSize.cx;
+	int defYSize = m_rcPosition.Height()*m_pWorld->m_szMapSize.cy;
+	for(int i=0; i<MAX_LAYERS; i++) {
+		if(*g_szLayerNames[i] == '\0') break;
+		CSize Size;
+		CBString sCategory;
+		sCategory.Format("Layer %s", g_szLayerNames[i]);
+		GetChild(i)->GetSize(Size);
+
+		pP = PL.FindProperty("Width", sCategory, SProperty::ptValue);
+		if(pP) if(pP->bEnabled && pP->bChanged) {
+			if(((Size.cx!=-1)?Size.cx:defXSize) != pP->nValue) {
+				Size.cx = (pP->nValue!=defXSize)?pP->nValue:-1;
+				bChanged = true;
+			}
+		}
+
+		pP = PL.FindProperty("Height", sCategory, SProperty::ptValue);
+		if(pP) if(pP->bEnabled && pP->bChanged) {
+			if(((Size.cy!=-1)?Size.cy:defYSize) != pP->nValue) {
+				Size.cy = (pP->nValue!=defYSize)?pP->nValue:-1;
+				bChanged = true;
+			}
+		}
+		if(Size.cx != -1 || Size.cy != -1) {
+			if(Size.cx == -1) Size.cx = defXSize;
+			if(Size.cy == -1) Size.cy = defYSize;
+		}
+		if(Size.cx == defXSize && Size.cy == defYSize) {
+			Size.cx = -1;
+			Size.cy = -1;
+		}
+
+		GetChild(i)->SetSize(Size);
+	}
+
+	return bChanged;
+}
+void CMapGroup::Commit() const
+{
+}
+void CMapGroup::Cancel()
+{
+}
+
 bool CMapGroup::Load()
 {
 	if(m_bLoaded) return true;	// loaded map groups can not be loaded again.
 
-	// For now, there is only one layer availible in the worlds the ground layer (layer 2):
-	CLayer *pLayer = static_cast<CLayer *>(GetChild(2));
+	// For now, there is only one layer availible in the worlds the default layer:
+	CLayer *pLayer = static_cast<CLayer *>(GetChild(DEFAULT_LAYER));
 	ASSERT(pLayer);
 	
 	CVFile vfFile;
 	CBString sFile;
-	CBString sPath = "questdata\\" + m_pWorld->m_fnFile.GetFileTitle(); // relative by default
+	CBString sPath = "questdata\\" + m_pWorld->GetFile().GetFileTitle(); // relative by default
 
 	// for each map in the group, we load it in the ground layer:
 	for(int j=0; j<m_rcPosition.Height(); j++) {
@@ -101,6 +247,30 @@ bool CMapGroup::Save()
 LPCSTR CMapGroup::GetMapGroupID() const
 {
 	return m_sMapID;
+}
+void CMapGroup::SetMapGroupID(LPCSTR szNewID)
+{
+	m_sMapID = szNewID;
+}
+
+void CMapGroup::CalculateParallax(RECT *ViewRect)
+{
+	CSize MapSize;
+	GetMapGroupSize(MapSize);
+	MapSize.cx *= m_pWorld->m_szMapSize.cx;
+	MapSize.cy *= m_pWorld->m_szMapSize.cy;
+	
+	for(int i=0; i<MAX_LAYERS; i++) {
+		CSize Size;
+		GetChild(i)->GetSize(Size);
+		if( Size.cx != -1 && Size.cy!= -1 && ViewRect != NULL) {
+			float fX = (float)ViewRect->left / (float)(MapSize.cx - (ViewRect->right - ViewRect->left));
+			float fY = (float)ViewRect->top / (float)(MapSize.cy - (ViewRect->bottom - ViewRect->top));
+			GetChild(i)->MoveTo(
+				ViewRect->left - (int)((float)(Size.cx - (ViewRect->right - ViewRect->left)) * fX + 0.5f), 
+				ViewRect->top - (int)((float)(Size.cy - (ViewRect->bottom - ViewRect->top)) * fY + 0.5f));
+ 		} else GetChild(i)->MoveTo(0, 0);
+	}
 }
 
 void CMapGroup::ShowLayer(int nLayer, bool bShow)

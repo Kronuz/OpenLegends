@@ -104,9 +104,11 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_MOVE, OnMove)
 
-		COMMAND_ID_HANDLER(ID_APP_RELOAD, OnFileReload)
-		COMMAND_ID_HANDLER(ID_APP_SAVE, OnFileSave)
-		COMMAND_ID_HANDLER(ID_APP_SAVE_AS, OnFileSaveAs)
+		MENU_COMMAND_HANDLER(ID_APP_OPEN, OnFileOpen)
+		MENU_COMMAND_HANDLER(ID_APP_CLOSE, OnFileClose)
+		MENU_COMMAND_HANDLER(ID_APP_RELOAD, OnFileReload)
+		MENU_COMMAND_HANDLER(ID_APP_SAVE, OnFileSave)
+		MENU_COMMAND_HANDLER(ID_APP_SAVE_AS, OnFileSaveAs)
 		
 		COMMAND_ID_HANDLER(ID_SCRIPTED_CODELIST, OnCodeList1)
 		COMMAND_ID_HANDLER(ID_SCRIPTED_CODETIP1, OnCodeTip1)
@@ -155,13 +157,6 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 public:
-
-	LRESULT OnFileReload(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-
-	// Save handlers
-	LRESULT OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnFileSaveAs(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-
 	LRESULT OnCodeList1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCodeTip1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCodeTip2(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -198,15 +193,19 @@ public:
 	LRESULT OnUpdateEditGotoPrevBookmark(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnEditClearAllBookmarks(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
-	// Open a file
-	BOOL DoFileOpen(LPCTSTR , LPCTSTR=_T("Untitled"));
+	bool OnFileOpen();
+	bool OnFileClose();
 
-	// Save the file
-	BOOL DoFileSave(const CString &);
-	BOOL DoFileSaveAs();
+	bool OnFileReload();
+	// Save handlers
+	bool OnFileSave();
+	bool OnFileSaveAs();
 
-	// Reload a file
-	BOOL DoReload ();
+	virtual bool DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle = _T("Untitled"), WPARAM wParam = NULL, LPARAM lParam = NULL);
+	virtual bool DoFileClose();
+	virtual bool DoFileSave(LPCTSTR lpszFilePath);
+	virtual bool DoFileSaveAs();
+	virtual bool DoFileReload();
 
 	void UIUpdateStatusBar();
 	void UIUpdateMenuItems();
@@ -232,6 +231,6 @@ public:
 	BOOL OnCodeTipCancel( CM_CODETIPDATA *pctd );
 	BOOL OnCodeTipUpdate( CM_CODETIPDATA *pctd );
 
-	virtual HWND SetFocus() { return baseClass::SetFocus(); }
+	virtual HWND SetFocus() { return ::SetFocus(m_hWnd); }
 
 };

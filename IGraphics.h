@@ -12,6 +12,18 @@
 #define GFX_ROTATE_180	0x02
 #define GFX_ROTATE_270	0x03
 
+#define COLOR_ARGB(a,r,g,b) \
+	((ARGBCOLOR)((((a)&0xff)<<24)|(((r)&0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff)))
+
+#define COLOR_RGB(r,g,b) \
+	((ARGBCOLOR)((((255)&0xff)<<24)|(((r)&0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff)))
+
+#define COLOR_AHSL(a,h,s,l) \
+	((ARGBCOLOR)((((a)&0xff)<<24)|(((h)&0xff)<<16)|(((s)&0xff)<<8)|((l)&0xff)))
+
+#define COLOR_HSL(h,s,l) \
+	((AHSLCOLOR)((((255)&0xff)<<24)|(((h)&0xff)<<16)|(((s)&0xff)<<8)|((l)&0xff)))
+
 typedef struct tagCOLOR {
 	union {
 		DWORD dwColor;
@@ -28,7 +40,10 @@ typedef struct tagCOLOR {
 			DWORD	hslAlpha		: 8; 
 		};
 	};
+	tagCOLOR(BYTE Alpha, BYTE Red, BYTE Green, BYTE Blue) : dwColor(COLOR_ARGB(Alpha, Red, Green, Blue)) {}
+	tagCOLOR(BYTE Red, BYTE Green, BYTE Blue) : dwColor(COLOR_RGB(Red, Green, Blue)) {}
 	tagCOLOR(DWORD _dwColor) : dwColor(_dwColor) {}
+	tagCOLOR(RGBQUAD _Color) : rgbRed(_Color.rgbRed), rgbGreen(_Color.rgbGreen), rgbBlue(_Color.rgbBlue), rgbAlpha(_Color.rgbReserved) {}
 	tagCOLOR() : dwColor(0) {}
 	bool operator==(DWORD _dwColor) const { return (dwColor == _dwColor); }
 	bool operator==(tagCOLOR _Color) const { return (dwColor == _Color.dwColor); }
@@ -36,19 +51,15 @@ typedef struct tagCOLOR {
 	bool operator!=(tagCOLOR _Color) const { return (dwColor != _Color.dwColor); }
 	tagCOLOR operator=(DWORD _dwColor) { dwColor = _dwColor; return *this; }
 	operator DWORD() const { return dwColor; }
+	operator RGBQUAD() const { 
+		RGBQUAD ret; 
+		ret.rgbReserved = rgbAlpha; 
+		ret.rgbRed = rgbRed; 
+		ret.rgbGreen = rgbGreen; 
+		ret.rgbBlue = rgbBlue; 
+		return ret; 
+	}
 } ARGBCOLOR, AHSLCOLOR;
-
-#define COLOR_ARGB(a,r,g,b) \
-	((ARGBCOLOR)((((a)&0xff)<<24)|(((r)&0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff)))
-
-#define COLOR_RGB(r,g,b) \
-	((ARGBCOLOR)((((255)&0xff)<<24)|(((r)&0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff)))
-
-#define COLOR_AHSL(a,h,s,l) \
-	((ARGBCOLOR)((((a)&0xff)<<24)|(((h)&0xff)<<16)|(((s)&0xff)<<8)|((l)&0xff)))
-
-#define COLOR_HSL(h,s,l) \
-	((AHSLCOLOR)((((255)&0xff)<<24)|(((h)&0xff)<<16)|(((s)&0xff)<<8)|((l)&0xff)))
 
 /*
 Calculate HSL from RGB
@@ -375,8 +386,11 @@ interface IGraphics
 	*/
 	virtual bool BeginPaint() = 0;
 
-	//! Draws the frame for all objects in the world
+	//! Draws the frame for all objects in the world (current clipping)
 	virtual bool DrawFrame() = 0;
+
+	//! Draws a clipping frame with the given clipping rectangle and color
+	virtual bool DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLOR rgbBoundaries) = 0;
 
 	//! Draws the grid with the given size and color
 	virtual bool DrawGrid(int nGridSize, ARGBCOLOR rgbColor) = 0;

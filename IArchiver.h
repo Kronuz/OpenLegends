@@ -111,9 +111,10 @@ protected:
 	CDocumentObject() : m_ArchiveIn(NULL), m_ArchiveOut(NULL), m_hasChanged(false) {}
 	IArchive *m_ArchiveIn;
 	IArchive *m_ArchiveOut;
+	CVFile m_fnFile;
 public:
 	void Touch() { m_hasChanged = true; }
 	bool IsModified() { return m_hasChanged; }
-	CVFile m_fnFile;
+	const CVFile& GetFile() const { return m_fnFile; }
 };
 

@@ -35,7 +35,7 @@ BOOL CFoldersTreeBox::PreTranslateMessage(MSG* pMsg)
 LRESULT CFoldersTreeBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
 	m_ctrlToolbar.SubclassWindow( CFrameWindowImplBase<>::CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_FOLDERS, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE) );
-	m_ctrlToolbar.LoadTrueColorToolBar(16, IDR_TB1_FOLDERS);
+	m_ctrlToolbar.LoadTrueColorToolBar(IDR_TB1_FOLDERS);
 
 	int cx = ::GetSystemMetrics(SM_CXSMICON), cy = ::GetSystemMetrics(SM_CYSMICON);
 
@@ -212,15 +212,17 @@ LRESULT CFoldersTreeBox::OnFileItemSelected(UINT /*uMsg*/, WPARAM wParam, LPARAM
 	CTreeInfo *pTreeInfo = (CTreeInfo *)wParam;
 	if(pTreeInfo->GetFile() == NULL) return TRUE;
 
-	CString sFileName = (LPCSTR)pTreeInfo->GetFile()->GetFilePath();
+	CString sFileName = (LPCSTR)pTreeInfo->GetFile()->GetAbsFilePath();
 
 	switch(pTreeInfo->m_cSubType) {
-		case 'E': 
-			m_pMainFrame->ScriptFileOpen(sFileName, 0); // Entity (Script)
+		case 'E': // Entity (Script)
+			m_pMainFrame->ScriptFileOpen(sFileName, 0); 
 			break;
 		case 'W': // World
 		case 'M': // Map
+			break;
 		case 'S': // Sprite (Sprite Sheet)
+			m_pMainFrame->ScriptFileOpen(sFileName, 0);
 			break;
 		default:
 			break;
@@ -273,9 +275,9 @@ LRESULT CFoldersTreeBox::OnBegindrag(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 	pBitmap = pTreeInfo->GetThumbnail();// try to get the thumbnail
 
 	// check if the object contains a valid OZ file as the data:
-	_OpenZeldaFile *pOZFile = (_OpenZeldaFile*)(pTreeInfo->GetData());
-	if(pOZFile) if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) pOZFile = NULL;
-	if(pOZFile) {
+	LPCOZFILE pOZFile = (LPCOZFILE)(pTreeInfo->GetData());
+
+	if(VerifyOZFile(&pOZFile)) {
 		hGlobal = GlobalAlloc(GMEM_MOVEABLE, pOZFile->dwSize);
 		if(!hGlobal) {
 			pDropSource->Release();
@@ -295,7 +297,7 @@ LRESULT CFoldersTreeBox::OnBegindrag(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 		}
 	} else {
 		// If the Tree item data is an unkown type, and there is a file path, use it:
-		if(pTreeInfo->GetFile() && pTreeInfo->m_cSubType=='?') sStr = (LPCSTR)pTreeInfo->GetFile()->GetFilePath();
+		if(pTreeInfo->GetFile() && pTreeInfo->m_cSubType=='?') sStr = (LPCSTR)pTreeInfo->GetFile()->GetAbsFilePath();
 
 		hGlobal = GlobalAlloc(GMEM_MOVEABLE, sStr.GetLength() + 1); // for NULL
 		if(!hGlobal) {
@@ -391,7 +393,7 @@ LRESULT CFoldersTreeBox::OnBegindrag(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 	}
 
 	DWORD dwEffect;
-	HRESULT hr = ::DoDragDrop(pDataObject, pDropSource, DROPEFFECT_COPY, &dwEffect);
+	HRESULT hr = ::DoDragDrop(pDataObject, pDropSource, DROPEFFECT_MOVE, &dwEffect);
 
 	pDropSource->Release();
 	pDataObject->Release();

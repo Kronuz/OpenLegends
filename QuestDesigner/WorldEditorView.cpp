@@ -30,7 +30,6 @@
 
 CWorldEditorView::CWorldEditorView(CWorldEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
-	m_bClean(true),
 	m_bPanning(false),
 	m_CursorStatus(eIDC_ARROW),
 	m_szMap(0, 0),
@@ -104,22 +103,6 @@ LRESULT CWorldEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 	return 0;
 }
 
-//-----------------------------------------------------------------------------
-// Name: DrawRect()
-// Desc: 
-//-----------------------------------------------------------------------------
-void DrawRect(CDC &dc, CRect rcRect)
-{
-	POINT points[] = {
-		{ rcRect.left,	rcRect.top },
-		{ rcRect.right,	rcRect.top }, 
-		{ rcRect.right,	rcRect.bottom },
-		{ rcRect.left,	rcRect.bottom },
-		{ rcRect.left,	rcRect.top }
-	};
-	dc.Polyline(points, 5);
-}
-
 void CWorldEditorView::DoPaint(CDCHandle dc)
 {
 	{ // scope for dcMem, needed for the UpdateMouse() below to really update
@@ -160,19 +143,36 @@ void CWorldEditorView::DoPaint(CDCHandle dc)
 
 		CString strOut;
 		CMapGroup *pMapGroup;
-		dcMem.SetTextColor(RGB(0, 0, 0));	// Text settings
 		dcMem.SetBkMode(TRANSPARENT);
+		HBRUSH hOldBrush = dcMem.SelectStockBrush(NULL_BRUSH);
 		for(x=rcClient.left/szMap.cx; x<=rcClient.right/szMap.cx; x++) {
 			for(y=rcClient.top/szMap.cy; y<=rcClient.bottom/szMap.cy; y++) {
 				if((pMapGroup = DrawThumbnail(dcMem, x, y, szMap)) == NULL) {
-					strOut.Format(_T("%d,%d"), x, y);
-					dcMem.TextOut(x*szMap.cx+2,y*szMap.cy+2, strOut);
+					if(m_Zoom<=10) {
+						strOut.Format(_T("%d,%d"), x, y);
+						dcMem.SetTextColor(RGB(25, 25, 22));	// Text settings
+						dcMem.TextOut(x*szMap.cx+2,y*szMap.cy+2, strOut);
+					}
+
 				} else {
 					if(pMapGroup->isMapGroupHead(x,y)) {
-						dcMem.SetTextColor(RGB(255, 255, 225));
-						strOut.Format(_T("%d,%d: %s"), x, y, pMapGroup->GetMapGroupID());
-						dcMem.TextOut(x*szMap.cx+5,y*szMap.cy+5, strOut);
-						dcMem.SetTextColor(RGB(0, 0, 0));
+						if(m_Zoom<=10) {
+							strOut.Format(_T("%d,%d: %s"), x, y, pMapGroup->GetMapGroupID());
+							dcMem.SetTextColor(RGB(25, 25, 22));
+							dcMem.TextOut(x*szMap.cx+4,y*szMap.cy+4, strOut);
+							dcMem.TextOut(x*szMap.cx+5,y*szMap.cy+4, strOut);
+							dcMem.TextOut(x*szMap.cx+6,y*szMap.cy+4, strOut);
+
+							dcMem.TextOut(x*szMap.cx+4,y*szMap.cy+5, strOut);
+							dcMem.TextOut(x*szMap.cx+6,y*szMap.cy+5, strOut);
+
+							dcMem.TextOut(x*szMap.cx+4,y*szMap.cy+6, strOut);
+							dcMem.TextOut(x*szMap.cx+5,y*szMap.cy+6, strOut);
+							dcMem.TextOut(x*szMap.cx+6,y*szMap.cy+6, strOut);
+
+							dcMem.SetTextColor(RGB(255, 255, 225));
+							dcMem.TextOut(x*szMap.cx+5,y*szMap.cy+5, strOut);
+						}
 					}
 
 					if(pMapGroup == m_pSelMapGroup) dcMem.SelectPen(m_hPenMapGroupSelected);
@@ -185,17 +185,17 @@ void CWorldEditorView::DoPaint(CDCHandle dc)
 					Rect.bottom *= szMap.cy;
 					Rect.right *= szMap.cx;
 					Rect.DeflateRect(4,4);
-					DrawRect(dcMem, Rect);
+					dcMem.Rectangle(Rect);
 				}
 			}
 		}
 
 		// Reselect GDI objects
+		dcMem.SelectBrush(hOldBrush);
 		dcMem.SelectPen(oldPen);
 		dcMem.SelectFont(oldFont);
 	}
 
-	m_bClean = true;
 	UpdateSelections(); // updates the selections (after bliting the memDC)
 }
 
@@ -301,6 +301,29 @@ LRESULT CWorldEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 			m_bPanning = false;
 			ReleaseCapture();
 		} else {
+ 			RECT ScreenRect;
+			ScreenRect.top = ScreenRect.left = 0;
+			ScreenRect.right = ::GetSystemMetrics(SM_CXSCREEN);
+			ScreenRect.bottom = ::GetSystemMetrics(SM_CYSCREEN);
+			ScreenRect.bottom--;
+			ScreenRect.right--;
+
+			CPoint Cursor = Point;
+			ClientToScreen(&Cursor);
+			if(Cursor.x <= ScreenRect.left || Cursor.y <= ScreenRect.top || Cursor.x >= ScreenRect.right || Cursor.y >= ScreenRect.bottom) {
+
+				if(Cursor.x <= ScreenRect.left) Cursor.x = ScreenRect.right - 1;
+				else if(Cursor.x >= ScreenRect.right) Cursor.x = ScreenRect.left + 1;
+
+				if(Cursor.y <= ScreenRect.top) Cursor.y = ScreenRect.bottom - 1;
+				else if(Cursor.y >= ScreenRect.bottom) Cursor.y = ScreenRect.top + 1;
+
+				SetCursorPos(Cursor.x, Cursor.y);
+				ScreenToClient(&Cursor);
+				m_PanningPoint = Cursor + (m_PanningPoint - Point);
+				Point = Cursor;
+			}
+
 			CPoint ScrollPoint(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 			ScrollPoint += (m_PanningPoint - Point);
 
@@ -325,7 +348,8 @@ LRESULT CWorldEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 
 	UpdateMouse(Point);
 
-	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) baseClass::SetFocus();
+	// check if we are not the topmost window in the MDI frame, if we are not, we get the focus:
+	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) ::SetFocus(m_hWnd);
 
 	return 0;
 }
@@ -359,8 +383,10 @@ bool CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 		bScroll = true;
 	} 
 
-	UpdateMouse(point);
-	if(bScroll == false) return false;
+	if(bScroll == false) {
+		UpdateMouse(point);
+		return false;
+	}
 
 	rcClient.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
 
@@ -370,13 +396,20 @@ bool CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 	if(ScrollPoint.y > m_WorldFullSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldFullSize.cy-rcClient.bottom;
 	SetScrollOffset(ScrollPoint);
 
+	UpdateMouse(point);
+	m_rcOldSelect.SetRectEmpty();
+	
 	return true;
 }
-LRESULT CWorldEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
+LRESULT CWorldEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
-	if(GetMainFrame()->GetOldFocus(tAny) == m_hWnd) return 0;
-	GetMainFrame()->SetOldFocus(tWorldEditor, m_hWnd);
+	bHandled = FALSE;
 
+	// If the last Registerd Window to have the focus was this very same window, do nothing:
+	if(GetMainFrame()->GetOldFocus(tAny) == m_hWnd) return 0;
+	GetMainFrame()->SetOldFocus(tWorldEditor, m_hWnd); // leave a trace of our existence
+
+	// Update the properties window:
 	HWND hWnd = GetMainFrame()->m_hWnd;
 	::SendMessage(hWnd, WMP_CLEAR, 0, 0);
 
@@ -384,8 +417,16 @@ LRESULT CWorldEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam
 
 	return 0;
 }
-LRESULT CWorldEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
+LRESULT CWorldEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	bHandled = FALSE;
+
+	// check if we are still the focused window or other application's window is to be focused, 
+	// if so, we just do nothing:
+	if(wParam == NULL) return 0;
+	if(GetParentFrame()->m_hWnd == (HWND)wParam) return 0;
+
+	// we don't do anything anyway :P ... 
 	return 0;
 }
 LRESULT CWorldEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
@@ -479,10 +520,8 @@ void CWorldEditorView::UpdateSelections()
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
 	CPoint Point( (m_MapPoint.x)*(szMap.cx) + (szMap.cx)/2, (m_MapPoint.y)*(szMap.cy) + (szMap.cy)/2 );
 
-	static CPoint sMap;
-
 	CRect rcSelect;
-	CDCHandle dc = GetDC();
+	CDC dc(GetDC());
 	
 	int iBox;
 	// find out the size of the little selection box:
@@ -498,33 +537,19 @@ void CWorldEditorView::UpdateSelections()
 		iBox = 16/m_Zoom;
 	}
 
-	if(Point != sMap && !m_bClean) {
-		rcSelect.top = sMap.y-iBox;
-		rcSelect.bottom = sMap.y+iBox;
-		rcSelect.left = sMap.x-iBox;
-		rcSelect.right = sMap.x+iBox;
+	rcSelect.top = Point.y - iBox;
+	rcSelect.bottom = Point.y + iBox;
+	rcSelect.left = Point.x - iBox;
+	rcSelect.right = Point.x + iBox;
+
+	if(m_rcOldSelect != rcSelect) {
+		m_rcOldSelect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
+		InvalidateRect(m_rcOldSelect);
+
+		m_rcOldSelect = rcSelect;
 		rcSelect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
-
-		CRect rcClient;
-		GetClientRect(&rcClient);
-		rcSelect &= rcClient;
-
-		if(!rcSelect.IsRectEmpty()) {
-			InvalidateRect(rcSelect);
-		}
+		dc.InvertRect(rcSelect);
 	}
-
-	sMap = Point;
-	m_bClean = false;
-
-	rcSelect.top = Point.y-iBox;
-	rcSelect.bottom = Point.y+iBox;
-	rcSelect.left = Point.x-iBox;
-	rcSelect.right = Point.x+iBox;
-
-	rcSelect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
-
-	dc.FillRect(rcSelect, 1);
 
 /////////////////////
 
@@ -540,6 +565,7 @@ void CWorldEditorView::UpdateSelections()
 
 	CRect Rect;
 	HPEN oldPen = dc.SelectPen(m_hPenMapGroup);
+	HBRUSH hOldBrush = dc.SelectStockBrush(NULL_BRUSH);
 
 	if(pOldMapGroup != pMapGroup && pOldMapGroup) {
 		if(pOldMapGroup == m_pSelMapGroup) dc.SelectPen(m_hPenMapGroupSelected);
@@ -550,7 +576,7 @@ void CWorldEditorView::UpdateSelections()
 		Rect.right *= szMap.cx;
 		Rect.DeflateRect(4,4);
 		Rect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
-		DrawRect((CDC)dc, Rect);
+		dc.Rectangle(Rect);
 	}
 	if(pMapGroup) {
 		if(pMapGroup == m_pSelMapGroup) dc.SelectPen(m_hPenMapGroupSelected);
@@ -562,10 +588,12 @@ void CWorldEditorView::UpdateSelections()
 		Rect.right *= szMap.cx;
 		Rect.DeflateRect(4,4);
 		Rect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
-		DrawRect((CDC)dc, Rect);
+		dc.Rectangle(Rect);
 	}
+
 	pOldMapGroup = pMapGroup;
 
+	dc.SelectBrush(hOldBrush);
 	dc.SelectPen(oldPen);
 
 	ReleaseDC(dc);

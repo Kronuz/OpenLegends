@@ -237,6 +237,7 @@ public:
 	int  Finalize();
 	bool BeginPaint();
 	bool DrawFrame();
+	bool DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLOR rgbBoundaries);
 	bool EndPaint();
 	bool DrawGrid(int nGridSize, ARGBCOLOR rgbColor);
 

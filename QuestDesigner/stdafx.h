@@ -34,7 +34,7 @@
 #pragma warning ( disable : 4244 )
 
 // Change these values to use different versions
-#define WINVER			0x0400
+#define WINVER			0x0500
 #define _WIN32_WINNT	0x0400
 #define _WIN32_IE		0x0500
 #define _RICHEDIT_VER	0x0300
@@ -177,17 +177,44 @@ extern CAppModule _Module;
 
 void ShowHelp(HWND hWnd, LPCSTR szTopic = NULL);
 
+// Load an image from a file in memory:
 inline
-bool LoadBitmap( CImage *pImage, HINSTANCE hInstance, UINT nIDResource ) 
+bool LoadImage( CImage *pImage, LPCVOID pImageData, size_t ImageSize ) 
 {
-	bool ret = true;
-	HGLOBAL hBuffer = NULL;
+	bool ret = false;
+	if(::IsBadReadPtr(pImageData, ImageSize) != 0) return false;
 
+	HGLOBAL hBuffer  = ::GlobalAlloc(GMEM_MOVEABLE, ImageSize);
+	if(!hBuffer) return false;
+
+	void* pBuffer = ::GlobalLock(hBuffer);
+	if (!pBuffer) {
+		::GlobalFree(hBuffer);
+		return false;
+	}
+
+	CopyMemory(pBuffer, pImageData, ImageSize);
+
+	IStream* pStream = NULL;
+	if (::CreateStreamOnHGlobal(hBuffer, TRUE, &pStream) == S_OK) {
+		ret = SUCCEEDED(pImage->Load(pStream));
+		pStream->Release();
+	}
+
+	::GlobalUnlock(hBuffer);
+	::GlobalFree(hBuffer);
+	return ret;
+}
+
+// Load an image from a resource:
+inline
+bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource ) 
+{
 	HRSRC hResource = ::FindResource(hInstance, MAKEINTRESOURCE(nIDResource), RT_BITMAP);
 	// What we have here is a regular bitmap:
 	if(hResource) { 
 		pImage->LoadFromResource(hInstance, nIDResource);
-		return ret;
+		return true;
 	}
 	
 	hResource = ::FindResource(hInstance, MAKEINTRESOURCE(nIDResource), _T("PNG"));
@@ -199,26 +226,7 @@ bool LoadBitmap( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 	const void* pResourceData = ::LockResource(::LoadResource(hInstance, hResource));
 	if (!pResourceData) return false;
 
-	hBuffer  = ::GlobalAlloc(GMEM_MOVEABLE, imageSize);
-	if(!hBuffer) return false;
-
-	void* pBuffer = ::GlobalLock(hBuffer);
-	if (!pBuffer) {
-		::GlobalFree(hBuffer);
-		return false;
-	}
-
-	CopyMemory(pBuffer, pResourceData, imageSize);
-
-	IStream* pStream = NULL;
-	if (::CreateStreamOnHGlobal(hBuffer, TRUE, &pStream) == S_OK) {
-		ret = SUCCEEDED(pImage->Load(pStream));
-		pStream->Release();
-	}
-
-	::GlobalUnlock(hBuffer);
-	::GlobalFree(hBuffer);
-	return ret;
+	return LoadImage(pImage, pResourceData, imageSize);
 }
 
 

@@ -33,6 +33,7 @@
 
 #include "WorldEditorFrm.h"
 #include "MapEditorFrm.h"
+#include "SptShtEditorFrm.h"
 
 #include "ScriptEditorFrm.h"
 

@@ -41,10 +41,10 @@ protected:
 	CTrueColorToolBarCtrl m_ctrlBasicToolbar;
 	CTrueColorToolBarCtrl m_ctrlObjectToolbar;
 
-public:
-
 	// The window's view (the child control)
 	CMapEditorView *m_pMapEditorView;
+
+public:
 
 	// Construction/Destruction:
 	CMapEditorFrame(CMainFrame *pMainFrame);

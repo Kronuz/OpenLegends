@@ -31,7 +31,7 @@ struct SInfo
 };
 struct SProperty
 {
-	enum _prop_type { ptUnknown, ptCategory, ptValue, ptRangeValue, ptBoolean, ptString, ptUCString, ptLCString, ptList } eType;
+	enum _prop_type { ptUnknown, ptCategory, ptValue, ptRangeValue, ptBoolean, ptString, ptUCString, ptLCString, ptARGBColor, ptRGBColor, ptList } eType;
 	char Buffer[BUFFSIZE];
 	LPCSTR szPropName;
 	bool bEnabled;
@@ -40,6 +40,7 @@ struct SProperty
 	UINT uMDL;	// Maximum data length
 	union {
 		LPSTR szString;		// ptString, ptUCString, ptLCString
+		DWORD rgbColor;		// ptARGBColor, ptRGBColor
 		bool bBoolean;		// ptBoolean
 		struct {			// ptValue, ptRangeValue
 			int nValue;			
@@ -59,11 +60,17 @@ struct SPropertyList
 	int nProperties;
 	SProperty aProperties[MAX_PROPS];
 
-	SProperty* FindProperty(LPCSTR _szName, SProperty::_prop_type _eType = SProperty::ptUnknown)	{
+	SProperty* FindProperty(LPCSTR _szName, LPCSTR _szCategory = "", SProperty::_prop_type _eType = SProperty::ptUnknown) {
+		ASSERT(_szCategory);
+		LPCSTR szLastCategory = "";
 		for(int i=0; i<nProperties; i++) {
-			aProperties[i].szPropName = aProperties[i].Buffer;
-			if( !stricmp(aProperties[i].Buffer, _szName) &&
-				(_eType == SProperty::ptUnknown || _eType == aProperties[i].eType) ) 
+			//aProperties[i].szPropName = aProperties[i].Buffer; // (this shouldn't be needed)
+			if(aProperties[i].eType == SProperty::ptCategory) {
+				szLastCategory = aProperties[i].szPropName;
+			}
+			if( (!stricmp(aProperties[i].szPropName, _szName)) &&
+				(_eType == SProperty::ptUnknown || _eType == aProperties[i].eType) &&
+				(!stricmp(szLastCategory, _szCategory) || *_szCategory == '\0') ) 
 				return &aProperties[i];
 		}
 		return NULL;
@@ -75,22 +82,40 @@ struct SPropertyList
 		}
 	}
 	bool Merge(const SPropertyList *pPL) {
+		LPCSTR szLastCategory = "";
 		for(int i=0; i<pPL->nProperties; i++) {
-			SProperty *pP = FindProperty(pPL->aProperties[i].szPropName);
+			if(pPL->aProperties[i].eType == SProperty::ptCategory) {
+				szLastCategory = pPL->aProperties[i].szPropName;
+			}
+			SProperty *pP = FindProperty(pPL->aProperties[i].szPropName, szLastCategory);
 			if(pP) {
 				if(pPL->aProperties[i].eType != SProperty::ptCategory && !pP->bMultivalue) {
 					// if the new property has a different value from the existent,
 					// we set the property to be multivalue.
-					if(pP->eType == SProperty::ptString) {
+					if( pP->eType == SProperty::ptString || 
+						pP->eType == SProperty::ptUCString || 
+						pP->eType == SProperty::ptLCString ) {
 						if(strcmp(pP->szString, pPL->aProperties[i].szString))
 							pP->bMultivalue = true;
-					} else if(pP->eType == SProperty::ptValue) {
+					} else 
+					if( pP->eType == SProperty::ptARGBColor ) {
+						if(pP->rgbColor != pPL->aProperties[i].rgbColor)
+							pP->bMultivalue = true;
+					} else
+					if( pP->eType == SProperty::ptRGBColor ) {
+						if((pP->rgbColor&0x00ffffff) != (pPL->aProperties[i].rgbColor&0x00ffffff))
+							pP->bMultivalue = true;
+					} else
+					if( pP->eType == SProperty::ptValue ||
+						pP->eType == SProperty::ptRangeValue ) {
 						if(pP->nValue != pPL->aProperties[i].nValue)
 							pP->bMultivalue = true;
-					} else if(pP->eType == SProperty::ptBoolean) {
+					} else 
+					if(pP->eType == SProperty::ptBoolean) {
 						if(pP->bBoolean != pPL->aProperties[i].bBoolean)
 							pP->bMultivalue = true;
-					} else if(pP->eType == SProperty::ptList) {
+					} else 
+					if(pP->eType == SProperty::ptList) {
 						if(pP->nIndex != pPL->aProperties[i].nIndex)
 							pP->bMultivalue = true;
 					}
@@ -98,35 +123,64 @@ struct SPropertyList
 					if(pPL->aProperties[i].bEnabled == false) pP->bEnabled = false;
 				}
 			} else {
-				if(!DupProperty(&pPL->aProperties[i])) return false;
+				if(!DupProperty(&pPL->aProperties[i], szLastCategory)) return false;
 			}
 		}
 		return true;
 	}
 
-	bool DupProperty(const SProperty *pP) {
+	bool DupProperty(const SProperty *pP, LPCSTR _szCategory = "") {
+		ASSERT(_szCategory);
 		if(nProperties>=MAX_PROPS) return false;
-		aProperties[nProperties] = *pP;
-		aProperties[nProperties].szPropName = aProperties[nProperties].Buffer;
-		if(pP->eType == SProperty::ptList) {
-			LPSTR eob = aProperties[nProperties].Buffer + BUFFSIZE;
-			LPSTR list = eob - aProperties[nProperties].uMDL;
-
-			aProperties[nProperties].List = (LPCSTR *)list;
-			for(int i=0; i<=10; i++) {
-				LPCSTR tmp = aProperties[nProperties].List[i];
-				if(tmp) {
-					aProperties[nProperties].List[i] = 
-						aProperties[nProperties].Buffer + (int)(tmp - pP->Buffer);
+		// find the last property of category _szCategory:
+		int i, nAtProperty = nProperties;
+		if(*_szCategory != '\0') {
+			LPCSTR szLastCategory = "";
+			for(i=0; i<nProperties; i++) {
+				if(aProperties[i].eType == SProperty::ptCategory) {
+					if(!stricmp(szLastCategory, _szCategory)) {
+						if(nProperties+1>=MAX_PROPS) return false;
+						nAtProperty = i;
+						break;
+					}
+					if(i==nProperties) break;
+					szLastCategory = aProperties[i].szPropName;
 				}
 			}
-		} else if(pP->eType == SProperty::ptString) {
-			LPSTR aux = aProperties[nProperties].Buffer + BUFFSIZE - aProperties[nProperties].uMDL;
-			aProperties[nProperties].szString = aux;
-		}
+			if(nAtProperty < nProperties++) {
+				for(i=nProperties-1; i>nAtProperty; i--) {
+					aProperties[i] = aProperties[i-1];
+					ReSync(i, &aProperties[i-1]);
+				}
+			}
+		} else nProperties++;
 
-		nProperties++;
+		aProperties[nAtProperty] = *pP;
+		ReSync(nAtProperty, pP);
 		return true;
+	}
+	void ReSync(int _nIndex, const SProperty *pP) { // (pP is the origin)
+		ASSERT(_nIndex>=0 && _nIndex<nProperties);
+		aProperties[_nIndex].szPropName = aProperties[_nIndex].Buffer;
+		if(pP->eType == SProperty::ptList) {
+			LPSTR eob = aProperties[_nIndex].Buffer + BUFFSIZE;
+			LPSTR list = eob - aProperties[_nIndex].uMDL;
+
+			aProperties[_nIndex].List = (LPCSTR *)list;
+			for(int i=0; i<=10; i++) {
+				LPCSTR tmp = aProperties[_nIndex].List[i];
+				if(tmp) {
+					aProperties[_nIndex].List[i] = 
+						aProperties[_nIndex].Buffer + (int)(tmp - pP->Buffer);
+				}
+			}
+		} else 
+		if( pP->eType == SProperty::ptString ||
+			pP->eType == SProperty::ptUCString ||
+			pP->eType == SProperty::ptLCString ) {
+			LPSTR aux = aProperties[_nIndex].Buffer + BUFFSIZE - aProperties[_nIndex].uMDL;
+			aProperties[_nIndex].szString = aux;
+		}
 	}
 	bool SetName(LPCSTR _szName) {
 		if(nProperties>=MAX_PROPS) return false;
@@ -175,6 +229,26 @@ struct SPropertyList
 			for(;*aux; aux++) *aux = tolower(*aux);
 			aProperties[nProperties].eType = SProperty::ptLCString;
 		}
+		nProperties++;
+		return true;
+	}
+	bool AddARGBColor(LPCSTR _szName, ARGBCOLOR _rgbColor, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
+		aProperties[nProperties].rgbColor = _rgbColor;
+		aProperties[nProperties].eType = SProperty::ptARGBColor;
+		nProperties++;
+		return true;
+	}
+	bool AddRGBColor(LPCSTR _szName, ARGBCOLOR _rgbColor, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
+		aProperties[nProperties].rgbColor = ((_rgbColor&0x00ffffff) | 0xff000000);
+		aProperties[nProperties].eType = SProperty::ptRGBColor;
 		nProperties++;
 		return true;
 	}
@@ -263,6 +337,8 @@ interface ISound
 	virtual void SetLoopBack(int _loop) = 0;
 
 	virtual void SetCurrentPosition(DWORD ID, int _pos) = 0;
+
+	virtual LPCSTR GetSoundFileName(LPSTR szFileName, size_t buffsize) = 0;
 
 	virtual LPCSTR GetSoundFilePath(LPSTR szPath, size_t buffsize) = 0;
 };

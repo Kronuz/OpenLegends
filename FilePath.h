@@ -39,6 +39,16 @@
 
 extern CBString g_sHomeDir;
 
+// Helper macros:
+#define ReadFloatFromFile(file) \
+	((file).GetLine(buff, sizeof(buff))==NULL) ? (0.0f) : (m_nLines++, atof(buff))
+
+#define ReadLongFromFile(file) \
+	((file).GetLine(buff, sizeof(buff))==NULL) ? (0) : (m_nLines++, atol(buff))
+
+#define ReadStringFromFile(string, file) \
+	((file).GetLine(buff, sizeof(buff))==NULL) ? (string="[eof]") : (m_nLines++, string=buff, string.Trim())
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CVFile;
@@ -61,6 +71,7 @@ class CVFile
 	mutable zipFile m_vzFile;
 	mutable FILE *m_File;		// regular file
 
+	mutable bool m_bReadOnly;
 	mutable bool m_bOpenFile;
 	mutable char m_szMode[7];
 	mutable bool m_bChanges;
@@ -111,6 +122,7 @@ public:
 	CBString GetFileName() const;
 	CBString GetPath() const;
 	CBString GetHomeFile() const;
+	CBString GetAbsFilePath() const;
 	CBString GetFilePath() const;
 	CBString GetFileDesc() const;
 
@@ -227,6 +239,11 @@ inline CBString CVFile::GetPath() const
 inline CBString CVFile::GetFilePath() const 
 { 
 	return GetPath() + GetFileName();
+}
+inline CBString CVFile::GetAbsFilePath() const 
+{ 
+	if(m_bVirtual) return GetHomeFile() + "\\" + GetFilePath();
+	return GetFilePath();
 }
 inline CBString CVFile::GetFileDesc() const 
 {
@@ -728,20 +745,31 @@ inline long CVFile::GetVirtualFileSize() const
 inline bool CVFile::Open(LPCSTR mode) const
 {
 	if(m_bOpenFile) return true;
+
 	if(!FileExists() && !strchr(mode, 'w') && !strchr(mode, 'a')) return false;
+
+	// check if the file is read only:
+	CBString sFile = GetHomeFile();
+	m_bReadOnly = false;
+	if(FileExists()) {
+		FILE *aux = fopen(sFile, "r+");
+		if(aux) fclose(aux);
+		else m_bReadOnly = true;
+	}
 
 	strncpy(m_szMode, mode, 4);
 	m_szMode[4] = '\0';
-	if(FileExists() && !strchr(m_szMode, '+')) strcat(m_szMode, "+");
+	if(FileExists() && !strchr(m_szMode, '+') && !m_bReadOnly) strcat(m_szMode, "+");
 	if(!strchr(m_szMode, 'b')) strcat(m_szMode, "b");
 
 	if(m_bVirtual) return OpenVirtual(m_szMode);
 
 	m_bRawMode = false; // regular files can't use raw mode
-	CBString sFile = GetHomeFile();
 	if(sFile.IsEmpty()) return false;
 
 	ASSERT(m_File == NULL);
+
+	if(strchr(m_szMode, '+') && m_bReadOnly) *strchr(m_szMode, '+') = ' ';
 
 	if(strchr(m_szMode, 'w') && strchr(m_szMode, '+')) *strchr(m_szMode, 'w') = 'r';
 
@@ -749,7 +777,7 @@ inline bool CVFile::Open(LPCSTR mode) const
 	if(m_File) {
 		m_bOpenFile = true;
 		return true;
-	}
+	} 
 	return false;
 }
 inline bool CVFile::Flush() const
@@ -807,8 +835,14 @@ inline int CVFile::Read(LPVOID buffer, long buffsize)
 // only stream writes are going to be supported in a near future:
 inline int CVFile::Write(LPCVOID buffer, long buffsize)
 {
+	if(m_bReadOnly) return -1;
+
 	bool wasOpen = m_bOpenFile;
-	if(!m_bOpenFile) if(!Open("wb")) return -1;
+	if(!m_bOpenFile) {
+		if(!Open("wb")) return -1;
+		if(m_bReadOnly) return -1;
+	}
+
 	if(!Flush()) return -1;
 
 	int ret = -1;

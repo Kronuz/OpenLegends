@@ -49,7 +49,6 @@ CGEditorView::CGEditorView(CGEditorFrame *pParentFrame) :
 	m_bMulSelection(true),
 	m_bSnapToGrid(true),
 	m_bShowGrid(false),
-	m_bAnimated(true),
 	m_bPanning(false),
 	m_bModified(false),
 	m_bFloating(false),
@@ -58,6 +57,12 @@ CGEditorView::CGEditorView(CGEditorFrame *pParentFrame) :
 
 	m_rcScrollLimits(0,0,0,0)
 {
+}
+
+// Called to translate window messages before they are dispatched 
+BOOL CGEditorView::PreTranslateMessage(MSG *pMsg)
+{
+	return FALSE;
 }
 
 // Called to do idle processing
@@ -75,6 +80,11 @@ BOOL CGEditorView::OnIdle()
 	return FALSE;
 }
 
+// Called to clean up after window is destroyed (called when WM_NCDESTROY is sent)
+void CGEditorView::OnFinalMessage(HWND /*hWnd*/)
+{
+	delete this;
+}
 bool CGEditorView::InitDragDrop()
 {
 	m_pDropSource = new CIDropSource;
@@ -113,7 +123,7 @@ bool CGEditorView::InitDragDrop()
 	return true;
 }
 
-// no background on these views (DirectX or OpenGM managed)
+// no background on these views (DirectX or OpenGL managed)
 LRESULT CGEditorView::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	return 0;
@@ -128,23 +138,27 @@ LRESULT CGEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 LRESULT CGEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
-	CleanSelection();
-	OnChangeSel(OCS_AUTO);
-
 	RevokeDragDrop(m_hWnd); //calls release
 	m_pDropTarget=NULL;
 	return 0;
 }
 
-LRESULT CGEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
+LRESULT CGEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & bHandled)
 {
+	bHandled = FALSE;
+
+	// start the animations
 	SetTimer(1, 1000/30);
+
 	return 0;
 }
-LRESULT CGEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
+LRESULT CGEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & bHandled)
 {
+	bHandled = FALSE;
+
 	// stop the animations
 	KillTimer(1);
+
 	return 0;
 }
 
@@ -164,10 +178,12 @@ LRESULT CGEditorView::OnDragOver(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BO
 LRESULT CGEditorView::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
 	if(wParam == 1) { // Render stuf:
+		// check if we are still the topmost window in the MDI frame, if we don't, we kill the timer:
 		if(GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
 			KillTimer(1); 
 		}
-		if(m_bAnimated) Render(); // Animation
+		DoFrame();
+		if(GetMainFrame()->m_bAllowAnimations) Render(NULL); // Animation
 	} else if(wParam == 2) { // Drag and drop stuff:
 		// cancel this timer
 		KillTimer(2);
@@ -183,27 +199,82 @@ LRESULT CGEditorView::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL 
 }
 void CGEditorView::DoPaint(CDCHandle dc)
 {
-	Render();
+	Render((WPARAM)dc.m_hDC);
 }
 
 LRESULT CGEditorView::OnVScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
 	LRESULT nResult = baseClass::OnVScroll(uMsg, wParam, lParam, bHandled);
-	baseClass::SetFocus();
+	::SetFocus(m_hWnd);
 	UpdateView();
 	return nResult;
 }
 LRESULT CGEditorView::OnHScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
 	LRESULT nResult = baseClass::OnHScroll(uMsg, wParam, lParam, bHandled);
-	baseClass::SetFocus();
+	::SetFocus(m_hWnd);
 	UpdateView();
 	return nResult;
 }
+
+void CGEditorView::OnAdjustLimits()
+{
+	CPoint Point(
+		(int)((float)GetScrollPos(SB_HORZ)/m_Zoom), 
+		(int)((float)GetScrollPos(SB_VERT)/m_Zoom)
+	);
+
+	CalculateLimits();
+	if(m_rcScrollLimits.IsRectEmpty()) return;
+
+	SetScrollSize(m_rcScrollLimits.Size());
+
+	ScrollTo(
+		(int)((float)Point.x*m_Zoom), 
+		(int)((float)Point.y*m_Zoom)
+	);
+
+ 	UpdateView();
+ 	Invalidate();
+}
+bool CGEditorView::OnFileOpen()
+{
+	return false;
+}
+bool CGEditorView::OnFileClose()
+{
+	return DoFileClose();
+}
+bool CGEditorView::OnFileReload()
+{
+	CString sMessage;
+	sMessage.LoadString(IDS_WARNING_RELOAD);
+
+	if(IDYES==MessageBox(sMessage, "Quest Designer", MB_YESNO|MB_ICONWARNING)) {
+		return DoFileReload();
+	}
+	return false;
+}
+
+// Save handlers
+bool CGEditorView::OnFileSave()
+{
+	if (!m_sFilePath.IsEmpty()) {
+		// save the file
+		return DoFileSave(m_sFilePath);
+	}
+	return DoFileSaveAs();
+}
+bool CGEditorView::OnFileSaveAs()
+{
+	return DoFileSaveAs();
+}
+
 LRESULT CGEditorView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
 	LRESULT nResult = baseClass::OnSize(uMsg, wParam, lParam, bHandled);
 	UpdateView();
+	PostMessage(WM_COMMAND, ID_APP_ADJUST, 0);
 	return nResult;
 }
 
@@ -250,10 +321,18 @@ void CGEditorView::ScrollTo(int x, int y)
 	CPoint ScrollPoint(x, y);
 
 	// Now we validate the new scrolling position:
-	if(ScrollPoint.x < m_rcScrollLimits.left) ScrollPoint.x = m_rcScrollLimits.left;
-	if(ScrollPoint.y < m_rcScrollLimits.top) ScrollPoint.y = m_rcScrollLimits.top;
-	if(ScrollPoint.x > m_rcScrollLimits.right) ScrollPoint.x = m_rcScrollLimits.right;
-	if(ScrollPoint.y > m_rcScrollLimits.bottom) ScrollPoint.y = m_rcScrollLimits.bottom;
+	if(ScrollPoint.x > m_rcScrollLimits.right-rcClient.Width()) 
+		ScrollPoint.x = m_rcScrollLimits.right-rcClient.Width();
+
+	if(ScrollPoint.y > m_rcScrollLimits.bottom-rcClient.Height()) 
+		ScrollPoint.y = m_rcScrollLimits.bottom-rcClient.Height();
+
+	if(ScrollPoint.x < m_rcScrollLimits.left) 
+		ScrollPoint.x = m_rcScrollLimits.left;
+
+	if(ScrollPoint.y < m_rcScrollLimits.top) 
+		ScrollPoint.y = m_rcScrollLimits.top;
+
 	SetScrollOffset(ScrollPoint);
 }
 
@@ -268,7 +347,6 @@ CURSOR CGEditorView::ToCursor(CURSOR cursor_)
 		cursor_ = eIDC_HAND;
 	}
 	switch(cursor_) {
-		case eIDC_ARROW:	hCursor = LoadCursor(NULL, IDC_ARROW); break;
 		case eIDC_CROSS:	hCursor = LoadCursor(NULL, IDC_CROSS); break;
 		case eIDC_NO:		hCursor = LoadCursor(NULL, IDC_NO); break;
 		case eIDC_SIZEALL:	hCursor = LoadCursor(NULL, IDC_SIZEALL); break;
@@ -279,17 +357,29 @@ CURSOR CGEditorView::ToCursor(CURSOR cursor_)
 		case eIDC_ARROWADD: hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_ARROWADD)); break;
 		case eIDC_ARROWDEL: hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_ARROWDEL)); break;
 		case eIDC_HAND:		hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_MHAND)); break;
+		default:			hCursor = LoadCursor(NULL, IDC_ARROW); break;
 	}
 
 	SetCursor(hCursor);
 	return OldCursor;
 }
 
-LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
+LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	CPoint Point(lParam);
+
+	static DWORD dwLastTick;
+	static CRect OldPointRect;
+
+	DWORD dwTick = GetTickCount();
+	if(dwTick < dwLastTick + ::GetDoubleClickTime() && OldPointRect.PtInRect(Point)) {
+		return SendMessage(WM_LBUTTONDBLCLK, wParam, lParam);
+	}
+	OldPointRect.SetRect(Point.x-4, Point.y-4, Point.x+4, Point.y+4);
+	dwLastTick = GetTickCount();
+
 	if(m_bFloating) return 0;
 
-	CPoint Point(lParam);
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 
@@ -323,7 +413,7 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	SetCapture();
 	return 0;
 }
-LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
+LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
 	CPoint Point(lParam);
 	GetMouseStateAt(Point, &m_CursorStatus);
@@ -594,6 +684,28 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 			m_bPanning = false;
 			ReleaseCapture();
 		} else {
+ 			RECT ScreenRect;
+			ScreenRect.top = ScreenRect.left = 0;
+			ScreenRect.right = ::GetSystemMetrics(SM_CXSCREEN);
+			ScreenRect.bottom = ::GetSystemMetrics(SM_CYSCREEN);
+			ScreenRect.bottom--;
+			ScreenRect.right--;
+
+			CPoint Cursor = Point;
+			ClientToScreen(&Cursor);
+			if(Cursor.x <= ScreenRect.left || Cursor.y <= ScreenRect.top || Cursor.x >= ScreenRect.right || Cursor.y >= ScreenRect.bottom) {
+
+				if(Cursor.x <= ScreenRect.left) Cursor.x = ScreenRect.right - 1;
+				else if(Cursor.x >= ScreenRect.right) Cursor.x = ScreenRect.left + 1;
+
+				if(Cursor.y <= ScreenRect.top) Cursor.y = ScreenRect.bottom - 1;
+				else if(Cursor.y >= ScreenRect.bottom) Cursor.y = ScreenRect.top + 1;
+
+				SetCursorPos(Cursor.x, Cursor.y);
+				ScreenToClient(&Cursor);
+				m_PanningPoint = Cursor + (m_PanningPoint - Point);
+				Point = Cursor;
+			}
 			CPoint ScrollPoint(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 			ScrollPoint += (m_PanningPoint - Point);
 			ScrollTo(ScrollPoint.x, ScrollPoint.y);
@@ -699,7 +811,8 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
 	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
 
-	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) baseClass::SetFocus();
+	// check if we are not the topmost window in the MDI frame, if we are not, we get the focus:
+	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) ::SetFocus(m_hWnd);
 
 	// If no buttons are pressed, cancel the current operations and release the mouse capture:
 	if((wParam&MK_LBUTTON)!=MK_LBUTTON && (wParam&MK_MBUTTON)!=MK_MBUTTON && (wParam&MK_RBUTTON)!=MK_RBUTTON) {
@@ -776,7 +889,7 @@ LRESULT CGEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL&
 		}
 	}
 
-	Invalidate();
+	//Invalidate();
 
 	return 0;
 }
@@ -901,7 +1014,7 @@ bool CGEditorView::Zoom(float zoom)
 	if(m_Zoom>10.0f) m_Zoom = 10.0f;
 	if(m_Zoom<0.10f) m_Zoom = 0.10f;
 
-	if(oldZoom == m_Zoom) return 0;
+	if(oldZoom == m_Zoom) return false;
 
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
@@ -912,6 +1025,8 @@ bool CGEditorView::Zoom(float zoom)
 
 	// We need to recalculate the new map size (in pixeles)
 	CalculateLimits();
+	if(m_rcScrollLimits.IsRectEmpty()) return false;
+
 	SetScrollSize(m_rcScrollLimits.Size());
 
 	// Don't know why this is needed, I think there's a bug in the Windows XP scrolling bar system:
@@ -990,6 +1105,8 @@ bool CGEditorView::ToggleHold()
 
 	if(isHeld()) HoldSelection(false);
 	else HoldSelection(true);
+	Invalidate();
+	OnIdle(); // Force idle processing to update the toolbar.
 	return true;
 }
 

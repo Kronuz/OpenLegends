@@ -59,11 +59,15 @@ BEGIN
     SEPARATOR
     BUTTON      ID_APP_WORLDED
     BUTTON      ID_APP_MAPED
+    BUTTON      ID_APP_SPTSHTED
     BUTTON      ID_APP_SCRIPTED
     SEPARATOR
     BUTTON      ID_APP_PREFERENCES
-    BUTTON      ID_APP_NOSOUND
+    BUTTON      ID_APP_SOUND
+    BUTTON      ID_APP_PARALLAX
+    BUTTON      ID_APP_ANIM
     SEPARATOR
+    BUTTON      ID_APP_RUN
     BUTTON      ID_APP_BUILD
     BUTTON      ID_APP_STOPBUILD
     SEPARATOR
@@ -138,12 +142,12 @@ BEGIN
     BUTTON      ID_MAPED_GRIDSNAP
 END
 
-IDR_TB_FOLDERS TOOLBAR  16, 15
+IDR_TB_FOLDERS TOOLBAR  16, 16
 BEGIN
     BUTTON      ID_FOLDERS_PROPERTIES
 END
 
-IDR_TB_PROPVIEW TOOLBAR  16, 15
+IDR_TB_PROPVIEW TOOLBAR  16, 16
 BEGIN
     BUTTON      ID_PROP_CAT
     BUTTON      ID_PROP_SORT
@@ -167,6 +171,7 @@ IDR_TB_FOLDERS          BITMAP                  "res\\FoldersToolbar.bmp"
 IDR_TB_PROPVIEW         BITMAP                  "res\\PropertyViewToolbar.bmp"
 IDB_TAB_ICONS           BITMAP                  "res\\tab_icons.bmp"
 IDB_DRAGIMG             BITMAP                  "res\\DragImg.bmp"
+IDB_CAMARA              BITMAP                  "res\\camara.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -481,7 +486,7 @@ END
 
 IDD_PROPERTIES DIALOGEX 0, 0, 360, 206
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-CAPTION "Options"
+CAPTION "Preferences"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,247,189,50,14
@@ -541,6 +546,17 @@ BEGIN
     EDITTEXT        IDC_THANKS_EDIT,24,94,222,124,ES_MULTILINE | WS_VSCROLL
 END
 
+IDD_COLORPEEK DIALOG  0, 0, 224, 42
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | 
+    WS_CAPTION | WS_SYSMENU
+CAPTION "Color Preview"
+FONT 8, "MS Shell Dlg"
+BEGIN
+    CTEXT           "",IDC_STATIC1,148,7,69,12,SS_SUNKEN
+    CTEXT           "",IDC_STATIC2,148,23,69,12,SS_SUNKEN
+    CTEXT           "Selected",IDC_STATIC,7,7,58,12,SS_SUNKEN
+    CTEXT           "Peek",IDC_STATIC,7,23,58,12,SS_SUNKEN
+END
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -576,7 +592,7 @@ END
 // Accelerator
 //
 
-IDR_MAINFRAME ACCELERATORS 
+IDR_MDICHILD ACCELERATORS 
 BEGIN
     "N",            ID_APP_NEW,             VIRTKEY, CONTROL, NOINVERT
     "O",            ID_APP_OPEN,            VIRTKEY, CONTROL, NOINVERT
@@ -593,7 +609,6 @@ BEGIN
     VK_BACK,        ID_UNDO,                VIRTKEY, ALT, NOINVERT
     "Z",            ID_UNDO,                VIRTKEY, CONTROL, NOINVERT
 END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -657,7 +672,6 @@ IDR_TB1_MAPED_BASIC     PNG                     "res\\ToolbarMapEdBasic.png"
 IDR_TB1_MAPED_OBJECT    PNG                     "res\\ToolbarMapEdObject.png"
 IDR_TB1_FOLDERS         PNG                     "res\\ToolbarFolders.png"
 IDR_TB1_PROPVIEW        PNG                     "res\\ToolbarPropertyView.png"
-
 IDB_COMBO_ICONS         PNG                     "res\\combo_icons.png"
 IDB_COMBO_ICONS2        PNG                     "res\\combo_icons2.png"
 IDB_LOGO                PNG                     "res\\logo.png"
@@ -694,7 +708,7 @@ BEGIN
     ID_APP_BUILD            "Build the Quest File.\nBuild Quest"
     ID_APP_CLOSE            "Close the active project.\nClose Project"
     ID_APP_HELP             "Quest Designer Help Files.\nHelp"
-    ID_APP_MAPED            "Show a map editor.\nOpen Map Editor"
+    ID_APP_MAPED            "Open a map editor.\nOpen Map Editor"
     ID_APP_NEW              "Create a new document\nNew"
     ID_APP_OPEN             "Open an existent document.\nOpen"
     ID_APP_PREFERENCES      "Open Zelda and Quest Designer Preferences.\nPreferences"
@@ -706,7 +720,8 @@ BEGIN
     ID_APP_PRINT_SETUP      "Change the printer and printing options.\nPrint Setup"
     ID_APP_PRINT_PREVIEW    "Display full pages.\nPrint Preview"
     ID_APP_SAVE_ALL         "Save all open files.\nSave All"
-    ID_APP_SPTSHTED         "Show a sprite sheet editor.\nOpen Sprite Sheet Editor"
+    ID_APP_SCRIPTED         "Open a script editor.\nOpen Script Editor"
+    ID_APP_SPTSHTED         "Open a sprite sheet editor.\nOpen Sprite Sheet Editor"
     ID_APP_STATUS_BAR       "Show or hide the status bar.\nToggle StatusBar"
     ID_APP_STOPBUILD        "Stop building the Quest File.\nCancel Build"
     ID_APP_TOOLBAR          "Show or hide the toolbar.\nToggle ToolBar"
@@ -877,8 +892,11 @@ BEGIN
     ID_QUEST_OPEN           "Open a Quest Project.\nOpen Quest"
     ID_QUEST_NEW            "Create a New Quest Project.\nNew Quest"
     ID_SCRIPTED_CODETIP1    "Show parameters of the current function.\nParameters"
-    ID_APP_NOSOUND          "Stop all sounds in the application.\nNo Sound"
+    ID_APP_SOUND            "Enable sounds in the application.\nEnable Sounds"
+    ID_APP_ANIM             "Enable animations in the application.\nEnable Animations"
+    ID_APP_PARALLAX         "Enable Parallax views.\nEnable Parallax"
     ID_MAPED_SELHOLD        "Toggle hold/lock the current selection.\nHold Selection"
+    ID_APP_RUN              "Run the Quest File.\nRun Quest"
 END
 
 STRINGTABLE 

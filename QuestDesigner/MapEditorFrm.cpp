@@ -38,7 +38,7 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 				MAKEINTRESOURCE(IDI_DOC_MAP),
 				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
 	SetIcon(hIcon, ICON_SMALL);
-	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIMAPED)));
+	m_hMenu = ::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIMAPED));
 
 	m_pChildView = m_pMapEditorView = new CMapEditorView(this);
 
@@ -64,10 +64,10 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 	UIAddToolBar(hMapEdObjectToolBar);
 
 	m_ctrlBasicToolbar.SubclassWindow( hMapEdBasicToolBar );
-	m_ctrlBasicToolbar.LoadTrueColorToolBar(18, IDR_TB1_MAPED_BASIC);
+	m_ctrlBasicToolbar.LoadTrueColorToolBar(IDR_TB1_MAPED_BASIC);
 
 	m_ctrlObjectToolbar.SubclassWindow( hMapEdObjectToolBar );
-	m_ctrlObjectToolbar.LoadTrueColorToolBar(18, IDR_TB1_MAPED_OBJECT);
+	m_ctrlObjectToolbar.LoadTrueColorToolBar(IDR_TB1_MAPED_OBJECT);
 
 	// create a rebat to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_VERT)) {

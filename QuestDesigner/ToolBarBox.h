@@ -38,67 +38,44 @@ public:
 		return bRet;
 	}
 
-	BOOL LoadTrueColorToolBar(int nBtnWidth, UINT uToolBar, UINT uToolBarHot=0, UINT uToolBarDisabled=0)
+	BOOL LoadTrueColorToolBar(UINT uToolBar, UINT uToolBarHot=0, UINT uToolBarDisabled=0)
 	{
-
+//return FALSE;
 		ATLASSERT(IS_INTRESOURCE(uToolBar));
-		if(!SetTrueColorToolBar(m_ImageList1, TB_SETIMAGELIST, uToolBar, nBtnWidth))
+		if(!SetTrueColorToolBar(m_ImageList1, TB_SETIMAGELIST, uToolBar))
 			return FALSE;
 
 		if(uToolBarHot) {
 			ATLASSERT(IS_INTRESOURCE(uToolBarHot));
-			if(!SetTrueColorToolBar(m_ImageList2, TB_SETHOTIMAGELIST, uToolBarHot, nBtnWidth))
+			if(!SetTrueColorToolBar(m_ImageList2, TB_SETHOTIMAGELIST, uToolBarHot))
 				return FALSE;
 		}
 
 		if(uToolBarDisabled) {
 			ATLASSERT(IS_INTRESOURCE(uToolBarDisabled));
-			if(!SetTrueColorToolBar(m_ImageList3, TB_SETDISABLEDIMAGELIST, uToolBarDisabled, nBtnWidth))
+			if(!SetTrueColorToolBar(m_ImageList3, TB_SETDISABLEDIMAGELIST, uToolBarDisabled))
 				return FALSE;
 		}
 
 		return TRUE;
 	}
-	BOOL SetTrueColorToolBar(CImageList &cImageList, UINT uToolBarType, UINT uToolBar, int nBtnWidth)
+	BOOL SetTrueColorToolBar(CImageList &cImageList, UINT uToolBarType, UINT uToolBar)
 	{
-/*
-		HBITMAP hBitmap = 
-			(HBITMAP)LoadImage( _Module.GetResourceInstance(), MAKEINTRESOURCE(uToolBar),
-			IMAGE_BITMAP, 0, 0,
-			LR_DEFAULTSIZE | LR_CREATEDIBSECTION );
-
-		if(!hBitmap) return false;
-
-		BITMAP bmBitmap;
-		::GetObject(hBitmap, sizeof(BITMAP), &bmBitmap);
-
-		CSize cSize(bmBitmap.bmWidth, bmBitmap.bmHeight); 
-		int	nNbBtn	= cSize.cx / nBtnWidth;
-
-		RGBTRIPLE*	rgb	= (RGBTRIPLE*)(bmBitmap.bmBits);
-		COLORREF rgbMask = RGB(rgb[0].rgbtRed, rgb[0].rgbtGreen, rgb[0].rgbtBlue);
-
-		if(!cImageList.IsNull()) cImageList.Destroy();
-		if(!cImageList.Create(nBtnWidth, cSize.cy, ILC_COLOR32 | ILC_MASK, nNbBtn, 0))
-			return FALSE;
-
-		if (cImageList.Add(hBitmap, rgbMask) == -1)
-			return FALSE;
-/*/
-		
 		CImage Image;
-		if(!LoadBitmap(&Image, _Module.GetModuleInstance(), uToolBar)) 
+		if(!LoadImage(&Image, _Module.GetModuleInstance(), uToolBar)) 
 			return FALSE;
 
+		int nBtnHeight = Image.GetHeight();
+		int nBtnWidth = nBtnHeight;
 		int	nNbBtn	= Image.GetWidth() / nBtnWidth;
 
 		if(!cImageList.IsNull()) cImageList.Destroy();
-		if(!cImageList.Create(nBtnWidth, Image.GetHeight(), ILC_COLOR32, nNbBtn, 0))
+		if(!cImageList.Create(nBtnWidth, nBtnHeight, ILC_COLOR32, nNbBtn, 0))
 			return FALSE;
 
 		if(cImageList.Add(Image) == -1)
 			return FALSE;
-/**/
+
 		SendMessage(uToolBarType, 0, (LPARAM)cImageList.m_hImageList);
 
 		return TRUE;

@@ -492,16 +492,15 @@ bool CIDropTarget::QueryDrop(DWORD grfKeyState, LPDWORD pdwEffect)
 	if(*pdwEffect == 0) 
 	{
 	   // No modifier keys used by user while dragging. 
-	   if (DROPEFFECT_COPY & dwOKEffects)
+		if (DROPEFFECT_COPY & dwOKEffects) {
 		  *pdwEffect = DROPEFFECT_COPY;
-	   else if (DROPEFFECT_MOVE & dwOKEffects)
+		} else if (DROPEFFECT_MOVE & dwOKEffects) {
 		  *pdwEffect = DROPEFFECT_MOVE; 
-	   else if (DROPEFFECT_LINK & dwOKEffects)
+		} else if (DROPEFFECT_LINK & dwOKEffects) {
 		  *pdwEffect = DROPEFFECT_LINK; 
-	   else 
-	   {
+		} else {
 		  *pdwEffect = DROPEFFECT_NONE;
-	   }
+		}
 	} 
 	else
 	{

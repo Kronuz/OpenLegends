@@ -262,29 +262,31 @@ public:
 	}
 
 	// Icons and State-Icons:
-	BOOL LoadStatesBitmap(int nWidth, UINT uStates, UINT uStatesDisabled=0) 
+	BOOL LoadStatesBitmap(UINT uStates, UINT uStatesDisabled=0) 
 	{
 		ATLASSERT(IS_INTRESOURCE(uStates));
-		SetStatesBitmap(m_ImageList1, uStates, nWidth);
+		SetStatesBitmap(m_ImageList1, uStates);
 
 		if(uStatesDisabled) {
 			ATLASSERT(IS_INTRESOURCE(uStatesDisabled));
-			if(!SetStatesBitmap(m_ImageList2, uStatesDisabled, nWidth))
+			if(!SetStatesBitmap(m_ImageList2, uStatesDisabled))
 				return FALSE;
 		}
-		m_nImageWidth = nWidth;
-		m_nItemHeight = nWidth;
 
 		return TRUE;
 	}
 
-	BOOL SetStatesBitmap(CImageList &cImageList, UINT uBitmap, int nWidth)
+	BOOL SetStatesBitmap(CImageList &cImageList, UINT uBitmap)
 	{
 		CImage Image;
-		if(!LoadBitmap(&Image, _Module.GetModuleInstance(), uBitmap)) 
+		if(!LoadImage(&Image, _Module.GetModuleInstance(), uBitmap)) 
 			return FALSE;
 
+		int nWidth = Image.GetHeight();
 		int	nImages	= Image.GetWidth() / nWidth;
+
+		m_nImageWidth = nWidth;
+		m_nItemHeight = nWidth;
 
 		if(!cImageList.IsNull()) m_ImageList1.Destroy();
 		if(!cImageList.Create(nWidth, Image.GetHeight(), ILC_COLOR32, nImages, 0))
@@ -668,10 +670,8 @@ public:
 
 		if(rcClient.top >= rcClient.bottom) return 0;
 
-		CDC pDC;
-		pDC.Attach(m_ctrlListBox.GetDC());
+		CDC pDC(m_ctrlListBox.GetDC());
 		pDC.FillSolidRect(&rcClient, ::GetSysColor(COLOR_WINDOW));
-		pDC.Detach();
 
 		return 1;
 	}

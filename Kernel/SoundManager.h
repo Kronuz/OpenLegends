@@ -77,6 +77,8 @@ public:
 
 	virtual LPCSTR GetSoundFilePath(LPSTR szPath, size_t buffsize);
 
+	virtual LPCSTR GetSoundFileName(LPSTR szFileName, size_t buffsize);
+
 };
 
 // this is the singleton sound manager.

@@ -279,22 +279,29 @@ public:
 		if( prop == (IProperty*) -1 ) prop = NULL;
 		return prop;
 	}
-	HPROPERTY FindProperty(LPCTSTR pstrName) const
+	// Modified by Kronuz to add search by category
+	HPROPERTY FindProperty(LPCTSTR pstrName, LPCTSTR pstrCategory = _T("")) const
 	{
 		ATLASSERT(::IsWindow(m_hWnd));
 		ATLASSERT(pstrName);
 		if( pstrName == NULL ) return NULL;
 		// Find property from title
+		LPCTSTR pstrLastCategory = _T("");
 		for( int i = 0; i < GetCount(); i++ ) {
 			IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(i));
 			ATLASSERT(prop);
-			if( ::lstrcmp(prop->GetName(), pstrName) == 0 ) return prop;
-			// Search properties in collapsed category items
 			if( prop->GetKind() == PROPKIND_CATEGORY ) {
-				const CCategoryProperty* category = static_cast<CCategoryProperty*>(prop);            
-				int j = 0;
-				for( IProperty* prop = NULL; (prop = category->GetProperty(j)) != NULL; j++ ) {
-					if( ::lstrcmp(prop->GetName(), pstrName) == 0 ) return prop;
+				pstrLastCategory = prop->GetName();
+			}
+			if(::lstrcmp(pstrLastCategory, pstrCategory) == 0 || *pstrCategory == _T('\0')) {
+				if( ::lstrcmp(prop->GetName(), pstrName) == 0 ) return prop;
+				// Search properties in collapsed category items
+				if( prop->GetKind() == PROPKIND_CATEGORY ) {
+					const CCategoryProperty* category = static_cast<CCategoryProperty*>(prop);            
+					int j = 0;
+					for( IProperty* prop = NULL; (prop = category->GetProperty(j)) != NULL; j++ ) {
+						if( ::lstrcmp(prop->GetName(), pstrName) == 0 ) return prop;
+					}
 				}
 			}
 		}
@@ -679,10 +686,8 @@ public:
 
 		// If there is a section to draw:
 		if(rcClient.top < rcClient.bottom) {
-			CDC pDC;
-			pDC.Attach(GetDC());
+			CDC pDC(GetDC());
 			pDC.FillSolidRect(&rcClient, m_di.clrBack);
-			pDC.Detach();
 		}
 
 		// Show ghost bar:
@@ -946,6 +951,19 @@ public:
 		}
 		return 0;
 	}
+	HPROPERTY GetCategory(int index)
+	{
+		index = min(index, GetCount());
+		HPROPERTY hRetProp = NULL;
+		for( int i = 0; i < index; i++ ) {
+			IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(i));
+			ATLASSERT(prop);
+			if( prop->GetKind() == PROPKIND_CATEGORY ) {
+				hRetProp = prop;
+			}
+		}
+		return hRetProp;
+	}
 	LRESULT OnEditProperty(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 	{
 		// Tell the user a property is about to be edited.
@@ -957,6 +975,7 @@ public:
 		ATLASSERT(prop);
 		if( prop == NULL ) return 0;
 
+		prop->SetCategory(GetCategory(m_iInplaceIndex));
 		NMPROPERTYITEM nmh = { m_hWnd, GetDlgCtrlID(), PIN_ITEMEDIT, prop };
 		::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh);
 
@@ -975,6 +994,7 @@ public:
 		if( prop == NULL ) return 0;
 		// Ask owner about change
 		m_bLockInplaceEditor = true; // Added by Kronuz
+		prop->SetCategory(GetCategory(m_iInplaceIndex));
 		NMPROPERTYITEM nmh = { m_hWnd, GetDlgCtrlID(), PIN_ITEMCHANGING, prop };
 		if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh) == 0 ) {
 			// Set new value
@@ -1005,6 +1025,7 @@ public:
 		IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(m_iInplaceIndex));
 		ATLASSERT(prop);
 		if( prop == NULL ) return 0;
+		prop->SetCategory(GetCategory(m_iInplaceIndex));
 		// Stuff commented by Kronuz:
 		// Repaint item
 //		InvalidateItem(m_iInplaceIndex);

@@ -39,7 +39,7 @@ LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 				MAKEINTRESOURCE(IDI_DOC_WORLD),
 				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
 	SetIcon(hIcon, ICON_SMALL);
-	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIWORLDED)));
+	m_hMenu = ::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIWORLDED));
 
 	m_pChildView = m_pWorldEditorView = new CWorldEditorView(this);
 

@@ -36,10 +36,13 @@ class CMainFrame;
 class CScriptEditorFrame :
 	public CChildFrame
 {
+	typedef CChildFrame baseClass;
+
 protected:
-public:
 	// The window's view (the child control)
 	CScriptEditorView *m_pScriptEditorView;
+
+public:
 
 	// Construction/Destruction:
 	CScriptEditorFrame(CMainFrame *pMainFrame);
@@ -54,8 +57,7 @@ public:
 
 		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
-		CHAIN_MSG_MAP(CChildFrame)
-		// Pass all unhandled WM_COMMAND messages to the client window or 'view'
+		CHAIN_MSG_MAP(baseClass)
 
 	END_MSG_MAP()
 

@@ -46,7 +46,7 @@ public:
 	int m_nOldValue;
 
 	CPropertyEditWindow(int iLower, int iHigher, DWORD dwSlider) : 
-	m_fCancel(false),
+		m_fCancel(false),
 		m_iLowerLimit(iLower),
 		m_iHigherLimit(iHigher),
 		m_dwSlider(dwSlider),
@@ -56,7 +56,7 @@ public:
 	{
 	}
 	CPropertyEditWindow() : 
-	m_fCancel(false),
+		m_fCancel(false),
 		m_iLowerLimit(0),
 		m_iHigherLimit(0),
 		m_dwSlider(0),
@@ -225,7 +225,7 @@ public:
 			GetWindowText(szVal, (sizeof(szVal) / sizeof(TCHAR)) - 1);
 			long lVal = _ttol(szVal);
 
-			CDCHandle dc(GetDC());
+			CDC dc(GetDC());
 			RECT rcClient;
 			GetClientRect(&rcClient);
 
@@ -311,6 +311,7 @@ public:
 	LRESULT OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
 		switch( LOWORD(wParam) ) {
+			case VK_TAB:
 			case VK_RETURN:
 			case VK_ESCAPE:
 				// Do not BEEP!!!!
@@ -351,7 +352,11 @@ public:
 	DECLARE_WND_SUPERCLASS(NULL, TBase::GetWndClassName())
 
 	CContainedWindowT<CButton> m_wndButton;
+
+	bool m_fCancel;
+	bool m_bWaitFocus;
 	bool m_bReadOnly;
+	int m_nButtonWidth;
 
 	virtual void OnFinalMessage(HWND /*hWnd*/)
 	{
@@ -359,6 +364,8 @@ public:
 	}
 
 	typedef CPropertyDropWindowImpl< T > thisClass;
+
+	CPropertyDropWindowImpl() : m_nButtonWidth(0), m_bReadOnly(true), m_bWaitFocus(false), m_fCancel(false) {} // Added by Kronuz
 
 	BEGIN_MSG_MAP(thisClass)
 		MESSAGE_HANDLER(WM_USER_PROP_OWNED, OnIsOwned)
@@ -373,7 +380,7 @@ public:
 		MESSAGE_HANDLER(WM_GETDLGCODE, OnGetDlgCode)
 		MESSAGE_HANDLER(WM_SETCURSOR, OnSetCursor)
 		ALT_MSG_MAP(1) // Button
-		MESSAGE_HANDLER(WM_KILLFOCUS, OnButtonKillFocus)
+		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
 		MESSAGE_HANDLER(WM_KEYDOWN, OnButtonKeyDown)
 		MESSAGE_HANDLER(WM_GETDLGCODE, OnGetDlgCode)
 	END_MSG_MAP()
@@ -396,26 +403,28 @@ public:
 		bHandled = FALSE;
 		return 0;
 	}
+	// Modified by Kronuz:
 	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 	{
 		LRESULT lRes = DefWindowProc(uMsg, wParam, lParam);
 		RECT rcClient;
 		GetClientRect(&rcClient);
-		int cy = rcClient.bottom - rcClient.top;
+
+		// Added by Kronuz:
+		if(m_nButtonWidth == 0) m_nButtonWidth = (rcClient.bottom - rcClient.top); //(rcClient.bottom - rcClient.top);
 
 		// Setup EDIT control
 		SetFont( CWindow(GetParent()).GetFont() );
 		ModifyStyle(WS_BORDER, ES_LEFT);
-		SendMessage(EM_SETMARGINS, EC_LEFTMARGIN|EC_RIGHTMARGIN, MAKELONG(PROP_TEXT_INDENT, ::GetSystemMetrics(SM_CXVSCROLL)));
+		SendMessage(EM_SETMARGINS, EC_LEFTMARGIN|EC_RIGHTMARGIN, MAKELONG(PROP_TEXT_INDENT, m_nButtonWidth));
 
 		// Create button
-		RECT rcButton = { rcClient.right - cy, rcClient.top, rcClient.right, rcClient.bottom };
+		RECT rcButton = { rcClient.right - m_nButtonWidth, rcClient.top, rcClient.right, rcClient.bottom };
 		m_wndButton.Create(this, 1, m_hWnd, &rcButton, NULL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | BS_PUSHBUTTON | BS_OWNERDRAW);
 		ATLASSERT(m_wndButton.IsWindow());
 		m_wndButton.SetFont(GetFont());
 		// HACK: Windows needs to repaint this guy again!
 //		m_wndButton.SetFocus(); // Commented by Kronuz
-		PostMessage(WM_SETFOCUS); // Added by Kronuz
 		m_bReadOnly = true;
 		return lRes;
 	}
@@ -428,6 +437,7 @@ public:
 	}
 	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
+		m_fCancel = false;
 		if( !m_bReadOnly ) {
 			bHandled = FALSE;
 		}
@@ -440,35 +450,38 @@ public:
 	}
 	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-		if( (HWND) wParam != m_wndButton ) ::SendMessage(GetParent(), WM_USER_PROP_UPDATEPROPERTY, 0, (LPARAM) m_hWnd);
-		::PostMessage(GetParent(), WM_KILLFOCUS, 0, 0);
+		if(m_bWaitFocus) return FALSE; // Added by Kronuz
+
+		if( (HWND)wParam != m_wndButton && (HWND)wParam != m_hWnd) {
+			m_fCancel |= ((BOOL)SendMessage(EM_GETMODIFY, 0, 0L) == FALSE);
+			::SendMessage(GetParent(), m_fCancel ? WM_USER_PROP_CANCELPROPERTY : WM_USER_PROP_UPDATEPROPERTY, 0, (LPARAM) m_hWnd);
+			::PostMessage(GetParent(), WM_KILLFOCUS, 0, 0);
+		}
+
 		bHandled = FALSE;
 		return 0;
 	}
-	LRESULT OnButtonKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
-	{
-		::PostMessage(GetParent(), WM_KILLFOCUS, 0, 0);
-		bHandled = FALSE;
-		return 0;
-	}
+
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-		if( m_bReadOnly ) {
-			bHandled = FALSE;
+		if( m_bReadOnly ) { // Don't allow any editing
 			return 0;
 		}
+
 		switch( wParam ) {
 			case VK_F2:
 			case VK_F4:
 			case VK_SPACE:
 				m_wndButton.Click();
 				return 0;
-			case VK_RETURN:
 			case VK_ESCAPE:
-				// Announce the new value
-				::PostMessage(GetParent(), wParam == VK_RETURN ? WM_USER_PROP_UPDATEPROPERTY : WM_USER_PROP_CANCELPROPERTY, 0, (LPARAM) m_hWnd);
+				m_fCancel = true;
+				// FALL THROUGH...
+			case VK_RETURN: {
+				// Force focus to parent to update value (see OnKillFocus()...)
 				::SetFocus(GetParent());
 				break;
+			}
 			case VK_TAB:
 			case VK_UP:
 			case VK_DOWN:
@@ -486,10 +499,20 @@ public:
 		bHandled = FALSE;
 		return 0;
 	}
-	LRESULT OnChar(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	LRESULT OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
-		// Don't allow any editing
-		if( !m_bReadOnly ) bHandled = FALSE;
+		if( m_bReadOnly ) { // Don't allow any editing
+			return 0;
+		}
+
+		switch( LOWORD(wParam) ) {
+			case VK_TAB:
+			case VK_RETURN:
+			case VK_ESCAPE:
+				// Do not BEEP!!!!
+				return 0;
+		}
+		bHandled = FALSE;
 		return 0;
 	}
 	LRESULT OnMouseButtonClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
@@ -501,7 +524,6 @@ public:
 	}
 
 	// Button
-
 	LRESULT OnButtonKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 	{
 		switch( wParam ) {
@@ -523,7 +545,7 @@ public:
 	}
 	LRESULT OnGetDlgCode(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 	{
-		return DefWindowProc(uMsg, wParam, lParam) | DLGC_WANTALLKEYS;
+		return DefWindowProc(uMsg, wParam, lParam) | DLGC_WANTALLKEYS | (m_bReadOnly?0:DLGC_WANTARROWS);
 	}
 };
 
@@ -565,11 +587,14 @@ public:
 	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
 		LRESULT lRes = baseClass::OnCreate(uMsg, wParam, lParam, bHandled);
+		PostMessage(WM_SETFOCUS); // Added by Kronuz
+
 		// Create dropdown list (as hidden)
 		m_wndCalendar.Create(this, 2, m_hWnd, &rcDefault, NULL, WS_POPUP | WS_BORDER);
 		ATLASSERT(m_wndCalendar.IsWindow());
 		m_wndCalendar.SetFont(GetFont());
 		m_bReadOnly = false;
+
 		return lRes;
 	}
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
@@ -695,10 +720,13 @@ public:
 		m_wndList.Create(this, 2, m_hWnd, &rc, NULL, WS_POPUP | WS_BORDER | WS_VSCROLL);
 		ATLASSERT(m_wndList.IsWindow());
 		m_wndList.SetFont( CWindow(GetParent()).GetFont() );
+
 		// Go create the rest of the control...
-		bHandled = FALSE;
-		return 0;
+		LRESULT lRes = baseClass::OnCreate(uMsg, wParam, lParam, bHandled);
+		PostMessage(WM_SETFOCUS); // Added by Kronuz
+		return lRes;
 	}
+
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
 		if( m_wndList.IsWindow() ) m_wndList.DestroyWindow();
@@ -839,13 +867,16 @@ public:
 		if((HWND)lParam == m_wndList.m_hWnd) return TRUE;
 		return baseClass::OnIsOwned(uMsg, wParam, lParam, bHandled);
 	}
-	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
 		ATLASSERT(::IsWindow(m_hWndCombo));      
 		m_wndList.SubclassWindow(m_hWndCombo);
+
 		// Go create the rest of the control...
-		bHandled = FALSE;
-		return 0;
+		LRESULT lRes = baseClass::OnCreate(uMsg, wParam, lParam, bHandled);
+		PostMessage(WM_SETFOCUS); // Added by Kronuz
+
+		return lRes;
 	}
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 	{
@@ -941,6 +972,7 @@ public:
 	typedef CPropertyDropWindowImpl<CPropertyButtonWindow> baseClass;
 
 	BEGIN_MSG_MAP(CPropertyButtonWindow)
+		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_USER_PROP_OWNED, OnIsOwned)
 		COMMAND_CODE_HANDLER(BN_CLICKED, OnButtonClicked)
 		MESSAGE_HANDLER(WM_DRAWITEM, OnDrawItem)
@@ -955,6 +987,13 @@ public:
 		if((HWND)lParam == m_hWnd) return TRUE;
 		return baseClass::OnIsOwned(uMsg, wParam, lParam, bHandled);
 	}
+	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		LRESULT lRes = baseClass::OnCreate(uMsg, wParam, lParam, bHandled);
+		PostMessage(WM_SETFOCUS); // Added by Kronuz
+		return lRes;
+	}
+
 	LRESULT OnButtonClicked(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
 		ATLASSERT(m_prop);
@@ -974,6 +1013,264 @@ public:
 		dc.SetBkMode(TRANSPARENT);
 		LPCTSTR pstrEllipsis = _T("...");
 		dc.DrawText(pstrEllipsis, ::lstrlen(pstrEllipsis), &lpdis->rcItem, DT_CENTER | DT_EDITCONTROL | DT_SINGLELINE | DT_VCENTER);
+		return 0;
+	}
+};
+
+/////////////////////////////////////////////////////////////////////////////
+// Editor with color peeker (Added by Kronuz)
+
+#define WM_USER_COLOR			WM_USER + 100
+#define WM_USER_COLORSET		WM_USER + 101
+#define WM_USER_COLORCANCEL		WM_USER + 102
+
+class CTransparentWindowImpl :
+	public CWindowImpl<CTransparentWindowImpl>
+{
+	COLORREF m_Color;
+public:
+	HWND m_hOwner;
+
+	BEGIN_MSG_MAP(CTransparentWindowImpl)
+		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
+		MESSAGE_HANDLER(WM_SETCURSOR, OnSetCursor)
+		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
+		MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
+		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
+	END_MSG_MAP()
+
+	CTransparentWindowImpl() : m_hOwner(NULL) {}
+
+	LRESULT OnEraseBackground(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		return 1;
+	}
+
+	LRESULT OnSetCursor(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		SetCursor(LoadCursor(NULL, IDC_CROSS));
+		return 0;
+	}
+
+	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		bHandled = FALSE;
+		::SendMessage(m_hOwner, WM_USER_COLORCANCEL, (WPARAM)m_Color, 0);
+		return 0;
+	}
+
+	LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		bHandled = FALSE;
+		::SendMessage(m_hOwner, WM_USER_COLORSET, (WPARAM)m_Color, 0);
+		return 0;
+	}
+
+	LRESULT OnMouseMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
+	{
+		CPoint Point(lParam);
+		ClientToScreen(&Point);
+		PeekColor(Point);
+
+		return 0;
+	}
+	void PeekColor(const CPoint &Point) 
+	{
+		// create a DC for the screen and create
+		// a memory DC compatible to screen DC
+		HDC hScrDC = CreateDC(_T("DISPLAY"), NULL, NULL, NULL);
+
+		COLORREF Color = GetPixel(hScrDC, Point.x, Point.y);
+		DeleteDC(hScrDC);
+
+		if(m_Color != Color) {
+			m_Color = Color;
+			::SendMessage(m_hOwner, WM_USER_COLOR, (WPARAM)m_Color, 0);
+		}
+	}
+};
+class CCaptureColorDlg : public CDialogImpl<CCaptureColorDlg>
+{
+// Data
+private:
+	CTransparentWindowImpl m_Window;
+
+	COLORREF m_CurrColor;
+public:
+	COLORREF m_OldColor;
+	COLORREF m_Color;
+
+	enum { IDD = IDD_COLORPEEK };
+
+	BEGIN_MSG_MAP(CCaptureColorDlg)
+		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+
+		MESSAGE_HANDLER(WM_PAINT, OnPaint)
+
+		MESSAGE_HANDLER(WM_USER_COLOR, OnColor)
+		MESSAGE_HANDLER(WM_USER_COLORSET, OnColorSet)
+		MESSAGE_HANDLER(WM_USER_COLORCANCEL, OnColorCancel)
+
+		MESSAGE_HANDLER(WM_KEYDOWN, OnColorCancel)
+
+		COMMAND_ID_HANDLER(IDOK, OnCloseCmd)
+		COMMAND_ID_HANDLER(IDCANCEL, OnCloseCmd)
+	END_MSG_MAP()
+
+	LRESULT OnColor(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		m_CurrColor = (COLORREF)wParam;
+		char ret[10];
+		sprintf(ret,"#%02X%02X%02X", GetRValue(m_CurrColor), GetGValue(m_CurrColor), GetBValue(m_CurrColor));
+		SetDlgItemText(IDC_STATIC2, ret);
+		Invalidate(FALSE);
+		return 0;
+	}
+
+	LRESULT OnColorCancel(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		m_Color = m_OldColor;
+		PostMessage(WM_COMMAND, IDCANCEL);
+		return 0;
+	}
+
+	LRESULT OnColorSet(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		m_Color = (COLORREF)wParam;
+		PostMessage(WM_COMMAND, IDOK);
+		return 0;
+	}
+
+	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		char ret[10];
+		m_OldColor = m_Color;
+		sprintf(ret,"#%02X%02X%02X", GetRValue(m_OldColor), GetGValue(m_OldColor), GetBValue(m_OldColor));
+		SetDlgItemText(IDC_STATIC1, ret);
+
+		RECT rcWindow = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+
+		m_Window.m_hOwner = m_hWnd;
+		m_Window.Create(GetParent(), rcWindow, NULL, WS_POPUP, WS_EX_TRANSPARENT);
+		::ShowWindow(m_Window.m_hWnd, SW_SHOWNOACTIVATE);
+
+		return 0;
+	}
+	LRESULT OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		CPaintDC dc(m_hWnd);
+
+		HBRUSH hOldBrush = dc.SelectStockBrush(NULL_BRUSH);
+
+		RECT rcBox = { 110, 11, 210, 30 };
+		dc.FillSolidRect(&rcBox, m_OldColor);
+		dc.Rectangle(&rcBox);
+
+		::OffsetRect(&rcBox, 0, 26);
+		dc.FillSolidRect(&rcBox, m_CurrColor);
+		dc.Rectangle(&rcBox);
+
+		dc.SelectBrush(hOldBrush);
+
+		return TRUE;
+	}
+	LRESULT OnCloseCmd(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	{
+		m_Window.DestroyWindow();
+
+		EndDialog(wID);
+		return 0;
+	}
+};
+
+class CPropertyColorWindow : 
+	public CPropertyDropWindowImpl<CPropertyColorWindow>
+{
+public:
+	DECLARE_WND_SUPERCLASS(_T("WTL_InplacePropertyColor"), CEdit::GetWndClassName())
+
+	//CCaptureColorWindowImpl m_Window;
+	typedef CPropertyDropWindowImpl<CPropertyColorWindow> baseClass;
+
+	BEGIN_MSG_MAP(CPropertyColorWindow)
+		MESSAGE_HANDLER(WM_CREATE, OnCreate)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
+		MESSAGE_HANDLER(WM_USER_PROP_OWNED, OnIsOwned)
+		COMMAND_CODE_HANDLER(BN_CLICKED, OnButtonClicked)
+		MESSAGE_HANDLER(WM_DRAWITEM, OnDrawItem)
+		CHAIN_MSG_MAP( baseClass )
+		ALT_MSG_MAP(1) // Button
+		CHAIN_MSG_MAP_ALT( baseClass, 1 )
+	END_MSG_MAP()
+
+	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		m_nButtonWidth = 19; // Set up the button width.
+
+		LRESULT lRes = baseClass::OnCreate(uMsg, wParam, lParam, bHandled);
+		// Create background window (as hidden)
+		//RECT rcWindow = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+		//m_Window.Create(this, 2, m_hWnd, &rcWindow, NULL, WS_OVERLAPPEDWINDOW|WS_VISIBLE );
+		//m_Window.Create(NULL, rcWindow, NULL, WS_POPUP );
+		//ATLASSERT(m_Window.IsWindow());
+		//m_wndCalendar.SetFont(GetFont());
+		m_bReadOnly = false;
+		return lRes;
+	}
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+	{
+		//if( m_Window.IsWindow() ) m_Window.DestroyWindow();
+		bHandled = FALSE;
+		return 0;
+	}
+
+	LRESULT OnIsOwned(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+	{
+		if((HWND)lParam == m_hWnd) return TRUE;
+		//if((HWND)lParam == m_Window.m_hWnd) return TRUE;
+		return baseClass::OnIsOwned(uMsg, wParam, lParam, bHandled);
+	}
+	LRESULT OnButtonClicked(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	{
+		char szColor[10];
+		GetWindowText(szColor, 10);
+		int r,g,b;
+		if(sscanf(szColor, "#%02X%02X%02X", &r, &g, &b) == 3) {
+			CCaptureColorDlg dlg;
+			dlg.m_Color = RGB(r, g, b);
+			m_bWaitFocus = true; // Set to live without the focus (wait for something)
+			dlg.DoModal();
+			SetFocus();
+			m_bWaitFocus = false;
+
+			m_fCancel = (dlg.m_Color == dlg.m_OldColor);
+			if(!m_fCancel) {
+				sprintf(szColor, "#%02X%02X%02X", GetRValue(dlg.m_Color), GetGValue(dlg.m_Color), GetBValue(dlg.m_Color));
+				SetWindowText(szColor);
+				SetModify();
+			}
+			::SetFocus(GetParent());
+		}
+
+		return 0;
+	}
+
+	LRESULT OnDrawItem(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
+	{
+		LPDRAWITEMSTRUCT lpdis = (LPDRAWITEMSTRUCT) lParam;
+		if( m_wndButton != lpdis->hwndItem ) return 0;
+
+		CDCHandle dc(lpdis->hDC);
+		CDC dcmem = ::CreateCompatibleDC(lpdis->hDC);
+
+		HBITMAP hBitmap = LoadBitmap(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDB_CAMARA));
+		HBITMAP hOldBmp = dcmem.SelectBitmap(hBitmap);
+
+		dc.DrawFrameControl(&lpdis->rcItem, DFC_BUTTON, (lpdis->itemState & ODS_SELECTED) ? DFCS_BUTTONPUSH | DFCS_PUSHED : DFCS_BUTTONPUSH);
+		dc.BitBlt(lpdis->rcItem.left, lpdis->rcItem.top, 19, 14, dcmem, 0, 0, SRCCOPY);
+
+		dcmem.SelectBitmap(hOldBmp);
+		DeleteObject(hBitmap);
 		return 0;
 	}
 };

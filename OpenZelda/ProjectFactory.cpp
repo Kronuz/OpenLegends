@@ -27,7 +27,7 @@
 
 #include "Console.h"
 
-const WORD IGame::Version = 0x0302;
+const WORD IGame::Version = 0x0400;
 CProjectFactory *CProjectFactory::_instance = NULL;
 
 CProjectFactory::CProjectFactory() :
