@@ -373,7 +373,7 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	}
 	ToCursor(m_CursorStatus);
 	
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 
 	// call the update snap size
 	UpdateSnapSize(m_bSnapToGrid?m_nSnapSize:1);
@@ -409,7 +409,7 @@ LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	}
 	ToCursor(m_CursorStatus);
 
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 
 	// call the update snap size
 	if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
@@ -458,7 +458,7 @@ LRESULT CGEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	if(isSelecting()) {
 		CancelSelBox();
 	} else {
-		GetWorldPosition(&Point);
+		ViewToWorld(&Point);
 		if(!SelectedAt(Point)) {
 			CancelSelBox();
 		}
@@ -481,7 +481,7 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 	ToCursor(m_CursorStatus);
 
 	if((wParam&MK_SHIFT)==MK_SHIFT && (wParam&MK_CONTROL)==MK_CONTROL) {
-		GetWorldPosition(&Point);
+		ViewToWorld(&Point);
 		StartSelBox(Point, &m_CursorStatus);
 		OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, -1));
 	} else if((wParam&MK_SHIFT)==0 && (wParam&MK_CONTROL)==0) {
@@ -499,7 +499,7 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 		} else {
 			if(!bInSelection && (SelectedCount()==0 || !m_bMulSelection || !m_bAllowMulSelection)) {
 				CleanSelection();
-				GetWorldPosition(&Point);
+				ViewToWorld(&Point);
 				StartSelBox(Point, &m_CursorStatus);
 				OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, 0));
 			} 
@@ -774,7 +774,7 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	}
 	ToCursor(m_CursorStatus);
 
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 
 	if((wParam&MK_LBUTTON)==MK_LBUTTON) {
 		if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
@@ -918,7 +918,7 @@ bool CGEditorView::Duplicate()
 	CPoint Point;
 	GetCursorPos(&Point);
 	ScreenToClient(&Point);
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 	Duplicate(Point);
 	return true;
 }
@@ -952,7 +952,7 @@ bool CGEditorView::Paste()
 	CPoint Point;
 	GetCursorPos(&Point);
 	ScreenToClient(&Point);
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 	Paste(Point);
 	return true;
 }

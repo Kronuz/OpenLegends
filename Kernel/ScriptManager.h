@@ -41,23 +41,21 @@
 // plus I don't think it's worth the time.
 #define MAX_THREADS 1	
 
+/////////////////////////////////////////////////////////////////////////////
+// Forward declarations
+class CDebugScript;
+
 typedef struct HSCRIPT__ {
-	AMX amx;			// cloned amx
-	BYTE *m_pData;		// data and stack segments
-	int nKilled;		// times the script has been killed
-	int error;			// script termination error level
-	DWORD ID;
+	AMX amx;				// cloned amx
+	BYTE *m_pData;			// data and stack segments
+	CDebugScript *m_pDebug;	// debug information
+	int nKilled;			// times the script has been killed
+	int error;				// script termination error level
+	DWORD ID;				// Script's ID or context
 	DWORD dwTooLong;
 
-	HSCRIPT__() {
-		m_pData = NULL;
-		nKilled = 0;
-		dwTooLong = 0;
-		memset(&amx, 0, sizeof(AMX));
-	}
-	~HSCRIPT__() {
-		delete []m_pData;
-	}
+	HSCRIPT__();
+	~HSCRIPT__();
 } *HSCRIPT;
 
 class CScriptThread
@@ -105,7 +103,9 @@ class CScript :
 	// Script dependent:
 	AMX amx;
 	BYTE *m_pProgram;
+	CDebugScript *m_pDebug;	// debug information
 
+	static bool ms_bDebug;
 	int m_nErrorLevel;
 
 	bool m_bInitialized;
@@ -119,7 +119,7 @@ class CScript :
 
 	typedef std::map<DWORD, HSCRIPT> Scripts;
 	typedef std::pair<DWORD, HSCRIPT> pairScripts;
-	Scripts m_Scripts;
+	Scripts m_Scripts; // Keeps a list of all the current script's clones
 
 public:
 	static HANDLE Resources; // Thread resources availible

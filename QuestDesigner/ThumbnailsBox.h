@@ -17,8 +17,8 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		MapEditorView.h 
-	\brief		Interface of the CMapEditorView class.
+/*! \file		ThumbnailsBox.h 
+	\brief		Interface of the CThumbnailsBox class.
 	\date		April 27, 2003
 */
 
@@ -33,33 +33,19 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
-class CMapEditorFrame;
 
-class CMapEditorView : 
+class CThumbnailsBox : 
 	public CGEditorView
 {
 	typedef CGEditorView baseClass;
 private:
 	IGraphics *m_pGraphicsI;
-	CMapGroup *m_pMapGroupI;
-	ISoundManager *m_pSoundManager;
+	CThumbnails *m_pThumbnails;
 	CSpriteSelection *m_SelectionI;
 	bool m_bShowMasks;
 	bool m_bShowBoundaries;
 
 	CSize m_szMap;
-
-	bool ToTop();
-	bool ObjectDown();
-	bool ObjectUp();
-	bool ToBottom();
-
-	bool AlignTop();
-	bool AlignBottom();
-	bool AlignRight();
-	bool AlignLeft();
-	bool AlignCenter();
-	bool AlignMiddle();
 
 	bool Flip();
 	bool Mirror();
@@ -70,21 +56,32 @@ private:
 	bool ToggleMask();
 	bool ToggleBounds();
 
-	CString m_sPasting;
+protected:
+	CSpriteSheet *m_pCurrentSheet;
+	CPoint m_Point;
+	CRect m_Rect;
+	int m_nColWidth;
+	int m_nMaxHeight;
+
+	static int CALLBACK AddSprite(LPVOID Interface, LPARAM lParam);
+	static int CALLBACK AddSpriteSet(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam);
+	static int CALLBACK WalkSpriteSetsDir(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam);
 
 public:
+	LPCSTR FindSpriteSet(LPCSTR szSpriteSet);
+	CString m_sSelected;
+
+	CMainFrame *m_pMainFrame;
+
 	// Construction/Destruction
-	CMapEditorView(CMapEditorFrame *pParentFrame);
+	CThumbnailsBox();
 
 	// Called to translate window messages before they are dispatched 
 	virtual BOOL PreTranslateMessage(MSG *pMsg) { return FALSE; }
 
-	// Called to clean up after window is destroyed
-	virtual void OnFinalMessage(HWND /*hWnd*/) { delete this; }
-
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
-	BEGIN_MSG_MAP(CMapEditorView)
+	BEGIN_MSG_MAP(CThumbnailsBox)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
@@ -92,20 +89,7 @@ public:
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
 
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
-
 		
-		MENU_COMMAND_HANDLER(ID_MAPED_TOTOP,		ToTop)
-		MENU_COMMAND_HANDLER(ID_MAPED_OBJDWN,		ObjectDown)
-		MENU_COMMAND_HANDLER(ID_MAPED_OBJUP,		ObjectUp)
-		MENU_COMMAND_HANDLER(ID_MAPED_TOBOTTOM,		ToBottom)
-
-		MENU_COMMAND_HANDLER(ID_MAPED_ALTOP,		AlignTop)
-		MENU_COMMAND_HANDLER(ID_MAPED_ALBOTTOM,		AlignBottom)
-		MENU_COMMAND_HANDLER(ID_MAPED_ALRIGHT,		AlignRight)
-		MENU_COMMAND_HANDLER(ID_MAPED_ALLEFT,		AlignLeft)
-		MENU_COMMAND_HANDLER(ID_MAPED_ALCX,			AlignCenter)
-		MENU_COMMAND_HANDLER(ID_MAPED_ALCY,			AlignMiddle)
-
 		MENU_COMMAND_HANDLER(ID_MAPED_FLIP,			Flip)
 		MENU_COMMAND_HANDLER(ID_MAPED_MIRROR,		Mirror)
 		MENU_COMMAND_HANDLER(ID_MAPED_C90,			CWRotate)
@@ -132,9 +116,17 @@ public:
 		MENU_COMMAND_HANDLER(ID_APP_ANIM,			OnAnim)
 		MENU_COMMAND_HANDLER(ID_APP_PARALLAX,		OnParallax)
 
-		MESSAGE_HANDLER(WM_CHAR, OnChar)
+		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
+		MESSAGE_HANDLER(WM_MOUSEWHEEL, OnMouseWheel)
+		
 		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnLButtonDblClk)
-		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
+		MESSAGE_HANDLER(WM_LBUTTONDOWN, OnMouseStuff)
+		MESSAGE_HANDLER(WM_LBUTTONUP, OnMouseStuff)
+		MESSAGE_HANDLER(WM_MBUTTONDOWN, OnMouseStuff)
+		MESSAGE_HANDLER(WM_MBUTTONUP, OnMouseStuff)
+		MESSAGE_HANDLER(WM_RBUTTONDOWN, OnMouseStuff)
+		MESSAGE_HANDLER(WM_RBUTTONUP, OnMouseStuff)
+		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseStuff)
 
 		COMMAND_CODE_HANDLER(CBN_SELCHANGE, OnSelChange)
 		COMMAND_CODE_HANDLER(CBN_STATECHANGE, OnStateChange)
@@ -151,14 +143,17 @@ public:
 	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
-	LRESULT OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnMouseWheel(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+
 	LRESULT OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+	LRESULT OnMouseStuff(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	
-	void UIUpdateMenuItems();
-	void UIUpdateStatusBar();
+	// refresh the sprite sets from the sprite sets directory and,
+	// also rebuild the sprites and all thumbnails:
+	void OnRefresh();
 
 	void OnAnim();
 	void OnParallax();

@@ -55,7 +55,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface Version Definition:
-const WORD IGraphics::Version = 0x0300;
+const WORD IGraphics::Version = 0x0400;
 
 //////////////////////////////////////////////////////////////////////////////
 // Needed Libraries:
@@ -126,6 +126,7 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 //////////////////////////////////////////////////////////////////////////////
 // Interface implementation begins here:
 D3DDISPLAYMODE CGraphicsD3D8::ms_PreferredMode;
+D3DDISPLAYMODE CGraphicsD3D8::ms_WindowedMode;
 D3DPRESENT_PARAMETERS CGraphicsD3D8::ms_d3dpp;
 int CGraphicsD3D8::ms_nCount = 0;
 int CGraphicsD3D8::ms_nScreenWidth = 0;
@@ -476,7 +477,7 @@ inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 {
 	float invW = 1.0f/(float)texture->GetWidth();
 	float invH = 1.0f/(float)texture->GetHeight();
-	float udiff = (float)(rectSrc.left-(*vbuffer)->m_texLeft) * invW;;
+	float udiff = (float)(rectSrc.left-(*vbuffer)->m_texLeft) * invW;
 	float vdiff = (float)(rectSrc.top-(*vbuffer)->m_texTop) * invH;
 
 	D3DCDTVERTEX *tile = (*vbuffer)->m_pVertices;
@@ -677,11 +678,11 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 		CONSOLE_PRINTF("ERROR (D3D8): Couldn't receive the current display mode.\n");
 		return false;
 	}
+	if(ms_pD3DDevice == NULL) ms_WindowedMode = ms_PreferredMode;
 
 	if(bWindowed) {
 		ms_d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
-		//ms_PreferredMode.Width = nScreenWidth;
-		//ms_PreferredMode.Height = nScreenHeight;
+		ms_PreferredMode = ms_WindowedMode;
 	} else {
 		ASSERT(nScreenWidth && nScreenHeight);
 		FigureOutDisplayMode(ms_PreferredMode.Format, nScreenWidth, nScreenHeight);
@@ -696,7 +697,7 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 	ms_d3dpp.hDeviceWindow = hWnd;							// Handle to the parent window
 	ms_d3dpp.Windowed = bWindowed;							// Set windowed mode
 	ms_d3dpp.EnableAutoDepthStencil = FALSE;
-	ms_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // for screenshots
+	ms_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;	// for screenshots
 
 	if(ms_pD3DDevice) {
 		// Reset the device
@@ -792,36 +793,69 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 
 	return true;
 }
+
 void CGraphicsD3D8::GetWorldRect(RECT *Rect_) const
 {
-	// This doesn't need +0.5f adjustment:
+	*Rect_ = m_RectWorld;
+}
+void CGraphicsD3D8::GetWorldPosition(POINT *Point_) const
+{
+	Point_->x = m_RectClip.left;
+	Point_->y = m_RectClip.top;
+}
+void CGraphicsD3D8::SetWorldPosition(POINT &Point_)
+{
+#ifdef _USE_SWAPCHAINS
+	HWND hWnd = m_d3dpp.hDeviceWindow;
+#else
+	HWND hWnd = m_hWnd;
+#endif
+	OffsetRect(&m_RectClip, -m_RectClip.left, -m_RectClip.top);
+	OffsetRect(&m_RectClip, Point_.x, Point_.y);
+
+	SetRect(&m_RectView,
+		(int)((float)m_RectClip.left * m_Zoom + 0.5f),
+		(int)((float)m_RectClip.top * m_Zoom + 0.5f),
+		(int)((float)m_RectClip.right * m_Zoom + 0.5f),
+		(int)((float)m_RectClip.bottom * m_Zoom + 0.5f)
+	);
+
+	D3DXMATRIX matTmp;
+	D3DXMatrixTranslation(&m_WorldMatrix, -0.5f-(float)m_RectClip.left, -0.5f-(float)m_RectClip.top, 0.0);
+	D3DXMatrixScaling(&matTmp, m_Zoom, m_Zoom, 1.0);
+	m_WorldMatrix *= matTmp;
+}
+
+void CGraphicsD3D8::ViewToWorld(RECT *Rect_) const
+{
+	// This needs +0.5f adjustment??!??:
 	::SetRect(Rect_,
-		(int)((float)(Rect_->left+m_RectView.left)/m_Zoom),
-		(int)((float)(Rect_->top+m_RectView.top)/m_Zoom),
-		(int)((float)(Rect_->right+m_RectView.left)/m_Zoom),
-		(int)((float)(Rect_->bottom+m_RectView.top)/m_Zoom)
+		(int)((float)(Rect_->left + m_RectView.left) / m_Zoom + 0.5f),
+		(int)((float)(Rect_->top + m_RectView.top) / m_Zoom + 0.5f),
+		(int)((float)(Rect_->right + m_RectView.left) / m_Zoom + 0.5f),
+		(int)((float)(Rect_->bottom + m_RectView.top) / m_Zoom + 0.5f)
 	);
 }
 
-void CGraphicsD3D8::GetWorldPosition(POINT *Point_) const
+void CGraphicsD3D8::ViewToWorld(POINT *Point_) const
 {
-	// This doesn't need +0.5f adjustment:
-	Point_->x = (int)((float)(Point_->x+m_RectView.left)/m_Zoom);
-	Point_->y = (int)((float)(Point_->y+m_RectView.top)/m_Zoom);
+	// This needs +0.5f adjustment??!??:
+	Point_->x = (int)((float)(Point_->x + m_RectView.left) / m_Zoom + 0.5f);
+	Point_->y = (int)((float)(Point_->y + m_RectView.top) / m_Zoom + 0.5f);
 }
 
-void CGraphicsD3D8::GetViewPosition(POINT *Point_) const
+void CGraphicsD3D8::WorldToView(POINT *Point_) const
 {
-/*	Point_->x = (int)((float)Point_->x * m_Zoom + 0.5f) - m_RectView.left;
+	Point_->x = (int)((float)Point_->x * m_Zoom + 0.5f) - m_RectView.left;
 	Point_->y = (int)((float)Point_->y * m_Zoom + 0.5f) - m_RectView.top;
 	/*/
 	Point_->x = (int)((float)Point_->x*m_Zoom)-m_RectView.left;
 	Point_->y = (int)((float)Point_->y*m_Zoom)-m_RectView.top;
 	/**/
 }
-void CGraphicsD3D8::GetViewRect(RECT *Rect_) const
+void CGraphicsD3D8::WorldToView(RECT *Rect_) const
 {
-/*	::SetRect(Rect_,
+	::SetRect(Rect_,
 		(int)((float)Rect_->left * m_Zoom + 0.5f) - m_RectView.left,
 		(int)((float)Rect_->top * m_Zoom + 0.5f) - m_RectView.top,
 		(int)((float)Rect_->right * m_Zoom + 0.5f) - m_RectView.left,
@@ -837,9 +871,9 @@ void CGraphicsD3D8::GetViewRect(RECT *Rect_) const
 	/**/
 }
 
-RECT CGraphicsD3D8::GetVisibleRect() const
+void CGraphicsD3D8::GetVisibleRect(RECT *Rect_) const
 {
-	return m_RectClip;
+	*Rect_ = m_RectClip;
 }
 float CGraphicsD3D8::GetCurrentZoom() const
 {
@@ -861,73 +895,80 @@ bool CGraphicsD3D8::BuildSwapChain()
 }
 #endif
 
-bool CGraphicsD3D8::SetWindowView(HWND hWnd, const RECT &client, const RECT &world, float zoom)
+bool CGraphicsD3D8::SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, const RECT *pWorld)
 {
 	if(!m_bInitialized) return true;
-	if(client.right-client.left == 0 || client.bottom-client.top == 0) return true;
+	if(pClient)	if(pClient->right-pClient->left == 0 || pClient->bottom-pClient->top == 0) return true;
+
+	if(pWorld) {
+		if(!::EqualRect(&m_RectWorld, pWorld) || m_Zoom!=fZoom) {
+			m_Zoom = fZoom;
+			m_RectWorld = *pWorld;
+			delete [](m_pGrid[0]); m_pGrid[0] = NULL;
+			delete [](m_pGrid[1]); m_pGrid[1] = NULL;
+		}
+	}
+
+	if(pClient) {
+		RECT rcWorldView = {
+			(int)((float)pClient->left / m_Zoom + 0.5f), 
+			(int)((float)pClient->top / m_Zoom + 0.5f), 
+			(int)((float)pClient->right / m_Zoom + 0.5f), 
+			(int)((float)pClient->bottom / m_Zoom + 0.5f)
+		};
+		/*/
+		RECT rcWorldView;
+		::SetRect(&rcWorldView, 
+			(int)((float)pClient->left / m_Zoom), 
+			(int)((float)pClient->top / m_Zoom), 
+			(int)(((float)pClient->right + m_Zoom) / m_Zoom), 
+			(int)(((float)pClient->bottom + m_Zoom) / m_Zoom));
+		/**/
+
+		// We need the intersecting rectangle:
+		::IntersectRect(&m_RectClip, pWorld, &rcWorldView);
+	}
 
 	D3DXMATRIX matTmp;
-	D3DXMatrixScaling(&m_WorldMatrix, zoom, zoom, 1.0);
-	D3DXMatrixTranslation(&matTmp, -0.5f-(float)client.left, -0.5f-(float)client.top, 0.0);
+	D3DXMatrixTranslation(&m_WorldMatrix, -0.5f-(float)m_RectClip.left, -0.5f-(float)m_RectClip.top, 0.0);
+	D3DXMatrixScaling(&matTmp, fZoom, fZoom, 1.0);
 	m_WorldMatrix *= matTmp;
 
-	if(!::EqualRect(&m_RectWorld, &world) || m_Zoom!=zoom) {
-		m_Zoom = zoom;
-		m_RectWorld = world;
-		delete [](m_pGrid[0]); m_pGrid[0] = NULL;
-		delete [](m_pGrid[1]); m_pGrid[1] = NULL;
+	if(pClient) {
+		if( ms_bWindowed==false ||
+			m_RectView.right-m_RectView.left == pClient->right-pClient->left &&
+			m_RectView.bottom-m_RectView.top == pClient->bottom-pClient->top ) {
+				m_RectView = *pClient;
+				return true;
+		}
+		m_RectView = *pClient;
 	}
-
-	RECT rcWorldView = {
-		(int)((float)client.left / m_Zoom + 0.5f), 
-		(int)((float)client.top / m_Zoom + 0.5f), 
-		(int)(((float)client.right + m_Zoom) / m_Zoom + 0.5f), 
-		(int)(((float)client.bottom + m_Zoom) / m_Zoom + 0.5f)
-	};
-	/*/
-	RECT rcWorldView;
-	::SetRect(&rcWorldView, 
-		(int)((float)client.left / m_Zoom), 
-		(int)((float)client.top / m_Zoom), 
-		(int)(((float)client.right + m_Zoom) / m_Zoom), 
-		(int)(((float)client.bottom + m_Zoom) / m_Zoom));
-	/**/
-
-	// We need the intersecting rectangle:
-	::IntersectRect(&m_RectClip, &world, &rcWorldView);
-
-	if( ms_bWindowed==false ||
-		m_RectView.right-m_RectView.left == client.right-client.left &&
-		m_RectView.bottom-m_RectView.top == client.bottom-client.top ) {
-			m_RectView = client;
-			return true;
-	}
-
-	m_RectView = client;
 
 #ifdef _USE_SWAPCHAINS
-	if(m_pSwapChain) {
-		CONSOLE_DEBUG2("DEBUG: Invalidating a SwapChain for hWnd: %d.\n", m_d3dpp.hDeviceWindow);
-		m_pSwapChain->Release(); 
-		m_pSwapChain = NULL;
+	if(pClient) {
+		if(m_pSwapChain) {
+			CONSOLE_DEBUG2("DEBUG: Invalidating a SwapChain for hWnd: %d.\n", m_d3dpp.hDeviceWindow);
+			m_pSwapChain->Release(); 
+			m_pSwapChain = NULL;
+		}
+
+		ZeroMemory(&m_d3dpp, sizeof(D3DPRESENT_PARAMETERS)); // clear it
+		
+		m_d3dpp.BackBufferWidth  = m_RectView.right-m_RectView.left;	// The back buffer width
+		m_d3dpp.BackBufferHeight = m_RectView.bottom-m_RectView.top;	// The back buffer height
+
+		m_d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
+
+		m_d3dpp.hDeviceWindow = hWnd;
+		m_d3dpp.Windowed = ms_bWindowed;						// Set windowed mode
+		m_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;		// for screenshots
+
+		return BuildSwapChain();
 	}
-
-	ZeroMemory(&m_d3dpp, sizeof(D3DPRESENT_PARAMETERS)); // clear it
-	
-	m_d3dpp.BackBufferWidth  = m_RectView.right-m_RectView.left;	// The back buffer width
-	m_d3dpp.BackBufferHeight = m_RectView.bottom-m_RectView.top;	// The back buffer height
-
-	m_d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
-
-	m_d3dpp.hDeviceWindow = hWnd;
-	m_d3dpp.Windowed = ms_bWindowed;						// Set windowed mode
-	m_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;		// for screenshots
-
-	return BuildSwapChain();
 #else
 	m_hWnd = hWnd;
-	return true;
 #endif
+	return true;
 }
 
 bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, float scale) const

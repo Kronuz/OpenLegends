@@ -39,12 +39,13 @@
 class SCompiler {
 	friend DWORD WINAPI ThreadProc( LPVOID lpParameter );
 
+	static int ms_nDebug;
 	static SCompiler *_instance;
 	HANDLE m_Mutex;
 	bool m_bInUse;
 
 protected:
-	int m_iTabSize;
+	int m_nTabSize;
 
 	SCompiler();
 public:

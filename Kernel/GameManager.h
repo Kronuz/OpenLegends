@@ -83,6 +83,8 @@ class CGameManager :
 	static float ms_fDelta;
 	static DWORD ms_dwLastTick;
 
+	static IGraphics **ms_ppGraphicsI;
+
 protected:
 	CWorld m_World;
 	std::vector<CSpriteSheet*> m_SpriteSheets;
@@ -116,6 +118,26 @@ public:
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
+	inline static void UpdateWorldCo(int x, int y) {
+		ASSERT(ms_ppGraphicsI);
+		ASSERT(*ms_ppGraphicsI);
+		if(!(*ms_ppGraphicsI)) return;
+
+		CPoint Point(x,y);
+		CRect rcVisible, rcWorld;
+		(*ms_ppGraphicsI)->GetVisibleRect(&rcVisible);
+		(*ms_ppGraphicsI)->GetWorldRect(&rcWorld);
+
+		Point.Offset(-rcVisible.Width()/2, -rcVisible.Height()/2);
+		if(Point.x < 0) Point.x = 0;
+		else if(Point.x > rcWorld.right-rcVisible.Width()) Point.x = rcWorld.right-rcVisible.Width();
+		if(Point.y < 0) Point.y = 0;
+		else if(Point.y > rcWorld.bottom-rcVisible.Height()) Point.y = rcWorld.bottom-rcVisible.Height();
+
+		(*ms_ppGraphicsI)->SetWorldPosition(Point);
+	}
+
+	virtual bool UsingGraphics(IGraphics **ppGraphicsI) { ms_ppGraphicsI = ppGraphicsI; return true; }
 
 	LPCSTR GetProjectName() const;
 	int CountScripts() const;

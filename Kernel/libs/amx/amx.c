@@ -692,8 +692,10 @@ int AMXAPI amx_Init(AMX *amx,void *program)
   amx->stk=amx->stp;
   if (amx->callback==NULL)
     amx->callback=amx_Callback;
-  if (amx->debug==NULL)
+  if (amx->debug==NULL) {
     amx->debug=amx_Debug;
+	amx->param=0;
+  }
   amx->curline=0;
   amx->curfile=0;
   amx->data=NULL;
@@ -763,8 +765,10 @@ int AMXAPI amx_Clone(AMX *amxClone, AMX *amxSource, void *data)
   amxClone->stk=amxClone->stp;
   if (amxClone->callback==NULL)
     amxClone->callback=amxSource->callback;
-  if (amxClone->debug==NULL)
+  if (amxClone->debug==NULL) {
     amxClone->debug=amxSource->debug;
+	amxClone->param=amxSource->param;
+  }
   amxClone->curline=0;
   amxClone->curfile=0;
 
@@ -3081,11 +3085,12 @@ int AMXAPI amx_SetCallback(AMX *amx,AMX_CALLBACK callback)
   return AMX_ERR_NONE;
 }
 
-int AMXAPI amx_SetDebugHook(AMX *amx,AMX_DEBUG debug)
+int AMXAPI amx_SetDebugHook(AMX *amx, AMX_DEBUG debug, cell param)
 {
   assert(amx!=NULL);
   assert(debug!=NULL);
-  amx->debug=debug;
+  amx->debug = debug;
+  amx->param = param;
   return AMX_ERR_NONE;
 }
 

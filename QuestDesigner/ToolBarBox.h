@@ -100,7 +100,7 @@ public:
 		TBBUTTONINFO tbbi;
 		tbbi.cbSize = sizeof(TBBUTTONINFO);
 		tbbi.dwMask = TBIF_STYLE;
-		if(GetButtonInfo(nID, &tbbi) == -1) return FALSE;;
+		if(GetButtonInfo(nID, &tbbi) == -1) return FALSE;
 		tbbi.fsStyle |= nStyle;
 		return SetButtonInfo(nID, &tbbi);
 	}

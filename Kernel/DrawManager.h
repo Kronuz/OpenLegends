@@ -92,8 +92,9 @@ struct ptr_equal_to : public binary_function<Type, Type, bool>
 // This struct is used at run context time, it gives the required
 // information to the run procedures.
 typedef struct __RUNACTION {
-	bool bJustWait;		// Just wait for the running process to end (or kill them).
-	LPVOID m_Ptr;		// Multipurpose pointer passed to the run procedures.
+	HANDLE hSemaphore;		// Semaphore for the run (if needed.)
+	bool bJustWait;			// Just wait for the running process to end (or kill them.)
+	LPVOID m_Ptr;			// Multipurpose pointer passed to the run procedures.
 } RUNACTION;
 
 
@@ -150,6 +151,12 @@ protected:
 		RunContext(bool bVisible) : m_bVisible(bVisible) {}
 		bool operator()(CDrawableContext *pDrawableContext, RUNACTION action) const;
 	};
+
+	const class CleanTempContext :
+	public unary_function<CDrawableContext*, bool> {
+	public:
+		bool operator()(CDrawableContext *pDrawableContext) const;
+	};
 	
 	friend ContextSubLayerCompare;
 	friend ContextYXCompare;
@@ -158,11 +165,12 @@ protected:
 	
 	friend DrawContext;
 	friend RunContext;
+	friend CleanTempContext;
 
 private:
 	const IGraphics *m_pIGraphics;
 
-	vector<CDrawableContext*> m_Children;
+	vector<CDrawableContext *> m_Children;
 	vector<CDrawableContext *>::iterator m_LayersMap[MAX_SUBLAYERS+2];
 
 	vector<CDrawableContext *>::reverse_iterator m_ChildIterator;
@@ -282,6 +290,9 @@ public:
 	void ShowContext(bool bShow = true);
 	bool isVisible() const;
 
+	void SetTemp(bool bTemp = true);
+	bool isTemp() const;
+
 	void SelectContext(bool bSelect = true);
 	bool isSelected() const;
 
@@ -323,6 +334,8 @@ public:
 	virtual bool DrawSelectedH(const IGraphics *pIGraphics=NULL);
 
 	virtual bool Run(RUNACTION action);
+
+	virtual bool CleanTemp();
 
 	// Operators:
 	bool operator==(const CDrawableContext &context) const {
@@ -861,6 +874,16 @@ inline void CDrawableContext::ShowContext(bool bShow)
 inline bool CDrawableContext::isVisible() const 
 { 
 	return ((m_dwStatus&(DVISIBLE<<_DRW_SHFT))==(DVISIBLE<<_DRW_SHFT)); 
+}
+
+inline void CDrawableContext::SetTemp(bool bTemp) 
+{
+	if(bTemp)	m_dwStatus |= (DTEMP<<_DRW_SHFT);
+	else		m_dwStatus &= ~(DTEMP<<_DRW_SHFT);
+}
+inline bool CDrawableContext::isTemp() const 
+{ 
+	return ((m_dwStatus&(DTEMP<<_DRW_SHFT))==(DTEMP<<_DRW_SHFT)); 
 }
 
 inline void CDrawableContext::SelectContext(bool bSelect)

@@ -151,6 +151,7 @@ typedef struct __amx {
 /* Added by GD for the Open Zelda Project */
   int firstrun;			/* Is this the first time this script is being run? (GD) */
   char szFileName[32];  /* The actual filename for this script (GD) */
+  cell param;           /* Debug params (can be a pointer to an environment for multithreading) */
 
 } AMX;
 
@@ -263,7 +264,7 @@ int AMXAPI amx_RaiseError(AMX *amx, int error);
 int AMXAPI amx_Register(AMX *amx, AMX_NATIVE_INFO *nativelist, int number);
 int AMXAPI amx_Release(AMX *amx, cell amx_addr);
 int AMXAPI amx_SetCallback(AMX *amx, AMX_CALLBACK callback);
-int AMXAPI amx_SetDebugHook(AMX *amx, AMX_DEBUG debug);
+int AMXAPI amx_SetDebugHook(AMX *amx, AMX_DEBUG debug, cell param);
 int AMXAPI amx_SetString(cell *dest, char *source, int pack);
 int AMXAPI amx_SetUserData(AMX *amx, long tag, void *ptr);
 int AMXAPI amx_StrLen(cell *cstring, int *length);

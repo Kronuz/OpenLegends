@@ -308,6 +308,38 @@ void CDrawableContext::Sort(int nSubLayer)
 	m_eSorted[nSubLayer] = m_eDrawType[nSubLayer];
 }
 
+inline bool CDrawableContext::CleanTempContext::operator()(CDrawableContext *pDrawableContext) const
+{
+	ASSERT(pDrawableContext);
+	if(!pDrawableContext) return false;
+
+	// Start cleaning:
+	for_each(
+		pDrawableContext->m_Children.begin(), pDrawableContext->m_Children.end(), 
+		CleanTempContext());
+
+	if(pDrawableContext->isTemp()) {
+		CDrawableContext *pParent = pDrawableContext->m_pParent;
+		vector<CDrawableContext *>::iterator Iterator = find(
+			pParent->m_Children.begin(),
+			pParent->m_Children.end(),
+			pDrawableContext );
+		if(Iterator != pParent->m_Children.end()) {
+			ASSERT(*Iterator == pDrawableContext);
+			pParent->m_bValidMap = false;
+			pParent->m_eSorted[pDrawableContext->m_nSubLayer] = noOrder;
+			delete pDrawableContext;
+			pParent->m_Children.erase(Iterator);
+		}
+	}
+	return true;
+}
+bool CDrawableContext::CleanTemp() 
+{
+	CleanTempContext CleanTemp;
+	return CleanTemp(this);
+}
+
 inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawableContext, RUNACTION action) const
 {
 	ASSERT(pDrawableContext);
@@ -1260,7 +1292,7 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 {
 	CPoint WorldPoint = point_;
 	// We get the world coordinates for the mouse position
-	pGraphics_->GetWorldPosition(&WorldPoint);
+	pGraphics_->ViewToWorld(&WorldPoint);
 
 	CRect rcBoundaries;
 	GetBoundingRect(&rcBoundaries);
@@ -1288,7 +1320,7 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 	}
 
 	// Now that we have the full bounding Rect (in world coordinates) we convert it to View coordinates.
-	pGraphics_->GetViewRect(&Rect);
+	pGraphics_->WorldToView(&Rect);
 	// Check the bounding box (in view coordinates) with the mouse point (also in view coordinates.):
 
 	// We need to validate the cursor sensibility for all sides:

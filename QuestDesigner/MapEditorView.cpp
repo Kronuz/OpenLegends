@@ -302,7 +302,7 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		::ClientToScreen((HWND)wParam, &PopUpPoint);
 	}
 
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 
 	if(isFloating()) {
 		menu.AppendMenu(MF_STRING, 1, "&Mirror");
@@ -682,9 +682,9 @@ bool CMapEditorView::hasChanged()
 	return m_SelectionI->IsModified();
 }
 
-void CMapEditorView::GetWorldPosition(CPoint *_pPoint) 
+void CMapEditorView::ViewToWorld(CPoint *_pPoint) 
 { 
-	if(m_pGraphicsI) m_pGraphicsI->GetWorldPosition(_pPoint); 
+	if(m_pGraphicsI) m_pGraphicsI->ViewToWorld(_pPoint); 
 }
 
 void CMapEditorView::HoldOperation()
@@ -896,7 +896,8 @@ void CMapEditorView::Render(WPARAM wParam)
 
 	if(!GetMainFrame()->m_bAllowAnimations && wParam == NULL) return;
 
-	CRect rcView = m_pGraphicsI->GetVisibleRect();
+	CRect rcView;
+	m_pGraphicsI->GetVisibleRect(&rcView);
 
 	// resolution on which the parallax will be used:
 	rcView.right = rcView.left + 640;
@@ -923,7 +924,7 @@ void CMapEditorView::UpdateView()
 	rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 
 	rcClip.SetRect(0, 0, m_szMap.cx, m_szMap.cy);
-	m_pGraphicsI->SetWindowView(m_hWnd, rcClient, rcClip, m_Zoom);
+	m_pGraphicsI->SetWindowView(m_hWnd, m_Zoom, &rcClient, &rcClip);
 }
 
 void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
@@ -995,7 +996,7 @@ LRESULT CMapEditorView::OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lPa
 LRESULT CMapEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
 	CPoint Point(lParam);
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	if(m_SelectionI && !m_bPanning) {

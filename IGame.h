@@ -375,6 +375,7 @@ interface IGame :
 
 	static const WORD Version;
 
+	virtual bool UsingGraphics(IGraphics **ppGraphicsI) = 0;
 	virtual float UpdateFPS(float fpsLock = -1.0f) = 0;
 	virtual void WaitScripts() = 0;
 

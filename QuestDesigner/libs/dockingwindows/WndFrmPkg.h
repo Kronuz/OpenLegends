@@ -889,7 +889,7 @@ public:
 		MINMAXINFO mmInfo;
 		ZeroMemory(&mmInfo,sizeof(MINMAXINFO));
 		GetMinMaxInfo(&mmInfo);
-		return mmInfo.ptMinTrackSize.x;;
+		return mmInfo.ptMinTrackSize.x;
 	}
 protected:
 	HWND* m_phWnd;

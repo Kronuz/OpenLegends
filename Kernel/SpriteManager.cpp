@@ -82,7 +82,8 @@ bool CBackground::NeedToDraw(const CDrawableContext &scontext)
 	if(m_bDefined) {
 		const IGraphics *pGraphics = scontext.GetGraphicsDevice();
 		CRect rcLocation;
-		CRect rcVisible = pGraphics->GetVisibleRect();
+		CRect rcVisible;
+		pGraphics->GetVisibleRect(&rcVisible);
 		scontext.GetAbsFinalRect(rcLocation);
 		rcLocation.IntersectRect(rcVisible, rcLocation);
 		if(!rcLocation.IsRectEmpty()) return true;

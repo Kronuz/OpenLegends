@@ -27,6 +27,7 @@
 
 // Flags for the drawable objects and their transformations:
 #define DVISIBLE			0x01
+#define DTEMP				0x02
 #define _DRW_SHFT			24
 #define DROTATE				((SROTATE_90<<_SPT_ROT))
 
