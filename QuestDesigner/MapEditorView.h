@@ -100,8 +100,9 @@ public:
 		MENU_COMMAND_HANDLER(ID_MAPED_MASK,			ToggleMask)
 		MENU_COMMAND_HANDLER(ID_MAPED_BOUNDS,		ToggleBounds)
 		MENU_COMMAND_HANDLER(ID_MAPED_GRID,			ToggleGrid)
-		MENU_COMMAND_HANDLER(ID_MAPED_GRIDSNAP,		TogleSnap)
-
+		MENU_COMMAND_HANDLER(ID_MAPED_GRIDSNAP,		ToggleSnap)
+		MENU_COMMAND_HANDLER(ID_MAPED_SELHOLD,		ToggleHold)
+		
 		MENU_COMMAND_HANDLER(ID_APP_NOSOUND,		OnNoSound)
 
 		CHAIN_MSG_MAP(baseClass);
@@ -144,13 +145,17 @@ public:
 	virtual bool isMoving();
 	virtual bool isFloating();
 	virtual bool isSelecting();
+	virtual bool isHeld();
 
+	virtual void HoldSelection(bool bHold);
 	virtual void StartSelBox(const CPoint &_Point, CURSOR *_pCursor);
 	virtual void SizeSelBox(const CPoint &_Point, CURSOR *_pCursor);
 	virtual IPropertyEnabled* EndSelBoxRemove(const CPoint &_Point, LPARAM lParam);
 	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &_Point, LPARAM lParam);
 	virtual void CancelSelBox();
 	virtual IPropertyEnabled* SelectPoint(const CPoint &_Point, CURSOR *_pCursor);
+
+	virtual void GetSelectionBounds(CRect *_pRect);
 
 	virtual void StartMoving(const CPoint &_Point, CURSOR *_pCursor);
 	virtual void MoveTo(const CPoint &_Point, CURSOR *_pCursor);
@@ -167,7 +172,7 @@ public:
 	virtual HGLOBAL CopySelection(BITMAP **ppBitmap, bool bDeleteBitmap);
 	virtual BITMAP* CaptureSelection(float _fZoom);
 	virtual void CleanSelection();
-	virtual void DeleteSelection();
+	virtual int DeleteSelection();
 
 	virtual bool GetMouseStateAt(const CPoint &_Point, CURSOR *_pCursor);
 	virtual void CalculateLimits();
@@ -175,6 +180,5 @@ public:
 	virtual void Render();
 	virtual void UpdateView();
 
-	virtual void OnChange();
-	virtual void OnChangeSel(IPropertyEnabled *pPropObj = NULL);
+	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL);
 };

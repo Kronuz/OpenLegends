@@ -128,7 +128,7 @@ LRESULT CGEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 LRESULT CGEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
 	CleanSelection();
-	OnChangeSel();
+	OnChangeSel(OCS_AUTO);
 
 	RevokeDragDrop(m_hWnd); //calls release
 	m_pDropTarget=NULL;
@@ -223,7 +223,14 @@ LRESULT CGEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 	if(zDelta>0) Zoom(m_Zoom * 1.5f);
 	else Zoom(m_Zoom * 0.5f);
 
-	ScrollTo((int)((float)WorldPoint.x*m_Zoom)-MousePoint.x, (int)((float)WorldPoint.y*m_Zoom)-MousePoint.y);
+	CRect rcClient;
+	GetClientRect(&rcClient);
+	if((wParam&MK_CONTROL)==MK_CONTROL) {
+		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-MousePoint.x, (int)((float)WorldPoint.y*m_Zoom)-MousePoint.y);
+	} else {
+		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-rcClient.CenterPoint().x, (int)((float)WorldPoint.y*m_Zoom)-rcClient.CenterPoint().y);
+	}
+
 	UpdateView();
 
 	CURSOR Cursor;
@@ -297,8 +304,11 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 
 	// Is the cursor status ready to select objects?
 	if((m_CursorStatus & ceToSelect) != 0) {
-		if(m_bMulSelection || m_CursorStatus!=eIDC_ARROW) StartSelBox(Point, &m_CursorStatus);
-		else SelectPoint(Point, &m_CursorStatus);
+		if(m_bMulSelection || m_CursorStatus!=eIDC_ARROW || isHeld()) {
+			StartSelBox(Point, &m_CursorStatus);
+		} else  {
+			SelectPoint(Point, &m_CursorStatus);
+		}
 	}
 
 	if((m_CursorStatus & ceToMove) != 0) {
@@ -332,19 +342,19 @@ LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	if(isSelecting()) {
 		if((wParam&MK_SHIFT)==MK_SHIFT || (wParam&MK_CONTROL)==0) {
 			if((wParam&MK_SHIFT)==0) CleanSelection();
-			OnChangeSel(EndSelBoxAdd(Point, (LPARAM)((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
+			OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, (LPARAM)((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
 		} else {
-			OnChangeSel(EndSelBoxRemove(Point, (LPARAM)((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
+			OnChangeSel(OCS_AUTO, EndSelBoxRemove(Point, (LPARAM)((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
 		}
 	} else if(isMoving() || isFloating()) {
 		EndMoving(Point, NULL);
 		if(m_bDuplicating) {
 			Duplicate(Point);
 		}
-		OnChange();
+		OnChangeSel(OCS_UPDATE);
 	} else if(isResizing()) {
 		EndResizing(Point, NULL);
-		OnChange();
+		OnChangeSel(OCS_UPDATE);
 	}
 
 	if(!isMoving() && !isResizing() && !isSelecting()) {
@@ -395,7 +405,7 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 	if((wParam&MK_SHIFT)==MK_SHIFT && (wParam&MK_CONTROL)==MK_CONTROL) {
 		GetWorldPosition(&Point);
 		StartSelBox(Point, &m_CursorStatus);
-		OnChangeSel(EndSelBoxAdd(Point, -1));
+		OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, -1));
 	} else if((wParam&MK_SHIFT)==0 && (wParam&MK_CONTROL)==0) {
 		if(!bInSelection && m_bMulSelection && m_bAllowMulSelection) {
 			if(SelectedCount() == 0) {
@@ -405,7 +415,7 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 			} else {
 				if(!isFloating()) {
 					CleanSelection();
-					OnChangeSel();
+					OnChangeSel(OCS_AUTO);
 				} else return OnMouseMove(uMsg, wParam, lParam, bHandled);
 			}
 		} else {
@@ -413,7 +423,7 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 				CleanSelection();
 				GetWorldPosition(&Point);
 				StartSelBox(Point, &m_CursorStatus);
-				OnChangeSel(EndSelBoxAdd(Point, 0));
+				OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, 0));
 			} 
 			CPoint ScreenPoint(lParam);
 			ClientToScreen(&ScreenPoint);
@@ -707,17 +717,36 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 }
 LRESULT CGEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	bHandled = FALSE;
 	if(!isMoving() && !isResizing() && !isSelecting()) {
 		if(wParam == VK_CONTROL) {
 			if(m_CursorStatus != eIDC_ARROWADD) ToCursor(eIDC_ARROWDEL);
 		} else if(wParam == VK_SHIFT) {
 			ToCursor(eIDC_ARROWADD);
-		} else bHandled = FALSE;
+		} else if(wParam == VK_UP || wParam == VK_DOWN || wParam == VK_LEFT || wParam == VK_RIGHT) {
+			CRect Rect;
+			GetSelectionBounds(&Rect);
+			UpdateSnapSize(1);
+			StartMoving(Rect.TopLeft(), NULL);
+			if(wParam == VK_UP) {
+				Rect.OffsetRect(1,0);
+			} else if(wParam == VK_DOWN) {
+				Rect.OffsetRect(1,2);
+			} else if(wParam == VK_LEFT) {
+				Rect.OffsetRect(0,1);
+			} else if(wParam == VK_RIGHT) {
+				Rect.OffsetRect(2,1);
+			}
+			EndMoving(Rect.TopLeft(), NULL);
+			OnChangeSel(OCS_UPDATE);
+		}
 	}
+
 	return 0;
 }
 LRESULT CGEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	bHandled = FALSE;
 	if(wParam == VK_CONTROL) {
 		if(m_CursorStatus == eIDC_ARROWDEL) ToCursor(m_OldCursorStatus);
 	} else if(wParam == VK_SHIFT) {
@@ -730,15 +759,18 @@ LRESULT CGEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL&
 			m_DragState = tNone;
 			m_bDuplicating = false;
 			ReleaseCapture();
-			if(!bCancelOp) OnChangeSel();
+			if(!bCancelOp) OnChangeSel(OCS_AUTO);
 		}
 	} else if(wParam == VK_ADD || wParam == VK_OEM_PLUS) {
 		ZoomIn();
 	} else if(wParam == VK_SUBTRACT || wParam == VK_OEM_MINUS) {
 		ZoomOut();
 	} else if(wParam == VK_DELETE) {
-		if(!isMoving() && !isResizing()) DeleteSelection();
-	} else bHandled = FALSE;
+		if(!isMoving() && !isResizing()) {
+			if(DeleteSelection() <= 1) HoldSelection(false);
+			OnChangeSel(OCS_RENEW);
+		}
+	}
 
 	Invalidate();
 
@@ -747,6 +779,11 @@ LRESULT CGEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL&
 
 LRESULT CGEditorView::OnDropObject(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	if(isHeld()) {
+		CONSOLE_PRINTF("Warning: Can not paste objects while there is a held selection, release the selection first.\n");
+		return 0;
+	}
+
 	::SetForegroundWindow(GetMainFrame()->m_hWnd);
 
 	GetMainFrame()->BringWindowToTop();
@@ -756,18 +793,19 @@ LRESULT CGEditorView::OnDropObject(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 	PasteSelection((LPVOID)wParam, CPoint(lParam));
     SetCapture();
 
-	OnChangeSel();
+	OnChangeSel(OCS_AUTO);
 	return 0;
 }
 
 bool CGEditorView::Delete()
 {
-	DeleteSelection();
-	OnChangeSel();
+	if(DeleteSelection() <= 1) HoldSelection(false);
+	OnChangeSel(OCS_RENEW);
 	return true;
 }
 bool CGEditorView::Duplicate(const CPoint &Point)
 {
+	ASSERT(!isHeld());
 	m_bDuplicating = true;
 	Copy();
 	Paste(Point);
@@ -775,6 +813,7 @@ bool CGEditorView::Duplicate(const CPoint &Point)
 }
 bool CGEditorView::Duplicate()
 {
+	ASSERT(!isHeld());
 	m_bDuplicating = true;
 	CPoint Point;
 	GetCursorPos(&Point);
@@ -798,14 +837,16 @@ bool CGEditorView::Copy()
 }
 bool CGEditorView::Cut()
 {
+	ASSERT(!isHeld());
 	if(!Copy()) return false;
 	DeleteSelection();
 	Invalidate();
-	OnChangeSel();
+	OnChangeSel(OCS_AUTO);
 	return true;
 }
 bool CGEditorView::Paste()
 {
+	ASSERT(!isHeld());
 	CPoint Point;
 	GetCursorPos(&Point);
 	ScreenToClient(&Point);
@@ -828,14 +869,14 @@ bool CGEditorView::MultipleSel()
 bool CGEditorView::SelectAll()
 {
 	Invalidate();
-	OnChangeSel();
+	OnChangeSel(OCS_AUTO);
 	return true;
 }
 bool CGEditorView::SelectNone()
 {
 	CleanSelection();
 	Invalidate();
-	OnChangeSel();
+	OnChangeSel(OCS_AUTO);
 	return true;
 }
 bool CGEditorView::Zoom(float zoom)
@@ -926,15 +967,24 @@ bool CGEditorView::ToggleGrid()
 	OnIdle(); // Force idle processing to update the toolbar.
 	return true;
 }
-bool CGEditorView::TogleSnap()
+bool CGEditorView::ToggleSnap()
 {
 	m_bSnapToGrid = !m_bSnapToGrid;
 	OnIdle(); // Force idle processing to update the toolbar.
 	return true;
 }
+bool CGEditorView::ToggleHold()
+{
+	if(SelectedCount() <= 1) return false;
+
+	if(isHeld()) HoldSelection(false);
+	else HoldSelection(true);
+	return true;
+}
 
 inline bool CGEditorView::Paste(const CPoint &Point)
 {
+	ASSERT(!isHeld());
 	// Using Ole clipboard:
 	FORMATETC fmtetc = {0};
 	fmtetc.dwAspect = DVASPECT_CONTENT;

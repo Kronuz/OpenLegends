@@ -150,7 +150,7 @@
 #define ID_SCRIPTED_CODETIP1            32405
 #define ID_SCRIPTED_CODETIP2            32406
 #define ID_APP_NOSOUND                  32408
-#define ID_BUTTON32409                  32409
+#define ID_MAPED_SELHOLD                32410
 #define ID_APP_SAVE                     57603
 #define ID_APP_SAVE_AS                  57604
 #define ID_ERASE                        57632
@@ -189,7 +189,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        263
-#define _APS_NEXT_COMMAND_VALUE         32410
+#define _APS_NEXT_COMMAND_VALUE         32414
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           105
 #endif

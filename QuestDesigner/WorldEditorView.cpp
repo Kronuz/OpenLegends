@@ -272,9 +272,16 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 	m_WorldFullSize.cy = szMap.cy*m_szWorld.cy;
 	
 	// Now we validate the new scrolling position:
+	CPoint ScrollPoint;
+
 	CRect rcClient;
 	GetClientRect(&rcClient);
-	CPoint ScrollPoint(WorldPoint.x/m_Zoom-MousePoint.x, WorldPoint.y/m_Zoom-MousePoint.y);
+	if((wParam&MK_CONTROL)==MK_CONTROL) {
+		ScrollPoint.SetPoint(WorldPoint.x/m_Zoom-MousePoint.x, WorldPoint.y/m_Zoom-MousePoint.y);
+	} else {
+		ScrollPoint.SetPoint(WorldPoint.x/m_Zoom-rcClient.CenterPoint().x, WorldPoint.y/m_Zoom-rcClient.CenterPoint().y);
+	}
+
 	SetScrollSize(m_WorldFullSize, FALSE);
 
 	if(ScrollPoint.x < 0) ScrollPoint.x = 0;

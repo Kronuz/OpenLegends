@@ -83,21 +83,20 @@ LRESULT CPropertyView::OnItemChanged(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*
 			break;
 	}
 
-	CONSOLE_PRINTF("Property chenged, updating...\n");
+	CONSOLE_DEBUG("Property changed, updating...\n");
 	int idx = m_ctrlComboBox.GetFirstSel();
 	int items = 0;
 	while(idx != -1) {
 		IPropertyEnabled *pProperty = (IPropertyEnabled *)m_ctrlComboBox.GetItemDataPtr(idx);
 		if((int)pProperty == -1) return 0;
 
-		items++;
-		pProperty->SetProperties(m_PropertyList);
-
+		if(pProperty->SetProperties(m_PropertyList)) items++;
+		
 		idx = m_ctrlComboBox.GetNextSel();
 	}
 	m_PropertyList.Touch(); // cleans all changed flags in the property list.
 
-	CONSOLE_PRINTF("%d items chenged.\n", items);
+	CONSOLE_DEBUG("%d items changed.\n", items);
 
 	return 0;
 }
@@ -300,7 +299,7 @@ LRESULT CPropertyView::OnAddInfo(WPARAM wParam, LPARAM lParam)
 		if(pI->pPropObject == pPropObj) 
 			m_ctrlComboBox.SetCurSel(idx);
 	} else {
-		m_ctrlComboBox.SetSel(idx);
+		m_ctrlComboBox.SetSel(idx, pI->pPropObject->isFlagged());
 	}
 	return 0;
 }
@@ -308,7 +307,32 @@ LRESULT CPropertyView::OnSetProperties(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	m_ctrlList.ResetContent();
 
-	return OnUpdate();
+	SPropertyList FinalProperties;
+	memset(&FinalProperties, 0, sizeof(SPropertyList));
+
+	for(int idx = 0; idx < m_ctrlComboBox.GetCount(); idx++) {
+		IPropertyEnabled *pProperty = (IPropertyEnabled *)m_ctrlComboBox.GetItemDataPtr(idx);
+		ASSERT((int)pProperty != -1);
+		if((int)pProperty == -1) return 0;
+
+		if(m_ctrlComboBox.GetSel(idx) == TRUE) {
+			SPropertyList Properties;
+			memset(&Properties, 0, sizeof(SPropertyList));
+			pProperty->GetProperties(&Properties);
+			if(!FinalProperties.Merge(&Properties)) break;
+			pProperty->Flag(true);
+		} else {
+			pProperty->Flag(false);
+		}
+	}
+
+	if(FinalProperties.nProperties == 0) m_ctrlList.ResetContent();
+	AddProperties(&FinalProperties);
+
+	BOOL bDummy;
+	m_ctrlComboBox.OnSelChange(0,0,0,bDummy);
+
+	return 0;
 }
 
 LRESULT CPropertyView::OnUpdate(WPARAM /*wParam*/, LPARAM /*lParam*/)
@@ -316,19 +340,22 @@ LRESULT CPropertyView::OnUpdate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	SPropertyList FinalProperties;
 	memset(&FinalProperties, 0, sizeof(SPropertyList));
 
-	int idx = m_ctrlComboBox.GetFirstSel();
-	while(idx != -1) {
+	for(int idx = 0; idx < m_ctrlComboBox.GetCount(); idx++) {
 		IPropertyEnabled *pProperty = (IPropertyEnabled *)m_ctrlComboBox.GetItemDataPtr(idx);
+		ASSERT((int)pProperty != -1);
 		if((int)pProperty == -1) return 0;
-
-		SPropertyList Properties;
-		memset(&Properties, 0, sizeof(SPropertyList));
-		pProperty->GetProperties(&Properties);
-		if(!FinalProperties.Merge(&Properties)) break;
-
-		idx = m_ctrlComboBox.GetNextSel();
+		if(pProperty->isFlagged()) {
+			SPropertyList Properties;
+			memset(&Properties, 0, sizeof(SPropertyList));
+			pProperty->GetProperties(&Properties);
+			if(!FinalProperties.Merge(&Properties)) break;
+			m_ctrlComboBox.SetSel(idx, TRUE);
+		} else {
+			m_ctrlComboBox.SetSel(idx, FALSE);
+		}
 	}
 
+	if(FinalProperties.nProperties == 0) m_ctrlList.ResetContent();
 	AddProperties(&FinalProperties);
 
 	BOOL bDummy;

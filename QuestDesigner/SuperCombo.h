@@ -652,12 +652,14 @@ public:
 		m_ctrlListBox.GetClientRect(&rcClient);
 		rcClient.top = (nItems - nTopIndex) * nItemHeight;
 
+		if(rcClient.top >= rcClient.bottom) return 0;
+
 		CDC pDC;
 		pDC.Attach(m_ctrlListBox.GetDC());
 		pDC.FillSolidRect(&rcClient, ::GetSysColor(COLOR_WINDOW));
 		pDC.Detach();
 
-		return 0;
+		return 1;
 	}
 
 	LRESULT OnMouseMove_ListBox(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)

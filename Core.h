@@ -77,6 +77,8 @@ public:
 enum InfoType { itUnknown, itWorld, itMapGroup, itMap, itSpriteSheet, itSprite, itBackground, itMask, itEntity, itSpriteContext, itSound, itScript };
 interface IPropertyEnabled
 {
+	virtual bool isFlagged() = 0;
+	virtual void Flag(bool bFlag = true) = 0;
 	virtual bool GetInfo(SInfo *pI) const = 0;
 	virtual bool GetProperties(SPropertyList *pPL) const = 0;
 	virtual bool SetProperties(SPropertyList &PL) = 0;

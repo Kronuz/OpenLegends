@@ -576,7 +576,7 @@ public:
    
    BEGIN_MSG_MAP(CPropertyListImpl)
       MESSAGE_HANDLER(WM_CREATE, OnCreate)
-      //MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
+      MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
       MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
       MESSAGE_HANDLER(WM_SIZE, OnSize)
       MESSAGE_HANDLER(WM_VSCROLL, OnScroll)
@@ -600,8 +600,24 @@ public:
       DEFAULT_REFLECTION_HANDLER()
    END_MSG_MAP()
 
+   // Added by Kronuz:
 	LRESULT OnEraseBackground(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) 
 	{
+		int nItemHeight = GetItemHeight(0);
+		int nTopIndex   = GetTopIndex();
+		int nItems      = GetCount();
+
+		RECT rcClient;
+		GetClientRect(&rcClient);
+		rcClient.top = (nItems - nTopIndex) * nItemHeight;
+
+		if(rcClient.top >= rcClient.bottom) return 0;
+
+		CDC pDC;
+		pDC.Attach(GetDC());
+		pDC.FillSolidRect(&rcClient, m_di.clrBack);
+		pDC.Detach();
+
 		return 1;
 	}
 
