@@ -38,7 +38,7 @@ class CMapEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDIMAPED)
+	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDIMAPED)
 
 	// The window's view (the child control)
 	CMapEditorView *m_pMapEditorView;
@@ -48,7 +48,7 @@ public:
 
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
-	BEGIN_MSG_MAP(CScriptEditorFrame)
+	BEGIN_MSG_MAP(CMapEditorFrame)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_FORWARDMSG, OnForwardMsg)
@@ -59,7 +59,7 @@ public:
 
 		CHAIN_MSG_MAP(CChildFrame)
 		// Pass all unhandled WM_COMMAND messages to the client window or 'view'
-		CHAIN_CLIENT_COMMANDS ()
+		CHAIN_CLIENT_COMMANDS()
 		// Reflect all the WM_NOTIFY messages to the client window
 		REFLECT_NOTIFICATIONS()
 

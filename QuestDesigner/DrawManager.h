@@ -115,8 +115,8 @@ protected:
 
 	bool Draw(int nSubLayer, IGraphics *pIGraphics=NULL);
 
-	bool GetFirstChildAt(int nSubLayer, const POINT &point_, CDrawableContext **ppDrawableContext_);
-	bool GetNextChildAt(int nSubLayer, const POINT &point_, CDrawableContext **ppDrawableContext_);
+	bool GetFirstChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
+	bool GetNextChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
 
 	bool GetFirstChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
@@ -134,7 +134,7 @@ public:
 	void SetSubLayer(int layer);
 
 	void MoveTo(int x, int y);
-	void MoveTo(const POINT &_point);
+	void MoveTo(const CPoint &_point);
 
 	void GetPosition(CPoint &_Point) const;
 	void GetAbsPosition(CPoint &_Point) const;
@@ -154,9 +154,11 @@ public:
 			GetAbsRect(), GetAbsPosition(), GetAbsFinalRect(), MoveTo()
 	*/
 	void SetRect(const RECT &_rect);
+	void SetAbsRect(const CRect &_Rect);
+	void SetAbsFinalRect(const CRect &_Rect);
 
 	bool isAt(int x, int y) const;
-	bool isAt(const POINT &_point) const;
+	bool isAt(const CPoint &_point) const;
 	bool isAt(const RECT &_rect) const;
 
 	bool isIn(const RECT &_rect) const;
@@ -175,8 +177,8 @@ public:
 
 	bool Draw(IGraphics *pIGraphics=NULL);
 
-	bool GetFirstChildAt(const POINT &point_, CDrawableContext **ppDrawableContext_);
-	bool GetNextChildAt(const POINT &point_, CDrawableContext **ppDrawableContext_);
+	bool GetFirstChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_);
+	bool GetNextChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_);
 
 	bool GetFirstChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_);
@@ -243,7 +245,7 @@ public:
 		(probably where the object touches or should touch the ground) is needed.
 	*/
 	virtual void GetBaseRect(CRect &Rect) {
-		Rect.SetRect(0,0,0,0);
+		Rect.SetRectEmpty();
 	}
 
 };
@@ -272,56 +274,65 @@ enum CURSOR {
 	eIDC_SIZENWSE,
 	eIDC_SIZEWE,
 	eIDC_ARROWADD,
-	eIDC_ARROWDEL
+	eIDC_ARROWDEL,
+	eIDC_ARROWSELECT
 };
 
 class CDrawableSelection :
 	public CConsole
 {
-	CSimpleArray<CDrawableContext*> m_Objects; //!< Sprites in the selection.
+	void SelPointAdd(const CPoint &point_);
+	void SelPointRemove(const CPoint &point_);
 
-	CDrawableContext **m_ppMainDrawable;
-	CRect m_rcSelection;
-	CPoint m_ptLastMove;
-
+protected:
 	CURSOR m_CurrentCursor;
 	enum _CurrentState { eNone, eSelecting, eMoving, eResizing } 
 		m_eCurrentState;
-	enum _CursorPosition { eLT, eMT, eRT, eLM, eRM, eLB, eMB, eRB } 
-		m_eCursorPosition, 
-		m_eInitCursorPosition;
 
-	void SelPointAdd(const POINT &point_);
-	void SelPointRemove(const POINT &point_);
+	bool m_bCursorLeft;
+	bool m_bCursorTop;
+	bool m_bCursorRight;
+	bool m_bCursorBottom;
 
-protected:
+	int m_nSnapSize;
+
+	bool m_bCanResize;
+	bool m_bCanMove;
+
+	CRect m_rcSelection;
+	CPoint m_ptInitialPoint;
+	CDrawableContext **m_ppMainDrawable;
+
+	CSimpleMap<CDrawableContext *, CRect> m_Objects; //!< Sprites in the selection.
 	int GetBoundingRect(CRect &Rect_);
 
-	virtual void ResizeContext(CDrawableContext *context, const POINT &point_);
-	virtual void MoveContext(CDrawableContext *context, const POINT &point_);
+	virtual void ResizeObject(CDrawableContext *Object, const CRect &rcObject_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
+	virtual void BuildRealSelectionBounds() = 0;
 public:
 	CDrawableSelection(CDrawableContext **ppDrawableContext_);
 
-	void StartResizing(const POINT &point_);
-	void ResizeTo(const POINT &point_);
-	void EndResizing(const POINT &point_);
+	void StartResizing(const CPoint &point_);
+	void ResizeTo(const CPoint &point_);
+	void EndResizing(const CPoint &point_);
 
-	void StartMoving(const POINT &point_);
-	void MoveTo(const POINT &point_);
-	void EndMoving(const POINT &point_);
+	void StartMoving(const CPoint &point_);
+	void MoveTo(const CPoint &point_);
+	void EndMoving(const CPoint &point_);
 
-	void StartSelBox(const POINT &point_);
+	void StartSelBox(const CPoint &point_);
 	void CancelSelBox();
-	void SizeSelBox(const POINT &point_);
-	void EndSelBoxAdd(const POINT &point_);
-	void EndSelBoxRemove(const POINT &point_);
+	void SizeSelBox(const CPoint &point_);
+	void EndSelBoxAdd(const CPoint &point_);
+	void EndSelBoxRemove(const CPoint &point_);
 
 	void CleanSelection();
+
+	void SetSnapSize(int nSnapSize_);
 
 	bool isResizing();
 	bool isMoving();
 	bool isSelecting();
 	 
-	CURSOR GetMouseStateAt(const IGraphics *pGraphics_, const POINT &point_);
-	void Draw(const IGraphics *pGraphics_);
+	CURSOR GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_);
+	virtual void Draw(const IGraphics *pGraphics_) = 0;
 };

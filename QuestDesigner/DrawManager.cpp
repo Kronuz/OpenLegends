@@ -170,13 +170,13 @@ void CDrawableContext::MoveTo(int x, int y)
 	m_Position.SetPoint(x,y); 
 	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 }
-inline void CDrawableContext::MoveTo(const POINT &_point) 
+void CDrawableContext::MoveTo(const CPoint &_point) 
 {
 	m_Position = _point;
 	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 }
 
-inline void CDrawableContext::GetPosition(CPoint &_Point) const 
+void CDrawableContext::GetPosition(CPoint &_Point) const 
 { 
 	_Point = m_Position; 
 }
@@ -194,7 +194,14 @@ inline void CDrawableContext::GetRect(CRect &_Rect) const
 		if(m_pDrawableObj) m_pDrawableObj->GetSize(m_Size);
 	_Rect.SetRect(m_Position, m_Position + m_Size);
 }
-
+void CDrawableContext::GetAbsRect(CRect &_Rect) const 
+{
+	CPoint Position;
+	GetAbsPosition(Position);
+	if(m_Size.cx==-1 && m_Size.cy==-1)
+		if(m_pDrawableObj) m_pDrawableObj->GetSize(m_Size);
+	_Rect.SetRect(Position, Position + m_Size);
+}
 void CDrawableContext::GetAbsFinalRect(CRect &_Rect) const 
 {
 	GetAbsRect(_Rect);
@@ -206,19 +213,32 @@ void CDrawableContext::GetAbsFinalRect(CRect &_Rect) const
 	}
 }
 
-void CDrawableContext::GetAbsRect(CRect &_Rect) const 
-{
-	CPoint Position;
-	GetAbsPosition(Position);
-	if(m_Size.cx==-1 && m_Size.cy==-1)
-		if(m_pDrawableObj) m_pDrawableObj->GetSize(m_Size);
-	_Rect.SetRect(Position, Position + m_Size);
-}
-
 inline void CDrawableContext::SetRect(const RECT &_rect) 
 {
 	m_Position.SetPoint(_rect.left, _rect.top);
 	m_Size.SetSize(_rect.right-_rect.left, _rect.bottom-_rect.top);
+
+	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	m_pBuffer->Invalidate();
+}
+void CDrawableContext::SetAbsRect(const CRect &_Rect)
+{
+	CPoint Position(0,0);
+	if(m_pParent) m_pParent->GetAbsPosition(Position);
+	m_Position = _Rect.TopLeft() - Position;
+	m_Size.SetSize(_Rect.Width(), _Rect.Height());
+
+	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	m_pBuffer->Invalidate();
+}
+void CDrawableContext::SetAbsFinalRect(const CRect &_Rect)
+{
+	CPoint Position(0,0);
+	if(m_pParent) m_pParent->GetAbsPosition(Position);
+	m_Position = _Rect.TopLeft() - Position;
+	if(isRotated()) m_Size.SetSize(_Rect.Height(), _Rect.Width());
+	else m_Size.SetSize(_Rect.Width(), _Rect.Height());
+
 	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 	m_pBuffer->Invalidate();
 }
@@ -227,7 +247,7 @@ inline bool CDrawableContext::isAt(int x, int y) const
 { 
 	return isAt(CPoint(x, y)); 
 }
-inline bool CDrawableContext::isAt(const POINT &_point) const 
+inline bool CDrawableContext::isAt(const CPoint &_point) const 
 { 
 	if(m_pDrawableObj==NULL) return false;
 	CRect Rect;
@@ -385,7 +405,7 @@ bool CDrawableContext::Draw(int nSubLayer, IGraphics *pIGraphics)
 	}
 	return true;
 }
-bool CDrawableContext::GetFirstChildAt(const POINT &point_, CDrawableContext **ppDrawableContext_)
+bool CDrawableContext::GetFirstChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_)
 {
 	CDrawableContext *pToRet = NULL;
 	m_ChildIterator = m_Children.rbegin();
@@ -402,7 +422,7 @@ bool CDrawableContext::GetFirstChildAt(const POINT &point_, CDrawableContext **p
 	}
 	return true;
 }
-bool CDrawableContext::GetNextChildAt(const POINT &point_, CDrawableContext **ppDrawableContext_)
+bool CDrawableContext::GetNextChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_)
 {
 	CDrawableContext *pToRet = NULL;
 	while(m_ChildIterator!= m_Children.rend()) {
@@ -480,70 +500,17 @@ inline CDrawableObject* CDrawableContext::GetDrawableObj()
 }
 
 CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
-	m_CurrentCursor(eIDC_ARROW)
+	m_CurrentCursor(eIDC_ARROW),
+	m_nSnapSize(1)
 {
 	m_ppMainDrawable = ppDrawableContext_;
 	ASSERT(m_ppMainDrawable);
 }
-void CDrawableSelection::ResizeContext(CDrawableContext *context, const POINT &point_)
+void CDrawableSelection::SetSnapSize(int nSnapSize_)
 {
-	CRect Rect;
-	context->GetRect(Rect);
-	switch(m_eInitCursorPosition) {
-		case eLT: 
-			Rect.left += point_.x;
-		case eMT:
-			Rect.top += point_.y;
-			break;
-		case eRT:
-			Rect.top += point_.y;
-		case eRM:
-			Rect.right += point_.x;
-			break;
-		case eLB:
-			Rect.bottom += point_.y;
-		case eLM:
-			Rect.left += point_.x;
-			break;
-		case eRB:
-			Rect.right += point_.x;
-		case eMB:
-			Rect.bottom += point_.y;
-			break;
-	}
+	m_nSnapSize = nSnapSize_;
+}
 
-	if(m_eInitCursorPosition == eLT || m_eInitCursorPosition==eLM || m_eInitCursorPosition == eLB) {
-		if(Rect.Width() == 0) {
-			if(point_.x<0) Rect.left--;
-			else Rect.left++;
-		}
-	} else if(m_eInitCursorPosition == eRT || m_eInitCursorPosition==eRM || m_eInitCursorPosition == eRB) {
-		if(Rect.Width() == 0) {
-			if(point_.x<0) Rect.right--;
-			else Rect.right++;
-		}
-	}
-	if(m_eInitCursorPosition == eLT || m_eInitCursorPosition==eMT || m_eInitCursorPosition == eRT) {
-		if(Rect.Height() == 0) {
-			if(point_.y<0) Rect.top--;
-			else Rect.top++;
-		}
-	} else if(m_eInitCursorPosition == eLB || m_eInitCursorPosition==eMB || m_eInitCursorPosition == eRB) {
-		if(Rect.Height() == 0) {
-			if(point_.y<0) Rect.bottom--;
-			else Rect.bottom++;
-		}
-	}
-	Rect.NormalizeRect();
-	context->SetRect(Rect);
-}
-void CDrawableSelection::MoveContext(CDrawableContext *context, const POINT &point_)
-{
-	CPoint Point;
-	context->GetPosition(Point);
-	Point.Offset(point_);
-	context->MoveTo(Point);
-}
 bool CDrawableSelection::isResizing() 
 { 
 	return (m_eCurrentState==eResizing); 
@@ -560,157 +527,134 @@ int CDrawableSelection::GetBoundingRect(CRect &Rect_)
 {
 	CRect RectTmp;
 	int nObjects = m_Objects.GetSize();
-	Rect_.SetRect(0,0,0,0);
+	Rect_.SetRectEmpty();
 	for(int i=0; i<nObjects; i++) {
-		m_Objects[i]->GetAbsFinalRect(RectTmp);
+		m_Objects.GetKeyAt(i)->GetAbsFinalRect(RectTmp);
 		Rect_.UnionRect(Rect_, RectTmp);
 	}
 	return nObjects;
 }
-
-void CDrawableSelection::StartResizing(const POINT &point_)
+void CDrawableSelection::StartResizing(const CPoint &point_)
 {
 	m_eCurrentState = eResizing;
-	m_eInitCursorPosition = m_eCursorPosition;
-	m_ptLastMove = point_;
+	BuildRealSelectionBounds();
+	m_ptInitialPoint = point_;
 }
-void CDrawableSelection::ResizeTo(const POINT &point_)
+void CDrawableSelection::ResizeTo(const CPoint &point_)
 {
 	if(m_eCurrentState!=eResizing) return;
+
+	CRect rcNewBoundaries;
+	rcNewBoundaries = m_rcSelection;
+
+	CPoint PointTmp = m_ptInitialPoint - point_;
+	if(PointTmp.x == 0 && PointTmp.y == 0) return;
+
+	if(m_bCursorLeft) {
+		rcNewBoundaries.left -= PointTmp.x;
+		rcNewBoundaries.left = m_nSnapSize*((rcNewBoundaries.left+(m_nSnapSize/2))/m_nSnapSize);
+	} else if(m_bCursorRight) {
+		rcNewBoundaries.right -= PointTmp.x;
+		rcNewBoundaries.right = m_nSnapSize*((rcNewBoundaries.right+(m_nSnapSize/2))/m_nSnapSize);
+	}
+	if(m_bCursorTop) {
+		rcNewBoundaries.top -= PointTmp.y;
+		rcNewBoundaries.top = m_nSnapSize*((rcNewBoundaries.top+(m_nSnapSize/2))/m_nSnapSize);
+	} else if(m_bCursorBottom) {
+		rcNewBoundaries.bottom -= PointTmp.y;
+		rcNewBoundaries.bottom = m_nSnapSize*((rcNewBoundaries.bottom+(m_nSnapSize/2))/m_nSnapSize);
+	}
+
+	// Any negative resizes will be transformed to the minumum unit (perhaps the current snap size)
+
+	if(rcNewBoundaries.Height()<m_nSnapSize/*rcNewBoundaries.top>=m_rcSelection.bottom*/ && m_bCursorTop) {
+		int h = m_rcSelection.Height()%m_nSnapSize; if(h==0) h = m_nSnapSize;
+		rcNewBoundaries.bottom = m_rcSelection.bottom;
+		rcNewBoundaries.top = m_rcSelection.bottom - h;
+	} else if(rcNewBoundaries.Height()<m_nSnapSize/*rcNewBoundaries.bottom<=m_rcSelection.top*/ && m_bCursorBottom) {
+		int h = m_rcSelection.Height()%m_nSnapSize; if(h==0) h = m_nSnapSize;
+		rcNewBoundaries.top = m_rcSelection.top;
+		rcNewBoundaries.bottom = m_rcSelection.top + h;
+	}
+	if(rcNewBoundaries.Width()<m_nSnapSize/*rcNewBoundaries.left>=m_rcSelection.right*/ && m_bCursorLeft) {
+		int w = m_rcSelection.Width()%m_nSnapSize; if(w==0) w = m_nSnapSize;
+		rcNewBoundaries.right = m_rcSelection.right;
+		rcNewBoundaries.left = m_rcSelection.right - w;
+	} else if(rcNewBoundaries.Width()<m_nSnapSize/*rcNewBoundaries.right<=m_rcSelection.left*/ && m_bCursorRight) {
+		int w = m_rcSelection.Width()%m_nSnapSize; if(w==0) w = m_nSnapSize;
+		rcNewBoundaries.left = m_rcSelection.left;
+		rcNewBoundaries.right = m_rcSelection.left + w;
+	}
+	rcNewBoundaries.NormalizeRect();
+
+	int nObjects = m_Objects.GetSize();
+	for(int i=0; i<nObjects; i++) {
+		ResizeObject(m_Objects.GetKeyAt(i), m_Objects.GetValueAt(i), m_rcSelection, rcNewBoundaries, true);
+	}
+}
+void CDrawableSelection::EndResizing(const CPoint &point_)
+{
+	if(m_eCurrentState!=eResizing) return;
+	m_eCurrentState = eNone;
+}
+void CDrawableSelection::StartMoving(const CPoint &point_)
+{
+	m_eCurrentState = eMoving;
+	BuildRealSelectionBounds();
+	m_ptInitialPoint = point_;
+}
+
+void CDrawableSelection::MoveTo(const CPoint &Point_)
+{
+	if(m_eCurrentState!=eMoving) return;
 
 	CRect rcOldBoundaries, rcNewBoundaries;
 	GetBoundingRect(rcOldBoundaries);
+	rcNewBoundaries = m_rcSelection;
 
-	CPoint PointTmp;
-	PointTmp = m_ptLastMove - point_;
-	if(PointTmp.x == 0 && PointTmp.y == 0) return;
+	CPoint PointTmp = m_ptInitialPoint - Point_;
+	CPoint OffsetPoint(PointTmp.x%m_nSnapSize, PointTmp.y%m_nSnapSize);
 
-	bool swapX=false, swapY=false;
-	int nObjects = m_Objects.GetSize();
-	for(int i=0; i<nObjects; i++) {
-		ResizeContext(m_Objects[i], -PointTmp);
-	}
-	GetBoundingRect(rcNewBoundaries);
+	int w = rcNewBoundaries.Width();
+	int h = rcNewBoundaries.Height();
 
-	ASSERT(rcNewBoundaries.Width()!=0 && rcNewBoundaries.Height()!=0);
+	rcNewBoundaries.left -= PointTmp.x;
+	rcNewBoundaries.left = m_nSnapSize*(rcNewBoundaries.left/m_nSnapSize);
+	rcNewBoundaries.top -= PointTmp.y;
+	rcNewBoundaries.top = m_nSnapSize*(rcNewBoundaries.top/m_nSnapSize);
+	rcNewBoundaries.right = rcNewBoundaries.left + w;
+	rcNewBoundaries.bottom = rcNewBoundaries.top + h;
 
-	if(m_eInitCursorPosition == eLT || m_eInitCursorPosition == eMT || m_eInitCursorPosition == eRT) {
-		m_ptLastMove.y = rcNewBoundaries.top;
-	} else {
-		m_ptLastMove.y = rcNewBoundaries.bottom-1;
-	}
-	if(m_eInitCursorPosition == eLT || m_eInitCursorPosition == eLM || m_eInitCursorPosition == eLB) {
-		m_ptLastMove.x = rcNewBoundaries.left;
-	} else {
-		m_ptLastMove.x = rcNewBoundaries.right-1;
-	}
-
-	if(PointTmp.y<0) { // there has been a movement down
-		if(m_eInitCursorPosition == eLT || m_eInitCursorPosition == eMT || m_eInitCursorPosition == eRT) {
-			if(rcNewBoundaries.Height()!=0)
-				if(rcNewBoundaries.bottom > rcOldBoundaries.bottom) swapY = true;
-		}
-	} else if(PointTmp.y>0) { // there has been a movement up
-		if(m_eInitCursorPosition == eLB || m_eInitCursorPosition == eMB || m_eInitCursorPosition == eRB) {
-			if(rcNewBoundaries.Height()!=0) {
-				if(rcNewBoundaries.top < rcOldBoundaries.top) swapY = true;
-				if(rcOldBoundaries.Height() == 0) swapY = true;
-			}
-		}
-	}
-	if(PointTmp.x<0) { // there has been a movement to the right
-		if(m_eInitCursorPosition == eLT || m_eInitCursorPosition == eLM || m_eInitCursorPosition == eLB) {
-			if(rcNewBoundaries.Width()!=0) 
-				if(rcNewBoundaries.right > rcOldBoundaries.right) swapX = true;
-		}
-	} else if(PointTmp.x>0) { // there has been a movement to the left
-		if(m_eInitCursorPosition == eRT || m_eInitCursorPosition == eRM || m_eInitCursorPosition == eRB) {
-			if(rcNewBoundaries.Width()!=0) {
-				if(rcNewBoundaries.left < rcOldBoundaries.left) swapX = true;
-				if(rcOldBoundaries.Width() == 0) swapX = true;
-			}
-		}
-	}
-/*
-	printf("{%d} (%d,%d); New:[%d,%d,%d,%d]; Old:[%d,%d,%d,%d]. swapX=%d, swapY=%d\n", (int)m_eInitCursorPosition, PointTmp.x, PointTmp.y,
-		rcNewBoundaries.left,rcNewBoundaries.top,rcNewBoundaries.right,rcNewBoundaries.bottom,
-		rcOldBoundaries.left,rcOldBoundaries.top,rcOldBoundaries.right,rcOldBoundaries.bottom, swapX, swapY );
-*/
-
-	if(swapX) {
-		if(m_CurrentCursor == eIDC_SIZENESW) m_CurrentCursor = eIDC_SIZENWSE;
-		else if(m_CurrentCursor == eIDC_SIZENWSE) m_CurrentCursor = eIDC_SIZENESW;
-
-			 if(m_eInitCursorPosition == eLT) m_eInitCursorPosition = eRT;
-		else if(m_eInitCursorPosition == eLM) m_eInitCursorPosition = eRM;
-		else if(m_eInitCursorPosition == eLB) m_eInitCursorPosition = eRB;
-		else if(m_eInitCursorPosition == eRT) m_eInitCursorPosition = eLT;
-		else if(m_eInitCursorPosition == eRM) m_eInitCursorPosition = eLM;
-		else if(m_eInitCursorPosition == eRB) m_eInitCursorPosition = eLB;
-	}
-	if(swapY) {
-		if(m_CurrentCursor == eIDC_SIZENESW) m_CurrentCursor = eIDC_SIZENWSE;
-		else if(m_CurrentCursor == eIDC_SIZENWSE) m_CurrentCursor = eIDC_SIZENESW;
-
-			 if(m_eInitCursorPosition == eLT) m_eInitCursorPosition = eLB;
-		else if(m_eInitCursorPosition == eMT) m_eInitCursorPosition = eMB;
-		else if(m_eInitCursorPosition == eRT) m_eInitCursorPosition = eRB;
-		else if(m_eInitCursorPosition == eLB) m_eInitCursorPosition = eLT;
-		else if(m_eInitCursorPosition == eMB) m_eInitCursorPosition = eMT;
-		else if(m_eInitCursorPosition == eRB) m_eInitCursorPosition = eRT;
-	}
-}
-void CDrawableSelection::EndResizing(const POINT &point_)
-{
-	if(m_eCurrentState!=eResizing) return;
-	CRect Rect;
-	int nObjects = m_Objects.GetSize();
-	for(int i=0; i<nObjects; i++) {
-		m_Objects[i]->GetRect(Rect);
-		if(Rect.Width()==0) Rect.right++;
-		if(Rect.Height()==0) Rect.bottom++;
-		m_Objects[i]->SetRect(Rect);
-	}
-	m_eCurrentState = eNone;
-}
-void CDrawableSelection::StartMoving(const POINT &point_)
-{
-	m_eCurrentState = eMoving;
-	m_ptLastMove = point_;
-}
-void CDrawableSelection::MoveTo(const POINT &point_)
-{
-	if(m_eCurrentState!=eMoving) return;
-
-	CPoint PointTmp;
-	PointTmp = m_ptLastMove - point_;
-	if(PointTmp.x == 0 && PointTmp.y == 0) return;
-
-	m_ptLastMove = point_;
+	if(rcNewBoundaries.left == rcOldBoundaries.left && rcNewBoundaries.top == rcOldBoundaries.top) return;
 
 	int nObjects = m_Objects.GetSize();
 	for(int i=0; i<nObjects; i++) {
-		MoveContext(m_Objects[i], -PointTmp);
+		ResizeObject(m_Objects.GetKeyAt(i), m_Objects.GetValueAt(i), m_rcSelection, rcNewBoundaries, false);
 	}
 }
-void CDrawableSelection::EndMoving(const POINT &point_)
+
+void CDrawableSelection::EndMoving(const CPoint &point_)
 {
 	if(m_eCurrentState!=eMoving) return;
 	m_eCurrentState = eNone;
 }
 
-void CDrawableSelection::StartSelBox(const POINT &point_) {
+void CDrawableSelection::StartSelBox(const CPoint &point_) {
 	m_rcSelection.left = point_.x;
 	m_rcSelection.top = point_.y;
 	m_rcSelection.right = point_.x;
 	m_rcSelection.bottom = point_.y;
 	m_eCurrentState = eSelecting;
+
+	m_bCanResize = false;	// This must be set before drawing
+	m_bCanMove = false;		// the boundary box on the screen.
+
 }
 void CDrawableSelection::CancelSelBox() {
 	if(m_eCurrentState!=eSelecting) return;
 	m_eCurrentState = eNone;
 }
-void CDrawableSelection::SizeSelBox(const POINT &point_) {
+void CDrawableSelection::SizeSelBox(const CPoint &point_) {
 	if(m_eCurrentState!=eSelecting) return;
 	m_rcSelection.right = point_.x;
 	m_rcSelection.bottom = point_.y;
@@ -719,7 +663,7 @@ void CDrawableSelection::SizeSelBox(const POINT &point_) {
 #define SELSENS_LINE		4
 #define SELSENS_VERTEX		20
 
-void CDrawableSelection::EndSelBoxAdd(const POINT &point_) {
+void CDrawableSelection::EndSelBoxAdd(const CPoint &point_) {
 	if(m_eCurrentState!=eSelecting) return;
 	m_rcSelection.right = point_.x;
 	m_rcSelection.bottom = point_.y;
@@ -732,12 +676,16 @@ void CDrawableSelection::EndSelBoxAdd(const POINT &point_) {
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
-		if(m_Objects.Find(pDrawableContext) == -1) m_Objects.Add(pDrawableContext);
+		if(m_Objects.FindKey(pDrawableContext) == -1) {
+			CRect Rect;
+			pDrawableContext->GetRect(Rect);
+			m_Objects.Add(pDrawableContext, Rect);
+		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildIn(m_rcSelection, &pDrawableContext);
 	}
 }
-void CDrawableSelection::EndSelBoxRemove(const POINT &point_) {
+void CDrawableSelection::EndSelBoxRemove(const CPoint &point_) {
 	if(m_eCurrentState!=eSelecting) return;
 	m_rcSelection.right = point_.x;
 	m_rcSelection.bottom = point_.y;
@@ -755,19 +703,21 @@ void CDrawableSelection::EndSelBoxRemove(const POINT &point_) {
 		(*m_ppMainDrawable)->GetNextChildIn(m_rcSelection, &pDrawableContext);
 	}
 }
-void CDrawableSelection::SelPointAdd(const POINT &point_) {
+void CDrawableSelection::SelPointAdd(const CPoint &point_) {
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
 	while(pDrawableContext) {
-		if(m_Objects.Find(pDrawableContext) == -1) {
-			m_Objects.Add(pDrawableContext);
+		if(m_Objects.FindKey(pDrawableContext) == -1) {
+			CRect Rect;
+			pDrawableContext->GetRect(Rect);
+			m_Objects.Add(pDrawableContext, Rect);
 			return;
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
 	}
 }
-void CDrawableSelection::SelPointRemove(const POINT &point_) {
+void CDrawableSelection::SelPointRemove(const CPoint &point_) {
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
 	while(pDrawableContext) {
@@ -779,42 +729,14 @@ void CDrawableSelection::SelPointRemove(const POINT &point_) {
 void CDrawableSelection::CleanSelection() {
 	m_Objects.RemoveAll();
 }
-void CDrawableSelection::Draw(const IGraphics *pGraphics_) {
-	CRect Rect(0,0,0,0);
-	CRect RectTmp;
-
-	int nObjects = m_Objects.GetSize();
-	for(int i=0; i<nObjects; i++) {
-		m_Objects[i]->GetAbsFinalRect(RectTmp);
-		Rect.UnionRect(Rect, RectTmp);
-		if(nObjects>1) {
-			pGraphics_->DrawRect(RectTmp,150,255,255,225,2);
-			pGraphics_->BoundingBox(RectTmp, 200, 0, 0, 0);
-		}
-	}
-	if(nObjects>1) {
-		pGraphics_->SelectionBox(Rect, 255, 255, 255, 200);
-	} else if(nObjects==1) {
-		pGraphics_->SelectionBox(Rect, 200, 255, 255, 200);
-	}
-	if(m_eCurrentState==eSelecting) {
-		RectTmp = m_rcSelection;
-		RectTmp.NormalizeRect();
-		if(RectTmp.Width()>1 && RectTmp.Height()>1) {
-			pGraphics_->BoundingBox(m_rcSelection, 128, 0, 0, 0);
-		}
-	}
-
-}
-CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const POINT &point_)
+CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_)
 {
 	if( m_eCurrentState==eResizing	||
 		m_eCurrentState==eMoving	|| 
 		m_eCurrentState==eSelecting	   ) return m_CurrentCursor;
 
 	m_CurrentCursor = eIDC_ARROW;
-	bool left, right, top, bottom;
-	left = right = top = bottom = false;
+	m_bCursorLeft = m_bCursorTop = m_bCursorRight = m_bCursorBottom = false;
 
 	CPoint WorldPoint = point_;
 	// We get the world coordinates for the mouse position
@@ -826,8 +748,8 @@ CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const PO
 	// For each selected object, we check to see if the mouse is over it, also we build a bounding Rect:
 	int nObjects = m_Objects.GetSize();
 	for(int i=0; i<nObjects; i++) {
-		m_Objects[i]->GetAbsFinalRect(RectTmp);
-		if(m_Objects[i]->isAt(WorldPoint)) m_CurrentCursor = eIDC_SIZEALL; // The cursor is ovet the object.
+		(m_Objects.GetKeyAt(i))->GetAbsFinalRect(RectTmp);
+		if((m_Objects.GetKeyAt(i))->isAt(WorldPoint) && m_bCanMove) m_CurrentCursor = eIDC_SIZEALL; // The cursor is ovet the object.
 		Rect.UnionRect(Rect, RectTmp);	// Bounding Rect
 	}
 
@@ -841,13 +763,13 @@ CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const PO
 	if(sens_inX*4 > Rect.Width()) sens_inX = Rect.Width()/4;
 	if(sens_inY*4 > Rect.Height()) sens_inY = Rect.Height()/4;
 
-	if(point_.x >= Rect.left-SELSENS_LINE && point_.x < Rect.left+sens_inX) left = true;
-	if(point_.x >= Rect.right-sens_inX && point_.x < Rect.right+SELSENS_LINE) right = true;
-	if(point_.y >= Rect.top-SELSENS_LINE && point_.y < Rect.top+sens_inY) top = true;
-	if(point_.y >= Rect.bottom-sens_inY && point_.y < Rect.bottom+SELSENS_LINE) bottom = true;
+	if(point_.x >= Rect.left-SELSENS_LINE && point_.x < Rect.left+sens_inX) m_bCursorLeft = true;
+	if(point_.x >= Rect.right-sens_inX && point_.x < Rect.right+SELSENS_LINE) m_bCursorRight = true;
+	if(point_.y >= Rect.top-SELSENS_LINE && point_.y < Rect.top+sens_inY) m_bCursorTop = true;
+	if(point_.y >= Rect.bottom-sens_inY && point_.y < Rect.bottom+SELSENS_LINE) m_bCursorBottom = true;
 
 	// Are we over a line of the bounding box?
-	if(left || right || top || bottom) {
+	if(m_bCanResize && (m_bCursorLeft || m_bCursorRight || m_bCursorTop || m_bCursorBottom)) {
 		// We need to validate the cursor sensibility for all corners:
 		int sens_cornerX = SELSENS_VERTEX;
 		int sens_cornerY = SELSENS_VERTEX;
@@ -862,36 +784,33 @@ CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const PO
 
 		// Are we in a middle point?
 		if(point_.x >= RectXMiddle-sens_cornerX/2 && point_.x < RectXMiddle+sens_cornerX/2) {
-			m_eCursorPosition = top?eMT:eMB;
 			m_CurrentCursor = eIDC_SIZENS;
 		}
 		if(point_.y >= RectYMiddle-sens_cornerY/2 && point_.y < RectYMiddle+sens_cornerY/2) {
-			m_eCursorPosition = left?eLM:eRM;
 			m_CurrentCursor = eIDC_SIZEWE;
 		}
 
 		// Are we in any corner?
-		if(top || bottom) {
+		if(m_bCursorTop || m_bCursorBottom) {
 			if( point_.x >= Rect.left-SELSENS_LINE && point_.x < Rect.left+sens_cornerX ) {
-				m_eCursorPosition = top?eLT:eLB;
-				m_CurrentCursor = top?eIDC_SIZENWSE:eIDC_SIZENESW;
+				m_CurrentCursor = m_bCursorTop?eIDC_SIZENWSE:eIDC_SIZENESW;
+				m_bCursorLeft = true;
 			}
 			if( point_.x > Rect.right-sens_cornerX && point_.x < Rect.right+SELSENS_LINE) {
-				m_eCursorPosition = top?eRT:eRB;
-				m_CurrentCursor = top?eIDC_SIZENESW:eIDC_SIZENWSE;
+				m_CurrentCursor = m_bCursorTop?eIDC_SIZENESW:eIDC_SIZENWSE;
+				m_bCursorRight = true;
 			}
 		}
-		if(left || right) {
+		if(m_bCursorLeft || m_bCursorRight) {
 			if( point_.y >= Rect.top-SELSENS_LINE && point_.y < Rect.top+sens_cornerY ) {
-				m_eCursorPosition = left?eLT:eRT;
-				m_CurrentCursor = left?eIDC_SIZENWSE:eIDC_SIZENESW;
+				m_CurrentCursor = m_bCursorLeft?eIDC_SIZENWSE:eIDC_SIZENESW;
+				m_bCursorTop = true;
 			}
 			if( point_.y > Rect.bottom-sens_cornerY && point_.y < Rect.bottom+SELSENS_LINE) {
-				m_eCursorPosition = left?eLB:eRB;
-				m_CurrentCursor = left?eIDC_SIZENESW:eIDC_SIZENWSE;
+				m_CurrentCursor = m_bCursorLeft?eIDC_SIZENESW:eIDC_SIZENWSE;
+				m_bCursorBottom = true;
 			}
 		}
 	}
-
 	return m_CurrentCursor;
 }

@@ -214,6 +214,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 
 	D3DPRESENT_PARAMETERS d3dpp; // Used to explain to Direct3D how it will present things on the screen
 	ZeroMemory(&d3dpp, sizeof(D3DPRESENT_PARAMETERS)); // clear it
+	//d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	
 	if(bWindowed) {
 	    d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
@@ -369,6 +370,7 @@ bool CGraphicsD3D8::SetWindowView(HWND hWnd, const RECT &client, const RECT &cli
 
 	D3DPRESENT_PARAMETERS d3dpp; // Used to explain to Direct3D how it will present things on the screen
 	ZeroMemory(&d3dpp, sizeof(D3DPRESENT_PARAMETERS)); // clear it
+	//d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	
 	d3dpp.BackBufferWidth  = client.right-client.left;	// The back buffer width
 	d3dpp.BackBufferHeight = client.bottom-client.top;	// The back buffer height
@@ -481,6 +483,21 @@ bool CGraphicsD3D8::EndPaint()
 
 	if(FAILED(ms_pD3DDevice->EndScene())) return false;
 
+/* //This is just a test
+	D3DLOCKED_RECT lockrect;
+	IDirect3DSurface8 *surface;
+	m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &surface);
+	for(int i=0;i<6; i++) {
+		surface->LockRect(&lockrect, NULL, 0);
+		for(int y=0; y<500; y++) {
+			WORD *ptr = (WORD*)((BYTE*)lockrect.pBits + lockrect.Pitch*y);
+			for(int x=0; x<500; x++) {
+				if(ptr) *ptr++=(*(ptr+4));
+			}
+		}
+		surface->UnlockRect();
+	}
+*/
 	if(ms_bWindowed) {
 		if(FAILED(m_pSwapChain->Present(NULL, NULL, NULL, NULL))) return false;
 	} else {
@@ -660,7 +677,7 @@ void CGraphicsD3D8::SelectionBox(const RECT &rectDest, BYTE alpha, BYTE red, BYT
 	RenderFill(rcb, alpha, red, green, blue);
 }
 // ToDo: Probably this method needs to be rewriten to avoid the costs of validating tiles on the called Render
-void CGraphicsD3D8::Render(const ITexture *texture, const RECT &rectSrc, const POINT &pointDest, int rotate, int transform, int alpha, IBuffer **buffer) const
+void CGraphicsD3D8::Render(const ITexture *texture, const RECT &rectSrc, const CPoint &pointDest, int rotate, int transform, int alpha, IBuffer **buffer) const
 {
 	ASSERT(texture);
 
@@ -706,32 +723,31 @@ void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITexture *
 {
 	ASSERT(vbuffer);
 
-	int srcWidth, srcHeight;
+	int destWidth, destHeight;
 	if(rotate == SROTATE_90 || rotate == SROTATE_270) {
-		srcWidth = rectSrc.bottom - rectSrc.top;
-		srcHeight = rectSrc.right - rectSrc.left;
+		destWidth = (rectDest.bottom-rectDest.top);
+		destHeight = (rectDest.right-rectDest.left);
 	}  else {
-		srcWidth = rectSrc.right - rectSrc.left;
-		srcHeight = rectSrc.bottom - rectSrc.top;
+		destWidth = (rectDest.right-rectDest.left);
+		destHeight = (rectDest.bottom-rectDest.top);
 	}
+	int srcWidth = rectSrc.right - rectSrc.left;
+	int srcHeight = rectSrc.bottom - rectSrc.top;
 
-	int xVert, yVert, lastWidth, lastHeight;
-	if(rectDest.left == rectDest.right || rectDest.top == rectDest.bottom) {
-		xVert = 1;
-		yVert = 1;
-		lastWidth = srcWidth;
-		lastHeight = srcHeight;
-	} else {
-		xVert = (rectDest.right-rectDest.left)/srcWidth;
-		yVert = (rectDest.bottom-rectDest.top)/srcHeight;
-		lastWidth = (rectDest.right-rectDest.left)-(xVert*srcWidth);
-		lastHeight = (rectDest.bottom-rectDest.top)-(yVert*srcHeight);
-		if(lastWidth) xVert++;
-		else lastWidth = srcWidth;
-		if(lastHeight) yVert++;
-		else lastHeight = srcHeight;
-	}
+	// Calculate the number of vertex needed on the mesh
+	int xVert = destWidth/srcWidth;
+	int yVert = destHeight/srcHeight;
 
+	// Calculate the width and height of the last column and row of the mesh
+	int lastWidth = destWidth%srcWidth;
+	int lastHeight = destHeight%srcHeight;
+
+	if(lastWidth) xVert++;
+	else lastWidth = srcWidth;
+	if(lastHeight) yVert++;
+	else lastHeight = srcHeight;
+
+	// Calculate the exact bounds of the sprite inside the texture
 	float invW = 1.0f/(float)texture->GetWidth();
 	float invH = 1.0f/(float)texture->GetHeight();
 	float tl = (float)rectSrc.left * invW;
@@ -739,18 +755,9 @@ void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITexture *
 	float tr = (float)rectSrc.right * invW;
 	float tb = (float)rectSrc.bottom * invH;
 	
-	float tlr, tlb;
-	if(rotate == SROTATE_90 || rotate == SROTATE_270) {
-		tlr = (float)(rectSrc.left+lastHeight) * invW;
-		tlb = (float)(rectSrc.top+lastWidth) * invH;
-	} else {
-		tlr = (float)(rectSrc.left+lastWidth) * invW;
-		tlb = (float)(rectSrc.top+lastHeight) * invH;
-	}
-	if(rectDest.left == rectDest.right || rectDest.top == rectDest.bottom) {
-		lastWidth = rectSrc.right - rectSrc.left;
-		lastHeight = rectSrc.bottom - rectSrc.top;
-	}
+	// Calculate the exact bounds for the last row and column on the mesh in the texture
+	float tlr = (float)(rectSrc.left+lastWidth) * invW;
+	float tlb = (float)(rectSrc.top+lastHeight) * invH;
 
 	float vcx[6] = {0, 0, (float)srcWidth, (float)srcWidth, 0, (float)srcWidth};
 	float vcy[6] = {0, (float)srcHeight, 0, 0, (float)srcHeight, (float)srcHeight};
@@ -812,7 +819,6 @@ void CGraphicsD3D8::Render(const ITexture *texture, const RECT &rectSrc, const R
 	if(!m_bInitialized) return;
 
 	int srcWidth, srcHeight;
-	int destWidth, destHeight;
 	if(rotate == SROTATE_90 || rotate == SROTATE_270) {
 		srcWidth = rectSrc.bottom - rectSrc.top;
 		srcHeight = rectSrc.right - rectSrc.left;
@@ -820,13 +826,9 @@ void CGraphicsD3D8::Render(const ITexture *texture, const RECT &rectSrc, const R
 		srcWidth = rectSrc.right - rectSrc.left;
 		srcHeight = rectSrc.bottom - rectSrc.top;
 	}
-	if(rectDest.left == rectDest.right || rectDest.top == rectDest.bottom) {
-		destWidth = srcWidth;
-		destHeight = srcHeight;
-	} else {
-		destWidth = rectDest.right - rectDest.left;
-		destHeight = rectDest.bottom - rectDest.top;
-	}
+	int destWidth = (rectDest.right-rectDest.left);
+	int destHeight = (rectDest.bottom-rectDest.top);
+
 
 	/////////////////////////////////////////////////////////
 	SVertexBuffer *VertexBuffer = NULL;
@@ -853,9 +855,11 @@ void CGraphicsD3D8::Render(const ITexture *texture, const RECT &rectSrc, const R
 	matrix = matSc * matRo *  matTr * WorldMatrix;
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &matrix));
 
-	D3DVERIFY(ms_pD3DDevice->SetTexture(0, (IDirect3DBaseTexture8*)texture->GetTexture()));
-	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
-	D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, VertexBuffer->m_nPrimitives, VertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX)));
+	if(VertexBuffer->m_pVertices && VertexBuffer->m_nPrimitives) {
+		D3DVERIFY(ms_pD3DDevice->SetTexture(0, (IDirect3DBaseTexture8*)texture->GetTexture()));
+		D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
+		D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, VertexBuffer->m_nPrimitives, VertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX)));
+	}
 
 	if(buffer) {
 		if(!(*buffer)) (*buffer) = new CBufferD3D8(VertexBuffer);

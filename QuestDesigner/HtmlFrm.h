@@ -49,7 +49,7 @@ class CHtmlFrame :
 {
 protected:
 public:
-	//DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
+	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDICHILD)
 
 	// The windows view (the child control)
 	CHtmlView *m_pHtmlView;

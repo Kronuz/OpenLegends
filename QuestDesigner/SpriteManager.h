@@ -246,7 +246,7 @@ public:
 		Size.SetSize(m_Boundaries[0].Width(), m_Boundaries[0].Height());
 	}
 	void GetBaseRect(CRect &Rect) {
-		Rect.SetRect(0,0,0,0);
+		Rect.SetRectEmpty();
 	}
 };
 
@@ -406,20 +406,27 @@ public:
 	void Rotate(int rotate);	//!< Rotates the object (the angle is given in degrees)
 	void Tile(bool bTile = true);
 
-	bool isTiled();
-	bool isMirrored();
-	bool isFlipped();
-	int getAlpha();
-	int Transformation();
+	bool isTiled() const;
+	bool isMirrored() const;
+	bool isFlipped() const;
+	int getAlpha() const;
+	int Transformation() const;
 	
-	int Rotation();				//!< returns the current roatation of the object in radians
+	int Rotation() const;				//!< returns the current roatation of the object in radians
 };
 
 class CSpriteSelection :
 	public CDrawableSelection
 {
-	void ResizeContext(CDrawableContext *context, const POINT &point_);
-	void MoveContext(CDrawableContext *context, const POINT &point_);
+	void ResizeObject(CDrawableContext *Object, const CRect &rcObject_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
+	void BuildRealSelectionBounds();
 public:
 	CSpriteSelection(CDrawableContext **ppDrawableContext_) : CDrawableSelection(ppDrawableContext_) {}
+
+	void FlipSelection();
+	void MirrorSelection();
+	void CWRotateSelection();
+	void CCWRotateSelection();
+
+	void Draw(const IGraphics *pGraphics_);
 };

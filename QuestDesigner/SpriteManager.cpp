@@ -127,22 +127,10 @@ bool CBackground::Draw(CDrawableContext &context)
 		}
 	}
 
-	if(scontext->isTiled()) {
-		CRect Position;
-		scontext->GetAbsRect(Position);
-		pGraphics->Render(pTexture, m_Boundaries[scontext->m_nFrame], Position, scontext->Rotation(), scontext->Transformation(), scontext->getAlpha(), &(scontext->m_pBuffer));
-	} else {
-		CPoint Position;
-		scontext->GetAbsPosition(Position);
-		pGraphics->Render(pTexture, m_Boundaries[scontext->m_nFrame], Position, scontext->Rotation(), scontext->Transformation(), scontext->getAlpha(), &(scontext->m_pBuffer));
-	}
 	CRect Rect;
-	scontext->GetAbsRect(Rect);
-	if((scontext->Rotation() == SROTATE_90 ||scontext->Rotation() == SROTATE_270) && !scontext->isTiled()) {
-		int w = Rect.Width();
-		int h = Rect.Height();
-		Rect.bottom = Rect.top+w;
-		Rect.right = Rect.left+h;;
+	scontext->GetAbsFinalRect(Rect);
+	pGraphics->Render(pTexture, m_Boundaries[scontext->m_nFrame], Rect, scontext->Rotation(), scontext->Transformation(), scontext->getAlpha(), &(scontext->m_pBuffer));
+	if(!scontext->isTiled()) {
 	}
 
 	//pGraphics->DrawRect(Rect,128,255,255,255,1);
@@ -236,38 +224,225 @@ inline void CSpriteContext::Tile(bool bTile)
 	if(!bTile)	m_dwStatus |= (SNTILED<<_SPT_INFO);
 	else		m_dwStatus &= ~(SNTILED<<_SPT_INFO);
 }
-inline bool CSpriteContext::isTiled() 
+inline bool CSpriteContext::isTiled() const
 {
 	return !((m_dwStatus&(SNTILED<<_SPT_INFO))==(SNTILED<<_SPT_INFO));
 }
-inline bool CSpriteContext::isMirrored() 
+inline bool CSpriteContext::isMirrored() const
 {
 	return ((m_dwStatus&(SMIRRORED<<_SPT_TRANSFORM))==(SMIRRORED<<_SPT_TRANSFORM));
 }
-inline bool CSpriteContext::isFlipped() 
+inline bool CSpriteContext::isFlipped() const
 {
 	return ((m_dwStatus&(SFLIPPED<<_SPT_TRANSFORM))==(SFLIPPED<<_SPT_TRANSFORM));
 }
-inline int CSpriteContext::getAlpha() 
+inline int CSpriteContext::getAlpha() const
 {
 	return ((m_dwStatus&SPT_ALPHA)>>_SPT_ALPHA);
 }
-inline int CSpriteContext::Transformation() 
+inline int CSpriteContext::Transformation() const 
 {
 	return ((m_dwStatus&SPT_TRANSFORM)>>_SPT_TRANSFORM);
 }
-inline int CSpriteContext::Rotation() 
+inline int CSpriteContext::Rotation() const
 {
 	return ((m_dwStatus&SPT_ROT)>>_SPT_ROT);
 }
 
-void CSpriteSelection::ResizeContext(CDrawableContext *context, const POINT &point_)
+void CSpriteSelection::BuildRealSelectionBounds()
 {
-	CSpriteContext *scontext = static_cast<CSpriteContext*>(context);
-	if(scontext->isTiled()) CDrawableSelection::ResizeContext(context, point_);
-}
-void CSpriteSelection::MoveContext(CDrawableContext *context, const POINT &point_)
-{
-	CDrawableSelection::MoveContext(context, point_);
+	m_rcSelection.SetRectEmpty();
+	// We need to keep the initial size and location of every selected object:
+	int nObjects = m_Objects.GetSize();
+	for(int i=0; i<nObjects; i++) {
+		CRect Rect;
+		(m_Objects.GetKeyAt(i))->GetAbsFinalRect(Rect);
+		(m_Objects.GetValueAt(i)) = Rect;
+		m_rcSelection.UnionRect(m_rcSelection, Rect);
+	}
 }
 
+void CSpriteSelection::Draw(const IGraphics *pGraphics_) {
+	CRect Rect(0,0,0,0);
+	CRect RectTmp;
+
+	const CSpriteContext *scontext = NULL;
+
+	int nObjects = m_Objects.GetSize();
+	for(int i=0; i<nObjects; i++) {
+		scontext = static_cast<const CSpriteContext*>(m_Objects.GetKeyAt(i));
+		scontext->GetAbsFinalRect(RectTmp);
+		Rect.UnionRect(Rect, RectTmp);
+		if(nObjects>1) {
+			pGraphics_->FillRect(RectTmp,25,255,255,225);
+			pGraphics_->BoundingBox(RectTmp, 80,255,255,225);
+		}
+	}
+	m_bCanMove = true;
+	m_bCanResize = true;
+	if(nObjects>1) {
+		pGraphics_->SelectionBox(Rect, 255, 255, 255, 200);
+	} else if(nObjects==1) {
+		if(scontext->isTiled()) pGraphics_->SelectionBox(Rect, 200, 255, 255, 200);
+		else {
+			m_bCanResize = false;
+			pGraphics_->BoundingBox(Rect, 225, 255, 255, 200);
+		}
+	}
+
+	if(m_eCurrentState==eSelecting) {
+		RectTmp = m_rcSelection;
+		RectTmp.NormalizeRect();
+		if(RectTmp.Width()>1 && RectTmp.Height()>1) {
+			pGraphics_->BoundingBox(m_rcSelection, 128, 0, 0, 0);
+		}
+	}
+}
+
+// this function expects normalized rects
+void CSpriteSelection::ResizeObject(CDrawableContext *Object, const CRect &rcObject_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_)
+{
+	const CSpriteContext *scontext = static_cast<const CSpriteContext*>(Object);
+	if(!scontext->isTiled()) bAllowResize_ = false;
+
+	int w = rcObject_.Width();
+	int h = rcObject_.Height();
+
+	float xFactor=1.0f, yFactor=1.0f;
+	if(rcOldBounds_.Width()) xFactor = (float)rcNewBounds_.Width()/(float)rcOldBounds_.Width();
+	if(rcOldBounds_.Height()) yFactor = (float)rcNewBounds_.Height()/(float)rcOldBounds_.Height();
+
+	CRect Rect;
+	if(m_bCursorLeft) Rect.right = (rcOldBounds_.left+rcNewBounds_.Width()) - ((float)(rcOldBounds_.right-rcObject_.right) * xFactor);
+	else Rect.left = rcOldBounds_.left + ((float)(rcObject_.left-rcOldBounds_.left) * xFactor);
+	if(m_bCursorTop) Rect.bottom = (rcOldBounds_.top+rcNewBounds_.Height()) - ((float)(rcOldBounds_.bottom-rcObject_.bottom) * yFactor);
+	else Rect.top = rcOldBounds_.top + ((float)(rcObject_.top-rcOldBounds_.top) * yFactor);
+
+	if(bAllowResize_) {
+		if(m_bCursorLeft) Rect.left = rcOldBounds_.left + ((float)(rcObject_.left-rcOldBounds_.left) * xFactor);
+		else Rect.right = (rcOldBounds_.left+rcNewBounds_.Width()) - ((float)(rcOldBounds_.right-rcObject_.right) * xFactor);
+		if(m_bCursorTop) Rect.top = rcOldBounds_.top + ((float)(rcObject_.top-rcOldBounds_.top) * yFactor);
+		else Rect.bottom = (rcOldBounds_.top+rcNewBounds_.Height()) - ((float)(rcOldBounds_.bottom-rcObject_.bottom) * yFactor);
+	} else {
+		if(m_bCursorLeft) Rect.left  = Rect.right - w;
+		else Rect.right  = Rect.left + w;
+		if(m_bCursorTop) Rect.top = Rect.bottom - h;
+		else Rect.bottom = Rect.top + h;
+	}
+
+	Rect.OffsetRect(rcNewBounds_.left-rcOldBounds_.left, rcNewBounds_.top-rcOldBounds_.top);
+	Rect.NormalizeRect();
+
+	if(!bAllowResize_) {
+		if(m_bCursorLeft) if(Rect.left>rcNewBounds_.right-w) Rect.left = rcNewBounds_.right - w;
+		if(m_bCursorTop) if(Rect.top>rcNewBounds_.bottom-h) Rect.top = rcNewBounds_.bottom - h;
+		Rect.right  = Rect.left + w;
+		Rect.bottom = Rect.top + h;
+	}
+
+	w = Rect.Width();
+	h = Rect.Height();
+	Rect.left = m_nSnapSize*(Rect.left/m_nSnapSize);
+	if(bAllowResize_) {
+		if(Rect.Width() == 0) Rect.left--;
+		if(Rect.left<rcNewBounds_.left) Rect.left = rcNewBounds_.left;
+		Rect.right = m_nSnapSize*((Rect.left+w+m_nSnapSize-1)/m_nSnapSize);
+		if(Rect.Width() == 0) Rect.right++;
+		if(Rect.right>rcNewBounds_.right) Rect.right = rcNewBounds_.right;
+	} else {
+		Rect.right = Rect.left + w;
+	}
+
+	Rect.top = m_nSnapSize*(Rect.top/m_nSnapSize);
+	if(bAllowResize_) {
+		if(Rect.Height() == 0) Rect.top--;
+		if(Rect.top<rcNewBounds_.top) Rect.top = rcNewBounds_.top;
+		Rect.bottom = m_nSnapSize*((Rect.top+h+m_nSnapSize-1)/m_nSnapSize);
+		if(Rect.Height() == 0) Rect.bottom++;
+		if(Rect.bottom>rcNewBounds_.bottom) Rect.bottom = rcNewBounds_.bottom;
+	} else {
+		Rect.bottom = Rect.top + h;
+	}
+
+	Object->SetAbsFinalRect(Rect);
+}
+
+void CSpriteSelection::FlipSelection()
+{
+	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(rcBoundaries);
+
+	int nObjects = m_Objects.GetSize();
+	for(int i=0; i<nObjects; i++) {
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(m_Objects.GetKeyAt(i));
+		scontext->GetAbsFinalRect(RectTmp);
+		Rect.left = RectTmp.left;
+		Rect.right = RectTmp.right;
+		Rect.top = rcBoundaries.top + (rcBoundaries.bottom - RectTmp.bottom);
+		Rect.bottom = rcBoundaries.bottom - (RectTmp.top - rcBoundaries.top);
+		Rect.NormalizeRect();
+
+		scontext->Flip();
+		scontext->SetAbsFinalRect(Rect);
+	}
+}
+void CSpriteSelection::MirrorSelection()
+{
+	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(rcBoundaries);
+
+	int nObjects = m_Objects.GetSize();
+	for(int i=0; i<nObjects; i++) {
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(m_Objects.GetKeyAt(i));
+		scontext->GetAbsFinalRect(RectTmp);
+		Rect.left = rcBoundaries.left + (rcBoundaries.right - RectTmp.right);
+		Rect.right = rcBoundaries.right - (RectTmp.left - rcBoundaries.left);
+		Rect.top = RectTmp.top;
+		Rect.bottom = RectTmp.bottom;
+		Rect.NormalizeRect();
+
+		scontext->Mirror();
+		scontext->SetAbsFinalRect(Rect);
+	}
+}
+void CSpriteSelection::CWRotateSelection()
+{
+	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(rcBoundaries);
+
+	int nObjects = m_Objects.GetSize();
+	for(int i=0; i<nObjects; i++) {
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(m_Objects.GetKeyAt(i));
+		scontext->GetAbsFinalRect(RectTmp);
+		Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
+		Rect.bottom = rcBoundaries.top + (RectTmp.right - rcBoundaries.left);
+		Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
+		Rect.right = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.top);
+
+		Rect.NormalizeRect();
+
+		scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+		scontext->SetAbsFinalRect(Rect);
+	}
+}
+void CSpriteSelection::CCWRotateSelection()
+{
+	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(rcBoundaries);
+
+	int nObjects = m_Objects.GetSize();
+	for(int i=0; i<nObjects; i++) {
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(m_Objects.GetKeyAt(i));
+		scontext->GetAbsFinalRect(RectTmp);
+
+		Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
+		Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
+		Rect.right = rcBoundaries.left + (RectTmp.bottom - rcBoundaries.top);
+		Rect.bottom = rcBoundaries.top + (rcBoundaries.right - RectTmp.left);
+
+		Rect.NormalizeRect();
+
+		scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+		scontext->SetAbsFinalRect(Rect);
+	}
+}

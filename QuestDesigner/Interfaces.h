@@ -56,7 +56,7 @@ using namespace std;
 // Flags for the drawable objects and their transformations:
 #define DVISIBLE			0x01
 #define _DRW_SHFT			24
-#define DROTATE				((SNTILED<<_SPT_INFO) | (SROTATE_90<<_SPT_ROT))
+#define DROTATE				((SROTATE_90<<_SPT_ROT))
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
@@ -301,7 +301,7 @@ interface IGraphics
 	virtual bool EndPaint() = 0;
 
 	//! Used to render common sprites
-	virtual void Render(const ITexture *texture, const RECT &rectSrc, const POINT &pointDest, int rotate=SROTATE_0, int transform=0, int alpha=255, IBuffer **buffer=NULL) const = 0;
+	virtual void Render(const ITexture *texture, const RECT &rectSrc, const CPoint &pointDest, int rotate=SROTATE_0, int transform=0, int alpha=255, IBuffer **buffer=NULL) const = 0;
 
 	//! Used to render tiled sprites
 	virtual void Render(const ITexture *texture, const RECT &rectSrc, const RECT &rectDest, int rotate=SROTATE_0, int transform=0, int alpha=255, IBuffer **buffer=NULL) const = 0;

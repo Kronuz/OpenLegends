@@ -38,7 +38,7 @@ class CWorldEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDIWORLDED)
+	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDIWORLDED)
 
 	// The window's view (the child control)
 	CWorldEditorView *m_pWorldEditorView;
@@ -48,7 +48,7 @@ public:
 
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
-	BEGIN_MSG_MAP(CScriptEditorFrame)
+	BEGIN_MSG_MAP(CWorldEditorFrame)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_FORWARDMSG, OnForwardMsg)

@@ -417,6 +417,15 @@
 				RelativePath="res\MapEdToolbar.bmp">
 			</File>
 			<File
+				RelativePath="res\MapEdToolbarBasic.bmp">
+			</File>
+			<File
+				RelativePath="res\MapEdToolbarMain.bmp">
+			</File>
+			<File
+				RelativePath="res\MapEdToolbarObject.bmp">
+			</File>
+			<File
 				RelativePath="res\Okay.ico">
 			</File>
 			<File
@@ -457,6 +466,9 @@
 			</File>
 			<File
 				RelativePath="res\arrowdel.cur">
+			</File>
+			<File
+				RelativePath="res\arrowselect.cur">
 			</File>
 			<File
 				RelativePath="res\folders.bmp">
