@@ -38,6 +38,7 @@ void SObjProp::Flag(bool bFlag) {
 }
 bool SObjProp::GetInfo(SInfo *pI) const
 {
+	if(!pContext) return false;
 	bool ret = pContext->GetInfo(pI);
 	if(!ret) return false;
 
@@ -46,6 +47,7 @@ bool SObjProp::GetInfo(SInfo *pI) const
 }
 bool SObjProp::GetProperties(SPropertyList *pPL) const
 {
+	if(!pContext) return false;
 	bool ret = pContext->GetProperties(pPL);
 	if(!ret) return false;
 
@@ -58,6 +60,7 @@ bool SObjProp::GetProperties(SPropertyList *pPL) const
 }
 bool SObjProp::SetProperties(SPropertyList &PL)
 {
+	if(!pContext) return false;
 	SProperty* pP;
 	bool bChanged = pContext->SetProperties(PL);
 	if(bChanged) pSelection->m_bChanged = pSelection->m_bModified = true;
@@ -81,10 +84,12 @@ bool SObjProp::SetProperties(SPropertyList &PL)
 }
 void SObjProp::Commit() const
 {
+	if(!pContext) return;
 	pContext->Commit();
 }
 void SObjProp::Cancel()
 {
+	if(!pContext) return;
 	pContext->Cancel();
 }
 
@@ -597,14 +602,20 @@ inline bool CDrawableSelection::ObjPropContextEqual::operator()(const SObjProp &
 {
 	return (a.pContext == b);
 }
+
+inline bool CDrawableSelection::ObjPropGroupEqual::operator()(const SObjProp &a, int b) const
+{
+	return (a.nGroup == b);
+}
+
 inline bool CDrawableSelection::ObjPropLayerEqual::operator()(const SObjProp &a, const int &b) const
 {
-	ASSERT(a.pContext);
+	ASSERT(a.pContext); // NEED TO FIX *** add compare for groups
 	return (a.pContext->GetObjLayer() == b);
 }
 inline bool CDrawableSelection::SelectionCompare::operator()(const SObjProp &a, const SObjProp &b) const
 {
-	ASSERT(a.pContext && a.pContext);
+	ASSERT(a.pContext && a.pContext); // NEED TO FIX *** add compare for groups
 	ASSERT(a.pContext->GetParent() && b.pContext->GetParent());
 
 	// check layer:
@@ -651,88 +662,81 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 }
 int CDrawableSelection::GetBoundingRect(CRect *pRect_, int nGroup_) 
 {
+	ASSERT(nGroup_ >= 0 && nGroup_ <= (int)m_Groups.size());
+
 	int nSelected = 0;
 	CRect RectTmp;
 	pRect_->SetRectEmpty();
 
-	// Get the bounding rect of the children:
-	for(int i=0; i<(int)m_Groups[nGroup_].C.size(); i++) {
-		int nChild = m_Groups[nGroup_].C[i];
-		if(nChild != 0) {
-			ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
-			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
-			GetBoundingRect(&RectTmp, nChild);
-			pRect_->UnionRect(pRect_, RectTmp);
-		}
-	}
-
 	vectorObject::iterator Iterator;
 	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-		Iterator->pContext->GetAbsFinalRect(RectTmp);
-		pRect_->UnionRect(pRect_, RectTmp);
-		nSelected++;
+		if(Iterator->pContext) {
+			Iterator->pContext->GetAbsFinalRect(RectTmp);
+			pRect_->UnionRect(pRect_, RectTmp);
+			nSelected++;
+		} else {
+			// Get the bounding rect of the children:
+			int nChild = Iterator->nGroup;
+			ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
+			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
+			nSelected += GetBoundingRect(&RectTmp, nChild);
+			pRect_->UnionRect(pRect_, RectTmp);
+		}
 	}
 	return nSelected;
 }
 
 bool CDrawableSelection::isGroup()
 {
-	return (
-		m_nCurrentGroup > 0 && 
-		m_Groups[0].O.size() > 1 &&
-		// NEED TO FIX *** (since these are vectors, empty can throw non empty even when not used 
-		// positions have been allocated. Also group children can be 0 thus non-existent:)
-		(!m_Groups[m_nCurrentGroup].O.empty() || !m_Groups[m_nCurrentGroup].C.empty()) );
+	return (m_nCurrentGroup > 0);
 }
-// this function copies every object in a group (and all its children) to the main selection 
+// this function selects every object in a group (and all its children)
 bool CDrawableSelection::SelectGroup(int nGroup_, bool bSelectContext) 
 {
 	ASSERT(nGroup_ >= 0 && nGroup_ <= (int)m_Groups.size());
 
-	// Select children (if any):
-	for(int i=0; i<(int)m_Groups[nGroup_].C.size(); i++) {
-		int nChild = m_Groups[nGroup_].C[i];
-		if(nChild != 0) {
-			ASSERT(nGroup_ >= 0 && nGroup_ <= (int)m_Groups.size());
-			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
-			// if the context is not directly selected (i.e. just its the group), 
-			// don't mark it as a selected context:
-			SelectGroup(nChild, false);
-		}
-	}
-
 	vectorObject::iterator Iterator;
 	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-		// NEED TO FIX *** (is this really needed:)
-		//if(bSelectContext) 
-			Iterator->pContext->SelectContext();
-		m_Groups[0].O.push_back(*Iterator);
-		m_Groups[0].O.back().pRef = (Iterator.operator ->());
+		if(Iterator->pContext) {
+			Iterator->pContext->SelectContext(bSelectContext);
+		} else {
+			// Select children (if any):
+			int nChild = Iterator->nGroup;
+			ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
+			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
+			SelectGroup(nChild, bSelectContext);
+		}
 	}
 	return true;
 }
 // this function looks for a drawable context in all the groups and selects the group if found
 bool CDrawableSelection::SelectGroupWith(const CDrawableContext *pDrawableContext) 
 {
-	// m_Groups[0] is the current selection.
-	bool bEmpty = m_Groups[0].O.empty(); // are there any objects in the current selection?
+	// are there any objects in the current selection?
+	bool bEmpty = m_Groups[0].O.empty(); 
+
 	for(int i=1; i<(int)m_Groups.size(); i++) {
 		// Iterate through every context in every group looking for the required context:
 		vectorObject::iterator Iterator = 
 			find_if(m_Groups[i].O.begin(), m_Groups[i].O.end(), bind2nd(m_equalContext, pDrawableContext));
 		if(Iterator != m_Groups[i].O.end()) {
 			// If the group found has a parent select the parent group too:
-			// NEED TO FIX *** (select parents up to the current group only??)
             int nGroup = i;
 			while(m_Groups[nGroup].P) {
 				nGroup = m_Groups[nGroup].P;
 				ASSERT(nGroup >= 0 && nGroup <= (int)m_Groups.size());
 			}
-			CONSOLE_DEBUG("The group '%s' has been selected.\n", (LPCSTR)m_Groups[nGroup].Name.c_str());
 
 			// Save the last current selected group (if there were no other selections):
 			if(bEmpty) m_nCurrentGroup = nGroup;
 			else m_nCurrentGroup = 0;
+
+			// Select the new group, appending a child group to the current selection:
+			CRect rcRect;
+			GetBoundingRect(&rcRect, nGroup);
+			m_Groups[0].O.push_back(SObjProp(this, NULL, nGroup, rcRect));
+
+			CONSOLE_DEBUG("The group '%s' has been selected. (%d)\n", (LPCSTR)m_Groups[nGroup].Name.c_str(), m_Groups[nGroup].O.size());
 
 			return SelectGroup(nGroup);
 		}
@@ -742,8 +746,9 @@ bool CDrawableSelection::SelectGroupWith(const CDrawableContext *pDrawableContex
 // this function looks for a drawable context in all the groups and selects the group if found
 bool CDrawableSelection::SelectGroupWithIn(const CRect &rect_, const CDrawableContext *pDrawableContext) 
 {
-	// m_Groups[0] is the current selection.
-	bool bEmpty = m_Groups[0].O.empty(); // are there any objects in the current selection?
+	// are there any objects in the current selection?
+	bool bEmpty = m_Groups[0].O.empty(); 
+
 	for(int i=1; i<(int)m_Groups.size(); i++) {
 		// Iterate through every context in every group looking for the required context:
 		vectorObject::iterator Iterator = 
@@ -762,11 +767,13 @@ bool CDrawableSelection::SelectGroupWithIn(const CRect &rect_, const CDrawableCo
 			if(!rect_.PtInRect(rcBoundaries.TopLeft()) || !rect_.PtInRect(rcBoundaries.BottomRight())) 
 				return true;
 
-			CONSOLE_DEBUG("The group '%s' has been selected.\n", (LPCSTR)m_Groups[nGroup].Name.c_str());
-
 			// Save the last current selected group (if there were no other selections):
 			if(bEmpty) m_nCurrentGroup = nGroup;
 			else m_nCurrentGroup = 0;
+
+			// Append a child group to the current selection:
+			// m_Groups[0].C.push_back(nGroup); NEED TO FIX *** select groups
+			// CONSOLE_DEBUG("The group '%s' has been selected. (%d)\n", (LPCSTR)m_Groups[nGroup].Name.c_str(), m_Groups[0].C.size());
 
 			return SelectGroup(nGroup);
 		}
@@ -787,9 +794,33 @@ void CDrawableSelection::DeleteInGroups(const CDrawableContext *pDrawableContext
 	}
 }
 
+// returns -1 if the context is not found, or the group if the context is found.
+// If the context is found, it returns the context's object in *Iterator.
+int CDrawableSelection::FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_)
+{
+	*Iterator = find_if(m_Groups[nGroup_].O.begin(), m_Groups[nGroup_].O.end(), bind2nd(m_equalContext, pDrawableContext));
+	if((*Iterator) != m_Groups[nGroup_].O.end()) {
+		return nGroup_;
+	}
+
+	for((*Iterator) = m_Groups[nGroup_].O.begin(); (*Iterator) != m_Groups[nGroup_].O.end(); (*Iterator)++) {
+		if((*Iterator)->pContext == NULL) {
+			vectorObject::iterator Object;
+			int nGroup = FindInGroup(&Object, pDrawableContext, (*Iterator)->nGroup);
+			if(nGroup >= 0) {
+				*Iterator = Object;
+				return nGroup;
+			}
+		}
+	}
+
+	*Iterator = NULL;
+	return -1;
+}
+
 IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains) 
 {
-	int nLayer = m_Groups[0].O.size() ? m_nLayer : -1;
+	int nLayer = m_Groups[0].O.empty() ? -1: m_nLayer; 
 	CDrawableContext *pDrawableContext = NULL;
 
 	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
@@ -799,10 +830,12 @@ IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chai
 		// If the layer is not locked and the new context is in the same layer as the currently selected layer:
 		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
 			m_nLayer = nLayer = nNewLayer;
-			// try to find the context in the current selection:
-			vectorObject::iterator Iterator = 
-				find_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
-			if(Iterator == m_Groups[0].O.end()) {
+
+			// try to find in the selected groups:
+			vectorObject::iterator Iterator;
+			int nChild = FindInGroup(&Iterator, pDrawableContext,0 );
+			
+			if(nChild<0 || Iterator == m_Groups[nChild].O.end()) {
 				// the context is not yet selected, so try to select the full group containing it (if any)
 				if(SelectGroupWith(pDrawableContext)) return NULL;
 
@@ -810,42 +843,49 @@ IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chai
 				pDrawableContext->GetRect(Rect);
 				pDrawableContext->SelectContext();
 
-				m_nCurrentGroup = 0;
-				m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, Rect, relative, relative));
-
-				// set the last selection:
-				m_pLastSelected = pDrawableContext;
+				// The sprite wasn't on any group, so we add it as a new object to the selection group:
+				m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, 0, Rect, relative, relative));
+				m_nCurrentGroup = 0; // discard any currently selected group as a unique group.
+				m_pLastSelected = pDrawableContext; // set the last selection.
 
 				pDrawableContext->SelectContext();
 				CONSOLE_DEBUG("%d of %d objects selected.\n", m_Groups[0].O.size(), (*m_ppMainDrawable)->Objects());
 				CONSOLE_DEBUG("The selected object is on layer %d, and sublayer: %d.\n", pDrawableContext->GetObjLayer(), pDrawableContext->GetObjSubLayer());
 				return NULL;
 			}
-			// The context was already selected, edit the chains:
-			if(Chains>0) {
-				if(m_Groups[0].O.size()<=1) return NULL; // ignore if there's only one object
-				if(Iterator->eXChain<4) Iterator->eXChain = (_Chain)((int)Iterator->eXChain+1);
-				else {
-					Iterator->eXChain = (_Chain)0;
-					if(Iterator->eYChain<4) Iterator->eYChain = (_Chain)((int)Iterator->eYChain+1);
-					else Iterator->eYChain = (_Chain)0;
+			if(nChild == m_nCurrentGroup) {
+				// The context was already selected, edit the chains:
+				if(Chains>0) {
+					if(m_Groups[m_nCurrentGroup].O.size() <= 1) 
+						return NULL; // ignore if there's only one selected object
+
+					if(Iterator->eXChain<4) {
+						Iterator->eXChain = (_Chain)((int)Iterator->eXChain+1);
+					} else {
+						Iterator->eXChain = (_Chain)0;
+						if(Iterator->eYChain<4) Iterator->eYChain = (_Chain)((int)Iterator->eYChain+1);
+						else Iterator->eYChain = (_Chain)0;
+					}
+					// set the last selection:
+					m_pLastSelected = Iterator->pContext;
+					CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
+					return static_cast<IPropertyEnabled *>(Iterator.operator ->());
+				} else if(Chains<0) {
+					if(m_Groups[m_nCurrentGroup].O.size() <= 1) 
+						return NULL; // ignore if there's only one selected object
+
+					if(Iterator->eXChain>0) {
+						Iterator->eXChain = (_Chain)((int)Iterator->eXChain-1);
+					} else {
+						Iterator->eXChain = (_Chain)4;
+						if(Iterator->eYChain>0) Iterator->eYChain = (_Chain)((int)Iterator->eYChain-1);
+						else Iterator->eYChain = (_Chain)4;
+					}
+					// set the last selection:
+					m_pLastSelected = Iterator->pContext;
+					CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
+					return static_cast<IPropertyEnabled *>(Iterator.operator ->());
 				}
-				// set the last selection:
-				m_pLastSelected = Iterator->pContext;
-				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
-				return static_cast<IPropertyEnabled *>(Iterator.operator ->());
-			} else if(Chains<0) {
-				if(m_Groups[0].O.size()<=1) return NULL; // ignore if there's only one object
-				if(Iterator->eXChain>0) Iterator->eXChain = (_Chain)((int)Iterator->eXChain-1);
-				else {
-					Iterator->eXChain = (_Chain)4;
-					if(Iterator->eYChain>0) Iterator->eYChain = (_Chain)((int)Iterator->eYChain-1);
-					else Iterator->eYChain = (_Chain)4;
-				}
-				// set the last selection:
-				m_pLastSelected = Iterator->pContext;
-				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
-				return static_cast<IPropertyEnabled *>(Iterator.operator ->());
 			}
 		}
 		pDrawableContext = NULL;
@@ -855,25 +895,43 @@ IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chai
 }
 void CDrawableSelection::SelPointRemove(const CPoint &point_) 
 {
-	int nLayer = m_Groups[0].O.size() ? m_nLayer : -1;
+	int nLayer = m_Groups[0].O.empty() ? -1: m_nLayer; 
 	CDrawableContext *pDrawableContext = NULL;
+
 	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
+
 	while(pDrawableContext) {
 		int nNewLayer = pDrawableContext->GetObjLayer();
+		// If the layer is not locked and the new context is in the same layer as the currently selected layer:
 		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
 			nLayer = nNewLayer;
 
+			// try to find in the selected groups:
+			vectorObject::iterator Iterator;
+			int nGroup = FindInGroup(&Iterator, pDrawableContext, 0);
+
+			if(nGroup >= 0) {
+				// Now that we have found the group on which the context is stored,
+				// we look for the topmost group:
+				while(m_Groups[nGroup].P) {
+					nGroup = m_Groups[nGroup].P;
+					ASSERT(nGroup >= 0 && nGroup <= (int)m_Groups.size());
+				}
+
+				vectorObject::iterator removed = 
+					remove_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
+				if(removed != m_Groups[i].O.end()) {
+					m_Groups[i].O.erase(removed, m_Groups[i].O.end());
+					return;
+				}
+
+				// the context is not yet selected, so try to select the full group containing it (if any)
+				SelectGroup(nGroup, false);
+
+			}
+
 			// remove the last selection:
 			if(m_pLastSelected == pDrawableContext) m_pLastSelected = NULL;
-
-			pDrawableContext->SelectContext(false);
-			vectorObject::iterator removed = 
-				remove_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
-			if(removed != m_Groups[0].O.end()) {
-				m_nCurrentGroup = 0;
-				m_Groups[0].O.erase(removed, m_Groups[0].O.end());
-				return;
-			}
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
@@ -971,6 +1029,7 @@ void CDrawableSelection::ResizeTo(const CPoint &point_)
 	vectorObject::const_iterator Iterator;
 	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
 		ResizeObject(*Iterator, m_rcSelection, rcNewBoundaries, true);
+		// NEED TO FIX *** (add group resizing)
 	}
 }
 void CDrawableSelection::EndResizing(const CPoint &point_)
@@ -992,6 +1051,23 @@ void CDrawableSelection::GetSelBounds(CRect *pRect_)
 	GetBoundingRect(pRect_);
 }
 
+int CDrawableSelection::SetLayerSelection(int nLayer, int nGroup_)
+{
+	int nSelected = 0;
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
+		if(Iterator->pContext) {
+			if(Iterator->pContext->GetObjLayer() != m_nLayer) {
+				m_bModified = m_bChanged = true;
+				Iterator->pContext->SetObjLayer(m_nLayer);
+				nSelected++;
+			}
+		} else {
+			nSelected += SetLayerSelection(nLayer, Iterator->nGroup);
+		}
+	}
+	return nSelected;
+}
 void CDrawableSelection::SetLayerSelection(int nLayer)
 {
 	if(m_bFloating) return;
@@ -999,52 +1075,51 @@ void CDrawableSelection::SetLayerSelection(int nLayer)
 	// first sort selection
 	SortSelection();
 
-	int nSelected = 0;
-	m_nLayer = nLayer;
-	vectorObject::iterator Iterator = m_Groups[0].O.begin();
-	while(Iterator != m_Groups[0].O.end()) {
-		if(Iterator->pContext->GetObjLayer() != m_nLayer) {
-			m_bModified = m_bChanged = true;
-			Iterator->pContext->SetObjLayer(m_nLayer);
-			nSelected++;
-		}
-		Iterator++;
-	}
-
+	int nSelected = SetLayerSelection(nLayer, 0);
 	if(nSelected) {
+		m_nLayer = nLayer;
 		CONSOLE_DEBUG("%d objects moved to layer %d.\n", nSelected, nLayer);
 	}
 }
 
-int CDrawableSelection::DeleteSelection()
+int CDrawableSelection::DeleteSelection(int nGroup_)
 {
-	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	int nDeleted = 0;
+
 	if(m_bHoldSelection) { // if the selection is held, just remove from selection.
-		while(Iterator != m_Groups[0].O.end()) {
-			if(Iterator->bSubselected) {
+		// NEED TO FIX *** add functionality to this
+	} else {
+		vectorObject::iterator Iterator;
+		for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
+			if(Iterator->pContext) {
 				Iterator->pContext->SelectContext(false);
-				Iterator = m_Groups[0].O.erase(Iterator);
+				DeleteInGroups(Iterator->pContext); // NEED TO FIX *** couldn't this be done using clear() instead?
+				(*m_ppMainDrawable)->KillChildEx(Iterator->pContext);
+				nDeleted++;
 			} else {
-				Iterator++;
+				// Get the bounding rect of the children:
+				int nChild = Iterator->nGroup;
+				ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
+				ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
+				nDeleted += DeleteSelection(nChild);
 			}
 		}
-		CONSOLE_DEBUG("%d objects left in the selection.\n", m_Groups[0].O.size());
-	} else {
-		while(Iterator != m_Groups[0].O.end()) {
-			Iterator->pContext->SelectContext(false);
-			DeleteInGroups(Iterator->pContext);
-			(*m_ppMainDrawable)->KillChildEx(Iterator->pContext);
-			Iterator++;
-		}
-
-		m_pLastSelected = NULL;
-		m_nCurrentGroup = 0;
-		m_Groups[0].O.clear();
-		if(m_bFloating) m_bFloating = false;
-		else m_bModified = m_bChanged = true;
-		CONSOLE_DEBUG("%d objects left.\n", (*m_ppMainDrawable)->Objects());
 	}
-	return m_Groups[0].O.size();
+
+	return nDeleted;
+}
+int CDrawableSelection::DeleteSelection()
+{
+	int nDeleted = DeleteSelection(0);
+
+	m_pLastSelected = NULL;
+	m_nCurrentGroup = 0;
+
+	if(m_bFloating) m_bFloating = false;
+	else m_bModified = m_bChanged = true;
+	CONSOLE_DEBUG("%d objects left.\n", (*m_ppMainDrawable)->Objects());
+
+	return nDeleted;
 }
 void CDrawableSelection::Cancel()
 {
@@ -1057,8 +1132,12 @@ void CDrawableSelection::Cancel()
 		EndResizing(m_ptInitialPoint);
 	} else if(!m_bHoldSelection) {
 		vectorObject::iterator Iterator;
-		for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-			Iterator->pContext->SelectContext(false);
+		for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
+			for(Iterator = m_Groups[nChild].O.begin(); Iterator != m_Groups[nChild].O.end(); Iterator++) {
+				if(Iterator->pContext) {
+					Iterator->pContext->SelectContext(false);
+				}
+			}
 		}
 		m_pLastSelected = NULL;
 		m_nCurrentGroup = 0;
@@ -1176,28 +1255,20 @@ void CDrawableSelection::LockLayer(int nLayer, bool bLock)
 	if(nLayer>=0 && nLayer<=MAX_LAYERS)
 		m_bLockedLayers[nLayer] = bLock;
 
-	if(bLock) {
+	if(bLock && m_nLayer == nLayer) {
 		// deselect all:
 		vectorObject::iterator Iterator;
-		for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-			Iterator->pContext->SelectContext(false);
+		for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
+			for(Iterator = m_Groups[nChild].O.begin(); Iterator != m_Groups[nChild].O.end(); Iterator++) {
+				if(Iterator->pContext) {
+					Iterator->pContext->SelectContext(false);
+				}
+			}
 		}
-
-		// delete items in the locked layer:
-		Iterator = 
-			remove_if(
-				m_Groups[0].O.begin(), m_Groups[0].O.end(), 
-				bind2nd(m_equalLayer, nLayer)
-			);
-
 		m_pLastSelected = NULL;
-		m_Groups[0].O.erase(Iterator, m_Groups[0].O.end());
-
-		// reselect remaining items:
-		for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-			Iterator->pContext->SelectContext();
-		}
-
+		m_nCurrentGroup = 0;
+		m_Groups[0].O.clear();
+		m_nLayer = -1;
 	}
 }
 bool CDrawableSelection::isLocked(int nLayer)
@@ -1211,18 +1282,25 @@ bool CDrawableSelection::isLocked(int nLayer)
 }
 bool CDrawableSelection::SelectedAt(const CPoint &point_)
 {
-	vectorObject::const_iterator Iterator = m_Groups[0].O.begin();
-	while(Iterator != m_Groups[0].O.end()) {
-		if(Iterator->pContext->isAt(point_)) return true;
-		Iterator++;
+	vectorObject::const_iterator Iterator;
+	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
+		if(Iterator->pContext) {
+			if(Iterator->pContext->isAt(point_)) return true;
+		} else {
+			int nChild = Iterator->nGroup;
+			CRect Rect;
+			GetBoundingRect(&Rect, nChild);
+			if(Rect.PtInRect(point_)) return true;
+		}
 	}
 	return false;
 }
 
 void CDrawableSelection::SubSelPoint(bool bAdd, const CPoint &point_, int Chains)
 {
-	vectorObject::reverse_iterator Iterator = m_Groups[0].O.rbegin();
-	while(Iterator != m_Groups[0].O.rend()) {
+	vectorObject::reverse_iterator Iterator;
+	for(Iterator = m_Groups[0].O.rbegin(); Iterator != m_Groups[0].O.rend(); Iterator++) {
+		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
 		if(Iterator->pContext->isAt(point_) && Iterator->bSubselected != bAdd) {
 			if(Chains==0 || !bAdd) {
 				if(Iterator->pContext == m_pLastSelected && !bAdd) m_pLastSelected = NULL;
@@ -1251,8 +1329,6 @@ void CDrawableSelection::SubSelPoint(bool bAdd, const CPoint &point_, int Chains
 			}
 			return;
 		}
-
-		Iterator++;
 	}
 }
 
@@ -1270,14 +1346,14 @@ void CDrawableSelection::EndSubSelBox(bool bAdd, const CPoint &point_, int Chain
 		return;
 	}
 
-	vectorObject::reverse_iterator Iterator = m_Groups[0].O.rbegin();
-	while(Iterator != m_Groups[0].O.rend()) {
+	vectorObject::reverse_iterator Iterator;
+	for(Iterator = m_Groups[0].O.rbegin(); Iterator != m_Groups[0].O.rend(); Iterator++) {
+		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
 		if(Iterator->pContext->isIn(m_rcSelection)) {
 			if(Iterator->pContext == m_pLastSelected && !bAdd) m_pLastSelected = NULL;
 			if(bAdd) m_pLastSelected = Iterator->pContext;
 			Iterator->bSubselected = bAdd;
 		}
-		Iterator++;
 	}
 }
 
@@ -1298,7 +1374,7 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 	if(m_rcSelection.Width()<=1 && m_rcSelection.Height()<=1) {
 		return SelPointAdd(m_rcSelection.TopLeft(), Chains);
 	}
-	int nLayer = m_Groups[0].O.size() ? m_nLayer : -1;
+	int nLayer = m_Groups[0].O.empty() ? -1 : m_nLayer;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
@@ -1306,9 +1382,12 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
 			m_nLayer = nLayer = nNewLayer;
 
-			vectorObject::const_iterator Iterator =
-				find_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
-			if(Iterator==m_Groups[0].O.end()) {
+			// try to find in the selected groups:
+			vectorObject::iterator Iterator;
+			int nChild = FindInGroup(&Iterator, pDrawableContext, 0);
+
+			// NEED TO FIX *** group selection should be better, and should handle chains too
+			if(nChild<0 || Iterator == m_Groups[nChild].O.end()) {
 				if(!SelectGroupWithIn(m_rcSelection, pDrawableContext)) {
 					CRect Rect;
 					pDrawableContext->GetRect(Rect);
@@ -1317,7 +1396,7 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 					m_pLastSelected = pDrawableContext;
 	
 					m_nCurrentGroup = 0;
-					m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, Rect, relative, relative));
+					m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, 0, Rect, relative, relative));
 				}
 			}
 		}
@@ -1343,7 +1422,7 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_)
 	if(m_rcSelection.Width()<=1 && m_rcSelection.Height()<=1) 
 		SelPointRemove(m_rcSelection.TopLeft());
 
-	int nLayer = m_Groups[0].O.size() ? m_nLayer : -1;
+	int nLayer = m_Groups[0].O.empty() ? -1 : m_nLayer;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
@@ -1367,9 +1446,12 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_)
 }
 void CDrawableSelection::CleanSelection() {
 	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(!m_bHoldSelection) Iterator->pContext->SelectContext(false);
-		else Iterator->bSubselected = false;
+	for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
+		for(Iterator = m_Groups[nChild].O.begin(); Iterator != m_Groups[nChild].O.end(); Iterator++) {
+			if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
+			if(!m_bHoldSelection) Iterator->pContext->SelectContext(false);
+			else Iterator->bSubselected = false;
+		}
 	}
 	m_pLastSelected = NULL;
 	if(!m_bHoldSelection) {
@@ -1403,10 +1485,15 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 	// For each selected object, we check to see if the mouse is over it, also we build a bounding Rect:
 	vectorObject::const_iterator Iterator;
 	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		Iterator->pContext->GetAbsFinalRect(RectTmp);
-		if(Iterator->pContext->isAt(WorldPoint) && m_bCanMove) m_CurrentCursor = eIDC_SIZEALL; // The cursor is ovet the object.
+		if(Iterator->pContext) {
+			Iterator->pContext->GetAbsFinalRect(RectTmp);
+		} else {
+			GetBoundingRect(&RectTmp, Iterator->nGroup);
+		}
+		if(RectTmp.PtInRect(WorldPoint) && m_bCanMove) m_CurrentCursor = eIDC_SIZEALL; // The cursor is ovet the object.
 		Rect.UnionRect(Rect, RectTmp);	// Bounding Rect
 	}
+	// NEET TO FIX *** (add mouse stuff over groups)
 
 	// Now that we have the full bounding Rect (in world coordinates) we convert it to View coordinates.
 	pGraphics_->WorldToView(&Rect);
@@ -1479,7 +1566,9 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 
 void CDrawableSelection::SortSelection()
 {
-	sort(m_Groups[0].O.begin(), m_Groups[0].O.end(), m_cmpSelection);
+	for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
+		sort(m_Groups[nChild].O.begin(), m_Groups[nChild].O.end(), m_cmpSelection);
+	}
 }
 
 inline bool CDrawableSelection::BeginPaint(IGraphics *pGraphicsI, WORD wFlags)
@@ -1685,6 +1774,7 @@ BITMAP* CDrawableSelection::CaptureSelection(IGraphics *pGraphicsI, float zoom)
 }
 void CDrawableSelection::CleanPasteGroups()
 {
+	// NEED TO FIX *** shouldn't we start on group 0:
 	for(int i=1; i<(int)m_Groups.size(); i++) {
 		m_nCurrentGroup = 0;
 		m_Groups[i].O.clear();
@@ -1707,8 +1797,10 @@ int CDrawableSelection::SetNextPasteGroup(LPCSTR szGroupName, int nNew)
 	}
 	ASSERT(nNew >= 0 && nNew < (int)m_Groups.size());
 
-	m_Groups[nNew].P = m_nCurrentGroup; // the new group's parent is the current group.
-	m_Groups[nNew].C.clear(); // the new group has no children.
+	// NEED TO FIX *** (If we are exlusively editing a group, we add the new paste group to that group:??)
+	if(m_bHoldSelection) {
+		m_Groups[nNew].P = m_nCurrentGroup; // the new group's parent is the current group.
+	}
 	m_Groups[nNew].Name = szGroupName;
 	m_nPasteGroup = nNew;
 

@@ -429,17 +429,21 @@ enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
 struct SObjProp :
 	public IPropertyEnabled
 {
-	SObjProp *pRef; // Objects can point to a reference of themselves (the real object, if for instance it's in a group)
 	CDrawableSelection *pSelection;
 	CDrawableContext *pContext;
-	int nGroup; // to what group does it belong? (0 = no group)
+
+	vector<int> C; // This is the list of group children the object has.
+
+	int nGroup; // what group does it belong to? (0 = no group, its group number if it's a group)
 	bool bSubselected;
 	CRect rcRect;
 	_Chain eXChain;
 	_Chain eYChain;
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), pRef(NULL), nGroup(0) {}
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), pRef(NULL), nGroup(0) {
-		pContext->GetAbsFinalRect(rcRect);
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), nGroup(nGroup_) {}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {
+		if(pContext) pContext->GetAbsFinalRect(rcRect);
+		else ASSERT(0); // You should provide Rect_ for groups.;
 	}
 	virtual bool isFlagged();
 	virtual void Flag(bool bFlag);
@@ -478,6 +482,11 @@ protected:
 	public binary_function<SObjProp, const CDrawableContext*, bool> {
 		bool operator()(const SObjProp &a, const CDrawableContext *b) const;
 	} m_equalContext;
+
+	const struct ObjPropGroupEqual : 
+	public binary_function<SObjProp, int, bool> {
+		bool operator()(const SObjProp &a, int b) const;
+	} m_equalGroup;
 
 	const struct ObjPropLayerEqual : 
 	public binary_function<SObjProp, int, bool> {
@@ -530,21 +539,23 @@ protected:
 	struct SGroup {
 		string Name; // This is the name of the group. (It's either a regular name or a relative path to a sprite set)
 		vectorObject O; // This is the actual vector of objects.
-		vector<int> C; // This is the list of children the group has.
 		int P; // This is the address to the parent group.
 		SGroup() : P(0) {}
 	};
 
 	int m_nPasteGroup;
 	int m_nCurrentGroup;
-	vector<SGroup> m_Groups; //!< Contexts in the group.
+	vector<SGroup> m_Groups;
 
 	int GetBoundingRect(CRect *pRect_, int nGroup_ = 0);
+	int FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_);
 
 	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
 	virtual void BuildRealSelectionBounds() = 0;
 
 	void SortSelection();
+	int SetLayerSelection(int nLayer, int nGroup_);
+	int DeleteSelection(int nGroup_);
 
 	bool BeginPaint(IGraphics *pGraphicsI, WORD wFlags = 0);
 	bool DrawAll(IGraphics *pGraphicsI);
