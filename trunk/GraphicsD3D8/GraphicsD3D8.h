@@ -103,7 +103,7 @@ public:
 
 	DWORD GetDeviceID() const { return D3D8_DEVICE_ID; }
 
-	void Invalidate();
+	void Invalidate(bool full);
 	void Touch();
 
 	IBuffer* AddRef();
@@ -137,7 +137,7 @@ public:
 	int GetHeight() const { return m_Height; }
 	void* GetSrcInfo() const { return (void*)&m_ImageInfo; }
 
-	void Invalidate();
+	void Invalidate(bool full);
 	ITexture* AddRef();
 	ITexture* Release();
 };
@@ -161,6 +161,7 @@ class CGraphicsD3D8 :
 
 	static int ms_nHelperWidth;
 	static int ms_nHelperHeight;
+	static D3DFORMAT ms_TextureFormat;
 
 	DWORD m_dwFilterColor;
 	int m_nFilterHorzMove;
@@ -208,14 +209,7 @@ class CGraphicsD3D8 :
 	static std::vector<CBufferD3D8*> ms_Buffers;
 #endif
 
-#ifdef _USE_SWAPCHAINS
-	typedef std::pair<IDirect3DSwapChain8**, D3DPRESENT_PARAMETERS*> pairSwapChain;
-	static std::map<IDirect3DSwapChain8**, D3DPRESENT_PARAMETERS*> ms_SwapChains;
-	IDirect3DSwapChain8 *m_pSwapChain;
-	D3DPRESENT_PARAMETERS m_d3dpp; // presentation parameters for the current swapchain.
-#else
 	HWND m_hWnd;
-#endif
 	ID3DXFont *m_pD3DFont;
 	ARGBCOLOR m_rgbFontColor;
 
@@ -235,10 +229,7 @@ class CGraphicsD3D8 :
 	void UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITexture *texture, const RECT &rectSrc, const RECT &rectDest, int rotate, int transform, ARGBCOLOR rgbColor) const;
 
 	bool Recover();
-	void Invalidate();
-#ifdef _USE_SWAPCHAINS
-	bool BuildSwapChain();
-#endif
+	void Invalidate(bool full);
 
 #ifdef _USE_HWVB
 	void BuildHWVertexBuffer(SVertexBuffer *pVertexBuffer) const;
@@ -268,6 +259,9 @@ public:
 	float GetCurrentZoom() const;
 
 	bool SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);
+	bool SetModeA(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);
+	bool SetModeB(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);
+
 	bool Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);
 	int  Finalize();
 	bool BeginPaint();

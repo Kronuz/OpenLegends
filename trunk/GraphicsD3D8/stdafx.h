@@ -36,6 +36,6 @@ extern IConsole *g_pConsole;
 #	define CONSOLE_DEBUG3 __noop
 #	define CONSOLE_DEBUG4 __noop
 #	define CONSOLE_PRINTF if(g_pConsole) g_pConsole->printf
-#	define CONSOLE_LOG if(g_pConsole) g_pConsole->printf
+#	define CONSOLE_LOG if(g_pConsole) g_pConsole->fprintf
 #	define D3DVERIFY(expr) (expr)
 #endif
