@@ -31,10 +31,19 @@
 
 #define CMLANG_ZES _T("OZ Script file")
 
-#define CMD_HELP	CMD_USER_BASE + 0
+#define CMD_HELP		CMD_USER_BASE + 0
+#define CMD_STEPOVER	CMD_USER_BASE + 1
+#define CMD_STEPINTO	CMD_USER_BASE + 2
+#define CMD_STEPOUT		CMD_USER_BASE + 3
+#define CMD_BREAKPOINT	CMD_USER_BASE + 4
+#define CMD_CONTINUE	CMD_USER_BASE + 5
 
 #define MAX_FUNC_NAME	100
 #define MAX_FUNC_PROTO	1000
+
+#define IMAGE_BREAKPOINT	1	// the image index for the breakpoint image in the imagelist (IDB_MARGIN)
+#define IMAGE_EXTRA			2	// the image index for the extra image in the imagelist (IDB_MARGIN)
+#define IMAGE_STEP			3	// the image index for the stepping image in the imagelist (IDB_MARGIN)
 
 // Registry keys
 #define SCRIPT_SECTION "Script Editor"
@@ -79,12 +88,27 @@ class CScriptEditorView:
 	typedef CWindowImpl<CScriptEditorView, CodeSenseControl> baseClass;
 
 	HFONT m_hFont;
+	HIMAGELIST m_hilMargin;
 	CM_POSITION m_posSel;
 	TCHAR m_szTipFunc[MAX_FUNC_NAME];
 	int m_nParenthesis;
 	bool m_bCodeTip;
 
 public:
+	static CString ms_sCurrentFile;
+	static int ms_nCurrentLine;
+	static CScriptEditorView *ms_pCurrentScript;
+	static void CleanStep() {
+		if(ms_pCurrentScript) {
+			BYTE byImages = ms_pCurrentScript->GetMarginImages(ms_nCurrentLine);
+			byImages &= ~( 1 << IMAGE_STEP );
+			ms_pCurrentScript->SetMarginImages(ms_nCurrentLine, byImages);
+			ms_pCurrentScript->SetHighlightedLine(-1);
+			ms_pCurrentScript = NULL;
+			ms_sCurrentFile = "";
+		}
+	}
+
 	bool m_bModified;
 
 	// Construction/Destruction
@@ -109,6 +133,8 @@ public:
 		MENU_COMMAND_HANDLER(ID_APP_RELOAD, OnFileReload)
 		MENU_COMMAND_HANDLER(ID_APP_SAVE, OnFileSave)
 		MENU_COMMAND_HANDLER(ID_APP_SAVE_AS, OnFileSaveAs)
+
+		MENU_COMMAND_HANDLER(ID_DBG_BREAKPOINT, OnBreakpoint)
 		
 		COMMAND_ID_HANDLER(ID_SCRIPTED_CODELIST, OnCodeList1)
 		COMMAND_ID_HANDLER(ID_SCRIPTED_CODETIP1, OnCodeTip1)
@@ -192,6 +218,9 @@ public:
 	LRESULT OnEditGotoNextBookmark(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnUpdateEditGotoPrevBookmark(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnEditClearAllBookmarks(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+	void LineStep(int nLine);
+	void OnBreakpoint();
 
 	bool OnFileOpen();
 	bool OnFileClose();

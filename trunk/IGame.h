@@ -375,9 +375,11 @@ interface IGame :
 
 	static const WORD Version;
 
-	virtual bool UsingGraphics(IGraphics **ppGraphicsI) = 0;
+	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug) = 0;
 	virtual float UpdateFPS(float fpsLock = -1.0f) = 0;
-	virtual void WaitScripts() = 0;
+	virtual bool WaitScripts() = 0;
+	virtual void StopWaiting() = 0;
+	virtual bool isDebugging() = 0;
 
 	// CDocumentObject override:
 	virtual bool Load(LPCSTR szFile) = 0;

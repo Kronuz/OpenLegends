@@ -27,8 +27,6 @@
 #include "Debugger.h"
 #include "ScriptManager.h"
 
-CDebugScript DummyDebug(NULL, NULL);
-
 static cell get_symbolvalue(AMX *amx, SYMBOL *sym, int index)
 {
 	cell *value;
@@ -50,13 +48,12 @@ vector<BREAKPOINT> CDebugFile::ms_Breakpoints;
 list<string> CDebugScript::ms_LinesToSend;
 SOCKET CDebugScript::ms_Socket = INVALID_SOCKET;
 int CDebugScript::ms_nScripts = 0;
-bool CDebugScript::ms_bBreakRequest = false;
-bool CDebugScript::ms_bInterBreak = false;
-bool CDebugScript::ms_bSending = false;
+volatile bool CDebugScript::ms_bBreakRequest = false;
+volatile bool CDebugScript::ms_bInterBreak = false;
 CRITICAL_SECTION CDebugScript::ms_SendCritical;
 CRITICAL_SECTION CDebugScript::ms_DebugCritical;
 CDebugScript *CDebugScript::ms_DebuggingScript = NULL;
-__commands CDebugScript::ms_eCommand;
+volatile __commands CDebugScript::ms_eCommand;
 HANDLE CDebugScript::ms_hLines = NULL;
 HANDLE CDebugScript::ms_hCommand = NULL;
 
@@ -106,21 +103,17 @@ CDebugScript::~CDebugScript()
 
 bool CDebugScript::BeginSend()
 {
-	if(ms_bSending) return false;
 	EnterCriticalSection(&ms_SendCritical);
-	ms_bSending = true;
 	return true;
 }
 bool CDebugScript::EndSend()
 {
-	if(!ms_bSending) return false;
-	ms_bSending = false;
 	LeaveCriticalSection(&ms_SendCritical);
 	return true;
 }
 bool CDebugScript::__Send(LPCSTR format, va_list argptr)
 {
-	char buff[2000];
+	char buff[2001];
 	vsprintf(buff, format, argptr);
 	ms_LinesToSend.push_back(buff);
 	ReleaseSemaphore(ms_hLines, 1, NULL);
@@ -128,16 +121,23 @@ bool CDebugScript::__Send(LPCSTR format, va_list argptr)
 }
 bool CDebugScript::Send(LPCSTR format, ...)
 {
-	if(!ms_bSending) return false;
+	EnterCriticalSection(&ms_SendCritical);
 
 	va_list argptr;
 	va_start(argptr, format);
 	bool ret = __Send(format, argptr);
 	va_end(argptr);
+
+	LeaveCriticalSection(&ms_SendCritical);
+
 	return ret;
 }
 int CALLBACK CDebugScript::Request(SOCKET s)
 {
+	EnterCriticalSection(&ms_SendCritical);
+	ms_LinesToSend.clear();
+	LeaveCriticalSection(&ms_SendCritical);
+
 	CDebugScript::ms_eCommand = NONE;
 	ms_bBreakRequest = true;
 
@@ -147,11 +147,13 @@ int CALLBACK CDebugScript::Request(SOCKET s)
 	EndSend();
 
 	while(Connected()) {
-		if(WaitForSingleObject(ms_hLines, 500) != WAIT_TIMEOUT) {
+		if(WaitForSingleObject(ms_hLines, 500) == WAIT_OBJECT_0) {
 			EnterCriticalSection(&ms_SendCritical);
-			string sLine = ms_LinesToSend.front();
-			::Send(s, sLine.c_str(), sLine.length());
-			ms_LinesToSend.pop_front();
+			if(!ms_LinesToSend.empty()) {
+				string sLine = ms_LinesToSend.front();
+				::Send(s, sLine.c_str(), sLine.length());
+				ms_LinesToSend.pop_front();
+			}
 			LeaveCriticalSection(&ms_SendCritical);
 		}
 	}
@@ -169,7 +171,7 @@ void CDebugScript::ListCommands(LPCSTR command)
 	if(stricmp(command,"break")==0) {
 		Send(
 			"\tBREAK\t\tlist all breakpoints\r\n"
-			"\tBREAK n\t\tset a breakpoint at line \"n\"\r\n"
+			"\tBREAK n file\tset a breakpoint at line \"n\" in file \"file\"\r\n"
 			"\tBREAK func\tset a breakpoint at function with name \"func\"\r\n"
 			"\tBREAK var\tset a breakpoint at variable \"var\"\r\n"
 			"\tBREAK var[i]\tset a breakpoint at array element \"var[i]\"\r\n");
@@ -199,6 +201,7 @@ void CDebugScript::ListCommands(LPCSTR command)
 			"\tGO RET\t\trun until the end of the current function\r\n"
 			"\tGO n\t\trun until line number \"n\"\r\n");
 	} else if(
+		stricmp(command,"stop")==0 ||
 		stricmp(command,"calls")==0 ||
 		stricmp(command,"n")==0 || stricmp(command,"next")==0 ||
 		stricmp(command,"quit")==0 ||
@@ -218,6 +221,7 @@ void CDebugScript::ListCommands(LPCSTR command)
 			"\tWATCH n var\tchange watch \"n\" to variable \"var\"\r\n");
 	} else {
 		Send(
+			"\tSTOP\t\tstops debugging (close Open Zelda)\r\n"
 			"\tBREAK\t\tset breakpoint at line number or variable name\r\n"
 			"\tCALLS\t\tshow call stack\r\n"
 			"\tCBREAK\t\tremove breakpoint\r\n"
@@ -272,6 +276,15 @@ void CDebugScript::Dispatch(LPCSTR szCommand)
 		Send("101 Bye.\r\n");
 		ms_eCommand = QUIT;
 	} 
+	else
+	if(!stricmp(szCommand, "stop")) {
+		Send("101 Bye.\r\n");
+		ms_eCommand = STOP;
+	} 
+	else 
+	if(!stricmp(szCommand, "ping")) {
+		Send("200 Pong\r\n");
+	} 
 	else nError = -1;
 
 	// Help commands:
@@ -290,9 +303,10 @@ void CDebugScript::Dispatch(LPCSTR szCommand)
 		case 1:		Send("200 Already stopped!\r\n"); break;
 	}
 	EndSend();
-	if(ms_eCommand == QUIT) {
+	if(ms_eCommand == QUIT || ms_eCommand == STOP) {
 		Sleep(500);
 		Disconnect();
+		if(ms_eCommand == STOP) CScript::StopWaiting();
 		ms_eCommand = NONE;
 	}
 
@@ -302,32 +316,10 @@ void CDebugScript::Dispatch(LPCSTR szCommand)
 
 int CALLBACK CDebugScript::Dispatch(SOCKET s)
 {
-	char buffer[1000];
-	char *buffaux = buffer;
-	int nReceived = 0;
+	char buffer[100];
 	while(Connected()) {
-		int len = ::Recv(s, buffaux, sizeof(buffer) - nReceived - 1);
-		if(len != SOCKET_ERROR && len != 0) {
-			nReceived += len;
-			*(buffaux += len) = '\0';
-			char *aux = buffer;
-			char *aux2;
-			while( (aux2 = strchr(aux, '\n')) ) {
-				*aux2 = '\0';
-
-				while(*aux && *aux < ' ') aux++;
-				char *aux3 = aux2;
-				while(*aux3 < ' ' && aux3 != aux) *aux3-- = '\0';
-				if(*aux) Dispatch(aux);
-
-				aux = aux2 + 1;
-			}
-			if(aux > buffer) {
-				buffaux = buffer;
-				while(*aux) *buffaux++ = *aux++;
-				*buffaux = '\0';
-				nReceived = strlen(buffaux);
-			}
+		if(RecvLine(s, buffer, sizeof(buffer))) {
+			Dispatch(buffer);
 		}
 	}
 	// on connection failure, just go
@@ -497,9 +489,9 @@ int AMXAPI amx_InternalDebugProc(AMX *amx)
 			CDebugFile *pFile = pDebug->GetFile((int)amx->curfile);
 			CDebugScript::BeginSend();
 			if(pFile) {
-				CDebugScript::Send("501 STEP ID: %s\r\n", pDebug->m_sName.c_str());
-				CDebugScript::Send("502 STEP FILE: %s\r\n", pFile->m_sName.c_str());
-				CDebugScript::Send("503 STEP LINE: %d\r\n", (int)amx->curline);
+				CDebugScript::Send("501 ID: %s\r\n", pDebug->m_sName.c_str());
+				ASSERT(pFile->m_sName.length() < MAX_PATH);
+				CDebugScript::Send("502 FILE: %d %s\r\n", (int)amx->curline, pFile->m_sName.c_str());
 			} else {
 				CDebugScript::Send("410 Open Zelda's debugger internal error!\r\n");
 			}

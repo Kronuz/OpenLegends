@@ -157,6 +157,9 @@
 				RelativePath="..\Misc.cpp">
 			</File>
 			<File
+				RelativePath="..\Net.cpp">
+			</File>
+			<File
 				RelativePath="ProjectFactory.cpp">
 			</File>
 			<File
@@ -291,6 +294,9 @@
 			</File>
 			<File
 				RelativePath="..\Misc.h">
+			</File>
+			<File
+				RelativePath="..\Net.h">
 			</File>
 			<File
 				RelativePath="ProjectFactory.h">
@@ -562,6 +568,9 @@
 				RelativePath=".\res\combo_icons.bmp">
 			</File>
 			<File
+				RelativePath=".\res\DebugToolbar.bmp">
+			</File>
+			<File
 				RelativePath="res\DragImg.bmp">
 			</File>
 			<File
@@ -611,6 +620,9 @@
 			</File>
 			<File
 				RelativePath="res\MapEdToolbarObject.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Margin.bmp">
 			</File>
 			<File
 				RelativePath=".\res\mhand.cur">
@@ -747,6 +759,9 @@
 		</File>
 		<File
 			RelativePath=".\res\test.png">
+		</File>
+		<File
+			RelativePath=".\res\ToolbarDebug.png">
 		</File>
 		<File
 			RelativePath=".\res\ToolbarFolders.png">

@@ -32,7 +32,7 @@
 #include <string>
 using namespace std;
 
-#include "net.h"
+#include "../Net.h"
 
 struct CDebugFile;
 ///////////////////////////////////////////////////////////////////////////////////
@@ -56,6 +56,7 @@ enum _vartype {
 enum __commands {
 	NONE,
 	QUIT,
+	STOP,
 	GO,
 	STEP_OVER,
 	STEP_IN,
@@ -108,16 +109,15 @@ protected:
 	static list<string> ms_LinesToSend; // Lines to send to the client.
 	static SOCKET ms_Socket;
 	static int ms_nScripts;
-	static bool ms_bSending;
 	static CRITICAL_SECTION ms_SendCritical;
 
 public:
 	static HANDLE ms_hCommand;
 	static CRITICAL_SECTION ms_DebugCritical;
 	static CDebugScript *ms_DebuggingScript;
-	static __commands ms_eCommand;
-	static bool ms_bBreakRequest;	// immediate break
-	static bool ms_bInterBreak;
+	static volatile __commands ms_eCommand;
+	static volatile bool ms_bBreakRequest;	// immediate break
+	static volatile bool ms_bInterBreak;
 
 	static bool BeginSend();
 	static bool Send(LPCSTR format, ...); // send to the client

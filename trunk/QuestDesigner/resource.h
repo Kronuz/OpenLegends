@@ -24,6 +24,7 @@
 #define IDR_TB1_MAPED_OBJECT            213
 #define IDR_TB1_FOLDERS                 214
 #define IDR_TB1_PROPVIEW                215
+#define IDR_TB1_DEBUG                   216
 #define IDR_TB2_PROJECT                 220
 #define IDR_TB2_MAIN                    221
 #define IDR_TB2_MAPED_BASIC             222
@@ -66,6 +67,9 @@
 #define IDI_FOLDER_LIB                  272
 #define IDI_END                         272
 #define IDI_ICON2                       273
+#define IDR_TB_DEBUG                    274
+#define IDB_BITMAP2                     276
+#define IDB_MARGIN                      276
 #define IDD_ACK                         282
 #define IDI_ICON1                       286
 #define IDB_LOGO                        287
@@ -184,7 +188,16 @@
 #define ID_APP_PARALLAX                 32409
 #define ID_APP_ADJUST                   32410
 #define ID_MAPED_SELHOLD                32411
-#define ID_APP_RUN                      32415
+#define ID_DBG_DEBUG                    32415
+#define ID_DBG_PAUSE                    32420
+#define ID_DBG_STOP                     32422
+#define ID_DBG_NEXT                     32423
+#define ID_DBG_STEPIN                   32424
+#define ID_DBG_STEPOVER                 32425
+#define ID_DBG_STEPOUT                  32426
+#define ID_DBG_PROFILER                 32427
+#define ID_DBG_BREAKPOINT               32428
+#define ID_DBG_CONTINUE                 32431
 #define ID_APP_SAVE                     57603
 #define ID_APP_SAVE_AS                  57604
 #define ID_ERASE                        57632
@@ -225,8 +238,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        274
-#define _APS_NEXT_COMMAND_VALUE         32420
+#define _APS_NEXT_RESOURCE_VALUE        277
+#define _APS_NEXT_COMMAND_VALUE         32432
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           105
 #endif

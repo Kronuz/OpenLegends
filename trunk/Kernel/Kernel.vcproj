@@ -223,7 +223,7 @@
 				Name="Network"
 				Filter="">
 				<File
-					RelativePath=".\Net.cpp">
+					RelativePath="..\Net.cpp">
 				</File>
 			</Filter>
 		</Filter>
@@ -342,7 +342,7 @@
 				Name="Network"
 				Filter="">
 				<File
-					RelativePath=".\Net.h">
+					RelativePath="..\Net.h">
 				</File>
 			</Filter>
 		</Filter>

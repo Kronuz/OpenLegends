@@ -122,7 +122,6 @@ int CVFile::ForEachVirtualFile(FILESPROC ForEach, LPARAM lParam)
 			err = unzGoToNextFile(file);
 		}
 	}
-
 	unzClose(file);
 	return files;
 }

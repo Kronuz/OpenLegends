@@ -16,30 +16,22 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-/////////////////////////////////////////////////////////////////////////////
-/*! \file		QuestDesigner.h 
-	\brief		Include file containing all default stuff for the Quest Designer
-	\date		April 15, 2003
-*/
 
 #pragma once
 
-#include "resource.h"
+#include <winsock2.h>
 
-/////////////////////////////////////////////////////////////////////////////
+typedef int CALLBACK NETRD(SOCKET s);
 
-#include "MainFrm.h"
+SOCKET InitServer(int port, NETRD *pFSD, NETRD *pFSR);
+int EndServer();
 
-#include "WorldEditorFrm.h"
-#include "MapEditorFrm.h"
-#include "SptShtEditorFrm.h"
+SOCKET Connect(LPCSTR szHostname, int port, NETRD *pFCD, NETRD *pFCR);
+int Disconnect();
 
-#include "ScriptEditorFrm.h"
+// returns true if a connection is acctually active:
+bool Connected();
 
-#include "../Net.h"
-
-int CALLBACK Request(SOCKET s);
-int CALLBACK Dispatch(SOCKET s);
-bool Send(LPCSTR format, ...);
-bool BeginSend();
-bool EndSend();
+int Send(SOCKET socket, LPCSTR buff, int size);
+int Recv(SOCKET socket, LPSTR buff, int size);
+bool RecvLine(SOCKET socket, LPSTR buff, int size);

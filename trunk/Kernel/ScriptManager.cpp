@@ -107,7 +107,8 @@ int AMXAPI amx_ListUnresolved(AMX *amx, int number)
 // All thread resources should be initialized to be unavailible.
 HANDLE CScript::Resources = CreateSemaphore( NULL, 0, MAX_THREADS, NULL );
 CScriptThread CScript::Threads[MAX_THREADS];
-bool CScript::ms_bDebug  = true; // debug by default
+bool CScript::ms_bDebug  = false; // debug by default
+volatile bool CScript::ms_StopWaiting = false;
 
 CScriptThread::CScriptThread() : 
 	m_bRun(false), 
@@ -261,9 +262,13 @@ void CScriptThread::KillThread(DWORD dwMilliseconds)
 			bTerminateThread = true;
 		}
 
-		if(bTerminateThread) TerminateThread(m_hThread, 1);
+		if(bTerminateThread) {
+			MessageBeep((UINT)-1);
+			TerminateThread(m_hThread, 1);
+			CONSOLE_DEBUG("Thread killed at: %s (%d)", __FILE__, __LINE__);
+		}
 
-		ASSERT(WaitForSingleObject(m_hThread, 2000) != WAIT_TIMEOUT);
+		ASSERT(WaitForSingleObject(m_hThread, 2000) == WAIT_OBJECT_0);
 		CloseHandle(m_hThread);
 		m_hThread = NULL;
 	}
@@ -432,13 +437,24 @@ bool CScript::RunScript(const CDrawableContext &context, RUNACTION action)
 	m_nErrorLevel = S_SCRIPT_OK;
 	return false;
 }
-void CScript::WaitScripts()
+
+void CScript::StopWaiting()
+{
+	ms_StopWaiting = true;
+	Disconnect();
+}
+bool CScript::isDebugging()
+{
+	if(!ms_bDebug) return false;
+	return !Connected();
+}
+bool CScript::WaitScripts()
 {
 	WaitForSingleObject(Resources, 300); // wait for a resource to free
 	ReleaseSemaphore(Resources, 1, NULL);
 
 	int nReady;
-	while(true) {
+	while(!ms_StopWaiting) {
 		nReady = 0;
 		for(int i=0; i<MAX_THREADS; i++) {
 			if(Threads[i].Ready()) nReady++; // wait the thread to be ready to run (not running anything)
@@ -446,6 +462,7 @@ void CScript::WaitScripts()
 		if(nReady == MAX_THREADS) break;
 		Sleep(10);
 	}
+	return ms_StopWaiting;
 }
 
 // check if the script needs to be compiled (based on the modification date of the files)

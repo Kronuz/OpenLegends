@@ -6,7 +6,7 @@
 
 #include "ProjectFactory.h"
 #include "GraphicsFactory.h"
-
+#include "Shellapi.h"
 //#region Declarations 
 
 #define MAX_LOADSTRING 100
@@ -14,19 +14,20 @@
 // Variables globales:
 DWORD g_dwLastTick;
 float g_rDelta;
-IGraphics *g_pGraphicsI;
-CMapGroup *g_pMapGroupI;
+IGraphics *g_pGraphicsI = NULL;
+CMapGroup *g_pMapGroupI = NULL;
 
 int g_nXScreenSize = 640;
 int g_nYScreenSize = 480;
 
-CBString g_sHomeDir;
-HWND g_hWnd;
-HANDLE g_hRunScripts = NULL;
-HANDLE g_hSemaphore = NULL;
+char g_szHomeDir[MAX_PATH] = "";
+HWND g_hWnd = NULL;
+HANDLE g_hRunScripts = NULL; // Thread handle
+HANDLE g_hSemaphore = NULL; // Semaphore handle
 bool g_bRunningScripts = false;
 bool g_bClearToGo = true;
-bool g_bDebug = true;
+bool g_bDebug = false;
+bool g_bStop = false;
 static bool g_bFullScreen = false;
 
 HINSTANCE hInst;								// Instancia actual
@@ -40,7 +41,7 @@ LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
 HRESULT				Run();
-HRESULT             LoadGame();
+HRESULT             LoadGame(LPCSTR szQuest);
 void                Render();
 
 void				OnSize();
@@ -62,10 +63,38 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	LoadString(hInstance, IDC_OPENZELDA, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
+	int argc;
+	LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+
+	// Debug version?
+	int debugarg = 0;
+	for(int i=1; i<argc; i++) {
+		if(!_wcsicmp(argv[i], L"-d") || !_wcsicmp(argv[i], L"/d")) {
+			g_bDebug = true;
+			strcat(szTitle, " - [Debugging]");
+			debugarg = i;
+			break;
+		}
+	}
+
 	// Realizar la inicialización de la aplicación:
-	if (!InitInstance (hInstance, nCmdShow)) 
-	{
+	if (!InitInstance (hInstance, nCmdShow)) {
 		return FALSE;
+	}
+
+	char szQuestFile[MAX_PATH] = "";
+	for(int i=1; i<argc; i++) {
+		if(i != debugarg) {
+			if(!*g_szHomeDir) {
+				WideCharToMultiByte(CP_ACP, 0, argv[i], -1, g_szHomeDir, sizeof(g_szHomeDir), NULL, NULL);
+			} else if(!*szQuestFile) {
+				WideCharToMultiByte(CP_ACP, 0, argv[i], -1, szQuestFile, sizeof(szQuestFile), NULL, NULL);
+			} else break;
+		}
+	}
+
+	if(g_bDebug) {
+		if(FAILED(LoadGame(szQuestFile))) PostMessage(g_hWnd, WM_CLOSE, 0, 0);
 	}
 
 	hAccelTable = LoadAccelerators(hInstance, (LPCTSTR)IDC_OPENZELDA);
@@ -78,7 +107,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		// Look for messages, if none are found then 
 		// update the state and display it
 		BOOL bRet;
-		if(!g_pGraphicsI) bRet = GetMessage(&msg, NULL, 0, 0);
+		if(!g_pGraphicsI || !g_pMapGroupI) bRet = GetMessage(&msg, NULL, 0, 0);
 		else bRet = PeekMessage( &msg, NULL, 0, 0, PM_REMOVE );
 		if(bRet) {
 			// Translate and dispatch the message
@@ -89,6 +118,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		} else {
 			// Handle the next frame
 			Run();
+			if(g_bStop) PostMessage(g_hWnd, WM_CLOSE, 0, 0);
 		}
 	}
 
@@ -143,12 +173,11 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Almacenar identificador de instancia en una variable global
-
-   g_hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+   if(g_bDebug) nCmdShow = SW_HIDE;
+   g_hWnd = CreateWindowEx(g_bDebug?WS_EX_TOPMOST:0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
-   if (!g_hWnd)
-   {
+   if (!g_hWnd) {
       return FALSE;
    }
 
@@ -207,13 +236,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case ID_LOADQUEST:
-			LoadGame();
+			LoadGame(NULL);
 			break;
 		case IDM_ABOUT:
 			DialogBox(hInst, (LPCTSTR)IDD_ABOUTBOX, hWnd, (DLGPROC)About);
 			break;
 		case IDM_TOGGLEFULLSCREEN:
-			if(g_pGraphicsI) {
+			if(g_pGraphicsI && g_pMapGroupI) {
 				if(g_bFullScreen == true) {
 					g_pGraphicsI->SetMode(g_hWnd);
 					SetWindowPos(
@@ -252,11 +281,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_DESTROY:
 		g_bDebug = false;
+		ReleaseSemaphore(g_hSemaphore, 1, NULL);
+		CProjectFactory::Interface(g_hWnd)->StopWaiting();
 		if(g_hRunScripts) {
 			if(WaitForSingleObject(g_hRunScripts, 1000) == WAIT_TIMEOUT) {
+				MessageBeep((UINT)-1);
 				TerminateThread(g_hRunScripts, 1);
 			}
-			ASSERT(WaitForSingleObject(g_hRunScripts, 2000) != WAIT_TIMEOUT);
+			ASSERT(WaitForSingleObject(g_hRunScripts, 2000) == WAIT_OBJECT_0);
 			CloseHandle(g_hRunScripts);
 			g_hRunScripts = NULL;
 		}
@@ -341,6 +373,13 @@ float OnSizing(int nType, CRect *prcWindow)
 		fYFactor = (float)(g_nYScreenSize/2) / (float)g_nYScreenSize;
 
 	float fZoom = 1.0f;
+	if(g_bDebug && nType == -1) {
+		fZoom = 0.5f;
+		rcWindow.left =
+			GetSystemMetrics(SM_CXSCREEN) - ((int)((float)g_nXScreenSize * fZoom + 0.5f) + Xdif) - 50;
+		rcWindow.top = 50;
+	}
+
 	switch(nType) {
 		case 0: fZoom = fXFactor; break;
 		case 1: fZoom = fYFactor; break;
@@ -376,8 +415,10 @@ void OnSize()
 	g_pGraphicsI->SetWorldPosition(Point);
 }
 
-HRESULT LoadGame()
+HRESULT LoadGame(LPCSTR szQuest)
 {
+	if(!szQuest) return E_FAIL;
+	if(!*g_szHomeDir || !*szQuest) return E_FAIL;
 	if(!g_pGraphicsI) {
 		if(FAILED(CGraphicsFactory::New(&g_pGraphicsI, "GraphicsD3D8.dll"))) {
 			MessageBox(g_hWnd, "Couldn't load graphics plugin, check plugin version.", "Open Zelda", MB_OK);
@@ -385,30 +426,31 @@ HRESULT LoadGame()
 		}
 
 		g_pGraphicsI->Initialize(g_hWnd);
-		CProjectFactory::Interface(g_hWnd)->UsingGraphics(&g_pGraphicsI);
+		CProjectFactory::Interface(g_hWnd)->Configure(&g_pGraphicsI, g_bDebug);
 	}
 
-	g_sHomeDir = "C:\\qd\\Quest Designer 2.1.4\\";
-	if(!CProjectFactory::Interface(g_hWnd)->Load(g_sHomeDir)) return E_FAIL;
+	if(!CProjectFactory::Interface(g_hWnd)->Load(g_szHomeDir)) return E_FAIL;
 
-	if(!CProjectFactory::Interface()->LoadWorld("C:\\qd\\Quest Designer 2.1.4\\save\\kakariko.qss")) return E_FAIL;
+	if(!CProjectFactory::Interface()->LoadWorld(szQuest)) return E_FAIL;
 	if((g_pMapGroupI = CProjectFactory::Interface()->FindMapGroup(2, 2))==NULL) return E_FAIL;
 
 	if(!g_pMapGroupI->Load()) return E_FAIL;
 
-	// We need to recalculate the window's size and position:
-	CRect rcWindow;
-	GetWindowRect(g_hWnd, &rcWindow);
-	float fZoom = OnSizing(4, &rcWindow);
-	MoveWindow(g_hWnd, rcWindow.left, rcWindow.top, rcWindow.Width(), rcWindow.Height(), TRUE);
-
 	CSize szMap;
 	g_pMapGroupI->GetSize(szMap);
 
+	// We need to recalculate the window's size and position:
+	CRect rcWindow;
+	GetWindowRect(g_hWnd, &rcWindow);
+	float fZoom = OnSizing(-1, &rcWindow);
+
 	CRect rcClip, rcClient;
-	rcClient.SetRect(0, 0, g_nXScreenSize, g_nYScreenSize);
+	rcClient.SetRect(0, 0, (int)((float)g_nXScreenSize * fZoom), (int)((float)g_nYScreenSize * fZoom));
 	rcClip.SetRect(0, 0, szMap.cx, szMap.cy);
 	g_pGraphicsI->SetWindowView(g_hWnd, fZoom, &rcClient, &rcClip);
+
+	MoveWindow(g_hWnd, rcWindow.left, rcWindow.top, rcWindow.Width(), rcWindow.Height(), TRUE);
+	if(g_bDebug) ShowWindow(g_hWnd, SW_SHOW);
 
 	return S_OK;
 }
@@ -424,6 +466,7 @@ DWORD WINAPI RunScripts(LPVOID lpParameter)
 	do {
 		if(g_bDebug) {
 			WaitForSingleObject(g_hSemaphore, INFINITE);
+			if(!g_bDebug) return 0;
 			g_bClearToGo = false;
 			g_bRunningScripts = true;
 			action.hSemaphore = g_hSemaphore;
@@ -431,27 +474,29 @@ DWORD WINAPI RunScripts(LPVOID lpParameter)
 
 		// run the scripts for the next frame:
 		g_pMapGroupI->Run(action);
-		pGameI->WaitScripts(); // wait for all the scripts to finish.
+		// wait for all the scripts to finish:
+		g_bStop = pGameI->WaitScripts();
 
 		if(g_bDebug) {
 			g_bRunningScripts = false;
 			ReleaseSemaphore(g_hSemaphore, 1, NULL);
 		}
-	} while(g_bDebug);
+	} while(g_bDebug && !g_bStop);
 
 	return 0;
 }
 
 void Render()
 {
-	if(!g_pGraphicsI) return;
+	if(g_bStop) return;
+	if(!g_pGraphicsI || !g_pMapGroupI) return;
 
-	static int nTimeLeft = 3000;
-	static DWORD dwStarting = GetTickCount() + 3000;
+	static int nTimeLeft = 10000;
+	static DWORD dwStarting = GetTickCount() + 10000;
 	
 	IGame *pGameI = CProjectFactory::Interface(g_hWnd);
 	// Update timings and stuff for the animations
-	float fps = pGameI->UpdateFPS(50);
+	float fps = pGameI->UpdateFPS(60);
 	if(fps != -1.0f) {
 		if(g_bDebug) ReleaseSemaphore(g_hSemaphore, 1, NULL);
 		///////////////////////////////////////////////////////////////////////////
@@ -484,6 +529,7 @@ void Render()
 				if(g_bRunningScripts) {
 					g_pGraphicsI->DrawText(CPoint(10,25), COLOR_ARGB(255,255,225,128), "Debugging...");
 				} else if(dwStarting) {
+					if(!pGameI->isDebugging()) dwStarting = 0;
 					g_pGraphicsI->DrawText(CPoint(10,25), COLOR_ARGB(255,255,225,128), "Start the debugger now! (%d seconds left)", nTimeLeft/1000);
 				}
 			}

@@ -78,6 +78,7 @@ LRESULT CScriptEditorFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 
 LRESULT CScriptEditorFrame::OnSelectLine(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
 {
-	m_pScriptEditorView->SelectLine(lParam-1);
+	if((int)lParam < 0) m_pScriptEditorView->LineStep(-(int)lParam - 1);
+	else m_pScriptEditorView->SelectLine((int)lParam - 1);
 	return 0;
 }
