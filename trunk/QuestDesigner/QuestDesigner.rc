@@ -160,15 +160,13 @@ END
 //
 
 IDR_MAINFRAME           BITMAP                  "res\\ProjectToolbar.bmp"
-IDB_TAB_ICONS           BITMAP                  "res\\tab_icons.bmp"
 IDR_TB_MAIN             BITMAP                  "res\\MapEdToolbarMain.bmp"
 IDR_TB_MAPED_BASIC      BITMAP                  "res\\MapEdToolbarBasic.bmp"
 IDR_TB_MAPED_OBJECT     BITMAP                  "res\\MapEdToolbarObject.bmp"
 IDR_TB_FOLDERS          BITMAP                  "res\\FoldersToolbar.bmp"
 IDR_TB_PROPVIEW         BITMAP                  "res\\PropertyViewToolbar.bmp"
+IDB_TAB_ICONS           BITMAP                  "res\\tab_icons.bmp"
 IDB_DRAGIMG             BITMAP                  "res\\DragImg.bmp"
-IDB_LOGO                BITMAP                  "res\\logo.bmp"
-IDB_COMBO_ICONS         BITMAP                  "res\\combo_icons.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -435,11 +433,13 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\QuestDesigner.ico"
+IDI_DOC_UNKNOWN         ICON                    "res\\QuestDesignerUnknown.ico"
 IDI_DOC_SCRIPT          ICON                    "res\\QuestDesignerScript.ico"
 IDI_DOC_MAP             ICON                    "res\\QuestDesignerMap.ico"
 IDI_DOC_WORLD           ICON                    "res\\QuestDesignerWorld.ico"
 IDI_DOC_SPRITE          ICON                    "res\\QuestDesignerSprite.ico"
 IDI_DOC_SPTSHT          ICON                    "res\\QuestDesignerSpriteSheet.ico"
+IDI_DOC_SPTSET          ICON                    "res\\QuestDesignerSpriteSet.ico"
 IDI_ICO_ERROR           ICON                    "res\\Error.ico"
 IDI_ICO_WARNING         ICON                    "res\\Warning.ico"
 IDI_ICO_QUESTION        ICON                    "res\\Question.ico"
@@ -466,8 +466,8 @@ BEGIN
                     IDC_STATIC,146,149,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
     GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
-    CTEXT           "Quest Designer v0.7.3\nfor Open Zelda",IDC_STATIC,7,122,
-                    132,17,0,WS_EX_TRANSPARENT
+    CTEXT           "Quest Designer v0.8.0 (beta)\nfor Open Zelda",
+                    IDC_STATIC,7,122,132,17,0,WS_EX_TRANSPARENT
     EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
     LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
                     98,8
@@ -503,17 +503,17 @@ STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 EXSTYLE WS_EX_CONTROLPARENT
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    COMBOBOX        IDC_COMBO,1,15,184,200,CBS_DROPDOWN | 
+    COMBOBOX        IDC_COMBO,0,15,187,200,CBS_DROPDOWN | 
                     CBS_OWNERDRAWVARIABLE | CBS_SORT | CBS_HASSTRINGS | 
                     WS_VSCROLL | WS_TABSTOP
-    LISTBOX         IDC_LIST,1,33,184,120,LBS_OWNERDRAWVARIABLE | 
+    LISTBOX         IDC_LIST,0,32,187,120,LBS_OWNERDRAWVARIABLE | 
                     LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | NOT WS_BORDER | 
                     WS_VSCROLL | WS_TABSTOP,WS_EX_STATICEDGE
-    CONTROL         "",IDC_FRAME,"Static",SS_GRAYFRAME | SS_NOTIFY,0,158,185,
-                    35,WS_EX_TRANSPARENT
-    LTEXT           "Description",IDC_TITLE,3,159,179,10
-    LTEXT           "The description of the property.",IDC_DESCRIPTION,3,167,
-                    179,24
+    CONTROL         "",IDC_FRAME,"Static",SS_GRAYFRAME | SS_NOTIFY,0,154,187,
+                    42,WS_EX_TRANSPARENT
+    LTEXT           "Description",IDC_TITLE,3,156,180,8
+    LTEXT           "The description of the property.",IDC_DESCRIPTION,3,166,
+                    180,28
 END
 
 IDD_PROPERTIES_NOTIMPLEMENTED DIALOGEX 0, 0, 250, 170
@@ -601,8 +601,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,6
- PRODUCTVERSION 1,0,0,6
+ FILEVERSION 1,0,0,8
+ PRODUCTVERSION 1,0,0,8
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -619,14 +619,14 @@ BEGIN
         BEGIN
             VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Quest Designer v0.7.3 alpha"
-            VALUE "FileVersion", "1, 0, 0, 7"
+            VALUE "FileDescription", "Quest Designer v0.8.0 (beta)"
+            VALUE "FileVersion", "1, 0, 0, 8"
             VALUE "InternalName", "QuestDesigner"
             VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
             VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Zelda\r\n"
             VALUE "OriginalFilename", "QuestDesigner.exe"
             VALUE "ProductName", "Quest Designer for Open Zelda"
-            VALUE "ProductVersion", "1, 0, 0, 7"
+            VALUE "ProductVersion", "1, 0, 0, 8"
         END
     END
     BLOCK "VarFileInfo"
@@ -645,6 +645,22 @@ IDC_ARROWADD            CURSOR                  "res\\arrowadd.cur"
 IDC_ARROWDEL            CURSOR                  "res\\arrowdel.cur"
 IDC_ARROWSELECT         CURSOR                  "res\\arrowselect.cur"
 IDC_MHAND               CURSOR                  "res\\mhand.cur"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDR_TB1_PROJECT         PNG                     "res\\ToolbarProject.png"
+IDR_TB1_MAIN            PNG                     "res\\ToolbarMain.png"
+IDR_TB1_MAPED_BASIC     PNG                     "res\\ToolbarMapEdBasic.png"
+IDR_TB1_MAPED_OBJECT    PNG                     "res\\ToolbarMapEdObject.png"
+IDR_TB1_FOLDERS         PNG                     "res\\ToolbarFolders.png"
+IDR_TB1_PROPVIEW        PNG                     "res\\ToolbarPropertyView.png"
+
+IDB_COMBO_ICONS         PNG                     "res\\combo_icons.png"
+IDB_COMBO_ICONS2        PNG                     "res\\combo_icons2.png"
+IDB_LOGO                PNG                     "res\\logo.png"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -871,7 +887,10 @@ BEGIN
     IDS_DESC_ISVISIBLE      "Object is visible in the world (not used)."
     IDS_DESC_VCHAIN         "If the object is part of a Sprite Set, what type of vertical chain it uses."
     IDS_DESC_HCHAIN         "If the object is part of a Sprite Set, what type of horizontal chain it uses."
-    IDS_DESC_ALPHA          "Initial alpha blending value of the object."
+    IDS_DESC_ALPHA          "Initial alpha blending value of the object. This value can range from 0 to 255.\n(255 is the default.)"
+    IDS_DESC_LIGHTNESS      "Lightness of the object. This value can rangre from 0 to 255.\n(128 is the default.)"
+    IDS_DESC_RGBCOLOR       "Base RGB component of the object (same as RGB Color). This can range from -256 to 255.\n(0 is the default.)"
+    IDS_DESC_RGBCOLORH      "Base RGB components of the object. This is in HTML color format: #RRGGBB.\n(#808080 is the default.)"
 END
 
 STRINGTABLE 

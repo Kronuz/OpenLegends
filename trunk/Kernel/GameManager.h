@@ -129,6 +129,7 @@ public:
 	CSprite *MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet *pSpriteSheet);
 	CScript *MakeScript(LPCSTR szName);
 	CSound *MakeSound(LPCSTR szName);
+	CSpriteSheet *MakeSpriteSheet(CSpriteSheet *pSpriteSheet);
 
 	void DeleteSound(LPCSTR szName);
 	void DeleteScript(LPCSTR szName); //!< Deletes a script using its name.

@@ -25,39 +25,48 @@
 	file system. Also contains the path to the home directory of the game files.
 */
 
-//#include "stdafx.h"
+#include "stdafx.h"
 #include "FilePath.h"
 
 CBString g_sHomeDir;
 
 CVFile::CVFile() : 
 	m_vFile(NULL), 
+	m_vzFile(NULL),
 	m_File(NULL), 
 	m_pBuffer(NULL),
-	m_nExists(0), 
 	m_bOpenFile(false), 
 	m_bRelative(false), 
-	m_bVirtual(false)
+	m_bVirtual(false),
+	m_bRawMode(false),
+	m_nMethod(Z_DEFLATED),
+	m_nLevel(Z_DEFAULT_COMPRESSION),
+	m_dwFileAttributes(0)
 {
 	m_BuffStart = NULL;
-	m_BuffLen = 0;
-	m_BuffRead = 0;
+	m_BuffLen = -1;
+	m_BuffOffset = -1;
 }
 CVFile::CVFile(LPCSTR szNewName, bool bGlobalize) : 
 	m_vFile(NULL), 
+	m_vzFile(NULL),
 	m_File(NULL), 
 	m_pBuffer(NULL),
-	m_nExists(0), 
 	m_bOpenFile(false), 
 	m_bRelative(false), 
-	m_bVirtual(false) 
+	m_bVirtual(false),
+	m_bRawMode(false),
+	m_nMethod(Z_DEFLATED),
+	m_nLevel(Z_DEFAULT_COMPRESSION),
+	m_dwFileAttributes(0)
 {
 	SetFilePath(szNewName, bGlobalize);
 }
 CVFile::~CVFile() 
 { 
-	delete []m_pBuffer;
+	delete []m_pBuffer;	m_pBuffer = NULL;
 	if(m_vFile) unzClose(m_vFile); m_vFile = NULL; 
+	if(m_vzFile) zipClose(m_vzFile, NULL); m_vzFile = NULL; 
 	if(m_File) fclose(m_File); m_File = NULL;
 }
 inline int wildcardcmp(const char *a, const char *b)

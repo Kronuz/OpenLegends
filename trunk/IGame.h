@@ -11,8 +11,17 @@
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 struct GameInfo;
+
 #define BUFFSIZE 200
 #define MAX_PROPS 50
+
+typedef enum tagCase { UpperCase, LowerCase } CASE;
+
+#define SIMPLE_SLIDER	0x40C0C0C0
+#define RED_SLIDER		0x400000FF
+#define GREEN_SLIDER	0x4000FF00
+#define BLUE_SLIDER		0x40FF0000
+
 struct SInfo
 {
 	InfoType eType;
@@ -22,7 +31,7 @@ struct SInfo
 };
 struct SProperty
 {
-	enum _prop_type { ptUnknown, ptCategory, ptValue, ptBoolean, ptString, ptList } eType;
+	enum _prop_type { ptUnknown, ptCategory, ptValue, ptRangeValue, ptBoolean, ptString, ptUCString, ptLCString, ptList } eType;
 	char Buffer[BUFFSIZE];
 	LPCSTR szPropName;
 	bool bEnabled;
@@ -30,9 +39,14 @@ struct SProperty
 	bool bMultivalue;
 	UINT uMDL;	// Maximum data length
 	union {
-		LPSTR szString;		// ptString
+		LPSTR szString;		// ptString, ptUCString, ptLCString
 		bool bBoolean;		// ptBoolean
-		int nValue;			// ptValue
+		struct {			// ptValue, ptRangeValue
+			int nValue;			
+			int nLowerRange;
+			int nHigherRange;
+			DWORD dwSlider;
+		};
 		struct {			// ptList
 			int nIndex;
 			LPCSTR *List;
@@ -93,6 +107,7 @@ struct SPropertyList
 	bool DupProperty(const SProperty *pP) {
 		if(nProperties>=MAX_PROPS) return false;
 		aProperties[nProperties] = *pP;
+		aProperties[nProperties].szPropName = aProperties[nProperties].Buffer;
 		if(pP->eType == SProperty::ptList) {
 			LPSTR eob = aProperties[nProperties].Buffer + BUFFSIZE;
 			LPSTR list = eob - aProperties[nProperties].uMDL;
@@ -105,6 +120,9 @@ struct SPropertyList
 						aProperties[nProperties].Buffer + (int)(tmp - pP->Buffer);
 				}
 			}
+		} else if(pP->eType == SProperty::ptString) {
+			LPSTR aux = aProperties[nProperties].Buffer + BUFFSIZE - aProperties[nProperties].uMDL;
+			aProperties[nProperties].szString = aux;
 		}
 
 		nProperties++;
@@ -137,6 +155,26 @@ struct SPropertyList
 		aProperties[nProperties].szString = aux;
 		strncpy(aux, _szString, aProperties[nProperties].uMDL-1);
 		aProperties[nProperties].eType = SProperty::ptString;
+		nProperties++;
+		return true;
+	}
+	bool AddCaseString(LPCSTR _szName, LPCSTR _szString, CASE eCase, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
+
+		LPSTR aux = aProperties[nProperties].Buffer + BUFFSIZE - aProperties[nProperties].uMDL;
+
+		aProperties[nProperties].szString = aux;
+		strncpy(aux, _szString, aProperties[nProperties].uMDL-1);
+		if(eCase == UpperCase) {
+			for(;*aux; aux++) *aux = toupper(*aux);
+			aProperties[nProperties].eType = SProperty::ptUCString;
+		} else {
+			for(;*aux; aux++) *aux = tolower(*aux);
+			aProperties[nProperties].eType = SProperty::ptLCString;
+		}
 		nProperties++;
 		return true;
 	}
@@ -181,6 +219,19 @@ struct SPropertyList
 		aProperties[nProperties].bChanged = false;
 		aProperties[nProperties].nValue = _nValue;
 		aProperties[nProperties].eType = SProperty::ptValue;
+		nProperties++;
+		return true;
+	}
+	bool AddRange(LPCSTR _szName, int _nValue, int _nLower, int _nHigher, DWORD _dwSlider, bool _bEnabled = true) {
+		if(nProperties>=MAX_PROPS) return false;
+		SetName(_szName);
+		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
+		aProperties[nProperties].nValue = _nValue;
+		aProperties[nProperties].nLowerRange = _nLower;
+		aProperties[nProperties].nHigherRange = _nHigher;
+		aProperties[nProperties].dwSlider = _dwSlider;
+		aProperties[nProperties].eType = SProperty::ptRangeValue;
 		nProperties++;
 		return true;
 	}

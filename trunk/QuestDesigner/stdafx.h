@@ -61,6 +61,8 @@
 
 extern CAppModule _Module;
 
+#include <atlimage.h>
+
 #include <atlmisc.h>
 #include <atlcom.h>
 #include <atlhost.h>
@@ -95,6 +97,9 @@ extern CAppModule _Module;
 #include "IdleHandlerPump.h"
 
 #include "resource.h"
+
+#include "ToolBarBox.h"
+#include <WtlFileTreeCtrl.h>
 
 #define WMQD_FIRST			(WM_USER+4000)
 
@@ -132,11 +137,13 @@ extern CAppModule _Module;
 #define MakeIco_(normal, selected) (((normal)<<8) | (selected))
 #define MakeIco(both) MakeIco_(both, both)
 
+#define II_DOC_UNKNOWN		IDI_DOC_UNKNOWN - IDI_BEGIN
 #define II_DOC_SCRIPT		IDI_DOC_SCRIPT - IDI_BEGIN
 #define II_DOC_MAP			IDI_DOC_MAP - IDI_BEGIN
 #define II_DOC_WORLD		IDI_DOC_WORLD - IDI_BEGIN
 #define II_DOC_SPRITE		IDI_DOC_SPRITE - IDI_BEGIN
 #define II_DOC_SPTSHT		IDI_DOC_SPTSHT - IDI_BEGIN
+#define II_DOC_SPTSET		IDI_DOC_SPTSET - IDI_BEGIN
 #define II_DOC_WAV			IDI_DOC_WAV - IDI_BEGIN
 #define II_DOC_MIDI			IDI_DOC_MIDI - IDI_BEGIN
 #define II_FOLDER_PROJECT	IDI_FOLDER_PROJECT - IDI_BEGIN
@@ -145,11 +152,13 @@ extern CAppModule _Module;
 #define II_FOLDER_LIB		IDI_FOLDER_LIB - IDI_BEGIN
 #define II_END				((IDI_END - IDI_BEGIN) + 1)
 
+#define ICO_UNKNOWN			MakeIco(II_DOC_UNKNOWN)
 #define ICO_SCRIPT			MakeIco(II_DOC_SCRIPT)
 #define ICO_MAP				MakeIco(II_DOC_MAP)
 #define ICO_WORLD			MakeIco(II_DOC_WORLD)
 #define ICO_SPRITE			MakeIco(II_DOC_SPRITE)
-#define ICO_SPTSHT			MakeIco(II_DOC_SPRITE)
+#define ICO_SPTSHT			MakeIco(II_DOC_SPTSHT)
+#define ICO_SPTSET			MakeIco(II_DOC_SPTSET)
 #define ICO_WAV				MakeIco(II_DOC_WAV)
 #define ICO_MIDI			MakeIco(II_DOC_MIDI)
 #define ICO_PROJECT			MakeIco(II_FOLDER_PROJECT)
@@ -167,6 +176,50 @@ extern CAppModule _Module;
 	}
 
 void ShowHelp(HWND hWnd, LPCSTR szTopic = NULL);
+
+inline
+bool LoadBitmap( CImage *pImage, HINSTANCE hInstance, UINT nIDResource ) 
+{
+	bool ret = true;
+	HGLOBAL hBuffer = NULL;
+
+	HRSRC hResource = ::FindResource(hInstance, MAKEINTRESOURCE(nIDResource), RT_BITMAP);
+	// What we have here is a regular bitmap:
+	if(hResource) { 
+		pImage->LoadFromResource(hInstance, nIDResource);
+		return ret;
+	}
+	
+	hResource = ::FindResource(hInstance, MAKEINTRESOURCE(nIDResource), _T("PNG"));
+	if(!hResource) return false;
+
+	DWORD imageSize = ::SizeofResource(hInstance, hResource);
+	if(!imageSize) return false;
+
+	const void* pResourceData = ::LockResource(::LoadResource(hInstance, hResource));
+	if (!pResourceData) return false;
+
+	hBuffer  = ::GlobalAlloc(GMEM_MOVEABLE, imageSize);
+	if(!hBuffer) return false;
+
+	void* pBuffer = ::GlobalLock(hBuffer);
+	if (!pBuffer) {
+		::GlobalFree(hBuffer);
+		return false;
+	}
+
+	CopyMemory(pBuffer, pResourceData, imageSize);
+
+	IStream* pStream = NULL;
+	if (::CreateStreamOnHGlobal(hBuffer, TRUE, &pStream) == S_OK) {
+		ret = SUCCEEDED(pImage->Load(pStream));
+		pStream->Release();
+	}
+
+	::GlobalUnlock(hBuffer);
+	::GlobalFree(hBuffer);
+	return ret;
+}
 
 
 #ifdef _DEBUG

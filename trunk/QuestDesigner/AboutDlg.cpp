@@ -28,33 +28,7 @@
 #include "AboutDlg.h"
 LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
-/*
-	HGLOBAL hLogo = LoadResource(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDR_LOGO));
-	LPVOID pLogo = LockResource(hLogo);
-	DWORD dwSize = SizeofResource(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDR_LOGO));
-
-	BITMAPINFO bmi;
-    memset(&bmi, 0, sizeof(bmi));
-    bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth       = 200;
-    bmi.bmiHeader.biHeight      = 182; // top-down image
-    bmi.bmiHeader.biPlanes      = 1;
-    bmi.bmiHeader.biBitCount    = 0;
-    bmi.bmiHeader.biCompression = BI_PNG;
-    bmi.bmiHeader.biSizeImage   = dwSize;
-
-	HDC hdcCompatible = CreateCompatibleDC(memdc);
-	SetDIBitsToDevice(hdcCompatible, 
-		ulDstX, ulDstY,
-		ulDstWidth, ulDstHeight,
-		0, 0,
-		0, ulJpgHeight,
-		pLogo,
-		&bmi,
-		DIB_RGB_COLORS);
-
-/*/
-	HBITMAP hPicture = LoadBitmap(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDB_LOGO));
+/*	HBITMAP hPicture = LoadBitmap(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDB_LOGO));
 
 	BITMAP bm;
 	GetObject(hPicture, sizeof (BITMAP), (LPSTR)&bm);
@@ -73,6 +47,33 @@ LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPar
 	DeleteDC(hdcCompatible);
 	DeleteObject(hPicture);
 
+/*/
+	CImage Image;
+	LoadBitmap(&Image, _Module.GetModuleInstance(), IDB_LOGO);
+
+	BITMAP bm;
+	GetObject((HBITMAP)Image, sizeof(BITMAP), (LPSTR)&bm);
+
+	CMemDC memdc((HDC)wParam, NULL);
+	BLENDFUNCTION bf;
+
+    bf.BlendOp = AC_SRC_OVER;
+    bf.BlendFlags = 0;
+    bf.AlphaFormat = AC_SRC_ALPHA;
+    bf.SourceConstantAlpha = 0xff;
+
+	HDC hdcCompatible = CreateCompatibleDC(memdc);
+	HBITMAP hOldBMP = (HBITMAP)SelectObject(hdcCompatible, (HBITMAP)Image);
+
+	RECT rcClient;
+	GetClientRect(&rcClient);
+	memdc.FillRect(&rcClient, COLOR_3DFACE);
+
+	memdc.AlphaBlend(7, 15, bm.bmWidth, bm.bmHeight, hdcCompatible, 
+				  0, 0, bm.bmWidth, bm.bmHeight, bf);
+
+	SelectObject(hdcCompatible, hOldBMP);
+	DeleteDC(hdcCompatible);
 /**/
 	return 0;
 
@@ -144,25 +145,25 @@ LRESULT CAckDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 	SetDlgItemText(IDC_THANKS_EDIT, _T("\
 I want to thank all people who helped me and collaborated in one way or the other and helped OpenZelda to become what it is today:\r\n\r\n\
       + GD for his magnificent idea and original design,\r\n\
+      + Strider for his support and all the new Sprite Sheets \r\n\
+          he is working on;\r\n\
       + Fenris (a.k.a. Sk8erHacker) for testing and \r\n\
-          excellent support,\r\n\
+          excellent support;\r\n\
       + Hylian for his support and the Open Zelda \r\n\
-          domain name,\r\n\
+          domain name;\r\n\
       + Lukex for maintaining the official website and \r\n\
           starting a very useful help file,\r\n\
       + Menne for his great Z3C editor and its nice \r\n\
-          source code,\r\n\
+          source code;\r\n\
       + LittleBuddy for his support as a consultant and \r\n\
-          his scripting expertise,\r\n\
-      + Strider for his support,\r\n\
-      + Alias Jargon,\r\n\
-      + Raichu19192,\r\n\
-      + HocusPocus,\r\n\
-      + GodGinrai,\r\n\
-      + and finally the guys at GU that hold that great \r\n\
-          website and their support.\r\n\r\n\
+          his scripting expertise;\r\n\
+      + Alias Jargon;\r\n\
+      + Raichu19192, for testing and support;\r\n\
+      + HocusPocus;\r\n\
+      + GodGinrai;\r\n\
+      + and last, but not least, the guys at GU that hold that great \r\n\
+          website and their support (http://www.thegaminguniverse.com)\r\n\r\n\
 If you feel I'm missing sombody, please tell me so I can add her/him/you to the list. "));
-	
 
 	return TRUE;
 }

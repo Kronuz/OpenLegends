@@ -276,7 +276,7 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 
 	CRect rcClient;
 	GetClientRect(&rcClient);
-	if((wParam&MK_CONTROL)==MK_CONTROL) {
+	if((wParam&MK_CONTROL)==MK_CONTROL || m_bPanning) {
 		ScrollPoint.SetPoint(WorldPoint.x/m_Zoom-MousePoint.x, WorldPoint.y/m_Zoom-MousePoint.y);
 	} else {
 		ScrollPoint.SetPoint(WorldPoint.x/m_Zoom-rcClient.CenterPoint().x, WorldPoint.y/m_Zoom-rcClient.CenterPoint().y);
@@ -289,8 +289,6 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 	if(ScrollPoint.x > m_WorldFullSize.cx-rcClient.right) ScrollPoint.x = m_WorldFullSize.cx-rcClient.right;
 	if(ScrollPoint.y > m_WorldFullSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldFullSize.cy-rcClient.bottom;
 	SetScrollOffset(ScrollPoint);
-
-	Invalidate();   
 
 	return 0;
 }

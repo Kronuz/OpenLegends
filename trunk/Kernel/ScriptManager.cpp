@@ -256,7 +256,7 @@ bool CScript::InitScript()
 
 	MakeCompiledFile();
 
-	if(!m_fnCompiledFile.Open()) return false;
+	if(!m_fnCompiledFile.Open("r")) return false;
 	m_fnCompiledFile.Read(&hdr, sizeof(AMX_HEADER));
 	m_fnCompiledFile.Seek(0, SEEK_SET);
 

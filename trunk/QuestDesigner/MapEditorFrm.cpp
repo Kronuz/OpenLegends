@@ -63,6 +63,12 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 	// add the toolbar to the UI update map
 	UIAddToolBar(hMapEdObjectToolBar);
 
+	m_ctrlBasicToolbar.SubclassWindow( hMapEdBasicToolBar );
+	m_ctrlBasicToolbar.LoadTrueColorToolBar(18, IDR_TB1_MAPED_BASIC);
+
+	m_ctrlObjectToolbar.SubclassWindow( hMapEdObjectToolBar );
+	m_ctrlObjectToolbar.LoadTrueColorToolBar(18, IDR_TB1_MAPED_OBJECT);
+
 	// create a rebat to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_VERT)) {
 		ATLTRACE("Failed to create applications rebar\n");

@@ -128,6 +128,8 @@ protected:
 public:
 	BOOL m_bLayers;
 	CSuperComboBoxCtrl m_ctrlLayers;
+	CTrueColorToolBarCtrl m_ctrlProjectToolBar;
+	CTrueColorToolBarCtrl m_ctrlMainToolBar;
 
 	bool m_bProjectLoaded;
 	bool m_bAllowSounds;

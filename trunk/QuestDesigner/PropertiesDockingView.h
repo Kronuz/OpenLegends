@@ -35,15 +35,18 @@ class CPropertyView :
 	public CDialogResize<CPropertyView>
 {
 	SPropertyList m_PropertyList;
+	HWND m_hWndLinked;
 
 	int m_nMinWidth;
 	int m_nMinHeight;
 
 	void AddProperties(SPropertyList *pPL);
+	LRESULT ItemUpdate(HPROPERTY hProperty, BOOL bCommit);
+
 public:
 	enum { IDD = IDD_PROPERTYVIEW };
 
-	CToolBarBox m_ctrlToolbar;
+	CTrueColorToolBarCtrl m_ctrlToolbar;
 	CPropertyListCtrl m_ctrlList;
 	CSuperComboBoxCtrl m_ctrlComboBox;
 
@@ -51,6 +54,8 @@ public:
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_SIZE, OnSize)
 		COMMAND_HANDLER(IDC_COMBO, CBN_SELCHANGE, OnSelChange)
+		NOTIFY_HANDLER(IDC_LIST, PIN_ITEMEDIT, OnItemEdit) // sent when an item is about to be edited
+		NOTIFY_HANDLER(IDC_LIST, PIN_ITEMUPDATED, OnItemUpdated)
 		NOTIFY_HANDLER(IDC_LIST, PIN_ITEMCHANGED, OnItemChanged)
 		NOTIFY_HANDLER(IDC_LIST, PIN_SELCHANGED, OnSelChanged)
 
@@ -67,6 +72,8 @@ public:
 	END_DLGRESIZE_MAP()
 
 	// List:
+	LRESULT OnItemEdit(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*/);
+	LRESULT OnItemUpdated(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*/);
 	LRESULT OnItemChanged(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*/);
 	LRESULT OnSelChanged(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*/);
 

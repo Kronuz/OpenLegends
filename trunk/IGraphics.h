@@ -12,20 +12,151 @@
 #define GFX_ROTATE_180	0x02
 #define GFX_ROTATE_270	0x03
 
-typedef union tagARGBCOLOR {
-	DWORD dwColor;
-	struct {
-		BYTE    rgbBlue; 
-		BYTE    rgbGreen; 
-		BYTE    rgbRed; 
-		BYTE    rgbAlpha; 
+typedef struct tagCOLOR {
+	union {
+		DWORD dwColor;
+		struct {
+			BYTE    rgbBlue; 
+			BYTE    rgbGreen; 
+			BYTE    rgbRed; 
+			BYTE    rgbAlpha; 
+		};
+		struct {
+			DWORD	hslLightness	: 8;
+			DWORD	hslSaturation	: 7;
+			DWORD	hslHue			: 9;
+			DWORD	hslAlpha		: 8; 
+		};
 	};
-	tagARGBCOLOR(DWORD dwARGB) : dwColor(dwARGB) {}
-	tagARGBCOLOR() : dwColor(0) {}
-} ARGBCOLOR;
+	tagCOLOR(DWORD _dwColor) : dwColor(_dwColor) {}
+	tagCOLOR() : dwColor(0) {}
+	bool operator==(DWORD _dwColor) const { return (dwColor == _dwColor); }
+	bool operator==(tagCOLOR _Color) const { return (dwColor == _Color.dwColor); }
+	bool operator!=(DWORD _dwColor) const { return (dwColor != _dwColor); }
+	bool operator!=(tagCOLOR _Color) const { return (dwColor != _Color.dwColor); }
+	tagCOLOR operator=(DWORD _dwColor) { dwColor = _dwColor; return *this; }
+	operator DWORD() const { return dwColor; }
+} ARGBCOLOR, AHSLCOLOR;
 
 #define COLOR_ARGB(a,r,g,b) \
 	((ARGBCOLOR)((((a)&0xff)<<24)|(((r)&0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff)))
+
+#define COLOR_RGB(r,g,b) \
+	((ARGBCOLOR)((((255)&0xff)<<24)|(((r)&0xff)<<16)|(((g)&0xff)<<8)|((b)&0xff)))
+
+#define COLOR_AHSL(a,h,s,l) \
+	((ARGBCOLOR)((((a)&0xff)<<24)|(((h)&0xff)<<16)|(((s)&0xff)<<8)|((l)&0xff)))
+
+#define COLOR_HSL(h,s,l) \
+	((AHSLCOLOR)((((255)&0xff)<<24)|(((h)&0xff)<<16)|(((s)&0xff)<<8)|((l)&0xff)))
+
+/*
+Calculate HSL from RGB
+Hue is in degrees (from 0 to 360)
+Lightness is between 0 and 255
+Saturation is between 0 and 100 (percentil)
+*/
+inline AHSLCOLOR RGB2HSL(ARGBCOLOR rgbColor)
+{
+	AHSLCOLOR hslColor;
+
+	double themin, themax, delta;
+	double c1r, c1g, c1b;
+	double c2h, c2l, c2s;
+
+	c1r = (double)rgbColor.rgbRed / 255.0f;
+	c1g = (double)rgbColor.rgbGreen / 255.0f;
+	c1b = (double)rgbColor.rgbBlue / 255.0f;
+
+	themin = min(c1r,min(c1g,c1b));
+	themax = max(c1r,max(c1g,c1b));
+	delta = themax - themin;
+	c2l = (themin + themax) / 2;
+	c2s = 0;
+	if (c2l > 0 && c2l < 1)
+		c2s = delta / (c2l < 0.5 ? (2*c2l) : (2-2*c2l));
+	c2h = 0;
+	if (delta > 0) {
+		if (themax == c1r && themax != c1g)
+			c2h += (c1g - c1b) / delta;
+		if (themax == c1g && themax != c1b)
+			c2h += (2 + (c1b - c1r) / delta);
+		if (themax == c1b && themax != c1r)
+			c2h += (4 + (c1r - c1g) / delta);
+		c2h *= 60;
+	}
+
+	hslColor.hslAlpha = rgbColor.hslAlpha;
+	hslColor.hslHue = (int)(c2h + 0.5f);
+	hslColor.hslSaturation = (int)(c2s * 100.0f + 0.5f);
+	hslColor.hslLightness = (int)(c2l * 255.0f + 0.5f);
+
+	return hslColor;
+}
+
+/*
+Calculate HSL from RGB
+Hue is in degrees (from 0 to 360)
+Lightness is between 0 and 255
+Saturation is between 0 and 100 (percentil)
+*/
+inline ARGBCOLOR HSL2RGB(AHSLCOLOR hslColor)
+{
+	ARGBCOLOR rgbColor;
+
+	double c2r, c2g, c2b;
+	double c1h, c1l, c1s;
+
+	double ctmpr, ctmpg, ctmpb;
+	double satr, satg, satb;
+
+	c1h = (double)hslColor.hslHue;					// Hue in degrees
+	c1l = (double)hslColor.hslLightness / 255.0f;	// Lightness betweeen 0 and 1
+	c1s = (double)hslColor.hslSaturation / 100.0f;	// Saturation between 0 and 1
+
+	while (c1h < 0)
+		c1h += 360;
+	while (c1h > 360)
+		c1h -= 360;
+
+	if (c1h < 120) {
+		satr = (120 - c1h) / 60.0;
+		satg = c1h / 60.0;
+		satb = 0;
+	} else if (c1h < 240) {
+		satr = 0;
+		satg = (240 - c1h) / 60.0;
+		satb = (c1h - 120) / 60.0;
+	} else {
+		satr = (c1h - 240) / 60.0;
+		satg = 0;
+		satb = (360 - c1h) / 60.0;
+	}
+	satr = min(satr, 1);
+	satg = min(satg, 1);
+	satb = min(satb, 1);
+
+	ctmpr = 2 * c1s * satr + (1 - c1s);
+	ctmpg = 2 * c1s * satg + (1 - c1s);
+	ctmpb = 2 * c1s * satb + (1 - c1s);
+
+	if (c1l < 0.5) {
+		c2r = c1l * ctmpr;
+		c2g = c1l * ctmpg;
+		c2b = c1l * ctmpb;
+	} else {
+		c2r = (1 - c1l) * ctmpr + 2 * c1l - 1;
+		c2g = (1 - c1l) * ctmpg + 2 * c1l - 1;
+		c2b = (1 - c1l) * ctmpb + 2 * c1l - 1;
+	}
+
+	rgbColor.hslAlpha = hslColor.hslAlpha;
+	rgbColor.rgbRed = (int)(c2r * 255.0f + 0.5f);
+	rgbColor.rgbGreen = (int)(c2g * 255.0f + 0.5f);
+	rgbColor.rgbBlue = (int)(c2b * 255.0f + 0.5f);
+
+	return rgbColor;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IBuffer
@@ -305,6 +436,7 @@ interface IGraphics
 		int rotate = GFX_ROTATE_0, 
 		int transform = GFX_NORMAL, 
 		ARGBCOLOR rgbColor = COLOR_ARGB(255,255,255,255), 
+		float lightness = 0.5f,
 		IBuffer **buffer = NULL,
 		float rotation = 0.0f,
 		float scale = 1.0f

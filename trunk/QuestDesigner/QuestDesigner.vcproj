@@ -246,6 +246,9 @@
 			<Filter
 				Name="Libs"
 				Filter="">
+				<File
+					RelativePath="..\FilePath.cpp">
+				</File>
 				<Filter
 					Name="dragdrop"
 					Filter="">
@@ -403,6 +406,9 @@
 				</File>
 				<File
 					RelativePath="libs\DlgContainer.h">
+				</File>
+				<File
+					RelativePath="..\FilePath.h">
 				</File>
 				<File
 					RelativePath="libs\ssfiledialog.h">
@@ -637,7 +643,13 @@
 				RelativePath="res\QuestDesignerSprite.ico">
 			</File>
 			<File
+				RelativePath=".\res\QuestDesignerSpriteSet.ico">
+			</File>
+			<File
 				RelativePath="res\QuestDesignerSpriteSheet.ico">
+			</File>
+			<File
+				RelativePath=".\res\QuestDesignerUnknown.ico">
 			</File>
 			<File
 				RelativePath="res\QuestDesignerWav.ico">
@@ -655,9 +667,66 @@
 				RelativePath="res\tab_icons.bmp">
 			</File>
 			<File
+				RelativePath=".\res\Toolbar1Folders.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar1Main.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar1MapEdBasic.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar1MapEdObject.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar1Project.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar1PropertyView.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar2Folders.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar2Main.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar2MapEdBasic.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar2MapEdObject.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar2Project.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar2PropertyView.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar3Folders.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar3Main.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar3MapEdBasic.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar3MapEdObject.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar3Project.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Toolbar3PropertyView.bmp">
+			</File>
+			<File
 				RelativePath="res\Warning.ico">
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\res\test.png">
+		</File>
 	</Files>
 	<Globals>
 		<Global

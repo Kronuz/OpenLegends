@@ -21,6 +21,7 @@
 	\brief		Implementation of the CGEditorView virtual base class.
 	\date		April 27, 2003
 				September 02, 2003
+				September 15, 2003: fixed scrollbar bug in Windows XP
 */
 
 #include "stdafx.h"
@@ -225,7 +226,8 @@ LRESULT CGEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 
 	CRect rcClient;
 	GetClientRect(&rcClient);
-	if((wParam&MK_CONTROL)==MK_CONTROL) {
+	// Two ways of zooming, one centering the zoomed point and the other not
+	if((wParam&MK_CONTROL)==MK_CONTROL || m_bPanning) {
 		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-MousePoint.x, (int)((float)WorldPoint.y*m_Zoom)-MousePoint.y);
 	} else {
 		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-rcClient.CenterPoint().x, (int)((float)WorldPoint.y*m_Zoom)-rcClient.CenterPoint().y);
@@ -668,7 +670,7 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_LBUTTON)==0) {
+	if((wParam&MK_LBUTTON)==0 && !isFloating()) {
 		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
 	}
@@ -702,6 +704,8 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	// If no buttons are pressed, cancel the current operations and release the mouse capture:
 	if((wParam&MK_LBUTTON)!=MK_LBUTTON && (wParam&MK_MBUTTON)!=MK_MBUTTON && (wParam&MK_RBUTTON)!=MK_RBUTTON) {
 		if(isFloating()) {
+			if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
+			else UpdateSnapSize(m_bSnapToGrid?m_nSnapSize:1);
 			MoveTo(Point, &m_CursorStatus);
 			Invalidate();
 		} else {
@@ -720,9 +724,9 @@ LRESULT CGEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOO
 	bHandled = FALSE;
 	if(!isMoving() && !isResizing() && !isSelecting()) {
 		if(wParam == VK_CONTROL) {
-			if(m_CursorStatus != eIDC_ARROWADD) ToCursor(eIDC_ARROWDEL);
+			if(!isFloating() && m_CursorStatus != eIDC_ARROWADD) ToCursor(eIDC_ARROWDEL);
 		} else if(wParam == VK_SHIFT) {
-			ToCursor(eIDC_ARROWADD);
+			if(!isFloating()) ToCursor(eIDC_ARROWADD);
 		} else if(wParam == VK_UP || wParam == VK_DOWN || wParam == VK_LEFT || wParam == VK_RIGHT) {
 			CRect Rect;
 			GetSelectionBounds(&Rect);
@@ -909,6 +913,13 @@ bool CGEditorView::Zoom(float zoom)
 	// We need to recalculate the new map size (in pixeles)
 	CalculateLimits();
 	SetScrollSize(m_rcScrollLimits.Size());
+
+	// Don't know why this is needed, I think there's a bug in the Windows XP scrolling bar system:
+	CRect rcClient;
+	GetClientRect(&rcClient);
+	ShowScrollBar(SB_HORZ, m_rcScrollLimits.Width() > rcClient.Width());
+	ShowScrollBar(SB_VERT, m_rcScrollLimits.Height() > rcClient.Height());
+
 	return true;
 }
 bool CGEditorView::NoZoom()

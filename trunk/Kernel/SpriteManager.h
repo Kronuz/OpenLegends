@@ -20,6 +20,9 @@
 /*! \file		SpriteManager.h 
 	\brief		Interface of the classes that maintain sprites properties.
 	\date		April 15, 2003
+				April 17, 2003
+				September 3, 2003
+				September 16, 2003
 
 	All sprites are almost the same, but to distinguish sprites that
 	can handle an advanced interaction (entities) from those which do not 
@@ -56,7 +59,7 @@
 #include "../IArchiver.h"
 
 #include "DrawManager.h"
-
+#include <cmath>
 //#include "WorldManager.h"
 
 #include <map>
@@ -245,7 +248,7 @@ protected:
 			no obstacle thus this areas do not slow down nor stop the entity from passing.
 		*/
 
-	bool Draw(const CDrawableContext &context, bool bBounds, const ARGBCOLOR *rgbColorOverride, int nBuffer);
+	bool Draw(const CDrawableContext &context, bool bBounds, const ARGBCOLOR *rgbColorModulation, int nBuffer);
 
 public:
 	_spt_type GetSpriteType();
@@ -300,7 +303,7 @@ public:
 	int GetObjSubLayer() {
 		return reinterpret_cast<SBackgroundData*>(m_pSpriteData)->nSubLayer;
 	}
-	bool Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorOverride);
+	bool Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorModulation);
 	bool NeedToDraw(const CDrawableContext &scontext);
 };
 
@@ -329,7 +332,7 @@ protected:
 
 public:
 	bool Run(const CDrawableContext &context, RUNACTION action);
-	bool Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorOverride);
+	bool Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorModulation);
 	bool NeedToDraw(const CDrawableContext &context) { return CBackground::NeedToDraw(context); }
 };
 
@@ -395,6 +398,7 @@ public:
 class CSpriteContext :
 	public CDrawableContext
 {
+	ARGBCOLOR m_rgbColor;
 public:
 	mutable int m_nFrame[CONTEXT_BUFFERS];
 
@@ -405,6 +409,11 @@ public:
 	void Mirror(bool bMirror);	//!< Mirrors the object.
 	void Flip(bool bFlip);		//!< Flips the object.
 	void Alpha(int alpha);
+	void Red(int red);
+	void Green(int green);
+	void Blue(int blue);
+	void Lightness(int lightness);
+	void ARGB(ARGBCOLOR rgbColor_);
 	void Rotate(int rotate);	//!< Rotates the object (the angle is given in degrees)
 	void Tile(bool bTile = true);
 
@@ -412,6 +421,12 @@ public:
 	bool isMirrored() const;
 	bool isFlipped() const;
 	int getAlpha() const;
+	int getRed() const;
+	int getBlue() const;
+	int getGreen() const;
+	int getLightness() const;
+	ARGBCOLOR getARGB() const;
+	ARGBCOLOR getRGB() const;
 	int Transformation() const;
 	
 	int Rotation() const;				//!< returns the basic roatation of the object (defined in the map editor)
@@ -423,54 +438,65 @@ public:
 	virtual bool GetInfo(SInfo *pI) const;
 	virtual bool GetProperties(SPropertyList *pPL) const;
 	virtual bool SetProperties(SPropertyList &PL);
-
+	virtual void Commit() const;
+	virtual void Cancel();
+private:
+	// Commit variables (saved in case of abortion):
+	mutable ARGBCOLOR Commit_rgbColor;
 };
 
-#define QUEST_SET_SIGNATURE 0xae1d229e
-const char QUEST_SET_ID[] = "Quest Designer Sprite Set";
-const int QUEST_SET_IDLEN = 25;
-
-#define SSD_WIDTHHEIGHT	0x01	// 00001
-#define SSD_CHAIN_X		0x02	// 00010
-#define SSD_CHAIN_Y		0x04	// 00100
-#define SSD_TRANS     	0x08	// 01000
-#define SSD_ALPHA		0x10	// 10000
+#define SSD_WIDTHHEIGHT	0x01	// 000001
+#define SSD_CHAIN_X		0x02	// 000010
+#define SSD_CHAIN_Y		0x04	// 000100
+#define SSD_TRANS     	0x08	// 001000
+#define SSD_ALPHA		0x10	// 010000
+#define SSD_RGBL		0x20	// 100000
 
 #pragma pack(1)
-typedef BYTE TREEBYTE[3];
 struct _SpriteSet {
 	struct _SpriteSetInfo {
-		char ID[200]; // ID, Name and Description Separated by '\n' and ended by '\0'
-		DWORD dwSignature;
-		DWORD dwSize;
+		_OpenZeldaFile Header;
 		UINT nObjects;
 		CRect rcBoundaries;
-		DWORD dwBitmapOffset;
-		// the name continues here 
 	} Info;
-	struct _SpriteSetData {	// (6 bytes)
-		WORD Mask :		5;
-		WORD NameLen :	5; // if it has the same name as the last sprite, this is 0.
+
+	// Here comes the index. A list of offsets (from the begining to the start of the name)...
+	// WORD Offset_to_the_first_name;
+	// WORD Offset_to_the_second_name;
+	//             ...
+	// WORD Offset_to_the_last_name;
+
+	// Here comes the NULL terminated strings of the names (referred by the offsets above)...
+
+	// Here starts the data:
+	struct _SpriteSetData {	// (7 bytes)
+		WORD Mask :		6;
 		WORD Layer :	3;
 		WORD SubLayer :	3;
+		WORD ObjIndex :	12;
 		WORD X :		16;
 		WORD Y :		16;
 	};
-	struct _SpriteSetData01 { // mask 1	(4 bytes)
+	struct _SpriteSetData01 { // mask SSD_WIDTHHEIGHT	(4 bytes)
 		WORD Width :	16;
 		WORD Height :	16;
 	};
-	struct _SpriteSetData02 { // masks 8,A,C,E (1 bytes)
+	struct _SpriteSetData02 { // masks SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS (1 byte)
 		BYTE rotation :	2;
 		BYTE mirrored :	1;
 		BYTE flipped :	1;
 		BYTE XChain :	2; // = Xchain - 1
 		BYTE YChain :	2; // = Ychain - 1
 	};
-	struct _SpriteSetData04 { // mask 4 (1 byte)
-		BYTE alpha :		8;
+	struct _SpriteSetData03 { // mask SSD_ALPHA (1 byte)
+		BYTE Alpha;
 	};
-	// ...the name continues here 
+	struct _SpriteSetData04 { // mask SSD_RGBL (4 bytes)
+		BYTE Red;
+		BYTE Green;
+		BYTE Blue;
+	};
+	// ...the bitmap continues here (starts in a 16 bytes alignment)
 };
 #pragma pack()
 
@@ -482,7 +508,8 @@ class CSpriteSelection :
 	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
 	void BuildRealSelectionBounds();
 
-	bool PasteObj(CLayer *pLayer, LPBYTE *ppData);
+	bool PasteSpriteSet(CLayer *pLayer, LPBYTE pRawBuffer);
+	bool PasteFile(CLayer *pLayer, LPCSTR szFilePath);
 	bool PasteSprite(CLayer *pLayer, LPCSTR szSprite);
 
 public:
@@ -528,14 +555,32 @@ inline void CSpriteContext::Flip(bool bFlip)
 	if(bFlip)	m_dwStatus |= (SFLIPPED<<_SPT_TRANSFORM);
 	else		m_dwStatus &= ~(SFLIPPED<<_SPT_TRANSFORM);
 }
+inline void CSpriteContext::Red(int red) 
+{
+	m_rgbColor.rgbRed = (BYTE)(red / 2 + 128);
+}
+inline void CSpriteContext::Green(int green) 
+{
+	m_rgbColor.rgbGreen = (BYTE)(green / 2 + 128);
+}
+inline void CSpriteContext::Blue(int blue) 
+{
+	m_rgbColor.rgbBlue = (BYTE)(blue / 2 + 128);
+}
 inline void CSpriteContext::Alpha(int alpha) 
 {
+	m_rgbColor.rgbAlpha = (BYTE)alpha;
+/* Deprecated, now use full ARGB values (Strider's idea):
 	DWORD newAlpha = ((alpha<<_SPT_ALPHA)&SPT_ALPHA);
 	if(newAlpha != (m_dwStatus&SPT_ALPHA)) {
 		m_dwStatus &= ~SPT_ALPHA;
 		m_dwStatus |= newAlpha;
-//		Touch();
 	}
+*/
+}
+inline void CSpriteContext::ARGB(ARGBCOLOR rgbColor_) 
+{
+	m_rgbColor = rgbColor_;
 }
 inline void CSpriteContext::Rotate(int rotate) 
 {
@@ -559,9 +604,49 @@ inline bool CSpriteContext::isFlipped() const
 {
 	return ((m_dwStatus&(SFLIPPED<<_SPT_TRANSFORM))==(SFLIPPED<<_SPT_TRANSFORM));
 }
+inline int CSpriteContext::getLightness() const
+{
+	AHSLCOLOR hslColor = RGB2HSL(m_rgbColor);
+	return hslColor.hslLightness;
+}
+
+inline void CSpriteContext::Lightness(int lightness)
+{
+	AHSLCOLOR hslColor = RGB2HSL(m_rgbColor);
+	hslColor.hslLightness = lightness;
+	m_rgbColor = HSL2RGB(hslColor);
+}
+inline int CSpriteContext::getRed() const
+{
+	int red = ((int)m_rgbColor.rgbRed - 128) * 2;
+	return red;
+}
+inline int CSpriteContext::getGreen() const
+{
+	int green = ((int)m_rgbColor.rgbGreen - 128) * 2;
+	return green;
+}
+inline int CSpriteContext::getBlue() const
+{
+	int blue = ((int)m_rgbColor.rgbBlue - 128) * 2;
+	return blue;
+}
 inline int CSpriteContext::getAlpha() const
 {
+	return m_rgbColor.rgbAlpha;
+/* Deprecated, now use full ARGB values (Strider's idea):
 	return ((m_dwStatus&SPT_ALPHA)>>_SPT_ALPHA);
+*/
+}
+inline ARGBCOLOR CSpriteContext::getARGB() const
+{
+	return m_rgbColor;
+}
+inline ARGBCOLOR CSpriteContext::getRGB() const
+{
+	ARGBCOLOR rgbColorRet = m_rgbColor;
+	rgbColorRet.rgbAlpha = 255;
+	return rgbColorRet;
 }
 inline int CSpriteContext::Transformation() const 
 {

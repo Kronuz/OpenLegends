@@ -49,7 +49,7 @@ inline bool CSound::LoadFile()
 {
 	if(m_bLoaded) return true;
 
-	if(m_vFile.Open()) {
+	if(m_vFile.Open("r")) {
 		m_nLength = m_vFile.GetFileSize();
 		if(m_nLength > 0) {
 			if(eType == stSample && m_nLength > 100*1024)
@@ -58,7 +58,7 @@ inline bool CSound::LoadFile()
 			m_pData = new BYTE[m_nLength];
 			if(!m_pData) {
 				CONSOLE_PRINTF("Kernel Fatal Error: Not enough memory to hold %d bytes!\n", m_vFile.GetFileSize());
-			} else m_vFile.ReadFile(m_pData, m_nLength);
+			} else m_vFile.Read(m_pData, m_nLength);
 		} else eType = stUnknown;
 		m_vFile.Close();
 	} else eType = stUnknown;

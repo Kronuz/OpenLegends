@@ -38,6 +38,9 @@ class CMapEditorFrame :
 	public CUpdateUI<CMapEditorFrame>
 {
 protected:
+	CTrueColorToolBarCtrl m_ctrlBasicToolbar;
+	CTrueColorToolBarCtrl m_ctrlObjectToolbar;
+
 public:
 
 	// The window's view (the child control)
@@ -46,7 +49,7 @@ public:
 	// Construction/Destruction:
 	CMapEditorFrame(CMainFrame *pMainFrame);
 
-	BEGIN_UPDATE_UI_MAP(CWorldEditView)
+	BEGIN_UPDATE_UI_MAP(CMapEditorFrame)
 		UPDATE_ELEMENT(ID_MAPED_PLAYER, UPDUI_MENUPOPUP | UPDUI_TOOLBAR )
 		UPDATE_ELEMENT(ID_MAPED_ARROW, UPDUI_MENUPOPUP | UPDUI_TOOLBAR )
 		UPDATE_ELEMENT(ID_MAPED_SELECT, UPDUI_MENUPOPUP | UPDUI_TOOLBAR )
@@ -83,9 +86,9 @@ public:
 
 		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
-		CHAIN_MSG_MAP(CUpdateUI<CMapEditorFrame>)
-
 		CHAIN_MSG_MAP(CGEditorFrame)
+
+		CHAIN_MSG_MAP(CUpdateUI<CMapEditorFrame>)
 
 	END_MSG_MAP()
 
