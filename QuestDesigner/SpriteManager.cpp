@@ -51,7 +51,8 @@ _spt_type CSprite::GetSpriteType()
 }
 CSpriteSheet* CSprite::GetSpriteSheet() 
 { 
-	return m_pSpriteSheet; 
+	if(m_bDefined) return m_pSpriteSheet; 
+	return NULL;
 }
 bool CSprite::IsDefined() 
 { 
@@ -80,6 +81,80 @@ CBackground::CBackground(LPCSTR szName) :
 {
 	m_SptType = tBackground;
 }
+
+bool CBackground::NeedToDraw(const CDrawableContext &scontext) 
+{ 
+	if(m_bDefined) {
+		IGraphics *pGraphics = scontext.GetGraphicsDevice();
+		CRect rcLocation;
+		CRect rcVisible = pGraphics->GetVisibleRect();
+		scontext.GetAbsRect(rcLocation);
+		rcLocation.IntersectRect(rcVisible, rcLocation);
+		if(!rcLocation.IsRectEmpty()) return true;
+	}
+	return false; 
+}
+bool CBackground::Draw(CDrawableContext &context) 
+{ 
+	CSpriteContext *scontext = static_cast<CSpriteContext*>(&context);
+	CSpriteSheet *pSpriteSheet = GetSpriteSheet();
+	if(!pSpriteSheet) return false;
+
+	IGraphics *pGraphics = context.GetGraphicsDevice();
+	// We handle texture stuff
+	ITexture *pTexture = NULL;
+	if(pSpriteSheet->m_pTexture != NULL) {
+		if(pSpriteSheet->m_pTexture->GetTexture() && pSpriteSheet->m_pTexture->GetDeviceID() == pGraphics->GetDeviceID()) {
+			pTexture = pSpriteSheet->m_pTexture;
+		} 
+	}
+	if(pTexture == NULL) {
+		// We make use of lazy evaluation here to load the textures.
+		CFileName fn = pSpriteSheet->GetFileName();
+		CString str;
+		str.Format("%s%s.bmp", fn.GetPath(), fn.GetFileTitle());
+		pGraphics->CreateTextureFromFile(str, &pTexture);
+		if(!pTexture) return false;
+		if(pSpriteSheet->m_pTexture) pSpriteSheet->m_pTexture->Release();
+		pSpriteSheet->m_pTexture = pTexture->AddRef();
+	}
+
+	if(m_pSpriteData->iAnimSpd && pGraphics->GetCurrentZoom()>=1) { // fps
+		int nFrame = ( (m_pSpriteData->iAnimSpd * GetTickCount())/1000 ) % m_Boundaries.GetSize();
+		if(scontext->m_pBuffer && scontext->m_nFrame!=nFrame) {
+			scontext->m_pBuffer->Invalidate();
+			scontext->m_nFrame = nFrame;
+		}
+	}
+
+	if(scontext->isTiled()) {
+		CRect Position;
+		scontext->GetAbsRect(Position);
+		pGraphics->Render(pTexture, m_Boundaries[scontext->m_nFrame], Position, scontext->Rotation(), scontext->Transformation(), scontext->getAlpha(), &(scontext->m_pBuffer));
+	} else {
+		CPoint Position;
+		scontext->GetAbsPosition(Position);
+		pGraphics->Render(pTexture, m_Boundaries[scontext->m_nFrame], Position, scontext->Rotation(), scontext->Transformation(), scontext->getAlpha(), &(scontext->m_pBuffer));
+	}
+	CRect Rect;
+	scontext->GetAbsRect(Rect);
+	if((scontext->Rotation() == SROTATE_90 ||scontext->Rotation() == SROTATE_270) && !scontext->isTiled()) {
+		int w = Rect.Width();
+		int h = Rect.Height();
+		Rect.bottom = Rect.top+w;
+		Rect.right = Rect.left+h;;
+	}
+
+	//pGraphics->DrawRect(Rect,128,255,255,255,1);
+/*
+		if(scontext->isTiled())
+			pGraphics->SelectionBox(Rect,200,255,255,225);
+		else
+			pGraphics->BoundingBox(Rect,255,0,0,0);
+/**/
+	return true; 
+}
+
 CMaskMap::CMaskMap(LPCSTR szName) :
 	CSprite(szName)
 {
@@ -89,13 +164,15 @@ CMaskMap::CMaskMap(LPCSTR szName) :
 // Srite Sheets
 CSpriteSheet::CSpriteSheet(CProjectManager *pProjectManager) :
 	CNamedObj(""),
-	m_pProjectManager(pProjectManager)
+	m_pProjectManager(pProjectManager),
+	m_pTexture(NULL)
 {
 	m_ArchiveIn = new CSpriteSheetTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 }
 CSpriteSheet::~CSpriteSheet()
 {
+	if(m_pTexture) m_pTexture->Release();
 	while(m_Sprites.GetSize()) {
 		delete m_Sprites.GetValueAt(0);
 		m_Sprites.RemoveAt(0);
@@ -111,7 +188,7 @@ CString CScript::GetAmxFile()
 	return m_fnScriptFile.GetPath() + "amx\\" + m_fnScriptFile.GetFileTitle() + ".amx";
 }
 
-bool CScript::NeedsToCompile()
+bool CScript::NeedToCompile()
 {
 	//m_fnScriptFile.GetFilePath()
 	return true;

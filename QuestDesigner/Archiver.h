@@ -34,9 +34,11 @@
 
 #include "Console.h"
 
+class CMap;
 class CProjectManager;
 class CSpriteSheet;
 
+//////////////////////////////////////////////////////////////
 class CSpriteSheetArch :
 	public IArchive,
 	public CConsole
@@ -45,12 +47,12 @@ public:
 	CSpriteSheetArch(CSpriteSheet *pSpriteSheet) : m_pSpriteSheet(pSpriteSheet) {}
 protected:
 	CSpriteSheet *m_pSpriteSheet;
-	virtual int ReadSprite(FILE *fInFile) = 0;
 public:
 	bool ReadObject(LPCSTR szFile) = 0;
 	bool WriteObject(LPCSTR szFile) = 0;
 };
 
+//////////////////////////////////////////////////////////////
 class CProjectArch:
 	public IArchive,
 	public CConsole
@@ -59,6 +61,20 @@ public:
 	CProjectArch(CProjectManager *pProjectManager) : m_pProjectManager(pProjectManager) {}
 protected:
 	CProjectManager *m_pProjectManager;
+public:
+	bool ReadObject(LPCSTR szFile) = 0;
+	bool WriteObject(LPCSTR szFile) = 0;
+};
+
+//////////////////////////////////////////////////////////////
+class CArchive:
+	public IArchive,
+	public CConsole
+{
+public:
+	CArchive(void *pCaller) : m_pCaller(pCaller) {}
+protected:
+	void *m_pCaller;
 public:
 	bool ReadObject(LPCSTR szFile) = 0;
 	bool WriteObject(LPCSTR szFile) = 0;

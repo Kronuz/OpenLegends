@@ -20,6 +20,8 @@
 /*! \file		Console.h 
 	\brief		Interface of the Console class.
 	\date		April 23, 2003
+
+	\todo		Convert this class to a singleton to eliminate its derived classes.
 */
 
 #pragma once

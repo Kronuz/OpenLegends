@@ -321,6 +321,14 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// Cursor
+//
+
+IDC_ARROWADD            CURSOR                  "res\\arrowadd.cur"
+IDC_ARROWDEL            CURSOR                  "res\\arrowdel.cur"
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
@@ -329,7 +337,7 @@ BEGIN
     IDR_MAINFRAME           "QuestDesigner"
     IDR_MDICHILD            "Document"
     ID_POSITION_PANE        "Ln: 9999, Col: 9999"
-    ID_OVERTYPE_PANE        "OVR"
+    ID_OVERTYPE_PANE        "9999%"
     ID_READONLY_PANE        "READ"
     ID_ICON_PANE            "ICI"
 END

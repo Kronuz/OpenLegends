@@ -30,13 +30,12 @@ bool CSpriteSheetTxtArch::ReadObject(LPCSTR szFile)
 	CString &sSheetName = m_pSpriteSheet->GetName();
 
 	FILE *fInFile = fopen(szFile, "rt");
-	m_iLines = 0;
-	static int iUnnamed=1;
+	m_nLines = 0;
 	if(fInFile) {
 		fnSheetFile.SetFilePath(szFile);
 		CHAR buff[100];
 		if(fgets(buff, sizeof(buff), fInFile)) {
-			m_iLines++;
+			m_nLines++;
 			sSheetName = buff;
 			sSheetName.Trim();
 			if(sSheetName=="") 
@@ -52,7 +51,7 @@ bool CSpriteSheetTxtArch::ReadObject(LPCSTR szFile)
 /*!
 	\param fInFile the file from where the sprite is to be read.
 	\return Returns the number of errors found in the sprite, or 0 if there
-	are no error. Returns < 0 if the end of file has been reached.
+	are no errors. Returns < 0 if the end of file has been reached.
 	\remarks This method is used to load one sprite at the time, checking and
 	validating every property, and creating the sprite in the list.
 
@@ -61,8 +60,6 @@ bool CSpriteSheetTxtArch::ReadObject(LPCSTR szFile)
 
 	This function should be smaller, but this keeps only temporary compatibility 
 	with the old Quest Designer by GD.
-
-	\todo Make this method faster (much faster), and smaller.
 */
 int CSpriteSheetTxtArch::ReadSprite(FILE *fInFile)
 {
@@ -84,7 +81,7 @@ int CSpriteSheetTxtArch::ReadSprite(FILE *fInFile)
 	enum {eEOF=-1, eEnd, eType, eName, eAnim, eAnimFrms, eAnimSpd, eRect, eFill, eMask, eLayer, eAlpha, eDefine, eError} state = eEOF;
 	CSprite *pSprite = NULL;
 	while(fgets(buff, sizeof(buff), fInFile)) {
-		m_iLines++;
+		m_nLines++;
 		if(state == eEOF) state = eType;
 		sLine = buff;
 		sLine.Trim();
@@ -92,17 +89,20 @@ retry:
 		if(state == eType) {
 			if(sLine=="[ENTITY]") {
 				pEntityData = new SEntityData;
+				memset(pEntityData, 0, sizeof(SEntityData));
 				pBackgroundData = pEntityData;
 				pSpriteData = pEntityData;
 				sptType = tEntity;
 				state = eName;
 			} else if(sLine=="[BACKGROUND]") {
 				pBackgroundData = new SBackgroundData;
+				memset(pBackgroundData, 0, sizeof(SBackgroundData));
 				pSpriteData = pBackgroundData;
 				sptType = tBackground;
 				state = eName;
 			} else {
 				pMaskData = new SMaskData;
+				memset(pMaskData, 0, sizeof(SMaskData));
 				pSpriteData = pMaskData;
 				sptType = tMask;
 				state = eName;
@@ -112,7 +112,7 @@ retry:
 			pSprite = pProjectManager->ReferSprite(sLine, sptType);
 			if(!pSprite) {
 				state = eError;
-				printf("Sprite error[1] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_iLines);
+				printf("Sprite error[1] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_nLines);
 			}
 			else {
 				if(pSprite->IsDefined()) {
@@ -153,7 +153,7 @@ retry:
 						rcRect.top < 0 || rcRect.bottom < 0 ||
 						rcRect.right < 0 || rcRect.left < 0 ) {
 						if(iFrames == 1) state = eError;
-						printf("Sprite error[2] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_iLines);
+						printf("Sprite error[2] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_nLines);
 					} else {
 						pSprite->AddRect(rcRect);
 					}
@@ -174,7 +174,7 @@ retry:
 					pBackgroundData->pMaskMap = static_cast<CMaskMap*>(pProjectManager->ReferSprite(sLine, tMask));
 					if(!pBackgroundData->pMaskMap) {
 						state = eError;
-						printf("Sprite error[3] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_iLines);
+						printf("Sprite error[3] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_nLines);
 					}
 				}
 			} else goto retry;
@@ -182,7 +182,9 @@ retry:
 			state = eAlpha;
 			if(	sptType == tBackground ||
 				sptType == tEntity ) {
-					pBackgroundData->sSubLayer = sLine;
+					if(sLine == "TRUE") pBackgroundData->nSubLayer = 4;
+					else pBackgroundData->nSubLayer = 1;
+					if(sptType == tEntity) pBackgroundData->nSubLayer++;
 			} else goto retry;
 		} else if(state == eAlpha) {
 			state = eDefine;
@@ -197,7 +199,7 @@ retry:
 				pEntityData->pScript = pProjectManager->MakeScript(pSprite->GetName());
 				if(!pEntityData->pScript) {
 					state = eError;
-					printf("Sprite error[4] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_iLines);
+					printf("Sprite error[4] in '%s'(%d): Couldn't load the script file for the entity!\n", fnSheetFile.GetFileName(), m_nLines);
 				}
 			}
 			if(state != eError) {
@@ -220,6 +222,158 @@ bool CProjectTxtArch::ReadObject(LPCSTR szFile)
 	return false;
 }
 bool CProjectTxtArch::WriteObject(LPCSTR szFile)
+{
+	return false;
+}
+
+bool CLayerTxtArch::ReadObject(LPCSTR szFile)
+{
+	FILE *fInFile = fopen(szFile, "rt");
+	CString sLine;
+	m_nLines = 0;
+	if(fInFile) {
+		CHAR buff[100];
+		if(fgets(buff, sizeof(buff), fInFile)) {
+			m_nLines++;
+			sLine = buff;
+			sLine.Trim();
+			// read the sprites locations (sprite context)
+			int nObjects = atoi(sLine);
+			for(int i=0; i<nObjects; i++) {
+				if(ReadSprite(fInFile)<0) {
+					fclose(fInFile);
+					return false;
+				}
+			}
+		}
+		if(fgets(buff, sizeof(buff), fInFile)) {
+			m_nLines++;
+			sLine = buff;
+			sLine.Trim();
+			// read the tiles positions
+			int nObjects = atoi(sLine);
+			for(int i=0; i<nObjects; i++) {
+				if(ReadTile(fInFile)<0) {
+					fclose(fInFile);
+					return false;
+				}
+			}
+		}
+		fclose(fInFile);
+	}
+	return true;
+}
+int CLayerTxtArch::ReadSprite(FILE *fInFile)
+{
+	CHAR buff[100];
+	CString sLine;
+	// sprite contexts on lands are 4 lines long (old Greg format):
+
+	// First line (x position):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; sLine = buff; sLine.Trim();
+	int x = atoi(sLine);
+	
+	// Second line (y position):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; sLine = buff; sLine.Trim();
+	int y = atoi(sLine);
+	
+	// Third line (sprite name):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; 
+	CString sName = buff; 
+	sName.Trim();
+
+	// Fourth line (sprite context ID):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; 
+	CString sID = buff; 
+	sID.Trim();
+
+	CSprite *pSprite = CProjectManager::Instance()->FindSprite(sName);
+	if(!pSprite) {
+		printf("Layer error: Couldn't find the requested sprite!\n");
+		return 0;
+	}
+
+	CSpriteContext *pSpriteContext = new CSpriteContext(sID);
+	pSpriteContext->SetDrawableObj(pSprite);
+	pSpriteContext->MoveTo(x/2, y/2);
+
+	if(pSprite->GetSpriteType() == tBackground || pSprite->GetSpriteType() == tEntity) {
+		pSpriteContext->SetSubLayer(static_cast<CBackground *>(pSprite)->GetSubLayer());
+		pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
+	} else {
+		printf("Map error: Attempt to use mask '%s' as a sprite in line %d\n", sName, m_nLines);
+		delete pSpriteContext;
+		return 0;
+	}
+
+
+	m_pLayer->AddSpriteContext(pSpriteContext);
+
+	return 1;
+}
+int CLayerTxtArch::ReadTile(FILE *fInFile)
+{
+	CHAR buff[100];
+	CString sLine;
+	// sprite contexts on lands are 4 lines long (old Greg format):
+
+	// First line (x1 position):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; sLine = buff; sLine.Trim();
+	int x1 = atoi(sLine);
+	
+	// Second line (y1 position):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; sLine = buff; sLine.Trim();
+	int y1 = atoi(sLine);
+
+	// Third line (x2 position):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; sLine = buff; sLine.Trim();
+	int x2 = atoi(sLine);
+	
+	// Fourth line (y2 position):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; sLine = buff; sLine.Trim();
+	int y2 = atoi(sLine);
+	
+	// Fifth line (sprite name):
+	if(!fgets(buff, sizeof(buff), fInFile)) return -1;
+	m_nLines++; 
+	CString sName = buff; 
+	sName.Trim();
+
+	CSprite *pSprite = CProjectManager::Instance()->FindSprite(sName);
+	if(!pSprite) {
+		printf("Layer error: Couldn't find the requested fill!\n");
+		return 0;
+	}
+
+	CSpriteContext *pSpriteContext = new CSpriteContext("");
+	pSpriteContext->SetDrawableObj(pSprite);
+	pSpriteContext->MoveTo(x1/2, y1/2);
+	pSpriteContext->Tile();
+	pSpriteContext->SetSize((x2-x1)/2, (y2-y1)/2);
+
+	if(pSprite->GetSpriteType() == tBackground || pSprite->GetSpriteType() == tEntity) {
+		pSpriteContext->SetSubLayer(static_cast<CBackground *>(pSprite)->GetSubLayer()-1);
+		pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
+	} else {
+		printf("Map error: Attempt to use mask '%s' as a fill in line %d\n", sName, m_nLines);
+		delete pSpriteContext;
+		return 0;
+	}
+
+	m_pLayer->AddSpriteContext(pSpriteContext);
+
+	return 1;
+}
+
+bool CLayerTxtArch::WriteObject(LPCSTR szFile)
 {
 	return false;
 }

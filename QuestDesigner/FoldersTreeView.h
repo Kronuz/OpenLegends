@@ -50,8 +50,15 @@ public:
 	BEGIN_MSG_MAP(thisClass)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_CREATE, OnDestroy)
+
+		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
+
 	END_MSG_MAP()
 
+	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		return 0;
+	}
 	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
 		LRESULT lRet = DefWindowProc(uMsg, wParam, lParam);

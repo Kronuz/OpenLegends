@@ -163,6 +163,7 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 	if(ScrollPoint.y > m_WorldSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldSize.cy-rcClient.bottom;
 	SetScrollOffset(ScrollPoint);
 
+	Invalidate();   
 	UpdateWindow();
 
 	return 0;

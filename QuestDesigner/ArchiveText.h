@@ -26,23 +26,31 @@
 	ArchiveText.h provides the interfaces for reading and writing objects
 	in text mode. Every object loaded or saved through this
 	class is saved in the disk using a plain text mode. (This class uses
-	the same saving format that Greg used)
-	\sa Archiver.h, ArchiveBinary.h.
+	the same saving format that Greg Denness used)
+	\sa ArchiveBinary.h.
 	\todo Complete the implementation of this class.
 */
 
 #pragma once
 
-#include "Archiver.h"
+#include "interfaces.h"
+
+#include "Console.h"
+
+class CLayer;
+class CProjectManager;
+class CSpriteSheet;
 
 class CSpriteSheetTxtArch :
-	public CSpriteSheetArch
+	public CConsole,
+	public IArchive
 {
 public:
-	CSpriteSheetTxtArch(CSpriteSheet *pSpriteSheet) : CSpriteSheetArch(pSpriteSheet) {}
-	
+	CSpriteSheetTxtArch(CSpriteSheet *pSpriteSheet) : m_pSpriteSheet(pSpriteSheet) {}
 private:
-	int m_iLines;
+	CSpriteSheet *m_pSpriteSheet;
+	int m_nLines;
+
 	int ReadSprite(FILE *fInFile);
 public:
 	bool ReadObject(LPCSTR szFile);
@@ -50,14 +58,31 @@ public:
 };
 
 class CProjectTxtArch :
-	public CProjectArch
+	public CConsole,
+	public IArchive
 {
 public:
-	CProjectTxtArch(CProjectManager *pProjectManager) : CProjectArch(pProjectManager) {}
-	
+	CProjectTxtArch(CProjectManager *pProjectManager) : m_pProjectManager(pProjectManager) {}
 private:
+	CProjectManager *m_pProjectManager;
 public:
 	bool ReadObject(LPCSTR szFile);
 	bool WriteObject(LPCSTR szFile);
 };
 
+class CLayerTxtArch :
+	public CConsole,
+	public IArchive
+{
+public:
+	CLayerTxtArch(CLayer *pLayer) : m_pLayer(pLayer) {}
+private:
+	int m_nLines;
+	CLayer *m_pLayer;
+
+	int ReadSprite(FILE *fInFile);
+	int ReadTile(FILE *fInFile);
+public:
+	bool ReadObject(LPCSTR szFile);
+	bool WriteObject(LPCSTR szFile);
+};

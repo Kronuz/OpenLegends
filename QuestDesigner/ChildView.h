@@ -44,6 +44,9 @@ protected:
 	// Construction/Destruction
 	CChildView(CChildFrame *pParentFrame);
 public:
+	CChildFrame *GetParentFrame() { ATLASSERT(m_pParentFrame); return m_pParentFrame; }
+	CMainFrame* GetMainFrame() { ATLASSERT(m_pParentFrame); return m_pParentFrame->GetMainFrame(); }
+
 	CString& GetFilePath() { return m_sFilePath; }
 	CString& GetTitle() { return m_sTitle; }
 };
