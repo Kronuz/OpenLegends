@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -65,9 +65,10 @@
 #include <map>
 #include <vector>
 
-#define SPRITE_BOUNDS	1	// show sprite boundaries?
-#define SPRITE_MASKS	2	// show the sprite mask, if any?
-#define SPRITE_ENTITIES	4	// show entities?
+#define SPRITE_BOUNDS		0x0001	// show sprite boundaries?
+#define SPRITE_MASKS		0x0002	// show the sprite mask, if any?
+#define SPRITE_ENTITIES		0x0004	// show entities?
+#define GRAPHICS_FILTERS	0x0100	// Activate the filters, mainly to show a frame around the world.
 
 extern bool g_bBounds;
 extern bool g_bMasks;

@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -87,7 +87,6 @@ LRESULT CFoldersTreeBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 	m_ctrlTree.AddFileType(".s3m", ICO_MIDI);
 	m_ctrlTree.AddFileType(".xm", ICO_MIDI);
 	m_ctrlTree.AddFileType(".mod", ICO_MIDI);
-	
 
 	return 0;
 }

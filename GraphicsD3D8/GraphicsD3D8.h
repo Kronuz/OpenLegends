@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -68,18 +68,20 @@ struct SVertexBuffer {
 #ifdef _USE_HWVB
 	IDirect3DVertexBuffer8 *m_pD3DVB;
 #endif
+	bool m_bOverflow;
 	ARGBCOLOR m_rgbColor; // rgb color used for the vertices
 	D3DCDTVERTEX *m_pVertices;
-	int m_nVertices;
-	int m_nPrimitives;
+	DWORD m_dwVertices;
+	DWORD m_dwPrimitives;
 	int m_texTop;
 	int m_texLeft;
-	SVertexBuffer(ARGBCOLOR rgbColor_, D3DCDTVERTEX *pVertices_, int nVertices_, int nPrmitives_, int texTop_, int texLeft_) : 
+	SVertexBuffer(ARGBCOLOR rgbColor_, D3DCDTVERTEX *pVertices_, DWORD dwVertices_, DWORD dwPrmitives_, int texTop_, int texLeft_, bool bOverflow_) : 
 #ifdef _USE_HWVB
 		m_pD3DVB(NULL),
 #endif
+		m_bOverflow(bOverflow_),
 		m_rgbColor(rgbColor_),
-		m_pVertices(pVertices_), m_nVertices(nVertices_), m_nPrimitives(nPrmitives_),
+		m_pVertices(pVertices_), m_dwVertices(dwVertices_), m_dwPrimitives(dwPrmitives_),
 		m_texTop(texTop_), m_texLeft(texLeft_) {}
 	~SVertexBuffer() {
 		delete []m_pVertices;
@@ -164,6 +166,7 @@ class CGraphicsD3D8 :
 	int m_nFilterHorzMove;
 	int m_nFilterVertMove;
 	float m_fFilterPixelate;
+	bool m_bFilterPixelate;
 	D3DCDTVERTEX m_FiltersOverlay[4];
 
 	static HWND ms_hWnd;
@@ -174,7 +177,8 @@ class CGraphicsD3D8 :
 	static IDirect3DDevice8 *ms_pD3DDevice;
 	static D3DDISPLAYMODE ms_PreferredMode;
 	static D3DDISPLAYMODE ms_WindowedMode;
-	
+	static D3DCAPS8 ms_D3DCaps;
+
 	static int ms_nScreenWidth;
 	static int ms_nScreenHeight;
 	static bool ms_bLastRendered;

@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -71,3 +71,31 @@ public:
 	void OnSheetDone(void) {}
 	BOOL OnSheetValidate(void) { return TRUE; }
 };
+
+class CGeneralSheet : 
+	public CDialogImpl<CGeneralSheet>,
+	public CDialogResize<CGeneralSheet>,
+	public CPropertiesSheet
+{
+public:
+	enum { IDD = IDD_PROPERTIES_GENERAL };
+
+	BEGIN_MSG_MAP(CGeneralSheet)
+		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+		CHAIN_MSG_MAP(CDialogResize<CGeneralSheet>)
+	END_MSG_MAP()
+
+	BEGIN_DLGRESIZE_MAP(CNotImplementedSheet)
+		DLGRESIZE_CONTROL(IDC_STATIC_INFO, DLSZ_SIZE_X)
+	END_DLGRESIZE_MAP()
+
+	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+		DlgResize_Init(false, true, 0);
+		return 0;
+	}
+
+	void OnSheetDisplay(void) {}
+	void OnSheetDone(void) {}
+	BOOL OnSheetValidate(void) { return TRUE; }
+};
+

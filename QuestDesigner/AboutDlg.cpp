@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -128,9 +128,10 @@ LRESULT CAckDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 	CenterWindow(GetParent());
 	SetDlgItemText(IDC_THANKS_EDIT, _T("\
 I want to thank all people who helped me and collaborated in one way or the other and helped OpenZelda to become what it is today:\r\n\r\n\
-      + GD for his magnificent idea and original design,\r\n\
+      + GD for his magnificent idea and original design;\r\n\
       + Strider for his support and all the new Sprite Sheets \r\n\
           he is working on;\r\n\
+      + System Failure for the OpenGL plugin he is working on;\r\n\
       + Fenris (a.k.a. Sk8erHacker) for testing and \r\n\
           excellent support;\r\n\
       + Hylian for his support and the Open Zelda \r\n\

@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -298,11 +298,14 @@ void CMainFrame::InitializeDefaultPanes()
 	m_ThumbnailsBox.m_pMainFrame = this;
 	m_ThumbnailsBox.Create(m_hWnd,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
 
+	m_LocalVariablesBox.Create(m_hWnd,	rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+
 	HWND hPane = 
 	CreatePane(m_ThumbnailsBox,		_T("Thumbnails"),			ilIcons.ExtractIcon(14), rcDockH, NULL,  dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 	CreatePane(m_TaskListView,      _T("Things To Do"),			ilIcons.ExtractIcon(6),  rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 	CreatePane(m_DescriptionView,   _T("Project Description"),	ilIcons.ExtractIcon(3),  rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 	CreatePane(m_OutputBox,         _T("Output Window"),		ilIcons.ExtractIcon(10), rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
+	CreatePane(m_LocalVariablesBox,	_T("Local variables"),		ilIcons.ExtractIcon(10), rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 
 	//////////////////////// Second Pane:
 
@@ -571,10 +574,12 @@ LRESULT CMainFrame::OnProjectOpen()
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 	m_SpriteSets.PopulateTree(g_sHomeDir + "Sprite Sets");
 
-	DWORD dwInitTicks = GetTickCount();
-	CONSOLE_DEBUG("Building thumbnails...\n");
-	m_ThumbnailsBox.DoFileOpen("");
-	CONSOLE_DEBUG("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+	if(m_ThumbnailsBox.IsWindow()) {
+		DWORD dwInitTicks = GetTickCount();
+		CONSOLE_DEBUG("Building thumbnails...\n");
+		m_ThumbnailsBox.DoFileOpen("");
+		CONSOLE_DEBUG("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+	}
 
 	m_bProjectLoaded = true;
 

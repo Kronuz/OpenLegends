@@ -71,6 +71,9 @@
 #define IDB_BITMAP2                     276
 #define IDB_MARGIN                      276
 #define IDD_ACK                         282
+#define IDD_PROPERTIES_GENERAL          283
+#define IDD_PROPERTIES_PLUGINS          284
+#define IDD_PROPERTIES_PATHS            285
 #define IDI_ICON1                       286
 #define IDB_LOGO                        287
 #define IDB_COMBO_ICONS                 293
@@ -99,13 +102,28 @@
 #define IDC_STATIC_CONFIGURE            1011
 #define IDC_STATIC_INFO                 1012
 #define IDC_STATIC_OPTION               1013
+#define IDC_STATIC_INFO2                1013
 #define IDC_GPL_EDIT                    1020
 #define IDC_EMAIL1_STATIC               1021
 #define IDC_URL1_STATIC                 1022
 #define IDC_ACK_BUTTON                  1023
 #define IDC_THANKS_EDIT                 1024
 #define IDC_STATIC1                     1025
+#define IDC_EDIT1                       1025
 #define IDC_STATIC2                     1026
+#define IDC_BUTTON1                     1026
+#define IDC_EDIT2                       1027
+#define IDC_COMBO1                      1028
+#define IDC_BUTTON6                     1028
+#define IDC_CHECK1                      1029
+#define IDC_BUTTON2                     1030
+#define IDC_CHECK2                      1030
+#define IDC_EDIT3                       1031
+#define IDC_BUTTON7                     1032
+#define IDC_EDIT4                       1035
+#define IDC_BUTTON4                     1036
+#define IDC_BUTTON3                     1037
+#define IDC_BUTTON5                     1038
 #define ID_PROJECT_OPEN                 32000
 #define ID_FOLDERS_PROPERTIES           32001
 #define ID_PROP_CAT                     32002
@@ -240,7 +258,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        277
 #define _APS_NEXT_COMMAND_VALUE         32432
-#define _APS_NEXT_CONTROL_VALUE         1025
+#define _APS_NEXT_CONTROL_VALUE         1031
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif

@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -24,7 +24,7 @@
 				June 9, 2003
 				September 10, 2003: 
 					- Bug Fix: The Alpha and RGB values are now updated in the vertex buffer
-					  in case a change has been made (different values)
+					  in case a change has been made (different values). Fixed!
 				September 17, 2003
 					+ Optimization. The vertex buffer is no longer needed to be updated
 					  neither it needs to contain the ARGB values of the vertices.
@@ -36,6 +36,12 @@
 					  the +0.5f adjustment, now added.
 				    + Optimization. Some methods used SetRect() instead of setting the
 					  values on RECT creation. SetRect is now only used when needed.
+			    November 18, 2003
+					+ Improvement. Filters added: Pixelate, Alpha, and Panning.
+			    December 5, 2003
+					- Bug fix: Using filters, Zooming was messing up with the final
+					  flipped texture. Showing 2x, 4x, etc. parts of the texture, 
+					  instead of just 0x-1x parts of it. Fixed!
 	\author		Kronuz
 	\remarks	Known bugs:
 				Take the next scenario. There is an open map (being displayed), the
@@ -127,6 +133,7 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 // Interface implementation begins here:
 D3DDISPLAYMODE CGraphicsD3D8::ms_PreferredMode;
 D3DDISPLAYMODE CGraphicsD3D8::ms_WindowedMode;
+D3DCAPS8 CGraphicsD3D8::ms_D3DCaps;
 D3DPRESENT_PARAMETERS CGraphicsD3D8::ms_d3dpp;
 int CGraphicsD3D8::ms_nCount = 0;
 int CGraphicsD3D8::ms_nScreenWidth = 0;
@@ -381,15 +388,12 @@ inline DWORD CGraphicsD3D8::FigureOutVertexProcessing()
 {
 	ASSERT(ms_pD3D);
 
-	D3DCAPS8 D3DCaps;
-	ms_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, m_devType, &D3DCaps );
-
 	// Set the device/format for SW vertex processing
 	DWORD dwBehavior = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
 	// Confirm the device/format for HW vertex processing
-	if(D3DCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT ) {
-		if(D3DCaps.DevCaps & D3DDEVCAPS_PUREDEVICE ) {
+	if(ms_D3DCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT ) {
+		if(ms_D3DCaps.DevCaps & D3DDEVCAPS_PUREDEVICE ) {
 			dwBehavior = D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE;
 		} else {
 			dwBehavior = D3DCREATE_HARDWARE_VERTEXPROCESSING;
@@ -449,7 +453,7 @@ inline void CGraphicsD3D8::PostInitialize(UINT WindowWidth, UINT WindowHeight)
 	D3DXMatrixIdentity(&m_IdentityMatrix);
 
 	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_LIGHTING, FALSE)); // Disable Lighting
-	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW)); // Turn on Culling (nice speed boost)
+	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE/*/D3DCULL_CW/**/)); // Turn on Culling (nice speed boost)
 	
 
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_PROJECTION, &Ortho2D));
@@ -541,9 +545,12 @@ inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 	float invH = 1.0f/(float)texture->GetHeight();
 	float udiff = (float)(rectSrc.left-(*vbuffer)->m_texLeft) * invW;
 	float vdiff = (float)(rectSrc.top-(*vbuffer)->m_texTop) * invH;
+	if((*vbuffer)->m_bOverflow) {
+		rgbColor = COLOR_ARGB(128,255,0,0);
+	}
 
 	D3DCDTVERTEX *tile = (*vbuffer)->m_pVertices;
-	for(int offset=0; offset<(*vbuffer)->m_nVertices; offset++) {
+	for(DWORD offset=0; offset < (*vbuffer)->m_dwVertices; offset++) {
 		tile[offset].u += udiff;
 		tile[offset].v += vdiff;
 		tile[offset].dwColor = (D3DCOLOR)rgbColor;
@@ -558,7 +565,7 @@ inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 	} else {
 		BYTE *Ptr;
 		if(SUCCEEDED((*vbuffer)->m_pD3DVB->Lock(0, 0, (BYTE**)&Ptr, 0))) {
-			memcpy(Ptr, (*vbuffer)->m_pVertices, sizeof(D3DCDTVERTEX) * (*vbuffer)->m_nVertices);
+			memcpy(Ptr, (*vbuffer)->m_pVertices, sizeof(D3DCDTVERTEX) * (*vbuffer)->m_dwVertices);
 			(*vbuffer)->m_pD3DVB->Unlock();
 		}
 	}
@@ -585,13 +592,18 @@ inline void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 	int yVert = destHeight/srcHeight;
 
 	// Calculate the width and height of the last column and row of the mesh
-	int lastWidth = destWidth%srcWidth;
-	int lastHeight = destHeight%srcHeight;
+	int lastWidth = destWidth % srcWidth;
+	int lastHeight = destHeight % srcHeight;
 
 	if(lastWidth) xVert++;
 	else lastWidth = srcWidth;
 	if(lastHeight) yVert++;
 	else lastHeight = srcHeight;
+
+	DWORD dwVertices = xVert * yVert * 6;
+	DWORD dwPrimitives = xVert * yVert * 2;
+	bool bOverflow = false;
+	D3DCDTVERTEX *tile = NULL;
 
 	// Calculate the exact bounds of the sprite inside the texture
 	float invW = 1.0f/(float)texture->GetWidth();
@@ -600,44 +612,69 @@ inline void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 	float tt = (float)rectSrc.top * invH;
 	float tr = (float)rectSrc.right * invW;
 	float tb = (float)rectSrc.bottom * invH;
-	
-	// Calculate the exact bounds for the last row and column on the mesh in the texture
-	float tlr = (float)(rectSrc.left+lastWidth) * invW;
-	float tlb = (float)(rectSrc.top+lastHeight) * invH;
 
-	float vcx[6] = {0, 0, (float)srcWidth, (float)srcWidth, 0, (float)srcWidth};
-	float vcy[6] = {0, (float)srcHeight, 0, 0, (float)srcHeight, (float)srcHeight};
-	float vtx[6] = {tl,tl,tr,tr,tl,tr};
-	float vty[6] = {tt,tb,tt,tt,tb,tb};
+	if( dwVertices > ms_D3DCaps.MaxVertexIndex || dwPrimitives > ms_D3DCaps.MaxPrimitiveCount ) {
+		// If there are too many vertices (for the current video card):
+		dwVertices = 6;
+		dwPrimitives = 2;
 
-	D3DCDTVERTEX *tile = new D3DCDTVERTEX[(xVert)*(yVert)*6];
-	int offset = 0;
-	for(int y=0; y<yVert; y++) {
-		for(int x=0; x<xVert; x++) {
-			for(int i=0; i<6; i++) {
-				if(x==xVert-1 && (i==2||i==3||i==5) ) {
-					tile[offset].x = vcx[i] + (x-1)*srcWidth + lastWidth;
-					tile[offset].u = tlr;
-				} else {
-					tile[offset].x = vcx[i] + x*srcWidth;
-					tile[offset].u = vtx[i];
+		rgbColor = COLOR_ARGB(128,255,0,0);
+
+		float l = 0.0f;
+		float t = 0.0f;
+		float r = (float)(destWidth);
+		float b = (float)(destHeight);
+		D3DCDTVERTEX tmp[6] = {
+			{ l, t, 0.0f, rgbColor, tl, tt},
+			{ l, b, 0.0f, rgbColor, tl, tb},
+			{ r, t, 0.0f, rgbColor, tr, tt},
+			{ l, b, 0.0f, rgbColor, tl, tb},
+			{ r, b, 0.0f, rgbColor, tr, tb},
+			{ r, t, 0.0f, rgbColor, tr, tt}
+		};
+		tile = new D3DCDTVERTEX[dwVertices];
+		memcpy(tile, &tmp, sizeof(tmp));
+
+		bOverflow = true;
+	} else {
+		// Calculate the exact bounds for the last row and column on the mesh in the texture
+		float tlr = (float)(rectSrc.left+lastWidth) * invW;
+		float tlb = (float)(rectSrc.top+lastHeight) * invH;
+
+		float vcx[6] = {0, 0, (float)srcWidth, (float)srcWidth, 0, (float)srcWidth};
+		float vcy[6] = {0, (float)srcHeight, 0, 0, (float)srcHeight, (float)srcHeight};
+		float vtx[6] = {tl,tl,tr,tr,tl,tr};
+		float vty[6] = {tt,tb,tt,tt,tb,tb};
+
+		tile = new D3DCDTVERTEX[dwVertices];
+
+		int offset = 0;
+		for(int y=0; y<yVert; y++) {
+			for(int x=0; x<xVert; x++) {
+				for(int i=0; i<6; i++) {
+					if(x==xVert-1 && (i==2||i==3||i==5) ) {
+						tile[offset].x = vcx[i] + (x-1)*srcWidth + lastWidth;
+						tile[offset].u = tlr;
+					} else {
+						tile[offset].x = vcx[i] + x*srcWidth;
+						tile[offset].u = vtx[i];
+					}
+					if(y==yVert-1 && (i==1||i==4||i==5) ) {
+						tile[offset].y = vcy[i] + (y-1)*srcHeight + lastHeight;
+						tile[offset].v = tlb;
+					} else {
+						tile[offset].y = vcy[i] + y*srcHeight;
+						tile[offset].v = vty[i];
+					}
+
+					tile[offset].z = 0.0f;
+					tile[offset].dwColor = rgbColor;
+					offset++;
 				}
-				if(y==yVert-1 && (i==1||i==4||i==5) ) {
-					tile[offset].y = vcy[i] + (y-1)*srcHeight + lastHeight;
-					tile[offset].v = tlb;
-				} else {
-					tile[offset].y = vcy[i] + y*srcHeight;
-					tile[offset].v = vty[i];
-				}
-
-				tile[offset].z = 0.0f;
-				tile[offset].dwColor = rgbColor;
-				offset++;
 			}
 		}
 	}
-
-	*vbuffer = new SVertexBuffer(rgbColor, tile, (xVert)*(yVert)*6, xVert*yVert*2, rectSrc.top, rectSrc.left);
+	*vbuffer = new SVertexBuffer(rgbColor, tile, dwVertices, dwPrimitives, rectSrc.top, rectSrc.left, bOverflow);
 }
 
 inline bool CGraphicsD3D8::Recover()
@@ -728,6 +765,7 @@ CGraphicsD3D8::CGraphicsD3D8() :
 	m_bInitialized(false),
 	m_bCapture(false),
 	m_bFilters(false),
+	m_bFilterPixelate(false),
 #ifdef _USE_SWAPCHAINS
 	m_pSwapChain(NULL),
 #else
@@ -875,6 +913,9 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight)
 {
 	m_devType = D3DDEVTYPE_HAL; // Hardware acceleration
+//	m_devType = D3DDEVTYPE_REF; // 
+//	m_devType = D3DDEVTYPE_SW; // 
+
 	if(m_bInitialized) return true;
 
 	if(ms_pD3D == NULL) {
@@ -885,6 +926,16 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 			return false;
 		}
 	}
+
+	if(ms_nCount == 0) { // on the first run only...
+		// get some information about the D3D Driver for later use:
+		ZeroMemory(&ms_D3DCaps, sizeof(D3DCAPS8)); // clear it
+		D3DVERIFY(ms_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, m_devType, &ms_D3DCaps));
+
+		//ms_D3DCaps.MaxVertexIndex = 1024;
+		//ms_D3DCaps.MaxPrimitiveCount = 1024;
+	}
+
 	if(ms_pD3DDevice == NULL) {
 		if(!SetMode(hWnd, bWindowed, nScreenWidth, nScreenHeight)) return false;
 	}
@@ -896,12 +947,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 	PostInitialize(ms_nScreenWidth, ms_nScreenHeight);
 #endif
 
-	if(ms_nCount==1) {
-		// Get some information about the D3D Driver
-		D3DCAPS8 D3DCaps;
-		ZeroMemory(&D3DCaps, sizeof(D3DCAPS8)); // clear it
-		D3DVERIFY(ms_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &D3DCaps));
-
+	if(ms_nCount == 1) {
 		D3DADAPTER_IDENTIFIER8 D3DAdapterID;
 		D3DVERIFY(ms_pD3D->GetAdapterIdentifier(D3DADAPTER_DEFAULT, NULL, &D3DAdapterID));
 
@@ -916,53 +962,69 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		CONSOLE_LOG   (" | dwRevision: %d\n", D3DAdapterID.VendorId);
 		CONSOLE_LOG   (" | Mode: %dx%d at %dHz (%s)\n", ms_PreferredMode.Width, ms_PreferredMode.Height, ms_PreferredMode.RefreshRate, GetFormat(ms_PreferredMode.Format));
 		CONSOLE_PRINTF(" | Acceleration: %s rasterization\n", (m_devType==D3DDEVTYPE_HAL)?"Hardware":"Software");
-		CONSOLE_PRINTF(" | Max Texture Size: %dx%d\n", D3DCaps.MaxTextureWidth, D3DCaps.MaxTextureHeight);
-		CONSOLE_LOG   (" | Max Texture Blend Stages: %d\n", D3DCaps.MaxTextureBlendStages);
-		CONSOLE_LOG   (" | Max Primitive Count: %d\n", D3DCaps.MaxPrimitiveCount);
-		CONSOLE_LOG   (" | Max Vertex Index: %d\n", D3DCaps.MaxVertexIndex);
-		CONSOLE_LOG   (" | Max Simultaneous Textures: %d\n", D3DCaps.MaxSimultaneousTextures);
-		CONSOLE_LOG   (" | Max Streams: %d\n", D3DCaps.MaxStreams);
-		CONSOLE_LOG   (" | Max Stream Stride: %d\n", D3DCaps.MaxStreamStride);
-		CONSOLE_LOG   (" | Vertex Shader Version: %d.%d\n", HIBYTE(LOWORD(D3DCaps.VertexShaderVersion)), LOBYTE(LOWORD(D3DCaps.VertexShaderVersion)));
-		CONSOLE_LOG   (" | Max Vertex Shader Const: %d\n", D3DCaps.MaxVertexShaderConst);
-		CONSOLE_LOG   (" | Pixel Shader Version: %d.%d\n", HIBYTE(LOWORD(D3DCaps.PixelShaderVersion)), LOBYTE(LOWORD(D3DCaps.PixelShaderVersion)));
+		CONSOLE_PRINTF(" | Max Texture Size: %dx%d\n", ms_D3DCaps.MaxTextureWidth, ms_D3DCaps.MaxTextureHeight);
+		CONSOLE_LOG   (" | Max Texture Blend Stages: %d\n", ms_D3DCaps.MaxTextureBlendStages);
+		CONSOLE_LOG   (" | Max Primitive Count: %d\n", ms_D3DCaps.MaxPrimitiveCount);
+		CONSOLE_LOG   (" | Max Vertex Index: %d\n", ms_D3DCaps.MaxVertexIndex);
+		CONSOLE_LOG   (" | Max Simultaneous Textures: %d\n", ms_D3DCaps.MaxSimultaneousTextures);
+		CONSOLE_LOG   (" | Max Streams: %d\n", ms_D3DCaps.MaxStreams);
+		CONSOLE_LOG   (" | Max Stream Stride: %d\n", ms_D3DCaps.MaxStreamStride);
+		CONSOLE_LOG   (" | Vertex Shader Version: %d.%d\n", HIBYTE(LOWORD(ms_D3DCaps.VertexShaderVersion)), LOBYTE(LOWORD(ms_D3DCaps.VertexShaderVersion)));
+		CONSOLE_LOG   (" | Max Vertex Shader Const: %d\n", ms_D3DCaps.MaxVertexShaderConst);
+		CONSOLE_LOG   (" | Pixel Shader Version: %d.%d\n", HIBYTE(LOWORD(ms_D3DCaps.PixelShaderVersion)), LOBYTE(LOWORD(ms_D3DCaps.PixelShaderVersion)));
 
 		// Print caps (do not change order, add at the end if needed):
-		CONSOLE_LOG   (" | Device Caps: 0x%08X ", D3DCaps.DevCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.PrimitiveMiscCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.RasterCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.ZCmpCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.SrcBlendCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.DestBlendCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.AlphaCmpCaps);
+		CONSOLE_LOG   (" | Device Caps: 0x%08X ", ms_D3DCaps.DevCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.PrimitiveMiscCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.RasterCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.ZCmpCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.SrcBlendCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.DestBlendCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.AlphaCmpCaps);
 		CONSOLE_LOG   ("\n |              ");
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.ShadeCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureFilterCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureAddressCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureOpCaps);
-		CONSOLE_LOG   ("0x%08X ", D3DCaps.LineCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.ShadeCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.TextureCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.TextureFilterCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.TextureAddressCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.TextureOpCaps);
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.LineCaps);
 		CONSOLE_LOG   ("\n");
 
-		CONSOLE_LOG   (" | Support for temporary register: %s\n", ((D3DCaps.PrimitiveMiscCaps & D3DPMISCCAPS_TSSARGTEMP) == D3DPMISCCAPS_TSSARGTEMP)?"Yes":"No");
+		CONSOLE_LOG   (" | Support for temporary register: %s\n", ((ms_D3DCaps.PrimitiveMiscCaps & D3DPMISCCAPS_TSSARGTEMP) == D3DPMISCCAPS_TSSARGTEMP)?"Yes":"No");
 #ifdef _USE_HWVB
 		CONSOLE_PRINTF(" | Using Hardware Vertex Buffers!\n");
 #endif
 #ifdef _USE_SWAPCHAINS
 		CONSOLE_PRINTF(" | Using SwapChains!\n");
 #endif	
-		if(!(D3DCaps.DevCaps & D3DPMISCCAPS_BLENDOP)) {
+		if(!(ms_D3DCaps.DevCaps & D3DPMISCCAPS_BLENDOP)) {
 			CONSOLE_PRINTF(" | Device does not support the alpha-blending operations.\n");
 			bStatus = false;
 		} 
-		if(!(D3DCaps.RasterCaps & D3DPRASTERCAPS_ANTIALIASEDGES)) {
-			CONSOLE_PRINTF(" | Device does not support antialiasing on lines.\n");
+		if(!(ms_D3DCaps.RasterCaps & D3DPRASTERCAPS_ANTIALIASEDGES)) {
+			//CONSOLE_PRINTF(" | Device does not support antialiasing on lines.\n");
 		}
-		if(!(D3DCaps.RasterCaps & D3DPRASTERCAPS_PAT)) {
+		if(!(ms_D3DCaps.RasterCaps & D3DPRASTERCAPS_PAT)) {
 			CONSOLE_PRINTF(" | Device does not support patterned drawing.\n");
 		}
-		if(!(D3DCaps.TextureCaps & D3DPTEXTURECAPS_ALPHA)) {
+		if(!(ms_D3DCaps.TextureCaps & D3DPTEXTURECAPS_ALPHA)) {
 			CONSOLE_PRINTF(" | Device does not support alpha channel in texture pixels.\n");
+			bStatus = false;
+		}
+		if(!(ms_D3DCaps.TextureOpCaps & D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR)) {
+			CONSOLE_PRINTF(" | Device does not support advanced texture operations (only partial lightness support).\n");
+		}
+		if(!(ms_D3DCaps.TextureCaps & D3DPTEXTURECAPS_ALPHA) || !(ms_D3DCaps.TextureCaps & D3DPMISCCAPS_BLENDOP)) {
+			CONSOLE_PRINTF(" | Device does not support full alpha channel in textures.\n");
+		}
+		if(ms_D3DCaps.MaxTextureWidth < 512 || ms_D3DCaps.MaxTextureHeight < 512) {
+			CONSOLE_PRINTF(" | Device only supports exceptionally small textures (smaller than 512x512.)\n");
+		}
+		 
+		// Extra requirements:
+		if(  (ms_D3DCaps.MaxTextureBlendStages < 2) || 
+			!(ms_D3DCaps.TextureOpCaps & D3DTOP_MODULATE) ||
+			!(ms_D3DCaps.TextureOpCaps & D3DTOP_MODULATE2X) ) {
 			bStatus = false;
 		}
 	}
@@ -1225,20 +1287,23 @@ bool CGraphicsD3D8::SetFilter(GpxFilters eFilter, void *vParam)
 		case ClearFilters:
 			// Filters initialization:
 			m_fFilterPixelate = 1.0f / m_Zoom;
+			m_bFilterPixelate = false;
+
 			m_nFilterVertMove = 0;
 			m_nFilterHorzMove = 0;
 			m_dwFilterColor = COLOR_ARGB(255,128,128,128);
 		case EnableFilters:
 			bRet = m_bFilters;
 			m_bFilters = (vParam!=NULL);
+			UpdateFilters();
 			return bRet;
 		case Pixelate:
 			fAux = *((float*)vParam);
 			if(fAux > ms_nHelperHeight) fAux = (float)ms_nHelperHeight;
 			else if(fAux<1) fAux = 1.0f;
 			m_fFilterPixelate = 1.0f / (fAux * m_Zoom);
-			if(m_fFilterPixelate <= 0.0f) m_fFilterPixelate = 0.0f;
-			else if(m_fFilterPixelate > 1.0f) m_fFilterPixelate = 1.0f;
+			if(fAux != 1.0f) m_bFilterPixelate = true;
+			else m_bFilterPixelate = false;
 			bRet = true;
 			break;
 		case Colorize:
@@ -1269,10 +1334,14 @@ void CGraphicsD3D8::UpdateFilters()
 	RECT rcVisible;
 	GetVisibleRect(&rcVisible);
 
-	float x = (float)(rcVisible.right - rcVisible.left) * m_Zoom - 0.5f;
-	float y = (float)(rcVisible.bottom - rcVisible.top) * m_Zoom - 0.5f;
-	float u = m_fFilterPixelate * x / (float)(ms_nHelperWidth - 1);
-	float v = m_fFilterPixelate * y / (float)(ms_nHelperHeight - 1);
+	if(!m_bFilterPixelate) m_fFilterPixelate = 1.0f;
+	else if(m_fFilterPixelate <= 0.0f) m_fFilterPixelate = 0.0f;
+	else if(m_fFilterPixelate > 1.0f) m_fFilterPixelate = 1.0f;
+
+	float x = (float)(rcVisible.right - rcVisible.left + 1) * m_Zoom;
+	float y = (float)(rcVisible.bottom - rcVisible.top + 1) * m_Zoom;
+	float u = m_fFilterPixelate * x / (float)(ms_nHelperWidth);
+	float v = m_fFilterPixelate * y / (float)(ms_nHelperHeight);
 
 	float fXDisp = ((float)(m_nFilterHorzMove>0?m_nFilterHorzMove:0) * m_Zoom);
 	float fYDisp = ((float)(m_nFilterVertMove>0?m_nFilterVertMove:0) * m_Zoom);
@@ -1333,9 +1402,7 @@ bool CGraphicsD3D8::FlushFilters(bool bClear)
 			m_bFilters = false; // deactivate filters on error
 		}
 
-		D3DXMATRIX matTmp;
-		D3DXMatrixTranslation(&matTmp, -0.5f, -0.5f, 0.0);
-		D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &matTmp));
+		D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_IdentityMatrix));
 		D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_TEXTURE0, &m_IdentityMatrix));
 
 		D3DVERIFY(ms_pD3DDevice->SetTexture(0, ms_pHelperTexture));
@@ -1356,7 +1423,9 @@ bool CGraphicsD3D8::FlushFilters(bool bClear)
 	// Clear the current target surface with the Filter Background Clear Color set by a SetFilterBkColor() call.
 	if(bClear) Clear(NULL, m_rgbFilterBkColor);
 
-	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_IdentityMatrix));
+	D3DXMATRIX matTmp;
+	D3DXMatrixTranslation(&matTmp, -0.5f, -0.5f, 0.0);
+	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &matTmp));
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_TEXTURE0, &m_IdentityMatrix));
 
 	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
@@ -2084,45 +2153,60 @@ void CGraphicsD3D8::Render(
 	D3DXMatrixScaling(&matSc, fScale, fScale, 1.0f);
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_TEXTURE0, &matSc));
 
-	if(VertexBuffer->m_pVertices && VertexBuffer->m_nPrimitives) {
+	if( VertexBuffer->m_pVertices && VertexBuffer->m_dwVertices && VertexBuffer->m_dwPrimitives) {
+		ASSERT(VertexBuffer->m_dwVertices <= ms_D3DCaps.MaxVertexIndex);
+		ASSERT(VertexBuffer->m_dwPrimitives <= ms_D3DCaps.MaxPrimitiveCount);
 		ASSERT((IDirect3DBaseTexture8*)texture->GetTexture());
-		D3DVERIFY(ms_pD3DDevice->SetTexture(0, (IDirect3DBaseTexture8*)texture->GetTexture()));
+
+		if(VertexBuffer->m_bOverflow)
+			D3DVERIFY(ms_pD3DDevice->SetTexture(0, NULL));
+		else
+			D3DVERIFY(ms_pD3DDevice->SetTexture(0, (IDirect3DBaseTexture8*)texture->GetTexture()));
+
 		D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
 
-		
-		float lightnessAlpha;
-		BYTE lightnessValue;
-		if(lightness<0.5f) {
-			lightnessAlpha = (2.0f * lightness);
-			lightnessValue = 0;
+		// full lightness support:
+		if(ms_D3DCaps.TextureOpCaps & D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR) {
+			// Strider asked for this black to full white lightness system, but it doesn't work 
+			// on all the video cards (doesn't work on the Intel 82815) why? maybe stages not supported.
+			// Raichu19192 repored the Intel 82815 bug on this (all sprites are shown grey)
+			float lightnessAlpha;
+			BYTE lightnessValue;
+			if(lightness<0.5f) {
+				lightnessAlpha = (2.0f * lightness);
+				lightnessValue = 0;
+			} else {
+				lightnessAlpha = (2.0f - 2.0f * lightness);
+				lightnessValue = (BYTE)((1.0f - lightnessAlpha) * 255.0f + 0.5f);
+			}
+			ARGBCOLOR rgbLightness = COLOR_ARGB(
+				(BYTE)(lightnessAlpha * 255.0f + 0.5f),
+				lightnessValue, lightnessValue, lightnessValue );
+
+			D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_TEXTUREFACTOR, rgbLightness));
+			if(ms_bLastRendered == false) {
+				ms_bLastRendered = true;
+				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
+				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATEALPHA_ADDCOLOR));
+				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TFACTOR));
+				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+			}
 		} else {
-			lightnessAlpha = (2.0f - 2.0f * lightness);
-			lightnessValue = (BYTE)((1.0f - lightnessAlpha) * 255.0f + 0.5f);
+			// Alternative to the lightness (from black to lighter sprites),
+			if(ms_bLastRendered == false) {
+				ms_bLastRendered = true;
+				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
+				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE));
+			}
 		}
-		ARGBCOLOR rgbLightness = COLOR_ARGB(
-			(BYTE)(lightnessAlpha * 255.0f + 0.5f),
-			lightnessValue, lightnessValue, lightnessValue );
-
-		D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_TEXTUREFACTOR, rgbLightness));
-		if(ms_bLastRendered == false) {
-			ms_bLastRendered = true;
-			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
-
-			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATEALPHA_ADDCOLOR));
-			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TFACTOR));
-			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
-		}
-/*/
-			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
-/**/
 #ifdef _USE_HWVB
 		if(!VertexBuffer->m_pD3DVB) BuildHWVertexBuffer(VertexBuffer);
 		if(VertexBuffer->m_pD3DVB) {
 			D3DVERIFY(ms_pD3DDevice->SetStreamSource(0, VertexBuffer->m_pD3DVB, sizeof(D3DCDTVERTEX)));
-			D3DVERIFY(ms_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLELIST, 0, VertexBuffer->m_nPrimitives));
+			D3DVERIFY(ms_pD3DDevice->DrawPrimitive(D3DPT_TRIANGLELIST, 0, VertexBuffer->m_dwPrimitives));
 		}
 #else
-		D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, VertexBuffer->m_nPrimitives, VertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX)));
+		D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, VertexBuffer->m_dwPrimitives, VertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX)));
 #endif
 	}
 
@@ -2142,7 +2226,7 @@ void CGraphicsD3D8::Render(
 void CGraphicsD3D8::BuildHWVertexBuffer(SVertexBuffer *pVertexBuffer) const
 {
 	if(FAILED(ms_pD3DDevice->CreateVertexBuffer(
-		sizeof(D3DCDTVERTEX) * pVertexBuffer->m_nVertices,
+		sizeof(D3DCDTVERTEX) * pVertexBuffer->m_dwVertices,
 		D3DUSAGE_WRITEONLY,
 		D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1,
 		D3DPOOL_MANAGED,
@@ -2150,7 +2234,7 @@ void CGraphicsD3D8::BuildHWVertexBuffer(SVertexBuffer *pVertexBuffer) const
 
 	BYTE *Ptr;
 	if(SUCCEEDED(pVertexBuffer->m_pD3DVB->Lock(0, 0, (BYTE**)&Ptr, 0))) {
-		memcpy(Ptr, pVertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX) * pVertexBuffer->m_nVertices);
+		memcpy(Ptr, pVertexBuffer->m_pVertices, sizeof(D3DCDTVERTEX) * pVertexBuffer->m_dwVertices);
 		pVertexBuffer->m_pD3DVB->Unlock();
 	}
 }
