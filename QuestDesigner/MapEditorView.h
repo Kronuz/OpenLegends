@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -64,6 +64,9 @@ private:
 	bool m_bShowGrid;
 
 	bool m_bAnimated;
+
+	bool m_bPanning;
+	CPoint m_PanningPoint;
 
 	CURSOR m_CursorStatus;
 	CURSOR m_OldCursorStatus;

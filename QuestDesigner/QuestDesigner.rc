@@ -453,26 +453,27 @@ IDI_DOC_WAV             ICON                    "res\\QuestDesignerWav.ico"
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 403, 167
+IDD_ABOUTBOX DIALOGEX 0, 0, 403, 174
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About Quest Designer"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,7,146,50,14
-    CTEXT           "Copyright (C) 2003. Germán Méndez Bravo (Kronuz)",
+    DEFPUSHBUTTON   "OK",IDOK,7,153,50,14
+    CTEXT           "Copyright (C) 2003. Kronuz (Germán Méndez Bravo)",
                     IDC_STATIC,146,149,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
     GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
-    CTEXT           "Quest Designer v0.5.0\nfor Open Zelda",IDC_STATIC,7,122,
+    CTEXT           "Quest Designer v0.6.0\nfor Open Zelda",IDC_STATIC,7,122,
                     132,17,0,WS_EX_TRANSPARENT
-    EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | ES_AUTOHSCROLL | 
-                    WS_VSCROLL
+    EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
     LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
                     98,8
     LTEXT           "Author e-mail:",IDC_STATIC,175,130,44,8
     LTEXT           "Open Zelda Website:",IDC_STATIC,175,119,68,8
     LTEXT           "http://www.openzelda.com",IDC_URL1_STATIC,259,119,88,8
-    PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,146,70,14
+    PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,153,70,14
+    CTEXT           "Copyright (C) 2001-2003. Open Zelda's Project",
+                    IDC_STATIC,146,159,250,8
 END
 
 IDD_PROPERTIES DIALOGEX 0, 0, 360, 206
@@ -533,8 +534,7 @@ BEGIN
     LTEXT           "Code based in the conceptual design and original idea by Greg Denness.",
                     IDC_STATIC,20,7,232,8
     GROUPBOX        "Many Thanks to:",IDC_STATIC,15,83,239,142
-    EDITTEXT        IDC_THANKS_EDIT,24,94,222,124,ES_MULTILINE | 
-                    ES_AUTOHSCROLL | WS_VSCROLL
+    EDITTEXT        IDC_THANKS_EDIT,24,94,222,124,ES_MULTILINE | WS_VSCROLL
 END
 
 
@@ -553,7 +553,7 @@ BEGIN
         VERTGUIDE, 139
         VERTGUIDE, 146
         TOPMARGIN, 7
-        BOTTOMMARGIN, 160
+        BOTTOMMARGIN, 167
     END
 
     IDD_ACK, DIALOG
@@ -597,8 +597,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,5
- PRODUCTVERSION 1,0,0,5
+ FILEVERSION 1,0,0,6
+ PRODUCTVERSION 1,0,0,6
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -615,14 +615,14 @@ BEGIN
         BEGIN
             VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Quest Designer v0.5.0 alpha"
-            VALUE "FileVersion", "1, 0, 0, 5"
+            VALUE "FileDescription", "Quest Designer v0.6.0 alpha"
+            VALUE "FileVersion", "1, 0, 0, 6"
             VALUE "InternalName", "QuestDesigner"
-            VALUE "LegalCopyright", "Copyright © 2002-2003 by Kronuz. All rights reserved."
+            VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
             VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Zelda\r\n"
             VALUE "OriginalFilename", "QuestDesigner.exe"
             VALUE "ProductName", "Quest Designer for Open Zelda"
-            VALUE "ProductVersion", "1, 0, 0, 5"
+            VALUE "ProductVersion", "1, 0, 0, 6"
         END
     END
     BLOCK "VarFileInfo"
@@ -640,6 +640,7 @@ END
 IDC_ARROWADD            CURSOR                  "res\\arrowadd.cur"
 IDC_ARROWDEL            CURSOR                  "res\\arrowdel.cur"
 IDC_ARROWSELECT         CURSOR                  "res\\arrowselect.cur"
+IDC_MHAND               CURSOR                  "res\\mhand.cur"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -663,7 +664,7 @@ END
 STRINGTABLE 
 BEGIN
     ID_POSITION_PANE        "Ln: 9999, Col: 9999"
-    ID_OVERTYPE_PANE        " OVR "
+    ID_OVERTYPE_PANE        "  OVR  "
     ID_READONLY_PANE        "READ"
     ID_ICON_PANE            "ICI"
 END

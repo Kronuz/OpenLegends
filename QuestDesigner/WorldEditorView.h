@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -23,6 +23,8 @@
 */
 
 #pragma once
+
+#include "../Core.h"
 
 #include "ChildView.h"
 /////////////////////////////////////////////////////////////////////////////
@@ -47,6 +49,10 @@ private:
 	HFONT m_hFont6;
 
 	bool m_bClean;
+	bool m_bPanning;
+	CURSOR m_CursorStatus;
+
+	CPoint m_PanningPoint;
 	CMapGroup *m_pSelMapGroup;
 	CPoint m_MousePoint;
 	CPoint m_MapPoint;
@@ -113,6 +119,7 @@ public:
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled);
 
 	void DoPaint(CDCHandle dc);
+	void ToCursor(CURSOR cursor_);
 
 	void UpdateSelections();
 	void UpdateMouse(const CPoint &point);

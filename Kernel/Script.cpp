@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -53,7 +53,7 @@
 	Core native functions for the Small language.
 */
 /*! 
-	\defgroup float Small's Float Functions
+	\defgroup float Floating-point related Functions
 	\ingroup openzelda
 	Float tag type native functions.
 */
@@ -91,6 +91,8 @@ float GetTimeDelta(); /*!<
 		Although this is not always entirely true, since when the delta time comes to be
 		higher than 0.05 (i.e. more than 50 milliseconds since have been past since last frame) 
 		the delta time remains at 0.05 thus slowing the whole game down, instead of dropping frames.
+
+		To use this function you should include both general and float header files.
 
 	<b>Example:</b>
 	\code

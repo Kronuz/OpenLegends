@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -91,7 +91,7 @@ CMapEditorView::CMapEditorView(CMapEditorFrame *pParentFrame) :
 	m_bShowBoundaries(false),
 	m_bShowGrid(false),
 	m_bAnimated(true),
-
+	m_bPanning(false),
 	m_bModified(false)
 {
 }
@@ -352,7 +352,13 @@ void CMapEditorView::ScrollTo(int x, int y)
 void CMapEditorView::ToCursor(CURSOR cursor_)
 {
 	HCURSOR hCursor;
+
+	m_CursorStatus = cursor_;
 	
+	if(m_bPanning) {
+		cursor_ = eIDC_HAND;
+	}
+
 	switch(cursor_) {
 		case eIDC_ARROW:	hCursor = LoadCursor(NULL, IDC_ARROW); break;
 		case eIDC_CROSS:	hCursor = LoadCursor(NULL, IDC_CROSS); break;
@@ -364,8 +370,9 @@ void CMapEditorView::ToCursor(CURSOR cursor_)
 		case eIDC_SIZEWE:	hCursor = LoadCursor(NULL, IDC_SIZEWE); break;
 		case eIDC_ARROWADD: hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_ARROWADD)); break;
 		case eIDC_ARROWDEL: hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_ARROWDEL)); break;
+		case eIDC_HAND:		hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_MHAND)); break;
 	}
-	m_CursorStatus = cursor_;
+
 	SetCursor(hCursor);
 }
 LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
@@ -456,6 +463,7 @@ LRESULT CMapEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 			m_SelectionI->CancelSelBox();
 		}
 	}
+
 	return 0;
 }
 LRESULT CMapEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
@@ -495,30 +503,24 @@ LRESULT CMapEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	}
 /**/
 	Invalidate();
+
 	return 0;
 }
 LRESULT CMapEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
-//	if(m_bIgnoreClick) { m_bIgnoreClick = false; return 0; }
-	CPoint Point(lParam);
-	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
-	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	m_PanningPoint.SetPoint(LOWORD(lParam), HIWORD(lParam));
+
+	m_bPanning = true;
 	ToCursor(m_CursorStatus);
+	SetCapture();
 
 	return 0;
 }
 LRESULT CMapEditorView::OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
-//	if(m_bIgnoreClick) { m_bIgnoreClick = false; return 0; }
-	CPoint Point(lParam);
-	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
-	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+	m_bPanning = false;
 	ToCursor(m_CursorStatus);
-
+	ReleaseCapture();
 	return 0;
 }
 LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
@@ -711,6 +713,22 @@ LRESULT CMapEditorView::BeginDrag()
 }
 LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	CPoint Point(lParam);
+
+	if(m_bPanning) {
+		if((wParam&MK_MBUTTON)!=MK_MBUTTON) {
+			m_bPanning = false;
+			ReleaseCapture();
+		} else {
+			CPoint ScrollPoint(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
+			ScrollPoint += (m_PanningPoint - Point);
+			ScrollTo(ScrollPoint.x, ScrollPoint.y);
+			m_PanningPoint = Point;
+			UpdateView();
+			return 0;
+		}
+	}
+
 	if(m_DragState==tWaiting) {
 		// the mouse entered the client area again before timeout:
 		KillTimer(2);
@@ -725,8 +743,6 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 		Track.dwHoverTime = HOVER_DEFAULT;
 		TrackMouseEvent(&Track);
 	}
-
-	CPoint Point(lParam);
 
 	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;

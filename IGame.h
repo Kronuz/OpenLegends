@@ -7,11 +7,25 @@
 #include "Kernel/DrawManager.h"
 #include "Kernel/SpriteManager.h"
 #include "Kernel/WorldManager.h"
-#include "Kernel/SoundManager.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 struct GameInfo;
+
+interface ISound 
+{
+	virtual void Play() const = 0;
+	virtual void Loop(int _repeat = -1) = 0;
+	virtual void Stop() const = 0;
+	virtual void FadeOut(bool _fade = true) = 0;
+	virtual void FadeIn(bool _fade = true) = 0;
+
+	virtual int SetFadeSpeed(int _speed) = 0;
+	virtual int SetVolume(int _volume) = 0;
+
+	virtual int GetFadeSpeed() const = 0;
+	virtual int GetVolume() const = 0;
+};
 
 interface IScript
 {
@@ -126,7 +140,7 @@ struct SoundInfo
 {
 	InfoReason eInfoReason;
 	LPCSTR lpszString;
-	CSound *pInterface;
+	ISound *pInterface;
 };
 struct ScriptInfo
 {

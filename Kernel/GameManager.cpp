@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -55,6 +55,7 @@ CGameManager::CGameManager() :
 {
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
+	pSoundManager = CSoundManager::Instance();
 }
 
 CGameManager::~CGameManager()
@@ -340,7 +341,7 @@ bool CGameManager::Load(CVFile &vfFile)
 
 	CONSOLE_PRINTF("Loading project: '%s' at %s...\n", m_sProjectName, vfFile.GetPath());
 
-	ASSERT(g_sHomeDir != "");
+    ASSERT(g_sHomeDir != "");
 	// CBString sPath = g_sHomeDir + "Sprite Sheets\\*.spt";
 	CVFile vfn = g_sHomeDir + "Sprite Sheets\\*.spt";
 	vfn.ForEachFile(CGameManager::LoadSheet, (LPARAM)this);
@@ -368,6 +369,13 @@ bool CGameManager::Load(CVFile &vfFile)
 	m_UndefSprites.clear();
 
 	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+
+	//CSound *pSound = new CSound;
+	//pSound->LoadFile(CVFile("C:\\qd\\Quest Designer 2.1.4\\sounds\\forest.it"));
+	//pSound->LoadFile(CVFile("C:\\qd\\Quest Designer 2.1.4\\sounds\\rain.wav"));
+	//pSound->LoadFile(CVFile("C:\\qk\\bi.mp3"));
+	//pSound->Loop();
+	//pSound->Play();
 
 	return true;
 }
@@ -585,7 +593,7 @@ LPCSTR CGameManager::GetProjectName() const
 }
 const IScript* CGameManager::GetScript(int idx) const
 {
-	ASSERT(idx<m_Scripts.size());
+	ASSERT(idx < (int)m_Scripts.size());
 	std::map<CBString, CScript*>::const_iterator Iter=m_Scripts.begin();
 	for(int i=0; Iter!=m_Scripts.end(); Iter++, i++) {
 		if(i == idx) return Iter->second;

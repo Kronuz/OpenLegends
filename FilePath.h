@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -79,6 +79,7 @@ class CVFile {
 	int ReadVirtual(LPVOID buffer, size_t buffsize);
 	int WriteVirtual(LPVOID buffer, size_t buffsize);
 	int SeekVirtual(long offset, int origin);
+	long TellVirtual() const;
 	LPSTR GetLineVirtual(LPSTR string, int n);
 	size_t GetVirtualFileSize() const;
 	FILETIME* GetVirtualFileDate() const;
@@ -114,6 +115,7 @@ public:
 	int Read(LPVOID buffer, size_t buffsize);
 	int Write(LPVOID buffer, size_t buffsize);
 	int Seek(long offset, int origin);
+	long Tell() const;
 	LPSTR GetLine(LPSTR string, int n);
 	FILETIME* GetFileDate() const;
 	size_t GetFileSize() const;
@@ -307,6 +309,11 @@ inline int CVFile::WriteVirtual(LPVOID buffer, size_t buffsize)
 	ASSERT(!*"No writes allowed on virtual files, yet...");
 	return -1;
 }
+inline long CVFile::TellVirtual() const
+{
+	ASSERT(m_vFile != NULL);
+	return (long)unztell(m_vFile);
+}
 inline int CVFile::SeekVirtual(long offset, int origin)
 {
 	ASSERT(m_vFile != NULL);
@@ -460,6 +467,14 @@ inline int CVFile::Write(LPVOID buffer, size_t buffsize)
 
 	ASSERT(m_File);
 	return (int)fwrite(buffer, 1, buffsize, m_File);
+}
+inline long CVFile::Tell() const
+{
+	if(!m_bOpenFile) return -1;
+	if(m_bVirtual) return TellVirtual();
+
+	ASSERT(m_File);
+	return ftell(m_File);
 }
 inline int CVFile::Seek(long offset, int origin)
 {

@@ -553,6 +553,9 @@
 				RelativePath="res\MapEdToolbarObject.bmp">
 			</File>
 			<File
+				RelativePath=".\res\mhand.cur">
+			</File>
+			<File
 				RelativePath="res\Okay.ico">
 			</File>
 			<File

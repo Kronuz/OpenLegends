@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -29,5 +29,65 @@
 
 #pragma once
 
-class CSound {
+#include "../IGame.h"
+
+#include "libs/fmod/fmod.h"
+
+// each sound or music is a CSound
+class CSound :
+	public ISound
+{
+	int m_nLength;
+	LPBYTE m_pData;
+	CVFile m_vFile;
+	enum SoundType { stUnknown, stStream, stSample, stMusic } eType;
+	union {
+		FSOUND_STREAM *m_pStream;
+		FSOUND_SAMPLE *m_pSample;
+		FMUSIC_MODULE *m_pMusic;
+	};
+
+public:
+	CSound();
+	~CSound();
+
+	bool LoadFile(CVFile &vFile);
+	bool UnloadFile();
+
+	virtual void Play() const;
+	virtual void Loop(int _repeat = -1);
+	virtual void Stop() const;
+	virtual void FadeOut(bool _fade = true);
+	virtual void FadeIn(bool _fade = true);
+
+	virtual int SetFadeSpeed(int _speed);
+	virtual int SetVolume(int _volume);
+
+	virtual int GetFadeSpeed() const;
+	virtual int GetVolume() const;
+
+};
+
+// this is the singleton sound manager.
+class CSoundManager {
+	static CSoundManager *_instance;
+public:
+	static bool ms_bSound;
+
+	CSoundManager();
+	~CSoundManager();
+	bool InitSound();
+
+	void DoMusic();
+	void SwitchMusic(ISound *pSound_);
+	void FadeSound();
+	int SetVolume(int _volume);
+	int GetVolume() const;
+
+	static CSoundManager* Instance() {
+		if(!_instance) {
+			_instance = new CSoundManager;
+		}
+		return _instance;
+	}
 };
