@@ -155,6 +155,8 @@ interface IGraphics
 	*/
 	virtual bool Initialize(HWND hWnd, bool bWindowed=true, int nScreenWidth=0, int nScreenHeight=0) = 0;
 
+	virtual bool SetMode(HWND hWnd, bool bWindowed=true, int nScreenWidth=0, int nScreenHeight=0) = 0;
+
 	/*! \brief Finalization of the interface.
 
 		\return Returns true if the interface was finalized or no major failures occurred.
@@ -266,7 +268,7 @@ interface IGraphics
 
 	virtual void SetClearColor(ARGBCOLOR rgbColor) = 0;
 
-	virtual void SetFont(LPCSTR lpFont, const SIZE &sizeChar) = 0;
+	virtual void SetFont(LPCSTR lpFont, int CharHeight, ARGBCOLOR rgbColor, LONG Weight) = 0;
 	virtual void DrawText(const POINT &pointDest, LPCSTR lpString, ...) const = 0;
 	virtual void DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR lpString, ...) const = 0;
 
@@ -286,6 +288,9 @@ interface IGraphics
 		\param buffer		Pointer to a buffer to store temporary data. This buffer is used
 			to speed up the rendering proces whenever is possible, and should not be changed
 			outside the interface exept for invalidation and touching.
+		\param rotation		Relative extra rotation of the sprite. 
+			Initial basic rotation + relative rotation = Final rotation of the sprite.
+		\param scale		Relative extra scale factor for the sprite.
 
 		\remarks 
 		All rectangles are of inclusive-exlusive type.
@@ -300,7 +305,9 @@ interface IGraphics
 		int rotate = GFX_ROTATE_0, 
 		int transform = GFX_NORMAL, 
 		ARGBCOLOR rgbColor = COLOR_ARGB(255,255,255,255), 
-		IBuffer **buffer=NULL
+		IBuffer **buffer = NULL,
+		float rotation = 0.0f,
+		float scale = 1.0f
 	) const = 0;
 
 	//! Draws a filled rectangle

@@ -28,6 +28,8 @@ interface IGame :
 
 	static const WORD Version;
 
+	virtual float UpdateFPS(float fpsLock = -1.0f) = 0;
+
 	// CDocumentObject override:
 	virtual bool Load(LPCSTR szFile) = 0;
 	virtual bool Save(LPCSTR szFile) = 0;
