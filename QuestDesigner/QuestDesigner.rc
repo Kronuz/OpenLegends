@@ -50,6 +50,22 @@ END
 // Toolbar
 //
 
+IDR_TB_DEBUG TOOLBAR  18, 18
+BEGIN
+    BUTTON      ID_DBG_DEBUG
+    BUTTON      ID_DBG_CONTINUE
+    BUTTON      ID_DBG_PAUSE
+    BUTTON      ID_DBG_STOP
+    SEPARATOR
+    BUTTON      ID_DBG_BREAKPOINT
+    BUTTON      ID_DBG_NEXT
+    BUTTON      ID_DBG_STEPIN
+    BUTTON      ID_DBG_STEPOVER
+    BUTTON      ID_DBG_STEPOUT
+    SEPARATOR
+    BUTTON      ID_DBG_PROFILER
+END
+
 IDR_MAINFRAME TOOLBAR  18, 18
 BEGIN
     BUTTON      ID_PROJECT_OPEN
@@ -67,7 +83,6 @@ BEGIN
     BUTTON      ID_APP_PARALLAX
     BUTTON      ID_APP_ANIM
     SEPARATOR
-    BUTTON      ID_APP_RUN
     BUTTON      ID_APP_BUILD
     BUTTON      ID_APP_STOPBUILD
     SEPARATOR
@@ -172,6 +187,8 @@ IDR_TB_PROPVIEW         BITMAP                  "res\\PropertyViewToolbar.bmp"
 IDB_TAB_ICONS           BITMAP                  "res\\tab_icons.bmp"
 IDB_DRAGIMG             BITMAP                  "res\\DragImg.bmp"
 IDB_CAMARA              BITMAP                  "res\\camara.bmp"
+IDR_TB_DEBUG            BITMAP                  "res\\DebugToolbar.bmp"
+IDB_MARGIN              BITMAP                  "res\\Margin.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -472,7 +489,7 @@ BEGIN
                     IDC_STATIC,146,149,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
     GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
-    CTEXT           "Quest Designer v.0.8.1 (beta)\nfor Open Zelda",
+    CTEXT           "Quest Designer v.0.8.2 (beta)\nfor Open Zelda",
                     IDC_STATIC,7,122,132,17,0,WS_EX_TRANSPARENT
     EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
     LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
@@ -637,7 +654,7 @@ BEGIN
         BEGIN
             VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Quest Designer v0.8.1 (beta)"
+            VALUE "FileDescription", "Quest Designer v0.8.2 (beta)"
             VALUE "FileVersion", "1, 0, 0, 8"
             VALUE "InternalName", "QuestDesigner"
             VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
@@ -670,6 +687,7 @@ IDC_MHAND               CURSOR                  "res\\mhand.cur"
 //
 
 IDR_TB1_PROJECT         PNG                     "res\\ToolbarProject.png"
+IDR_TB1_DEBUG           PNG                     "res\\ToolbarDebug.png"
 IDR_TB1_MAIN            PNG                     "res\\ToolbarMain.png"
 IDR_TB1_MAPED_BASIC     PNG                     "res\\ToolbarMapEdBasic.png"
 IDR_TB1_MAPED_OBJECT    PNG                     "res\\ToolbarMapEdObject.png"
@@ -899,7 +917,7 @@ BEGIN
     ID_APP_ANIM             "Enable animations in the application.\nEnable Animations"
     ID_APP_PARALLAX         "Enable Parallax views.\nEnable Parallax"
     ID_MAPED_SELHOLD        "Toggle hold/lock the current selection.\nHold Selection"
-    ID_APP_RUN              "Run the Quest File.\nRun Quest"
+    ID_DBG_DEBUG            "Debug the Quest File.\nDebug Quest"
 END
 
 STRINGTABLE 
@@ -927,6 +945,19 @@ BEGIN
     IDS_DESC_ROTATION       "Rotation of the object."
     IDS_DESC_LAYER          "Current layer of the object."
     IDS_DESC_SUBLAYER       "Current Sublayer of the object."
+END
+
+STRINGTABLE 
+BEGIN
+    ID_DBG_PAUSE            "Immetiate debug break.\nBreak"
+    ID_DBG_STOP             "Stop debugging.\nStop Debugging"
+    ID_DBG_NEXT             "Show the next instruction to execute.\nShow Next Instruction"
+    ID_DBG_STEPIN           "Step into.\nStep Into"
+    ID_DBG_STEPOVER         "Step over.\nStep Over"
+    ID_DBG_STEPOUT          "Step out.\nStep Out"
+    ID_DBG_PROFILER         "Show Profiler.\nShow Profiler"
+    ID_DBG_BREAKPOINT       "Toggle a breakpoint.\nToggle Breakpoint"
+    ID_DBG_CONTINUE         "Continue debugging.\nContinue"
 END
 
 #endif    // Inglés (Estados Unidos) resources

@@ -1,0 +1,151 @@
+What's new on the Open Zelda Project:
+http://www.openzelda.com/
+
+What's new:
+--------------------------------------------------
+
+Open Zelda Project v.0.8.2: (not yet released)
+* First release of the new Open Zelda.
+* A "What's new" file has been added.
++ QD: Sprite sets remain grouped as long as you don't close the map group.
++ QD: Support for the Open Zelda debugger, to debug and test scripts in real time.
++ OZ: Added the Open Zelda debugger.
++ OZ: Supports full screen and windowed mode.
+
+Open Zelda Project v.0.8.1: (October 31, 2003)
+- QD: Minor Bug fixes.
++ QD: Improved support for Sprite Sets.
++ QD: Support for thumbnails window.
+- QD: Fixed a bug that made windows to show improperly or in weird locations some times.
+
+Open Zelda Project v.0.8.0: (October 7, 2003)
+- QD: Many bug Fixes.
++ QD: Improved Properties window. (Color peeker, color sliders, etc.)
++ QD: Toolbar and application icons now support full 32 bits color!. (See note #6 in release notes.)
++ QD: Sprite Sheet Editor now shows sprite sheets, although you can't change anything yet.
++ QD: You can save Sprite Sets, as well as load them (still incomplete.)
++ QD: Added support for parallax views (See note #5 in release notes.)
+
+Open Zelda Project v.0.7.x (September 10, 2003 - September 16, 2003)
+* Introduced "lite" releases (See note #4 in release notes.)
+- QD: Bug fixes.
++ QD: Full layers and sublayers support has finally been added (still working on parallax.) 
++ QD: Subselection of objects (See note #3 in release notes.)
++ QD: Zoom In/Out behavior has been improved.
++ QD: Music and Sounds made optional while editing the map groups.
+
+Open Zelda Project v.0.6.2 (September 1, 2003)
+- QD: Bug fixes.
++ QD: Properties window has been improved.
+
+Open Zelda Project v.0.6.1 (August 31, 2003)
+- QD: Minor bug fixes.
++ QD: Properties window is now working.
++ QD: Map group music plays during map group edition.
+
+Open Zelda Project v.0.6.0 (August 29, 2003)
+* Added tha new OZ pre-alpha for testing purposes
++ QD: Zip files support has been added.
++ QD: Sound engine is now working wiht IT, MIDI, MOD, WAV, MP3, OGG support!
++ QD: Now you can add entities and sprites and create "sprite sets" (See note #2 in release notes.)
++ QD: Help file added.
++ QD: Script Interpreter.
++ QD: Panning support added.
++ QD: About box and other minor changes.
++ QD: Added support for intellisense on script edition. (not fully functional yet)
+
+Open Zelda Project v.0.5.0 (June 2, 2003)
+* Project separated in modules.
+- QD: Many bug fixes.
++ QD: Layers support added.
++ QD: Loads game files located at: 'C:\qd\Quest Designer 2.1.4\' (See note #2 in release notes.)
++ QD: Quest designer can load quests.
++ QD: World editor can show map groups.
++ QD: Map group editor can show map groups. (full support with zoom, selection, moving, resizing, erasing, etc.)
++ QD: Integrated Small Language compiler (now compiles scripts.)
++ QD: Preferences window (not yet working.)
++ QD: Properties window (not yet working.)
++ QD: Toolbars for the map editor.
+
+Open Zelda Project v.0.1.0 (June 2, 2003)
+* First release of the new Quest Designer.
++ QD: Graphics Engine is partially working.
++ QD: Scripts Editor is partially working.
++ QD: World Editor is partially working.
+
+
+Release Notes:
+--------------------------------------------------
+
+To use the new Quest Designer, you have to have the old Quest Designer (by GD) on the directory C:\qd\Quest Designer 2.0.4
+Note that this will change in the future, as all the options will be on the properties sheet, but
+right now it's hardcoded, so it has to be there. You can get the old Quest Designer from SourceForge
+also (Quest Designer by GD)
+
+This Quest Designer will load Kakariko village and it will be shown as the map in the map editor.
+So far you can select objects and zoom in/out.
+
+2. What are "Sprite sets"? you may wonder. Sprite-sets are a new way to add sprites to a map, several sprites and entities can be selected and you can apply some properties to each sprite in the selection. A selection of sprites is called a "sprite set", think of sprite-sets as sprite groups. The sprite-sets can be added, copied, or saved. If you want to add a complete house, or a forest, or anything else you can think of, you can add all the sprites needed in an easier way by instead adding sprite-sets.
+
+These sprite sets can be resized, moved, and rotated as if they where single sprites. For instance, you can add the sprite-set of a house to the map, and while it remains a sprite set, you can easily resize, move, and rotate the house. Once you have deselected the "house sprite-set" or selected other sprites instead, the "house sprite-set" stops being an sprite-set, and its components becomes regular sprites in the map.
+
+3. Selection can be set as "on hold" to edit subselections. Thus making edition of chains in Sprite Sets easier to modify. Single object and multiobject properties edition is now fully supported. 
+
+4. To use "lite" releases, download the latest non-lite release before the lite release, install it or uncompress it and then overwrite with the files in the lite release.
+
+5. Parallax is now fully functional. These are some facts about how parallax works in OZ:  
+|  + if the layer's size is the same as the map group's size, 
+|    tha layer won't be parallaxed.
+|  + if the layer is the same size as the screen, it will 
+|    remain static and always visible.
+|  + the layer's boundaries meet all of the map group edges, so:
+|    * if the layer's width is larger than the map group's 
+|      width, the layer will horizontally travel faster.
+|    * if the layer's height is larger than the map group's 
+|      height, the layer will vertically travel faster.
+|    * if the layer's width is smaller than the map group's 
+|      width, the layer will horizontally travel slower.
+|    * if the layer's height is smaller than the map group's
+|      height, the layer will vertically travel slower.
+
+Edit the layer's width and height on the properties window (in the Map Group properties)
+
+6. Non-XP needs GDIplus.dll to run. GDI+ is standard on Windows XP. For Windows 98, Windows Me, Windows NT 4.0, and Windows 2000, you can simply copy GdiPlus.DLL into the Quest Designer's directory. You can get griplus from several different locations in the web. Microsoft has the redistributable version at http://download.microsoft.com/download/platformsdk/redist/3097/W98NT42KMeXP/EN-US/gdiplus_dnld.exe
+
+
+FAQ
+---------------------------------------------------
+Q: I have a Intel Graphics Chipset and I'm having problems (with GraphicsD3D8.dll)
+A:
+32-bit color depth is only supported by the Intel® 82830M graphics controller and Intel® 82845G graphics controller. 32-bit color is not supported by the Intel® 82810 and 82815 graphics controllers. As a result, a few games that require 32-bit color, such as Open Zelda, will not run on the Intel 82810 or 82815 graphics controllers. 
+
+Try to download and install the latest drivers from Intel. Also, you can try setting the video mode to 24 bits, but it might still be buggy as the card isn't really supported. If this doesn't work, then we are very sorry to say that there is no other known solution :( You may want to consider upgrading your computer by buying a new GFX card (we recommend ATI Radeon and/or NVidia Geforce cards) 
+
+
+Q: Where do I get the latest drivers / directX ?
+A:
+DirectX
+While a sufficiently recent version of DirectX is available on the official Open Zelda website, we recommend that you install the latest version.
+You can get it (for free) here:
+http://www.microsoft.com/windows/directx/default.aspx 
+
+Graphics cards
+Generally speaking, you can get them at the website of the manufacturer. 
+
+If you have a nVidia card (Geforce series/Riva TNT series) go here and get new drivers.
+http://www.nvidia.com/view.asp?PAGE=drivers 
+If you have an ATI card (ie. Radeon/Rage/Mach) card get your drivers here.
+http://mirror.ati.com/support/driver.html 
+If you have a voodoo card go here:
+http://www.voodoofiles.com/category.asp?x=2 
+NOTE: A few of the above mentioned cards have extra functionalities if they are made by 3rd party manufacturers which will be disabled if you install the "pure" drivers from the chipset manufacturers mentioned above, that goes for cards like Asus Geforce cards and Hercules ATI cards, the drivers WILL work but you could loose some functionality on the card, please go to the manufacturers website (See your card manual or box) to download the right drivers. 
+
+Motherboard
+If you have VIA chipset based motherboard download the latest Via 4in1's here:
+http://www.viaarena.com/?PageID=2
+
+Otherwise, we recommend you consult your manufacturor's webpage. 
+
+Soundcard
+Consult your manufacturor's webpage.
+Alterntatively you may consider installing windows' (XP) default sound drivers.

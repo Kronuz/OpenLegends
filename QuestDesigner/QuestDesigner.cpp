@@ -104,8 +104,17 @@
 
 #include "stdafx.h"
 #include "QuestDesigner.h"
+#include "../Net.h"
 
+#include <list>
+#include <string>
+
+static std::list<std::string> g_LinesToSend;
+
+HANDLE g_hLines = NULL;
+HWND g_hWnd = NULL;
 CAppModule _Module;
+CRITICAL_SECTION g_DebugCritical;
 
 void ShowHelp(HWND hWnd, LPCSTR szTopic) 
 {
@@ -229,6 +238,7 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 		return 0;
 	}
 	wndMain.ShowWindow(SW_MAXIMIZE);
+	g_hWnd = wndMain.m_hWnd;
 
 	int nRet = theLoop.Run();
 
@@ -261,6 +271,9 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	hRes = _Module.Init(NULL, hInstance);
 	ATLASSERT(SUCCEEDED(hRes));
 
+	g_hLines = CreateSemaphore(NULL, 0, 500, NULL);
+	InitializeCriticalSection(&g_DebugCritical);
+
 	AtlAxWinInit();
 
 	HMODULE hInstRich = ::LoadLibrary(CRichEditCtrl::GetLibraryName());
@@ -269,6 +282,9 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	int nRet = Run(lpstrCmdLine, nCmdShow);
 
 	::FreeLibrary(hInstRich);
+
+	if(g_hLines) { CloseHandle(g_hLines); g_hLines = NULL; }
+	DeleteCriticalSection(&g_DebugCritical);
 
 	_Module.Term();
 //	::CoUninitialize();
@@ -279,3 +295,83 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 */
 	return nRet;
 }
+
+/////////////////////////////////////////////////////////
+// REAL TIME DEBUGGER STUFF:
+
+bool __Send(LPCSTR format, va_list argptr)
+{
+	char buff[2001];
+	vsprintf(buff, format, argptr);
+	ASSERT(strlen(buff) < 2000);
+	buff[2000] = '\0';
+	g_LinesToSend.push_back(buff);
+	ReleaseSemaphore(g_hLines, 1, NULL);
+	return true;
+}
+
+bool BeginSend()
+{
+	EnterCriticalSection(&g_DebugCritical);
+	return true;
+}
+bool EndSend()
+{
+	LeaveCriticalSection(&g_DebugCritical);
+	return true;
+}
+
+bool Send(LPCSTR format, ...)
+{
+	EnterCriticalSection(&g_DebugCritical);
+
+	va_list argptr;
+	va_start(argptr, format);
+	bool ret = __Send(format, argptr);
+	va_end(argptr);
+
+	LeaveCriticalSection(&g_DebugCritical);
+	return ret;
+}
+int CALLBACK Dispatch(SOCKET s)
+{
+	char buffer[100];
+	// Check for the welcome message from the server:
+	if(RecvLine(s, buffer, sizeof(buffer))) {
+		if(strncmp(buffer, "100 ", 4))
+			Disconnect();
+	}
+	do {
+		if(*buffer) {
+			LPSTR szCommand = new char[strlen(buffer) + 1];
+			strcpy(szCommand, buffer);
+			// Post the command:
+			if(::PostMessage(g_hWnd, WM_USER, (WPARAM)s, (LPARAM)szCommand) == 0) {
+				delete szCommand;
+			}
+		}
+		if(!RecvLine(s, buffer, sizeof(buffer))) *buffer = '\0';
+	} while(Connected());
+	return 0;
+}
+int CALLBACK Request(SOCKET s)
+{
+	EnterCriticalSection(&g_DebugCritical);
+	g_LinesToSend.clear();
+	LeaveCriticalSection(&g_DebugCritical);
+
+	while(Connected()) {
+		if(WaitForSingleObject(g_hLines, 500) == WAIT_OBJECT_0) {
+			EnterCriticalSection(&g_DebugCritical);
+			if(!g_LinesToSend.empty()) {
+				std::string sLine = g_LinesToSend.front();
+				::Send(s, sLine.c_str(), sLine.length());
+				g_LinesToSend.pop_front();
+			}
+			LeaveCriticalSection(&g_DebugCritical);
+		}
+	}
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////

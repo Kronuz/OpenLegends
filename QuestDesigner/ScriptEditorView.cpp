@@ -23,17 +23,24 @@
 
 #include "stdafx.h"
 
+#include "QuestDesigner.h"
+
 #include "MainFrm.h"
 #include "ScriptEditorView.h"
 #include "ScriptEditorFrm.h"
 #include <ssfiledialog.h>
+
+int CScriptEditorView::ms_nCurrentLine = 0;
+CScriptEditorView *CScriptEditorView::ms_pCurrentScript = NULL;
+CString CScriptEditorView::ms_sCurrentFile;
 
 CScriptEditorView::CScriptEditorView(CScriptEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
 	m_nParenthesis(0),
 	m_bModified(false),
 	m_bCodeTip(false),
-	m_hFont(NULL)
+	m_hFont(NULL),
+	m_hilMargin(NULL)
 {
 	m_szTipFunc[0] = _T('\0');
 }
@@ -42,6 +49,10 @@ CScriptEditorView::~CScriptEditorView()
 	if(m_hFont) {
 		DeleteObject(m_hFont);
 	}
+	if(m_hilMargin) {
+		ImageList_Destroy( m_hilMargin );
+	}
+	if(ms_pCurrentScript == this) ms_pCurrentScript = NULL;
 }
 
 // Called to translate window messages before they are dispatched 
@@ -89,9 +100,38 @@ LRESULT CScriptEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 	// Set the current language and load the profile
 	CME_VERIFY(SetLanguage(CMLANG_ZES));
 
-	::CMRegisterCommand( CMD_HELP, _T("Help"), _T("Help") );
+	// load the margin images to be used by CodeMax
+	m_hilMargin = ImageList_LoadBitmap( _Module.GetResourceInstance(),
+	                                    MAKEINTRESOURCE( IDB_MARGIN ),
+										16,
+										1,
+										RGB( 255, 0, 255 ) );
+	CME_VERIFY(SetImageList(m_hilMargin));
+
+	CMRegisterCommand( CMD_HELP, _T("Help"), _T("Help") );
 	CM_HOTKEY cmHotKey = { 0, VK_F1, 0, 0 };
 	CMRegisterHotKey( &cmHotKey, CMD_HELP );
+
+	// register some sample commands and hotkeys for each one
+	CMRegisterCommand( CMD_CONTINUE, _T("DebugContinue"), _T("Continue with the execution of code") );
+	cmHotKey.nVirtKey1 = VK_F5;
+	CMRegisterHotKey( &cmHotKey, CMD_CONTINUE );
+
+	CMRegisterCommand( CMD_STEPOVER, _T("DebugStepOver"), _T("Step over the current line of code") );
+	cmHotKey.nVirtKey1 = VK_F10;
+	CMRegisterHotKey( &cmHotKey, CMD_STEPOVER );
+
+	CMRegisterCommand( CMD_STEPINTO, _T("DebugStepInto"), _T("Step into the current function") );
+	cmHotKey.nVirtKey1 = VK_F11;
+	CMRegisterHotKey( &cmHotKey, CMD_STEPINTO );
+
+	CMRegisterCommand( CMD_BREAKPOINT, _T("DebugToggleBreakpoint"), _T("Toggle a breakpoint at the current location") );
+	cmHotKey.nVirtKey1 = VK_F9;
+	CMRegisterHotKey( &cmHotKey, CMD_BREAKPOINT );
+
+	CMRegisterCommand( CMD_STEPOUT, _T("DebugStepOut"), _T("Step out of the current procedure") );
+	cmHotKey.nVirtKey1 = VK_F11;
+	CMRegisterHotKey( &cmHotKey, CMD_STEPOUT );
 
 	LoadProfile();
 
@@ -290,7 +330,7 @@ bool CScriptEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPAR
 	// Save file name for later
 	m_sFilePath = lpszFilePath;
 
-	// Save the tittle for later
+	// Save the title for later
 	m_sTitle = lpszTitle;
 
 	m_pParentFrame->m_sChildName = m_sFilePath;
@@ -466,6 +506,44 @@ bool CScriptEditorView::hasChanged()
 	return (IsModified()?true:false);
 }
 
+//////////////////// DEBUGGER ////////////////////
+void CScriptEditorView::LineStep(int nLine)
+{
+	BYTE byImages;
+	if(ms_pCurrentScript) {
+		byImages = ms_pCurrentScript->GetMarginImages(ms_nCurrentLine);
+		byImages &= ~( 1 << IMAGE_STEP );
+		ms_pCurrentScript->SetMarginImages(ms_nCurrentLine, byImages);
+		ms_pCurrentScript->SetHighlightedLine(-1);
+		ms_pCurrentScript = NULL;
+	}
+
+	byImages = GetMarginImages(nLine);
+	// set the highlighted line to the current line
+	byImages |= ( 1 << IMAGE_STEP );
+	SetMarginImages(nLine, byImages);
+	SetHighlightedLine(nLine);
+
+	ms_nCurrentLine = nLine;
+	ms_sCurrentFile = GetFilePath();
+	ms_pCurrentScript = this;
+
+	GotoLine(nLine);
+}
+
+void CScriptEditorView::OnBreakpoint()
+{
+	// show a breakpoint image in the left margin.
+	CM_RANGE cmSel;
+	CME_VERIFY(GetSel(&cmSel, FALSE));
+	BYTE byImages = GetMarginImages(cmSel.posEnd.nLine);
+	// if image the breakpoint image is set, turn it off.
+	// else turn it on. 
+	byImages ^= ( 1 << IMAGE_BREAKPOINT );
+	SetMarginImages(cmSel.posEnd.nLine, byImages); /**/
+	Send("break %d %s\r\n", cmSel.posEnd.nLine + 1, (LPCSTR)GetFilePath());
+}
+
 void CScriptEditorView::OnRegisteredCommand ( CM_REGISTEREDCMDDATA *prcd )
 {
 	switch ( prcd->wCmd )
@@ -477,7 +555,13 @@ void CScriptEditorView::OnRegisteredCommand ( CM_REGISTEREDCMDDATA *prcd )
 				GetWord(word, NULL);
 				ShowHelp(m_hWnd, word);
 			}
-		} break;
+			break;
+		} 
+		case CMD_BREAKPOINT: OnBreakpoint(); break;
+		case CMD_STEPOVER: GetMainFrame()->OnStepOver(); break;
+		case CMD_STEPOUT: GetMainFrame()->OnStepOut(); break;
+		case CMD_STEPINTO: GetMainFrame()->OnStepInto(); break;
+		case CMD_CONTINUE: GetMainFrame()->OnContinue(); break;
 	}
 }
 

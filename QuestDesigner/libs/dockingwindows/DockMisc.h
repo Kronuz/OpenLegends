@@ -46,7 +46,7 @@ typedef CDockingFrameTraitsT< CSimpleSplitterBar<5>,
 		WS_EX_APPWINDOW | WS_EX_WINDOWEDGE> CDockingFrameTraits;
 
 //////////////////messages///////////////////////////
-#define WMDF_FIRST  (WM_USER)
+#define WMDF_FIRST  (WM_USER + 100)
 #define WMDF_LAST	(WMDF_FIRST+1)
 
 #define WMDF_NDOCKSTATECHANGED	(WMDF_FIRST)

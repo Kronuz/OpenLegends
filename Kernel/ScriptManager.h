@@ -105,7 +105,6 @@ class CScript :
 	BYTE *m_pProgram;
 	CDebugScript *m_pDebug;	// debug information
 
-	static bool ms_bDebug;
 	int m_nErrorLevel;
 
 	bool m_bInitialized;
@@ -122,8 +121,12 @@ class CScript :
 	Scripts m_Scripts; // Keeps a list of all the current script's clones
 
 public:
+	static volatile bool ms_StopWaiting;
+	static bool ms_bDebug;
 	static HANDLE Resources; // Thread resources availible
-	static void WaitScripts();
+	static bool WaitScripts();
+	static void StopWaiting();
+	static bool isDebugging();
 
 	CScript();
 	~CScript();

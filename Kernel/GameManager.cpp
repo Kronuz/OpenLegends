@@ -29,6 +29,7 @@
 #include "stdafx.h"
 #include "GameManager.h"
 #include "ScriptManager.h"
+#include "Debugger.h"
 
 #include "ArchiveText.h"
 
@@ -52,7 +53,8 @@ IGraphics **CGameManager::ms_ppGraphicsI = NULL;
 CGameManager *CGameManager::_instance = NULL;
 
 CGameManager::CGameManager() :
-	m_World("New Quest")
+	m_World("New Quest"),
+	m_pDummyDebug(NULL)
 {
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
@@ -62,6 +64,7 @@ CGameManager::CGameManager() :
 CGameManager::~CGameManager()
 {
 	Clean();
+	delete m_pDummyDebug;
 }
 
 CSprite *CGameManager::CreateSprite(_spt_type sptType, LPCSTR szName)
@@ -453,9 +456,19 @@ bool CGameManager::Load(CVFile &vfFile)
 
 	return true;
 }
-void CGameManager::WaitScripts()
+
+bool CGameManager::WaitScripts()
 {
-	CScript::WaitScripts();
+	return CScript::WaitScripts();
+}
+
+void CGameManager::StopWaiting()
+{
+	CScript::StopWaiting();
+}
+bool CGameManager::isDebugging()
+{
+	return CScript::isDebugging();
 }
 float CGameManager::UpdateFPS(float fpsLock)
 {
@@ -672,6 +685,17 @@ int CGameManager::CountScripts() const
 {
 	return m_Scripts.size();
 }
+
+bool CGameManager::Configure(IGraphics **ppGraphicsI, bool bDebug) 
+{ 
+	delete m_pDummyDebug; m_pDummyDebug = NULL;
+	if(bDebug) m_pDummyDebug = new CDebugScript(NULL, NULL);
+
+	ms_ppGraphicsI = ppGraphicsI; 
+	CScript::ms_bDebug = bDebug;
+	return true; 
+}
+
 LPCSTR CGameManager::GetProjectName() const
 {
 	return m_sProjectName;

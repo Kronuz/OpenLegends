@@ -53,11 +53,16 @@
 #include <map>
 #include <vector>
 
+/////////////////////////////////////////////////////////////////////////////
+// Forward declarations
+class CDebugScript;
+
 struct SUndefSprite {
 	CSprite *pSprite;
 	CBString sFile;
 	int nLine;
 };
+
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CGameManager
 	\brief		CGameManager class.
@@ -77,6 +82,7 @@ class CGameManager :
 	public IGame
 {
 	static CGameManager *_instance;
+	CDebugScript *m_pDummyDebug;
 	CBString m_sProjectName;
 	CSoundManager *m_pSoundManager;
 
@@ -137,7 +143,7 @@ public:
 		(*ms_ppGraphicsI)->SetWorldPosition(Point);
 	}
 
-	virtual bool UsingGraphics(IGraphics **ppGraphicsI) { ms_ppGraphicsI = ppGraphicsI; return true; }
+	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
 
 	LPCSTR GetProjectName() const;
 	int CountScripts() const;
@@ -189,7 +195,9 @@ protected:
 
 public:
 
-	void WaitScripts();
+	bool WaitScripts();
+	void StopWaiting();
+	bool isDebugging();
 	float UpdateFPS(float fpsLock = -1.0f);
 
 	// Loading/Saving methods:

@@ -28,6 +28,8 @@
 
 #include <ssfiledialog.h>
 
+CString g_sQuestFile;
+
 static int nStatusBarPanes [] =
 {
 	ID_DEFAULT_PANE,
@@ -38,6 +40,20 @@ static int nStatusBarPanes [] =
 };
 
 static LPCTSTR lpcszQuestDesignerRegKey = _T("SOFTWARE\\OpenZelda\\QuestDesigner");
+
+bool PathToParam(LPCSTR szPath, LPSTR szBuffer, int nSize)
+{
+	if(nSize < (int)strlen(szPath)+4) return false;
+	*szBuffer = '\"';
+	strcpy(szBuffer + 1, szPath);
+	char *aux = strchr(szBuffer, '\0') - 1;
+	bool dir = (*aux == '\\'); 
+	if(!dir) aux++;
+	*aux++ = '\"';
+	if(dir) *aux++ = '\\';
+	*aux = '\0';
+	return true;
+}
 
 BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 {
@@ -74,6 +90,8 @@ BOOL CMainFrame::OnIdle()
 
 	m_ThumbnailsBox.OnIdle();
 
+	if(!Connected()) CScriptEditorView::CleanStep();
+
 	return FALSE;
 }
 
@@ -104,6 +122,11 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	// add the toolbar to the UI update map
 	UIAddToolBar(hMainToolBar);
 
+	// create a toolbar
+	HWND hDebugToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_DEBUG, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_ADJUSTABLE);
+	// add the toolbar to the UI update map
+	UIAddToolBar(hDebugToolBar);
+
 	// Initialize the Projects toolbar:
 	m_ctrlProjectToolBar.SubclassWindow( hProjectToolBar );
 	m_ctrlProjectToolBar.LoadTrueColorToolBar(IDR_TB1_PROJECT);
@@ -111,6 +134,10 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	// Initialize the Main toolbar:
 	m_ctrlMainToolBar.SubclassWindow( hMainToolBar );
 	m_ctrlMainToolBar.LoadTrueColorToolBar(IDR_TB1_MAIN);
+
+	// Initialize the Debugging toolbar:
+	m_ctrlDebugToolBar.SubclassWindow( hDebugToolBar );
+	m_ctrlDebugToolBar.LoadTrueColorToolBar(IDR_TB1_DEBUG);
 
 	TBBUTTONINFO tbbi;
 	tbbi.cbSize = sizeof( TBBUTTONINFO );
@@ -155,7 +182,8 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	}	
 	AddSimpleReBarBand(hWndCmdBar);
 	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 0, TRUE);
-	AddSimpleReBarBand(hMainToolBar, NULL, TRUE, 0, TRUE);
+	AddSimpleReBarBand(hMainToolBar, NULL, TRUE, 0, FALSE);
+	AddSimpleReBarBand(hDebugToolBar, NULL, FALSE, 0, TRUE);
 
 	// create a status bar
 	if(!CreateSimpleStatusBar(_T("")) ||
@@ -342,6 +370,108 @@ LRESULT CMainFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 
 	bHandled=FALSE;
 	//m_stateMgr.Store();
+	return 0;
+}
+
+int CMainFrame::OnSaveAll()
+{
+	int nSaved = 0;
+	for(int nChild=0; nChild<m_ChildList.GetSize(); nChild++) {
+		if(m_ChildList[nChild]->hasChanged()) {
+			if(::SendMessage(m_ChildList[nChild]->m_hWnd, WM_COMMAND, ID_APP_SAVE, 0)) return -1;
+			nSaved++;
+		}
+	}
+	return nSaved;
+}
+
+void CMainFrame::OnDbgBreak()
+{
+	Send("break\r\n");
+}
+void CMainFrame::OnDbgStop()
+{
+	Send("stop\r\n");
+}
+void CMainFrame::OnShowNext()
+{
+	if(CScriptEditorView::ms_pCurrentScript) {
+		ScriptFileOpen(CScriptEditorView::ms_pCurrentScript->GetFilePath(), -(CScriptEditorView::ms_nCurrentLine+1));
+	} else if(CScriptEditorView::ms_sCurrentFile != "") {
+		ScriptFileOpen(CScriptEditorView::ms_sCurrentFile, -(CScriptEditorView::ms_nCurrentLine+1));
+	}
+}
+void CMainFrame::OnContinue()
+{
+	if(!Connected()) {
+		OnRunProject();
+		return;
+	}
+
+	CScriptEditorView::CleanStep();
+
+	Send("go\r\n");
+}
+void CMainFrame::OnStepInto()
+{
+	Send("step\r\n");
+
+}
+void CMainFrame::OnStepOut()
+{
+	Send("out\r\n");
+}
+void CMainFrame::OnStepOver()
+{
+	Send("next\r\n");
+}
+
+LRESULT CMainFrame::OnDebugCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	static bool bComment = false; // multiline comment
+	bool bValid = false;
+
+	LPCSTR szCommand = (LPCSTR)lParam;
+	if(*szCommand == '2' || bComment) { // comment (just ignore)
+		if(!strncmp(szCommand, "201 ", 4)) { // Step using this ID
+			bComment = true;
+		} else if(!strcmp(szCommand, ".")) bComment = false; // end of multi line comment.
+		bValid = true;
+	} else if(*szCommand == '1') { // other commands (just ignore)
+		if(!strncmp(szCommand, "101 ", 4)) { // Debugger bye
+			Sleep(100); // wait for the connection to stabilize
+			OnIdle(); // Foce OnIdle() to update toolbar and stuff
+		}
+		bValid = true;
+	} else if(*szCommand == '4') { // error
+		CONSOLE_PRINTF("Debugger error: %s\n", szCommand);
+		bValid = true;
+	} else if(*szCommand == '5') { // command
+		if(!strncmp(szCommand, "500 ", 4)) { // Debugger stop
+			bValid = true;
+		} else if(!strncmp(szCommand, "501 ", 4)) { // Step using this ID
+			bValid = true;
+		} else if(!strncmp(szCommand, "502 ", 4)) { // Step using this file
+			LPSTR szLine = strchr(szCommand, ':');
+			if(szLine) {
+				szLine++;
+				while(*szLine == ' ' || *szLine == '\t') szLine++;
+				LPSTR szFile = strchr(szLine, ' ');
+				if(szFile) {
+					while(*szFile == ' ' || *szFile == '\t') szFile++;
+					if(*szLine && *szFile) {
+						ScriptFileOpen(szFile, (LPARAM)(-(int)atol(szLine)));
+						bValid = true;
+					}
+				}
+			}
+		}
+	}
+
+	if(!bValid) CONSOLE_PRINTF("Debugger warning: Buggy debug server or wrong version!\n");
+	CONSOLE_DEBUG("%s\n", szCommand);
+
+	delete []szCommand;
 	return 0;
 }
 
@@ -608,23 +738,74 @@ LRESULT CMainFrame::OnWindowArrangeIcons()
 	return 0;
 }
 
-LRESULT CMainFrame::OnStopBuild()
+HRESULT CMainFrame::OnStopBuild()
 {
 	m_pProjectFactory->CancelBuild();
 	OnIdle(); // Force idle processing to update the toolbar.
-	return 0;
+	return S_OK;
 }
-LRESULT CMainFrame::OnRunProject()
+
+HRESULT CMainFrame::OnRunProject()
 {
+	if(Connected()) return E_FAIL;
+
+    StatusBar("Connecting debugger...", IDI_ICO_WAIT);
 	OnIdle(); // Force idle processing to update the toolbar.
-	return 0;
+
+	// Try connecting to an already open "Open Zelda" with an active debugger
+	SOCKET s = Connect("localhost", 7683, Dispatch, Request);
+	if(s == INVALID_SOCKET) {
+		if(OnBuildProject() == 1) {
+			CONSOLE_PRINTF("Debugger error: Couldn't build the quest!\n");
+		}
+		// Get the Open Zelda's exe path
+		char szFilename[MAX_PATH];
+		GetModuleFileName(_Module.GetModuleInstance(), szFilename, MAX_PATH);
+
+		LPSTR aux = strchr(szFilename, '\0');
+		while(aux != szFilename && *aux != '\\') aux--;
+		if(*aux == '\\') aux++;
+		*aux = '\0';
+		strcat(szFilename, "OpenZelda.exe");
+
+		if(g_sHomeDir=="" || g_sQuestFile=="") {
+			CONSOLE_PRINTF("Debugger error: No quest, try openning a quest first!\n");
+		} else {
+			// Convert the paths to valid parameters:
+			char szGame[MAX_PATH];
+			char szQuest[MAX_PATH];
+			PathToParam(g_sHomeDir, szGame, sizeof(szGame));
+			PathToParam(g_sQuestFile, szQuest, sizeof(szQuest));
+
+			// Try to load Open Zelda:
+			if(_spawnl( _P_NOWAIT, szFilename, "1", "-d", szGame, szQuest, NULL) == -1) {
+				MessageBox("Couldn't launch Open Zelda", "Quest Designer");
+			} else {
+				// wait for connection with the debugger.
+				for(int i=0; i<3; i++) {
+					s = Connect("localhost", 7683, Dispatch, Request);
+					if(s != INVALID_SOCKET) break;
+					Sleep(100); // wait for the connection to stabilize
+				}
+				if(s == INVALID_SOCKET) {
+					CONSOLE_PRINTF("Debugger error: Couldn't connect with Open Zelda's debugger!");
+					StatusBar("Couldn't connect with Open Zelda's debugger!", IDI_ICO_ERROR);
+				}
+			}
+		}
+	}
+    StatusBar("Ready", IDI_ICO_OK);
+
+	return S_OK;
 }
-LRESULT CMainFrame::OnBuildProject()
+HRESULT CMainFrame::OnBuildProject()
 {
 //	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
-	m_pProjectFactory->StartBuild();
+	int nSaved = OnSaveAll();
+	if(nSaved<0) return E_FAIL;
+	if(nSaved > 0) m_pProjectFactory->StartBuild();
 	OnIdle(); // Force idle processing to update the toolbar.
-	return 0;
+	return S_OK;
 }
 
 int CMainFrame::Select(LPCTSTR szFilename, LPARAM lParam)
@@ -752,7 +933,13 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 		m_pOZKernel->CloseWorld(true);
 	} 
     StatusBar("Loading...", IDI_ICO_WAIT);
-	m_pOZKernel->LoadWorld(szFilename);
+	g_sQuestFile = szFilename;
+	if(!m_pOZKernel->LoadWorld(g_sQuestFile)) {
+	    StatusBar("Couldn't load quest!", IDI_ICO_ERROR);
+		return 1;
+	}
+
+	m_bQuestLoaded = true;
 
 	if(Select(_T("World Editor"), 0)) {
 	    StatusBar("Couldn't open the World editor window!", IDI_ICO_ERROR);
@@ -793,7 +980,7 @@ int CMainFrame::ScriptFileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly
 	// open the requested file
 	if(!pView->DoFileOpen(szFilename, szTitle)) {
 		// kill the failed window (will delete itself)
-		::PostMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		::PostMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
 		return 0;
 	} else {
 		pView->SetReadOnly(bReadOnly);
@@ -833,6 +1020,7 @@ void CMainFrame::UIUpdateMenuItems()
 		m_ctrlLayers.EnableWindow(FALSE);
 		m_bLayers = FALSE;
 	}
+
 	if(m_pProjectFactory->isBuilding()) {
 		UISetCheck(ID_APP_WORLDED, FALSE);
 		UISetCheck(ID_APP_SOUND, FALSE);
@@ -849,12 +1037,23 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_APP_MAPED, FALSE);
 		UIEnable(ID_APP_SPTSHTED, FALSE);
 		UIEnable(ID_APP_SCRIPTED, FALSE);
-		UIEnable(ID_APP_RUN, FALSE);
 		UIEnable(ID_APP_BUILD, FALSE);
 		UIEnable(ID_APP_PREFERENCES, FALSE);
 		UIEnable(ID_APP_HELP, FALSE);
 		UIEnable(ID_APP_ABOUT, FALSE);
 		UIEnable(ID_APP_STOPBUILD, TRUE);
+
+		// Debugging toolbar:
+		UIEnable(ID_DBG_DEBUG, FALSE);
+		UIEnable(ID_DBG_PAUSE, FALSE);
+		UIEnable(ID_DBG_STOP, FALSE);
+		UIEnable(ID_DBG_NEXT, FALSE);
+		UIEnable(ID_DBG_STEPIN, FALSE);
+		UIEnable(ID_DBG_STEPOVER, FALSE);
+		UIEnable(ID_DBG_STEPOUT, FALSE);
+		UIEnable(ID_DBG_PROFILER, FALSE);
+		UIEnable(ID_DBG_BREAKPOINT, FALSE);
+		UIEnable(ID_DBG_CONTINUE, FALSE);
 	} else {
 		UISetCheck(ID_APP_WORLDED, CountChilds(tWorldEditor));
 		UISetCheck(ID_APP_SOUND, m_bAllowSounds );
@@ -871,21 +1070,63 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_APP_MAPED, TRUE);
 		UIEnable(ID_APP_SPTSHTED, TRUE);
 		UIEnable(ID_APP_SCRIPTED, TRUE);
-		UIEnable(ID_APP_RUN, TRUE);
 		UIEnable(ID_APP_BUILD, TRUE);
 		UIEnable(ID_APP_PREFERENCES, TRUE);
 		UIEnable(ID_APP_HELP, TRUE);
 		UIEnable(ID_APP_ABOUT, TRUE);
 		UIEnable(ID_APP_STOPBUILD, FALSE);
+
+		// Debugging toolbar:
+		if(Connected())	{
+			UIEnable(ID_DBG_DEBUG, FALSE);
+			UIEnable(ID_DBG_PAUSE, TRUE);
+			UIEnable(ID_DBG_STOP, TRUE);
+			UIEnable(ID_DBG_NEXT, TRUE);
+			UIEnable(ID_DBG_STEPIN, TRUE);
+			UIEnable(ID_DBG_STEPOVER, TRUE);
+			UIEnable(ID_DBG_STEPOUT, TRUE);
+			UIEnable(ID_DBG_PROFILER, TRUE);
+			UIEnable(ID_DBG_BREAKPOINT, TRUE);
+			UIEnable(ID_DBG_CONTINUE, TRUE);
+		} else {
+			UIEnable(ID_DBG_DEBUG, TRUE);
+			UIEnable(ID_DBG_PAUSE, FALSE);
+			UIEnable(ID_DBG_STOP, FALSE);
+			UIEnable(ID_DBG_NEXT, FALSE);
+			UIEnable(ID_DBG_STEPIN, FALSE);
+			UIEnable(ID_DBG_STEPOVER, FALSE);
+			UIEnable(ID_DBG_STEPOUT, FALSE);
+			UIEnable(ID_DBG_PROFILER, FALSE);
+			UIEnable(ID_DBG_BREAKPOINT, FALSE);
+			UIEnable(ID_DBG_CONTINUE, FALSE);
+		}
 	}
+	if( CScriptEditorView::ms_pCurrentScript == NULL &&
+		CScriptEditorView::ms_sCurrentFile == "" ) {
+		UIEnable(ID_DBG_NEXT, FALSE);
+		UIEnable(ID_DBG_STEPIN, FALSE);
+		UIEnable(ID_DBG_STEPOVER, FALSE);
+		UIEnable(ID_DBG_BREAKPOINT, FALSE);
+		UIEnable(ID_DBG_STEPOUT, FALSE);
+		UIEnable(ID_DBG_CONTINUE, FALSE);
+	} else {
+		UIEnable(ID_DBG_PAUSE, FALSE);
+	}
+
+	if(ActiveChildType!=tScriptEditor) {
+		UIEnable(ID_DBG_BREAKPOINT, FALSE);
+	}
+
 	if(!m_bProjectLoaded) {
+		UIEnable(ID_QUEST_NEW, FALSE);
+		UIEnable(ID_QUEST_OPEN, FALSE);
+	}
+	if(!m_bQuestLoaded || !m_bProjectLoaded) {
 		UISetCheck(ID_APP_WORLDED, FALSE);
 		UISetCheck(ID_APP_SOUND, FALSE);
 		UISetCheck(ID_APP_ANIM, FALSE);
 		UISetCheck(ID_APP_PARALLAX, FALSE);
 
-		UIEnable(ID_QUEST_NEW, FALSE);
-		UIEnable(ID_QUEST_OPEN, FALSE);
 		UIEnable(ID_APP_SOUND, FALSE);
 		UIEnable(ID_APP_ANIM, FALSE);
 		UIEnable(ID_APP_PARALLAX, FALSE);
@@ -893,9 +1134,7 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_APP_MAPED, FALSE);
 		UIEnable(ID_APP_SPTSHTED, FALSE);
 		UIEnable(ID_APP_SCRIPTED, FALSE);
-		UIEnable(ID_APP_RUN, FALSE);
 		UIEnable(ID_APP_BUILD, FALSE);
-		UIEnable(ID_APP_PREFERENCES, FALSE);
 		UIEnable(ID_APP_STOPBUILD, FALSE);
 	}
 
