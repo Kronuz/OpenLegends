@@ -38,7 +38,7 @@ BOOL WINAPI DllEntryPoint(HINSTANCE hDll, DWORD fdwReason, LPVOID lpvRserved);
 
 class CTextureOGL:public ITexture
 {
-	~CTextureOGL() {};
+	~CTextureOGL();
 
 	//! Gets a void pointer to the texture. (the pointer must be casted)
 	void* GetTexture();
@@ -63,7 +63,7 @@ class CTextureOGL:public ITexture
 
 class CBufferOGL:public IBuffer
 {
-	~CBufferOGL() {};
+	~CBufferOGL();
 	//! Get a void pointer to the buffer (the pointer must be casted)
 	void* GetBuffer();
 	bool SetBuffer(void *pBuffer);
@@ -83,7 +83,7 @@ class CBufferOGL:public IBuffer
 
 class CGraphicsOGL:public IGraphics
 {
-	~CGraphicsOGL() {};
+	~CGraphicsOGL();
 
 	static const WORD Version;
 
@@ -200,9 +200,6 @@ class CGraphicsOGL:public IGraphics
 	*/
 	bool BeginPaint();
 
-	//! Draws the frame for all objects in the world (current clipping)
-	bool DrawFrame();
-
 	//! Draws a clipping frame with the given clipping rectangle and color
 	bool DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLOR rgbBoundaries);
 
@@ -257,18 +254,6 @@ class CGraphicsOGL:public IGraphics
 
 		\sa IBuffer
 	*/
-	void Render(
-		const ITexture *texture, 
-		const RECT &rectSrc, 
-		const RECT &rectDest, 
-		int rotate = GFX_ROTATE_0, 
-		int transform = GFX_NORMAL, 
-		ARGBCOLOR rgbColor = COLOR_ARGB(255,255,255,255), 
-		float lightness = 0.5f,
-		IBuffer **buffer = NULL,
-		float rotation = 0.0f,
-		float scale = 1.0f
-	);
 
 	//! Draws a filled rectangle
 	void FillRect(const RECT &rectDest, ARGBCOLOR rgbColor);
@@ -335,6 +320,46 @@ class CGraphicsOGL:public IGraphics
 	// scale tells if the texture must be rescaled from the source file, either at load time or at render time.
 	bool CreateTextureFromFile(LPCSTR filename, ITexture **texture, float scale);
 	bool CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcData, UINT SrcData, ITexture **texture, float scale);
+
+	// 
+	/*! \brief Sets and configures the filters for the next render.
+
+		\param eFilter Filter to use.
+		\param vParam Parameter of the filter. 
+
+		\return Returns true if the filter was successfully applied.
+
+		\remarks 
+		eFilter can be:
+			* Clear			To clear all filters (vParam is not used and must be set to NULL)
+
+			* Pixelate		Where vParam is an integer stating the width or height 
+							of the resulting pixels in the pixelated scene.
+
+			* Alpha or		Where vParam is an ARGB color satating the desired Alpha and the RGB
+			  Colorize		values of the colorization. if the RGB components are (128, 128, 128)
+							no colorization is applied and only the alpha is used.
+
+			* HorzMove		Where vParam is an integer stating the horizontal displacement of
+							everything to be drawn before painting it to the screen.
+
+			* VertMove		Where vParam is an integer stating the Vertical displacement of
+							everything to be drawn before painting it to the screen.
+
+		If any filter is going to be used, at least the first filter should be set before
+		the call to BeginPaint(). Further filters can be set any time after BeginPaint() call.
+		If a filter is set, that filter is kept until it is overwritten or the filters are cleared.
+
+		\sa SetClearColor(), SetFilterBkColor(), BeginPaint()
+	*/
+	bool SetFilter(GpxFilters eFilter, void *vParam);
+
+	// Flushes the filters, drawing everything to the back buffer. Returns false if no filters
+	// where set before the call to BeginPaint(). If bClear is true, the background is cleared before
+	// painting using the color set by the call to SetFilterBkColor() or (0,0,0)
+	// bClear should only be set to true on the first flush, otherwise the clear would cover 
+	// previously flushed filters.
+	bool FlushFilters(bool bClear);
 
 	// Sets the console for the interface. All messages will be sent to that console.
 	void SetConsole(IConsole *pConsole);
