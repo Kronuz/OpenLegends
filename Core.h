@@ -75,63 +75,66 @@ enum CURSOR {
 // All Open Legends saved files must have this header:
 struct _OpenLegendsFile {
 	char ID[160];			// ID, Name and Description Separated by '\n' and ended by '\0'
-	DWORD dwSignature;		// Signature of the file. (all OZ signatures have 0x7a6f in the low word)
+	DWORD dwSignature;		// Signature of the file. (all OL signatures have 0x7a6f in the low word)
 	DWORD dwSize;			// Size of the file (or memory)
 	DWORD dwBitmapOffset;	// Where the thumbnail is (Start + Index Size + Data Size). 0 if no thumbnail.
 	DWORD dwDataOffset;		// Where the data begins. (Start + Index Size). 0 if no data.
 };
 #pragma pack()
 
-typedef _OpenLegendsFile OZFILE;
-typedef _OpenLegendsFile *LPOZFILE;
-typedef const _OpenLegendsFile *LPCOZFILE;
+typedef _OpenLegendsFile OLFILE;
+typedef _OpenLegendsFile *LPOLFILE;
+typedef const _OpenLegendsFile *LPCOLFILE;
 
 // List of valid file types, their IDs and Signatures:
-#define OZ_NAME				"Open Legends"
+#define OL_NAME				"Open Legends"
 
-const char OZF_ID[]			= OZ_NAME;
-const WORD OZF_SIGNATURE	= 0x5a4f;
+const char OLF_ID[]			= OL_NAME;
+const WORD OLF_SIGNATURE	= 0x4c4f; // OL
 
-#define MAKEOZSIGN(w) (((DWORD)(w&0xffff)<<16) | OZF_SIGNATURE)
-#define MAKEOZID(str) OZ_NAME " " str
+#define MAKEOLSIGN(w) (((DWORD)(w&0xffff)<<16) | OLF_SIGNATURE)
+#define MAKEOLID(str) OL_NAME " " str
 
-const DWORD OZF_SPRITE_SET_SIGNATURE	= MAKEOZSIGN(0xff01);
-const DWORD OZF_MAP_GROUP_SIGNATURE		= MAKEOZSIGN(0xff02);
-const DWORD OZF_WORLD_SIGNATURE			= MAKEOZSIGN(0xff03);
-const DWORD OZF_SPRITE_SHEET_SIGNATURE	= MAKEOZSIGN(0xff04);
+const DWORD OLF_SPRITE_SET_SIGNATURE	= MAKEOLSIGN(0xff01);
+const DWORD OLF_MAP_GROUP_SIGNATURE		= MAKEOLSIGN(0xff02);
+const DWORD OLF_WORLD_SIGNATURE			= MAKEOLSIGN(0xff03);
+const DWORD OLF_SPRITE_SHEET_SIGNATURE	= MAKEOLSIGN(0xff04);
 
-const char OZF_SPRITE_SET_ID[]			= MAKEOZID("Sprite Set");
-const char OZF_MAP_GROUP_ID[]			= MAKEOZID("Map Group");
-const char OZF_WORLD_ID[]				= MAKEOZID("World");
-const char OZF_SPRITE_SHEET_GROUP_ID[]	= MAKEOZID("Sprite Sheet");
+const char OLF_SPRITE_SET_ID[]			= MAKEOLID("Sprite Set");
+const char OLF_MAP_GROUP_ID[]			= MAKEOLID("Map Group");
+const char OLF_WORLD_ID[]				= MAKEOLID("World");
+const char OLF_SPRITE_SHEET_GROUP_ID[]	= MAKEOLID("Sprite Sheet");
 
-// verifies that the pointer passed as pOZFile is a valid Open Legends file in memory
-inline bool VerifyOZFile(LPCOZFILE *ppOZFile)
+// verifies that the pointer passed as pOLFile is a valid Open Legends file in memory
+inline bool VerifyOLFile(LPCOLFILE *ppOLFile)
 {
-	LPCOZFILE pOZFile = *ppOZFile;
-	*ppOZFile = NULL;
+	LPCOLFILE pOLFile = *ppOLFile;
+	*ppOLFile = NULL;
 
-	if(!pOZFile) return false;
+	if(!pOLFile) return false;
 
-	if(::IsBadReadPtr(pOZFile, sizeof(_OpenLegendsFile))) return false;
-	if(strncmp(pOZFile->ID, OZF_ID, sizeof(OZF_ID)-1)) return false;
-	if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) return false;
+	if(::IsBadReadPtr(pOLFile, sizeof(_OpenLegendsFile))) return false;
+	if(strncmp(pOLFile->ID, OLF_ID, sizeof(OLF_ID)-1)) return false;
+	if(LOWORD(pOLFile->dwSignature) != OLF_SIGNATURE) return false;
 
-	// Assert that we have access to all of the memory stated in the file header:
-	ASSERT(::IsBadReadPtr(pOZFile, pOZFile->dwSize) == 0);
+	// Do we have access to all of the memory stated in the file header:
+	if(::IsBadReadPtr(pOLFile, pOLFile->dwSize)) return false;
 
-	*ppOZFile = pOZFile;
+	*ppOLFile = pOLFile;
 	return true;
 }
-inline LPCSTR GetNameFromOZFile(LPCOZFILE pOZFile, LPSTR szBuffer, int nBuffSize)
+inline LPCSTR GetNameFromOLFile(LPCOLFILE pOLFile, LPSTR szBuffer, int nBuffSize)
 {
-	ASSERT(pOZFile);
+	ASSERT(pOLFile);
 	ASSERT(nBuffSize>0);
-	ASSERT(!::IsBadStringPtr(szBuffer, nBuffSize));
-	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenLegendsFile)));
+
+	if(::IsBadReadPtr(pOLFile, pOLFile->dwSize) || ::IsBadReadPtr(pOLFile, sizeof(_OpenLegendsFile))) {
+		strncpy(szBuffer, "Corrupted file!", nBuffSize-1);
+		szBuffer[nBuffSize-1] = '\0';
+	}
 
 	int nNameLen = 0;
-	LPSTR aux = strchr(pOZFile->ID, '\n');
+	LPSTR aux = strchr(pOLFile->ID, '\n');
 	if(aux) {
 		aux++;
 		LPSTR aux2 = strchr(aux, '\n');
@@ -145,15 +148,18 @@ inline LPCSTR GetNameFromOZFile(LPCOZFILE pOZFile, LPSTR szBuffer, int nBuffSize
 	szBuffer[nNameLen] = '\0';
 	return szBuffer;
 }
-inline LPCSTR GetDescFromOZFile(LPCOZFILE pOZFile, LPSTR szBuffer, int nBuffSize)
+inline LPCSTR GetDescFromOLFile(LPCOLFILE pOLFile, LPSTR szBuffer, int nBuffSize)
 {
-	ASSERT(pOZFile);
+	ASSERT(pOLFile);
 	ASSERT(nBuffSize>0);
-	ASSERT(!::IsBadStringPtr(szBuffer, nBuffSize));
-	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenLegendsFile)));
+
+	if(::IsBadStringPtr(szBuffer, nBuffSize) || ::IsBadReadPtr(pOLFile, sizeof(_OpenLegendsFile))) {
+		strncpy(szBuffer, "Corrupted file!", nBuffSize-1);
+		szBuffer[nBuffSize-1] = '\0';
+	}
 
 	int nNameLen = 0;
-	LPSTR aux = strchr(pOZFile->ID, '\n');
+	LPSTR aux = strchr(pOLFile->ID, '\n');
 	if(aux) {
 		aux = strchr(aux+1, '\n');
 		if(aux) {

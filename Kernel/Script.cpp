@@ -76,7 +76,7 @@ extern "C" AMX_NATIVE_INFO float_Natives[];
 extern cell ConvertFloatToCell(float fValue);
 extern float fConvertCellToFloat(cell cellValue);
 
-#if defined OZDoc
+#if defined OLDoc
 float GetTimeDelta(); /*!< 
 	\ingroup general
 	\brief This function obtains the current delta time for the frame being rendered.

@@ -155,6 +155,7 @@ public:
 	LPCSTR GetProjectName() const;
 	int CountScripts() const;
 	const IScript* GetScript(int idx) const;
+	const IScript* GetScript(CSprite *pSprite) const;
 	ISoundManager* GetSoundManager() const;
 
 	// Object factory methods:
@@ -171,13 +172,6 @@ public:
 	void DeleteSpriteSheet(LPCSTR szName); //!< Deletes a sprite sheet using its name.
 	void DeleteMap(LPCSTR szName); //!< Deletes a map using its name.
 	void DeleteSprite(LPCSTR szName); //!< Deletes a sprite using its name.
-
-	// Methods to find stuff in the world:
-	CSprite *FindSprite(LPCSTR szName); //!< Finds a sprite using its name.
-	CSound *FindSound(LPCSTR szName); //!< Finds a sound using its name.
-	CScript *FindScript(LPCSTR szName); //!< Finds a script using its name.
-
-	CSprite *FindSprite(CPoint MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
 
 	static CGameManager* Instance() {
 		if(_instance == NULL) {
@@ -216,7 +210,6 @@ public:
 	bool Load(LPCSTR szFile) { return Load(CVFile(szFile, true)); }
 	bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
 
-
 	bool LoadWorld(CVFile &vfFile) { return m_World.Load(vfFile); }
 	bool SaveWorld(CVFile &vfFile) { return m_World.Save(vfFile); }
 	bool SaveWorld() { return false; }
@@ -233,6 +226,13 @@ public:
 
 	void GetWorldSize(CSize &worldSize) const;
 	void SetWorldSize(const CSize &worldSize);
+
+	// Methods to find stuff in the world:
+	CSprite *FindSprite(LPCSTR szName); //!< Finds a sprite using its name.
+	CSound *FindSound(LPCSTR szName); //!< Finds a sound using its name.
+	CScript *FindScript(LPCSTR szName); //!< Finds a script using its name.
+
+	CSprite *FindSprite(CPoint MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
 
 	CMapGroup *FindMapGroup(int x, int y) const; //!< Get the map group at location (x,y)
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);

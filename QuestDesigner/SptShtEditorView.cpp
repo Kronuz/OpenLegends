@@ -131,9 +131,6 @@ bool CSptShtEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPAR
 
 	// Save the title for later
 	m_sTitle = lpszTitle;
-
-	m_sInitSprite = (LPCSTR)lParam;
-
 	m_pSpriteSheet = pSpriteSheet;
 
 	m_pParentFrame->m_sChildName = m_sFilePath;
@@ -143,13 +140,8 @@ bool CSptShtEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPAR
 	CalculateLimits();
 	SetScrollSize(m_rcScrollLimits.Size());
 
-	CSprite *pSprite = LocateInitSprite();
-	if(pSprite) m_Sprites.push_back(pSprite);
+	SpriteStep((LPCSTR)lParam);
 
-	OnChangeSel(OCS_RENEW);
-
-	UpdateView();
-	Invalidate();
 	return true;
 }
 
@@ -288,6 +280,20 @@ BOOL CSptShtEditorView::OnIdle()
 bool CSptShtEditorView::hasChanged()
 {
 	return false;
+}
+
+void CSptShtEditorView::SpriteStep(LPCSTR szSprite)
+{
+	m_sInitSprite = szSprite;
+
+	CSprite *pSprite = LocateInitSprite();
+	m_Sprites.clear();
+	if(pSprite) m_Sprites.push_back(pSprite);
+
+	OnChangeSel(OCS_RENEW);
+
+	UpdateView();
+	Invalidate();
 }
 
 void CSptShtEditorView::ViewToWorld(CPoint *_pPoint) 
@@ -453,12 +459,16 @@ void CSptShtEditorView::UpdateSnapSize(int _SnapSize)
 
 void CSptShtEditorView::Render(WPARAM wParam)
 {
-	if(!wParam) return; 
-	if(!GetMainFrame()->m_bAllowAnimations) return;
-
-	RECT rcSrc = {0, 0, m_szSptSht.cx, m_szSptSht.cy};
+	static anim = 0;
+	static animq = 1;
+	static DWORD dwOldTicks = 0;
+	DWORD dwTicks = GetTickCount();
 
 	CMemDC memdc( wParam ? (HDC)wParam : GetDC(), NULL );
+
+	CRect rcSrc (0, 0, m_szSptSht.cx, m_szSptSht.cy);
+	CRect rcDst(m_rcScrollLimits);
+	if(!wParam) rcDst.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
 
 	// Background:
 	memdc.FillSolidRect(&memdc.m_rc, ::GetSysColor(COLOR_APPWORKSPACE));
@@ -480,28 +490,37 @@ void CSptShtEditorView::Render(WPARAM wParam)
 			else memdc.FillRect(&rc, (HBRUSH)::GetStockObject(LTGRAY_BRUSH));
 		}
 	}
-
 	// Alpha blend the sprite sheet:
-	m_Image.AlphaBlend(memdc, m_rcScrollLimits, rcSrc);
+	m_Image.AlphaBlend(memdc, rcDst, rcSrc);
+
 	vectorSprite::iterator Iterator = m_Sprites.begin();
 	while(Iterator!=m_Sprites.end()) {
 		CRect Rect;
 		(*Iterator)->GetBaseRect(Rect);
-		SelectionBox(memdc, Rect, RGB(255,255,225));
+
+		CRect Rects(
+			(int)((float)Rect.left * m_Zoom + 0.5f),
+			(int)((float)Rect.top * m_Zoom + 0.5f),
+			(int)((float)Rect.right * m_Zoom + 0.5f),
+			(int)((float)Rect.bottom * m_Zoom + 0.5f) 
+		);
+		if(!wParam) Rects.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
+
+		SelectionBox(memdc, Rects, RGB(anim,anim,128));
 		Iterator++;
+	}
+
+	if(dwTicks - dwOldTicks > 1000/30) {
+		dwOldTicks = dwTicks;
+		anim += animq;
+		if(animq>0 && anim>=255) {anim=255;animq*=-1;}
+		else if(animq<0 && anim<=128) {anim=128;animq*=-1;}
 	}
 }
 void CSptShtEditorView::SelectionBox(HDC hDC, const CRect &rectDest, COLORREF rgbColor)
 {
 	CDC dc;
 	dc.Attach(hDC);
-
-	CRect Rects(
-		(int)((float)rectDest.left * m_Zoom + 0.5f),
-		(int)((float)rectDest.top * m_Zoom + 0.5f),
-		(int)((float)rectDest.right * m_Zoom + 0.5f),
-		(int)((float)rectDest.bottom * m_Zoom + 0.5f) 
-	);
 
 	// This is just enhance the selecting box (cosmetics)
 	int cbsz = 2;
@@ -516,36 +535,36 @@ void CSptShtEditorView::SelectionBox(HDC hDC, const CRect &rectDest, COLORREF rg
 	HPEN hOldPen = dc.SelectPen(hPen);
 
 	// Bounding box:
-	CRect rcb = Rects;
+	CRect rcb = rectDest;
 	dc.Rectangle(rcb);
 
 	// rubber bands (Small boxes at the corners):
-	rcb.SetRect(Rects.left-cbsz, Rects.top-cbsz, Rects.left+cbsz+1, Rects.top+cbsz+1);
+	rcb.SetRect(rectDest.left-cbsz, rectDest.top-cbsz, rectDest.left+cbsz+1, rectDest.top+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
-	rcb.SetRect(Rects.left-cbsz, Rects.bottom-1-cbsz, Rects.left+cbsz+1, Rects.bottom-1+cbsz+1);
+	rcb.SetRect(rectDest.left-cbsz, rectDest.bottom-1-cbsz, rectDest.left+cbsz+1, rectDest.bottom-1+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
-	rcb.SetRect(Rects.right-1-cbsz, Rects.top-cbsz, Rects.right-1+cbsz+1, Rects.top+cbsz+1);
+	rcb.SetRect(rectDest.right-1-cbsz, rectDest.top-cbsz, rectDest.right-1+cbsz+1, rectDest.top+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
-	rcb.SetRect(Rects.right-1-cbsz, Rects.bottom-1-cbsz, Rects.right-1+cbsz+1, Rects.bottom-1+cbsz+1);
+	rcb.SetRect(rectDest.right-1-cbsz, rectDest.bottom-1-cbsz, rectDest.right-1+cbsz+1, rectDest.bottom-1+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
 	// rubber bands (Small boxes in the middles):
-	int my = Rects.top + (Rects.bottom-Rects.top)/2;
-	int mx = Rects.left + (Rects.right-Rects.left)/2;
+	int my = rectDest.top + (rectDest.bottom-rectDest.top)/2;
+	int mx = rectDest.left + (rectDest.right-rectDest.left)/2;
 
-	rcb.SetRect(mx-cbsz, Rects.top-cbsz, mx+cbsz+1, Rects.top+cbsz+1);
+	rcb.SetRect(mx-cbsz, rectDest.top-cbsz, mx+cbsz+1, rectDest.top+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
-	rcb.SetRect(mx-cbsz, Rects.bottom-1-cbsz, mx+cbsz+1, Rects.bottom-1+cbsz+1);
+	rcb.SetRect(mx-cbsz, rectDest.bottom-1-cbsz, mx+cbsz+1, rectDest.bottom-1+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
-	rcb.SetRect(Rects.left-cbsz, my-cbsz, Rects.left+cbsz+1, my+cbsz+1);
+	rcb.SetRect(rectDest.left-cbsz, my-cbsz, rectDest.left+cbsz+1, my+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
-	rcb.SetRect(Rects.right-1-cbsz, my-cbsz, Rects.right-1+cbsz+1, my+cbsz+1);
+	rcb.SetRect(rectDest.right-1-cbsz, my-cbsz, rectDest.right-1+cbsz+1, my+cbsz+1);
 	dc.FillSolidRect(rcb, rgbColor);
 
 	// Clean up:

@@ -85,16 +85,17 @@ class CMainFrame :
 	friend CChildFrame;
 
 	CProjectFactory *m_pProjectFactory;
-	IGame *m_pOZKernel;
 protected:
 	typedef CMainFrame thisClass;
 	typedef dockwins::CMDIDockingFrameImpl<CMainFrame> baseClass;
 
 public:
+	IGame *m_pOLKernel;
+
 	CTabbedMDIClient< CDotNetTabCtrl<CTabViewTabItem> > m_tabbedClient;
 	CMainFrame() : 
 		m_pProjectFactory(NULL), 
-		m_pOZKernel(NULL), 
+		m_pOLKernel(NULL), 
 		m_bProjectLoaded(false), 
 		m_bQuestLoaded (false),
 		m_bAllowSounds(false),

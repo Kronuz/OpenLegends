@@ -220,7 +220,7 @@ public:
 
 	void Invalidate() {
 		for(int i=0; i<CONTEXT_BUFFERS; i++) {
-			if(m_pBuffer[i]) m_pBuffer[i]->Invalidate();
+			if(m_pBuffer[i]) m_pBuffer[i]->Invalidate(true);
 		}
 	}
 	void Touch() {

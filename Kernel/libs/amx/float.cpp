@@ -63,7 +63,7 @@ static char *pcCreateAndFillStringFromCell(AMX *amx,cell params)
     return *pFloat;
 }
 
-#if defined OZDoc
+#if defined OLDoc
 float float(float value); /*!< 
 	\ingroup float
 	\brief Convert an integer into a floating point value.
@@ -207,7 +207,7 @@ static cell _floatfract(AMX *,cell *params)
     return ConvertFloatToCell(fA);
 }
 
-#if defined OZDoc
+#if defined OLDoc
 /*! 
 	\ingroup float
 	\brief Tagged enum floatround_method type.
@@ -315,7 +315,7 @@ static cell _floatcmp(AMX *,cell *params)
 /* FUNCTIONS ADDED BY OPEN ZELDA PROJECT: */
 /* (All these functions work as the C ANSI standard Math library 
 	except on that these use degrees instead of radians) */
-#if defined OZDoc
+#if defined OLDoc
 abs(cell value); /*!< 
 	\ingroup float
 	\brief Gets the absolute value of an integer.
@@ -360,7 +360,7 @@ static cell AMX_NATIVE_CALL Exp(AMX *amx, cell *params)
 	float a = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)exp(a) );
 }
-#if defined OZDoc
+#if defined OLDoc
 float floatabs(float value); /*!< 
 	\ingroup float
 	\brief Calculates the absolute value of a floting-point number.
@@ -392,7 +392,7 @@ static cell AMX_NATIVE_CALL Fmod(AMX *amx, cell *params)
 	return ConvertFloatToCell( (float)fmod(a,b) );
 }
 
-#if defined OZDoc
+#if defined OLDoc
 float log(float x); /*!<
 	\ingroup float
 	\brief Natural logarithm function.
@@ -438,7 +438,7 @@ static cell AMX_NATIVE_CALL Log(AMX *amx, cell *params)
 	float a = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)log(a) );
 }
-#if defined OZDoc
+#if defined OLDoc
 float log10(float x); /*!<
 	\ingroup float
 	\brief Common logarithm function.
@@ -463,7 +463,7 @@ static cell AMX_NATIVE_CALL Log10(AMX *amx, cell *params)
 	float a = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)log10(a) );
 }
-#if defined OZDoc
+#if defined OLDoc
 float pow(float x, float y); /*!<
 	\ingroup float
 	\brief Power function, x to the y (x^y, or x**y).
@@ -512,7 +512,7 @@ static cell AMX_NATIVE_CALL Sqrt(AMX *amx, cell *params)
 	return ConvertFloatToCell( (float)sqrt(a) );
 }
 
-#if defined OZDoc
+#if defined OLDoc
 float sin(float degrees); /*!< 
 	\ingroup float
 	\brief Returns the sine trigonometric function of an angle.
@@ -585,7 +585,7 @@ static cell AMX_NATIVE_CALL Sin(AMX *amx, cell *params)
 	return ConvertFloatToCell( (float)sin(radians) );
 }
 
-#if defined OZDoc
+#if defined OLDoc
 float cos(float degrees); /*!< 
 	\ingroup float
 	\brief Returns the cosine trigonometric function of an angle.
@@ -629,7 +629,7 @@ static cell AMX_NATIVE_CALL Cos(AMX *amx, cell *params)
 	return ConvertFloatToCell( (float)cos(radians) );
 }
 
-#if defined OZDoc
+#if defined OLDoc
 float acos(float x); /*!< 
 	\ingroup float
 	\brief Calculates the arccosine.
@@ -680,7 +680,7 @@ static cell AMX_NATIVE_CALL Acos(AMX *amx, cell *params)
 	float x = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)acos(x) / D2RF );
 }
-#if defined OZDoc
+#if defined OLDoc
 float asin(float x); /*!< 
 	\ingroup float
 	\brief Calculates the arcsine.
@@ -705,7 +705,7 @@ static cell AMX_NATIVE_CALL Asin(AMX *amx, cell *params)
 	float x = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)asin(x) / D2RF );
 }
-#if defined OZDoc
+#if defined OLDoc
 float atan(float x); /*!< 
 	\ingroup float
 	\brief Calculates the arccosine.
@@ -748,7 +748,7 @@ static cell AMX_NATIVE_CALL Atan(AMX *amx, cell *params)
 	float x = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)atan(x) / D2RF );
 }
-#if defined OZDoc
+#if defined OLDoc
 float cosh(float x); /*!< 
 	\ingroup float
 	\brief Returns the hyperbolic cosine trigonometric function of x.
@@ -770,7 +770,7 @@ static cell AMX_NATIVE_CALL Cosh(AMX *amx, cell *params)
 	float x = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)cosh(x) );
 }
-#if defined OZDoc
+#if defined OLDoc
 float sinh(float x); /*!< 
 	\ingroup float
 	\brief Returns the hyperbolic sine trigonometric function of x.
@@ -792,7 +792,7 @@ static cell AMX_NATIVE_CALL Sinh(AMX *amx, cell *params)
 	float x = fConvertCellToFloat( params[1] );
 	return ConvertFloatToCell( (float)sinh(x) );
 }
-#if defined OZDoc
+#if defined OLDoc
 float tan(float degrees); /*!< 
 	\ingroup float
 	\brief Calculate the tangent trigonometric function of an angle.
@@ -838,7 +838,7 @@ static cell AMX_NATIVE_CALL Tan(AMX *amx, cell *params)
 	return ConvertFloatToCell( (float)tan(radians) );
 }
 
-#if defined OZDoc
+#if defined OLDoc
 float tanh(float x); /*!< 
 	\ingroup float
 	\brief Returns the hyperbolic tangent trigonometric function of x.

@@ -48,19 +48,26 @@ struct InfoStruct {
 class CConsole :
 	public IConsole
 {
+	static char ms_szLogFile[MAX_PATH];
 	static CConsole *_instance;
 public:
 	static HWND ms_hWnd; //! Window handler to send the information
 
 	char *gets(char *buffer) { return NULL; }
-	int print(const char *format, va_list argptr);
-	int printf(const char *format, ...);
-	int putch(int c) { printf("%c", c); return 1; }
 
-	int gets(char *buffer, int buffsize) { return 0; }
+//////////////////////////////////////////////////////
+// Interface:
+	int vprintf(const char *format, va_list argptr);
+	int printf(const char *format, ...);
+
+	int vfprintf(const char *format, va_list argptr);
+	int fprintf(const char *format, ...);
+
 	int getch() { return 0; }
+	int putch(int c) { printf("%c", c); return 1; }
+	int gets(char *buffer, int buffsize) { return 0; }
 
 	int error(int number, char *message, char *filename, int firstline, int lastline, va_list argptr);
 
-	static CConsole *Instance();
+	static CConsole* Instance();
 };

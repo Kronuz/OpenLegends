@@ -240,7 +240,7 @@ bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 #else
 #	define CONSOLE_DEBUG __noop
 #	define CONSOLE_PRINTF CConsole::Instance()->printf
-#	define CONSOLE_LOG CConsole::Instance()->printf
+#	define CONSOLE_LOG CConsole::Instance()->fprintf
 #	define CONSOLE_PUTCHAR(c) CConsole::Instance()->putch(c)
 #	define CONSOLE_GETCHAR() CConsole::Instance()->getch()
 #	define CONSOLE_GETS(s,n) CConsole::Instance()->gets(s,n)

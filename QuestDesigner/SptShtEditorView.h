@@ -187,6 +187,8 @@ public:
 	virtual void Render(WPARAM wParam);
 	virtual void UpdateView();
 
+	void SpriteStep(LPCSTR szSprite);
+
 	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL);
 
 	virtual bool DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle = _T("Untitled"), WPARAM wParam = NULL, LPARAM lParam = NULL);

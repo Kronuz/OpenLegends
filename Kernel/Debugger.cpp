@@ -505,7 +505,7 @@ int AMXAPI amx_InternalDebugProc(AMX *amx)
 			CDebugScript::ms_bBreakRequest = false;
 			CDebugScript::ms_bInterBreak = false;
 
-			// Tell OZ to contine to draw stuff in the screen while debugging:
+			// Tell OL to contine to draw stuff in the screen while debugging:
 			if(pDebug->m_hSemaphore) ReleaseSemaphore(pDebug->m_hSemaphore, 1, NULL);
 
 			// Also, update information (variables and stuff) in the client and wait for user input...
@@ -535,7 +535,7 @@ int AMXAPI amx_InternalDebugProc(AMX *amx)
 					cmd == STEP_IN ) break;
 			}
 
-			// Now tell OZ to stop drawing until the next debug or 
+			// Now tell OL to stop drawing until the next debug or 
 			// until all the scripts have been executed:
 			if(pDebug->m_hSemaphore) WaitForSingleObject(pDebug->m_hSemaphore, INFINITE);
 

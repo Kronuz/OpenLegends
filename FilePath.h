@@ -257,7 +257,8 @@ inline void CVFile::SetFilePath(LPCSTR szNewName, bool bGlobalize)
 {
 	ASSERT(szNewName);
 	if(!*szNewName) return;
-
+	
+	// First we close the file, in case it's open:
 	if(m_bOpenFile) Close(true, true);
 	ASSERT(!m_vFile);
 	ASSERT(!m_vzFile);

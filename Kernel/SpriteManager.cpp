@@ -34,6 +34,8 @@
 					+ Full ARGB values instead of just alpha in contexts.
 				September 17, 2003: 
 					+ Optimization. Sprite sets now have indexed names and the alpha-RGB are now separated.
+				September 14, 2004: 
+					+ Bug Fix. Sprite Sets didn't load entities well. (it changed some sizes to null)
 
 	This file implements all the classes that manage the sprites,
 	including backgrounds, sprite sheets, animations, mask maps and
@@ -178,7 +180,7 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, const A
 	if(context.m_pBuffer[nBuffer] && scontext->m_nFrame[nBuffer]!=nFrame) {
 		if( m_Boundaries[nFrame].Width() != m_Boundaries[scontext->m_nFrame[nBuffer]].Width() ||
 			m_Boundaries[nFrame].Height() != m_Boundaries[scontext->m_nFrame[nBuffer]].Height()) {
-			context.m_pBuffer[nBuffer]->Invalidate(); // the next frame has different size, invalidate.
+			context.m_pBuffer[nBuffer]->Invalidate(true); // the next frame has different size, invalidate.
 		} else {
 			context.m_pBuffer[nBuffer]->Touch(); // same size, the same buffer can be used, just touch.
 		}
@@ -244,11 +246,25 @@ bool CEntity::Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorMod
 		return CBackground::Draw(context, rgbColorModulation); 
 	return true;
 }
-
+const IScript* CEntity::GetScript() const
+{
+	const SEntityData *pEntityData = static_cast<const SEntityData*>(m_pSpriteData);
+	ASSERT(pEntityData);
+	if(pEntityData->pScript) {
+		return pEntityData->pScript;
+	}
+	return NULL;
+}
 bool CEntity::Run(const CDrawableContext &context, RUNACTION action)
 {
 	const SEntityData *pEntityData = static_cast<const SEntityData*>(m_pSpriteData);
-	pEntityData->pScript->RunScript(context, action);
+	ASSERT(pEntityData);
+	// If there's a script for the entity, run it:
+	if(pEntityData->pScript)
+		pEntityData->pScript->RunScript(context, action);
+	else {
+		CONSOLE_DEBUG("The entity %s has no script.\n", pEntityData->pScript);
+	}
 	
 	return true;
 }
@@ -734,6 +750,8 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 
 	int w = ObjProp_.rcRect.Width();
 	int h = ObjProp_.rcRect.Height();
+	// Won't resize to a null size.
+	if(w<=0 || h<=0) return;
 
 	float xFactor=1.0f, yFactor=1.0f;
 	_Chain xChain = ObjProp_.eXChain;
@@ -938,9 +956,9 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	GetBoundingRect(&rcBoundaries);
 
 	_SpriteSet *CopyBoard = (_SpriteSet*)pRawBuffer;
-	strcpy(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID);
+	strcpy(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID);
 	strcat(CopyBoard->Info.Header.ID, "\nUntitled Sprite Set\nDescription goes here.");
-	CopyBoard->Info.Header.dwSignature = OZF_SPRITE_SET_SIGNATURE;
+	CopyBoard->Info.Header.dwSignature = OLF_SPRITE_SET_SIGNATURE;
 	CopyBoard->Info.Header.dwSize = asize + bmpsize;
 	CopyBoard->Info.nObjects = (int)m_Objects[0].size();
 
@@ -1141,7 +1159,7 @@ CRect CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite, const CPoin
 	CSprite *pSprite = CGameManager::Instance()->FindSprite(szSprite);
 
 	if(!pSprite) {
-		if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szSprite);
+		if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite (1): '%s'!\n", szSprite);
 		return CRect(0,0,0,0);
 	}
 	return PasteSprite(pLayer, pSprite, pPoint, bPaste);
@@ -1162,164 +1180,180 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 
 	UINT nLayer = -1;
 
-	char szSpriteSetName[200];
-	// get the next availible paste group:
-	m_nCurrentGroup = SetNextPasteGroup(GetNameFromOZFile(&CopyBoard->Info.Header, szSpriteSetName, sizeof(szSpriteSetName)));
-	CONSOLE_DEBUG("Sprite Set to be pasted as group #%d\n", m_nPasteGroup);
+	try {
+		char szSpriteSetName[200];
+		// get the next availible paste group:
+		m_nCurrentGroup = SetNextPasteGroup(GetNameFromOLFile(&CopyBoard->Info.Header, szSpriteSetName, sizeof(szSpriteSetName)));
+		CONSOLE_DEBUG("Sprite Set '%s' to be pasted as group #%d\n", szSpriteSetName, m_nPasteGroup);
 
-	for(UINT i=0; i<CopyBoard->Info.nObjects; i++) {
+		for(UINT i=0; i<CopyBoard->Info.nObjects; i++) {
 
-		_SpriteSet::_SpriteSetData01 *pSpriteSetData01 = NULL;
-		_SpriteSet::_SpriteSetData02 *pSpriteSetData02 = NULL;
-		_SpriteSet::_SpriteSetData03 *pSpriteSetData03 = NULL;
-		_SpriteSet::_SpriteSetData04 *pSpriteSetData04 = NULL;
+			_SpriteSet::_SpriteSetData01 *pSpriteSetData01 = NULL;
+			_SpriteSet::_SpriteSetData02 *pSpriteSetData02 = NULL;
+			_SpriteSet::_SpriteSetData03 *pSpriteSetData03 = NULL;
+			_SpriteSet::_SpriteSetData04 *pSpriteSetData04 = NULL;
 
-		// Initialize structures from data and mask:
-		_SpriteSet::_SpriteSetData *pSpriteSetData = (_SpriteSet::_SpriteSetData *)pData;
-		pData += sizeof(_SpriteSet::_SpriteSetData);
+			// Initialize structures from data and mask:
+			_SpriteSet::_SpriteSetData *pSpriteSetData = (_SpriteSet::_SpriteSetData *)pData;
+			pData += sizeof(_SpriteSet::_SpriteSetData);
 
-		if((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT) {
-			pSpriteSetData01 = (_SpriteSet::_SpriteSetData01 *)pData;
-			pData += sizeof(_SpriteSet::_SpriteSetData01);
-		}
-		if((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS) {
-			pSpriteSetData02 = (_SpriteSet::_SpriteSetData02 *)pData;
-			pData += sizeof(_SpriteSet::_SpriteSetData02);
-		}
-		if((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA) {
-			pSpriteSetData03 = (_SpriteSet::_SpriteSetData03 *)pData;
-			pData += sizeof(_SpriteSet::_SpriteSetData03);
-		}
-		if((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL) {
-			pSpriteSetData04 = (_SpriteSet::_SpriteSetData04 *)pData;
-			pData += sizeof(_SpriteSet::_SpriteSetData04);
-		}
-		szName = (LPSTR)CopyBoard + pIndexOffset[pSpriteSetData->ObjIndex];
-
-		// Build sprite:
-		if(nLayer!=-1 || !pLayer) {
-			if(nLayer != pSpriteSetData->Layer) {
-				nLayer = pSpriteSetData->Layer;
-				pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(nLayer));
+			if((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT) {
+				pSpriteSetData01 = (_SpriteSet::_SpriteSetData01 *)pData;
+				pData += sizeof(_SpriteSet::_SpriteSetData01);
 			}
-		} // else if there is a current layer selected, use that layer instead
-
-		CSprite *pSprite = CGameManager::Instance()->FindSprite(szName);
-		if(!pSprite) {
-			if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szName);
-			continue;
-		}
-		if(pSprite->GetSpriteType() == tMask) {
-			if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", szName);
-			continue;
-		}
-		if(!pLayer) {
-			if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", szName);
-			continue;
-		}
-
-		CRect RectTmp(pSpriteSetData->X, pSpriteSetData->Y, pSpriteSetData->X - 1, pSpriteSetData->Y - 1);
-		if(RectTmp.right == -1 || RectTmp.bottom == -1) {
-			CSize Size;
-			pSprite->GetSize(Size);
-			if(RectTmp.right == -1) RectTmp.right = RectTmp.left + Size.cx;
-			if(RectTmp.bottom == -1) RectTmp.bottom = RectTmp.top + Size.cy;
-		}
-
-		if(bPaste) {
-			// Fill sprite context data:
-
-			ARGBCOLOR rgbColor = COLOR_ARGB(255,128,128,128);
-			int rotation = 0;
-			bool mirrored = false;
-			bool flipped = false;
-			
-			_Chain XChain = relative;
-			_Chain YChain = relative;
-
-			CSpriteContext *pSpriteContext = new CSpriteContext(""); // New sprite context with no name.
-			pSpriteContext->SetDrawableObj(pSprite);
-
-			pSpriteContext->SetObjSubLayer(pSpriteSetData->SubLayer);
-
-			if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
-				ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
-				RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
-				RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
-				pSpriteContext->Tile();
+			if((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS) {
+				pSpriteSetData02 = (_SpriteSet::_SpriteSetData02 *)pData;
+				pData += sizeof(_SpriteSet::_SpriteSetData02);
 			}
-			if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
-				ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
-				rotation = pSpriteSetData02->rotation;
-				mirrored = pSpriteSetData02->mirrored;
-				flipped = pSpriteSetData02->flipped;
-				if((pSpriteSetData->Mask & SSD_CHAIN_X) == SSD_CHAIN_X)
-					XChain = (_Chain)(pSpriteSetData02->XChain + 1);
-				if((pSpriteSetData->Mask & SSD_CHAIN_Y) == SSD_CHAIN_Y)
-					YChain = (_Chain)(pSpriteSetData02->YChain + 1);
+			if((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA) {
+				pSpriteSetData03 = (_SpriteSet::_SpriteSetData03 *)pData;
+				pData += sizeof(_SpriteSet::_SpriteSetData03);
 			}
-			if(pSpriteSetData03) { //SSD_ALPHA
-				ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
-				rgbColor.rgbAlpha = pSpriteSetData03->Alpha;
+			if((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL) {
+				pSpriteSetData04 = (_SpriteSet::_SpriteSetData04 *)pData;
+				pData += sizeof(_SpriteSet::_SpriteSetData04);
 			}
-			if(pSpriteSetData04) { //SSD_RGBL
-				ASSERT((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL);
-				rgbColor.rgbRed = pSpriteSetData04->Red;
-				rgbColor.rgbGreen = pSpriteSetData04->Green;
-				rgbColor.rgbBlue = pSpriteSetData04->Blue;
+			szName = (LPSTR)CopyBoard + pIndexOffset[pSpriteSetData->ObjIndex];
+
+			// Build sprite:
+			if(nLayer!=-1 || !pLayer) {
+				if(nLayer != pSpriteSetData->Layer) {
+					nLayer = pSpriteSetData->Layer;
+					pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(nLayer));
+				}
+			} // else if there is a current layer selected, use that layer instead
+
+			CSprite *pSprite = CGameManager::Instance()->FindSprite(szName);
+			if(!pSprite) {
+				if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite (2): '%s'!\n", szName);
+				continue;
+			}
+			if(pSprite->GetSpriteType() == tMask) {
+				if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", szName);
+				continue;
+			}
+			if(!pLayer) {
+				if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", szName);
+				continue;
 			}
 
-			pSpriteContext->Rotate(rotation);
-			pSpriteContext->Mirror(mirrored);
-			pSpriteContext->Flip(flipped);
-			pSpriteContext->ARGB(rgbColor);
+			// Start the Rect with the width and heignt of the sprite (defaults for entities)
+			CRect RectTmp(pSpriteSetData->X, pSpriteSetData->Y, pSpriteSetData->X - 1, pSpriteSetData->Y - 1);
 
-			pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
-			if(!pPoint) {
-				// the sprite absolute postion must be set after inserting it in the layer.
-				pSpriteContext->SelectContext();
-				pSpriteContext->SetAbsFinalRect(RectTmp);
-				// push to the main group:
-				m_Objects[0].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
-				// push to the current paste group:
-				if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+			if(bPaste) {
+				// Fill sprite context data:
+
+				ARGBCOLOR rgbColor = COLOR_ARGB(255,128,128,128);
+				int rotation = 0;
+				bool mirrored = false;
+				bool flipped = false;
+				
+				_Chain XChain = relative;
+				_Chain YChain = relative;
+
+				CSpriteContext *pSpriteContext = new CSpriteContext(""); // New sprite context with no name.
+				pSpriteContext->SetDrawableObj(pSprite);
+
+				pSpriteContext->SetObjSubLayer(pSpriteSetData->SubLayer);
+
+				// We ignore Width and Height from entities (shouldn't be there anyway) ...
+				if(pSprite->GetSpriteType() != tEntity) {
+					if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
+						ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
+						RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
+						RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
+						pSpriteContext->Tile();
+						if(RectTmp.right < RectTmp.left || RectTmp.bottom < RectTmp.top) {
+							CONSOLE_PRINTF("Paste error: Corrupted Sprite: '%s' (in the Sprite Set '%s')\n", szName, szSpriteSetName);
+							continue;
+						}
+					} else {
+						CSize Size;
+						pSprite->GetSize(Size);
+						RectTmp.right = RectTmp.left + Size.cx;
+						RectTmp.bottom = RectTmp.top + Size.cy;
+					}
+				}
+
+				if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
+					ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
+					rotation = pSpriteSetData02->rotation;
+					mirrored = pSpriteSetData02->mirrored;
+					flipped = pSpriteSetData02->flipped;
+					if((pSpriteSetData->Mask & SSD_CHAIN_X) == SSD_CHAIN_X)
+						XChain = (_Chain)(pSpriteSetData02->XChain + 1);
+					if((pSpriteSetData->Mask & SSD_CHAIN_Y) == SSD_CHAIN_Y)
+						YChain = (_Chain)(pSpriteSetData02->YChain + 1);
+				}
+				if(pSpriteSetData03) { //SSD_ALPHA
+					ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
+					rgbColor.rgbAlpha = pSpriteSetData03->Alpha;
+					if(rgbColor.rgbAlpha == 0) {
+						CONSOLE_PRINTF("Paste warning: Invisible Sprite: '%s'\n", szName);
+					}
+				}
+				if(pSpriteSetData04) { //SSD_RGBL
+					ASSERT((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL);
+					rgbColor.rgbRed = pSpriteSetData04->Red;
+					rgbColor.rgbGreen = pSpriteSetData04->Green;
+					rgbColor.rgbBlue = pSpriteSetData04->Blue;
+				}
+
+				pSpriteContext->Rotate(rotation);
+				pSpriteContext->Mirror(mirrored);
+				pSpriteContext->Flip(flipped);
+				pSpriteContext->ARGB(rgbColor);
+
+				pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
+				if(!pPoint) {
+					// the sprite absolute postion must be set after inserting it in the layer.
+					pSpriteContext->SelectContext();
+					pSpriteContext->SetAbsFinalRect(RectTmp);
+					// push to the main group:
+					m_Objects[0].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+					// push to the current paste group:
+					if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+				} else {
+					RectTmp.OffsetRect(*pPoint);
+					pSpriteContext->SetAbsFinalRect(RectTmp);
+					// push to the current paste group:
+					if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+				}
 			} else {
-				RectTmp.OffsetRect(*pPoint);
-				pSpriteContext->SetAbsFinalRect(RectTmp);
-				// push to the current paste group:
-				if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+				if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
+					ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
+					RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
+					RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
+				}
+				if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
+					ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
+				}
+				if(pSpriteSetData03) { //SSD_ALPHA
+					ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
+				}
+				if(pSpriteSetData04) { //SSD_RGBL
+					ASSERT((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL);
+				}
+				if(pPoint) RectTmp.OffsetRect(*pPoint);
 			}
-		} else {
-			if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
-				ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
-				RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
-				RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
-			}
-			if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
-				ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
-			}
-			if(pSpriteSetData03) { //SSD_ALPHA
-				ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
-			}
-			if(pSpriteSetData04) { //SSD_RGBL
-				ASSERT((pSpriteSetData->Mask & SSD_RGBL) == SSD_RGBL);
-			}
-			if(pPoint) RectTmp.OffsetRect(*pPoint);
+
+			RetRect.UnionRect(RetRect, RectTmp);
 		}
 
-		RetRect.UnionRect(RetRect, RectTmp);
-	}
+		// there was only a single sprite in the sprite set, so we set the 
+		// paste group to 0 and clear the used group:
+		if(m_nPasteGroup != 0 && m_Objects[m_nPasteGroup].size() <= 1) {
+			m_Objects[m_nPasteGroup].clear();
+			m_nCurrentGroup = m_nPasteGroup = 0;
+		}
 
-	// there was only a single sprite in the sprite set, so we set the 
-	// paste group to 0 and clear the used group:
-	if(m_nPasteGroup != 0 && m_Objects[m_nPasteGroup].size() <= 1) {
-		m_Objects[m_nPasteGroup].clear();
-		m_nCurrentGroup = m_nPasteGroup = 0;
-	}
-
-	if(!pPoint && bPaste) {
-		m_bFloating = true;
-		StartMoving(CopyBoard->Info.rcBoundaries.CenterPoint());
+		if(!pPoint && bPaste) {
+			m_bFloating = true;
+			StartMoving(CopyBoard->Info.rcBoundaries.CenterPoint());
+		}
+	} 
+	catch(...) {
+		CONSOLE_PRINTF("Paste error : Couldn't paste corrupted sprite set!\n");
 	}
 
 	return RetRect;
@@ -1340,8 +1374,8 @@ CRect CSpriteSelection::PasteFile(CLayer *pLayer, LPCSTR szFilePath, const CPoin
 	fnFile.Open("r");
 	fnFile.Read(Header, sizeof(_SpriteSet::_SpriteSetInfo));
 	fnFile.Close();
-	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) return RetRect;
-	else if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) return RetRect;
+	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) return RetRect;
+	else if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) return RetRect;
 
 	fnFile.Open("r");
 	LPBYTE pRawBuffer = (LPBYTE)fnFile.ReadFile();
@@ -1363,14 +1397,14 @@ bool CSpriteSelection::GetPastedSize(LPCVOID pBuffer, SIZE *pSize)
 
 	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
 	// is it a sprite set?
-	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) {
+	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
 		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &Point, false);
 		if(RetRect.IsRectNull()) {
 			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &Point, false);
 			if(RetRect.IsRectNull()) return false;
 		}
 	} else {
-		if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) {
+		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
 			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
 			return false;
 		}
@@ -1415,14 +1449,14 @@ bool CSpriteSelection::FastPaste(LPCVOID pBuffer, const CPoint &point_ )
 
 	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
 	// is it a sprite set?
-	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) {
+	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
 		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &point_);
 		if(RetRect.IsRectNull()) {
 			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &point_);
 			if(RetRect.IsRectNull()) return false;
 		}
 	} else {
-		if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) {
+		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
 			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
 			return false;
 		}
@@ -1447,14 +1481,14 @@ bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
 
 	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
 	// is it a sprite set?
-	if(strncmp(CopyBoard->Info.Header.ID, OZF_SPRITE_SET_ID, sizeof(OZF_SPRITE_SET_ID)-1)) {
+	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
 		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer);
 		if(RetRect.IsRectNull()) {
 			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer);
 			if(RetRect.IsRectNull()) return false;
 		}
 	} else {
-		if(CopyBoard->Info.Header.dwSignature != OZF_SPRITE_SET_SIGNATURE) {
+		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
 			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
 			return false;
 		}

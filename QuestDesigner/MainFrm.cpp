@@ -98,7 +98,7 @@ BOOL CMainFrame::OnIdle()
 LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	m_pProjectFactory = CProjectFactory::Instance(m_hWnd);
-	m_pOZKernel = m_pProjectFactory->Interface();
+	m_pOLKernel = m_pProjectFactory->Interface();
 
 	// updating the window handler of the project's console
 	CConsole::ms_hWnd = m_hWnd;
@@ -300,11 +300,13 @@ void CMainFrame::InitializeDefaultPanes()
 
 	m_LocalVariablesBox.Create(m_hWnd,	rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
 
+	// All CreatePane calls must keep the current order, or otherwise, changes are needed to the
+	// definitions between ID_VIEW_PANEFIRST and ID_VIEW_PANELAST in resource.h
 	HWND hPane = 
-	CreatePane(m_ThumbnailsBox,		_T("Thumbnails"),			ilIcons.ExtractIcon(14), rcDockH, NULL,  dockwins::CDockingSide(dockwins::CDockingSide::sRight));
-	CreatePane(m_TaskListView,      _T("Things To Do"),			ilIcons.ExtractIcon(6),  rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
+	CreatePane(m_TaskListView,      _T("Things To Do"),			ilIcons.ExtractIcon(6),  rcDockH, NULL,  dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 	CreatePane(m_DescriptionView,   _T("Project Description"),	ilIcons.ExtractIcon(3),  rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 	CreatePane(m_OutputBox,         _T("Output Window"),		ilIcons.ExtractIcon(10), rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
+	CreatePane(m_ThumbnailsBox,		_T("Thumbnails"),			ilIcons.ExtractIcon(14), rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 	CreatePane(m_LocalVariablesBox,	_T("Local variables"),		ilIcons.ExtractIcon(10), rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 
 	//////////////////////// Second Pane:
@@ -521,7 +523,7 @@ LRESULT CMainFrame::OnScriptFileNew()
 
 LRESULT CMainFrame::OnScriptFileOpen()
 {
-	static TCHAR szFilter[] = "OZ Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
+	static TCHAR szFilter[] = "OL Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
 	if(IDOK == wndFileDialog.DoModal()) {
@@ -536,7 +538,7 @@ LRESULT CMainFrame::OnFileNew()
 
 LRESULT CMainFrame::OnFileOpen()
 {
-	static TCHAR szFilter[] = "OZ Quest files (*.qss;*.qsz)|*.qss; *.qsz|All Files (*.*)|*.*||";
+	static TCHAR szFilter[] = "OL Quest files (*.qss;*.qsz)|*.qss; *.qsz|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
 	if(IDOK == wndFileDialog.DoModal()) {
@@ -545,19 +547,114 @@ LRESULT CMainFrame::OnFileOpen()
 	return 0;
 }
 
+/****************************************************************
+ * This is just temporary solution to the directory selection   *
+ ****************************************************************/
+LPSTR strdup_new(LPCSTR str)
+{
+	if(!str) return NULL;
+	if(!*str) return NULL;
+	LPSTR ret = new char[strlen(str)+1];
+	strcpy(ret, str);
+	return ret;
+}
+int CALLBACK BrowseCallbackProc(HWND hwnd,
+        UINT uMsg, LPARAM lParam, LPARAM lpData)
+{
+    switch (uMsg) {
+		case BFFM_INITIALIZED: {
+            /* change the selected folder. */
+			LPSTR base, aux;
+			base = aux = strdup_new((LPSTR)lpData);
+			while(*aux) {
+				while(*aux!='\\' && *aux) aux++;
+				if(*aux) aux++;
+				CHAR tmp = *aux;
+				*aux = '\0';
+				SendMessage(hwnd, BFFM_SETSELECTION, TRUE, (LPARAM)base);
+				if(tmp) *aux++ = tmp;
+			}
+			delete []base;
+            break;
+							   }
+        case BFFM_SELCHANGED:
+            break;
+        default:
+            break;
+    }
+    return(0);
+}
+BOOL BrowseForFolder(HWND hwnd, // parent window.
+        LPCSTR lpszRoot,        // root folder.
+        LPCTSTR lpszDefault,    // default selection.
+        LPTSTR lpszBuffer,      // return buffer.
+        LPCTSTR lpszTitle,      // Title.
+        UINT ulFlags)		    // Flags.
+{
+    LPMALLOC pMalloc;
+    LPSHELLFOLDER pDesktop;
+    LPITEMIDLIST pidlRoot, pidl;
+    BROWSEINFO bi;
+    BOOL bRet = FALSE;
+
+    if (SHGetMalloc(&pMalloc) != NOERROR) return(FALSE);
+
+    /* gets the ITEMIDLIST for the desktop folder. */
+    if (SHGetDesktopFolder(&pDesktop) == NOERROR) {
+          WCHAR wszPath[_MAX_PATH];
+          ULONG cchEaten;
+          ULONG dwAttr;
+
+          /* converts the root path into unicode. */
+          MultiByteToWideChar(CP_OEMCP, 0,
+              lpszRoot, -1, wszPath, _MAX_PATH);
+
+          /* translates the root path into ITEMIDLIST. */
+          if(pDesktop->ParseDisplayName(NULL, NULL, wszPath, &cchEaten, &pidlRoot, &dwAttr) != NOERROR)
+              pidlRoot = NULL;
+
+          pDesktop->Release();
+    }
+
+    /* fills the structure. */
+    bi.hwndOwner = hwnd;
+    bi.pidlRoot = pidlRoot;
+    bi.pszDisplayName = lpszBuffer;
+    bi.lpszTitle = lpszTitle;
+    bi.ulFlags = ulFlags;
+	bi.lpfn = (BFFCALLBACK)BrowseCallbackProc;
+    bi.lParam = (LPARAM)lpszDefault;
+	bi.iImage = 0;
+
+    /* invokes the dialog. */
+    if ((pidl = SHBrowseForFolder(&bi)) != NULL) {
+        bRet = SHGetPathFromIDList(pidl, lpszBuffer);
+		strcat(lpszBuffer, "\\");
+        pMalloc->Free(pidl);
+    }
+
+    /* clean up. */
+    if (pidlRoot)
+        pMalloc->Free(pidlRoot);
+    pMalloc->Release();
+
+    return(bRet);
+}
+/***************************************************************/
+
 LRESULT CMainFrame::OnProjectOpen()
 {
-	if(!m_pOZKernel->Close()) {
+	if(!m_pOLKernel->Close()) {
 		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
-			if(!m_pOZKernel->Save()) {
+			if(!m_pOLKernel->Save()) {
 				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		m_pOZKernel->Close(true);
+		m_pOLKernel->Close(true);
 	} 
 
 	UIEnableToolbar(FALSE);
@@ -565,11 +662,23 @@ LRESULT CMainFrame::OnProjectOpen()
 	UIUpdateToolBar();
 	UpdateWindow();
 
+	if(g_sHomeDir.IsEmpty()) {
+		g_sHomeDir = "C:\\qd\\Quest Designer 2.0.4\\";
+	}
+
+	TCHAR taux[_MAX_PATH];
+	if(!BrowseForFolder(m_hWnd, 0, g_sHomeDir, taux, "Please select the folder where the game files are:", 0)) {
+		return 0;
+	}
+
     StatusBar("Loading...", IDI_ICO_WAIT);
 
 	::SendMessage(m_GameProject, WM_SETREDRAW, FALSE, 0);
-	g_sHomeDir = "C:\\qd\\Quest Designer 2.1.4\\";
-	m_pOZKernel->Load(g_sHomeDir);
+	g_sHomeDir = taux;
+
+	if(!m_pOLKernel->Load(g_sHomeDir)) {
+		return 0;
+	}
 	::SendMessage(m_GameProject, WM_SETREDRAW, TRUE, 0);
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 	m_SpriteSets.PopulateTree(g_sHomeDir + "Sprite Sets");
@@ -767,7 +876,8 @@ HRESULT CMainFrame::OnRunProject()
 		if(OnBuildProject(false) == 1) {
 			CONSOLE_PRINTF("Debugger error: Couldn't build the quest!\n");
 		}
-		// Get the Open Legends's exe path
+
+		// Get the Open Legends's exe path and filename:
 		char szFilename[MAX_PATH];
 		GetModuleFileName(_Module.GetModuleInstance(), szFilename, MAX_PATH);
 
@@ -834,8 +944,8 @@ int CMainFrame::Select(LPCTSTR szFilename, LPARAM lParam)
 int CMainFrame::MapCreate(CPoint &Point)
 {
 	CMapGroup *pMapGroupI;
-	if((pMapGroupI = m_pOZKernel->FindMapGroup(Point.x, Point.y))==NULL) {
-		if((pMapGroupI = m_pOZKernel->BuildMapGroup(Point.x, Point.y, 1, 1))==NULL) return 0;
+	if((pMapGroupI = m_pOLKernel->FindMapGroup(Point.x, Point.y))==NULL) {
+		if((pMapGroupI = m_pOLKernel->BuildMapGroup(Point.x, Point.y, 1, 1))==NULL) return 0;
 	}
 
 	// Searching for an open child with the same file:
@@ -860,7 +970,7 @@ int CMainFrame::MapCreate(CPoint &Point)
 int CMainFrame::MapFileOpen(CPoint &Point)
 {
 	CMapGroup *pMapGroupI;
-	if((pMapGroupI = m_pOZKernel->FindMapGroup(Point.x, Point.y))==NULL) return MapCreate(Point);
+	if((pMapGroupI = m_pOLKernel->FindMapGroup(Point.x, Point.y))==NULL) return MapCreate(Point);
 
 	LPCSTR szTitle = pMapGroupI->GetMapGroupID();
 
@@ -929,21 +1039,21 @@ void CMainFrame::StatusBar(LPCSTR szMessage, UINT Icon)
 
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
-	if(!m_pOZKernel->CloseWorld()) {
+	if(!m_pOLKernel->CloseWorld()) {
 		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
-			if(!m_pOZKernel->SaveWorld()) {
+			if(!m_pOLKernel->SaveWorld()) {
 				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		m_pOZKernel->CloseWorld(true);
+		m_pOLKernel->CloseWorld(true);
 	} 
     StatusBar("Loading...", IDI_ICO_WAIT);
 	g_sQuestFile = szFilename;
-	if(!m_pOZKernel->LoadWorld(g_sQuestFile)) {
+	if(!m_pOLKernel->LoadWorld(g_sQuestFile)) {
 	    StatusBar("Couldn't load quest!", IDI_ICO_ERROR);
 		return 1;
 	}
@@ -1028,6 +1138,15 @@ void CMainFrame::UIUpdateMenuItems()
 		}
 		m_ctrlLayers.EnableWindow(FALSE);
 		m_bLayers = FALSE;
+	}
+
+	if( ActiveChildType!=tScriptEditor ) {
+		if(m_PaneWindows.size() >= (ID_VIEW_PANELAST-ID_VIEW_PANEFIRST)) {
+			CTabbedDockingWindow *pDebugger = m_PaneWindows[ID_PANE_DEBUGGER-ID_VIEW_PANEFIRST];
+			if(pDebugger->IsWindowVisible() == TRUE) {
+				pDebugger->Toggle();
+			}
+		}
 	}
 
 	if(m_pProjectFactory->isBuilding()) {

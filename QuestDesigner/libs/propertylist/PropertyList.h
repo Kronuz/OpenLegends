@@ -86,6 +86,7 @@ public:
 		HFONT hOldFont = dc.SelectFont(di.CategoryFont);
 		if( di.dwExtStyle & PLS_EX_XPLOOK ) {
 			di.clrSelText = di.clrText;
+			
 			di.clrBack = ::GetSysColor(COLOR_3DFACE);
 			di.clrSelBack = ::GetSysColor(COLOR_3DFACE);
 			CProperty::DrawName(di);

@@ -419,9 +419,12 @@ bool CGameManager::Load(CVFile &vfFile)
 	CONSOLE_PRINTF("Loading project: '%s' at %s...\n", m_sProjectName, vfFile.GetPath());
 
     ASSERT(g_sHomeDir != "");
-	// CBString sPath = g_sHomeDir + "Sprite Sheets\\*.spt";
 	CVFile vfn = g_sHomeDir + "Sprite Sheets\\*.spt";
-	vfn.ForEachFile(CGameManager::LoadSheet, (LPARAM)this);
+	if(vfn.ForEachFile(CGameManager::LoadSheet, (LPARAM)this) == 0) {
+		CONSOLE_PRINTF("No sprites found, probably wrong directory. Nothing has been loaded!\n");
+		m_sProjectName = "";
+		return false;
+	}
 
 	if(m_UndefSprites.size()) {
 		CONSOLE_PRINTF("\nReferenced but undefined sprites:\n");
@@ -714,3 +717,13 @@ const IScript* CGameManager::GetScript(int idx) const
 	}
 	return NULL;
 }
+
+const IScript* CGameManager::GetScript(CSprite *pSprite) const
+{
+	if(pSprite && pSprite->GetSpriteType() == tEntity) {
+		CEntity *pEntity = static_cast<CEntity *>(pSprite);
+		return pEntity->GetScript();
+	}
+	return NULL;
+}
+

@@ -12,24 +12,24 @@
 
 class CTreeDropTarget : public CIDropTarget
 {
-	DWORD _FindIcon(LPCOZFILE pOZFile)
+	DWORD _FindIcon(LPCOLFILE pOLFile)
 	{
-		if(!pOZFile) return ICO_UNKNOWN;
-		// Find out what icon should the pOZFile use:
-		if(VerifyOZFile(&pOZFile) == FALSE) return ICO_UNKNOWN;
+		if(!pOLFile) return ICO_UNKNOWN;
+		// Find out what icon should the pOLFile use:
+		if(VerifyOLFile(&pOLFile) == FALSE) return ICO_UNKNOWN;
 
 		DWORD dwIcon = ICO_UNKNOWN;
-		switch(pOZFile->dwSignature) {
-			case OZF_SPRITE_SET_SIGNATURE:
+		switch(pOLFile->dwSignature) {
+			case OLF_SPRITE_SET_SIGNATURE:
 				dwIcon = ICO_SPTSET;
 				break;
-			case OZF_MAP_GROUP_SIGNATURE:
+			case OLF_MAP_GROUP_SIGNATURE:
 				dwIcon = ICO_MAP;
 				break;
-			case OZF_WORLD_SIGNATURE:
+			case OLF_WORLD_SIGNATURE:
 				dwIcon = ICO_WORLD;
 				break;
-			case OZF_SPRITE_SHEET_SIGNATURE:
+			case OLF_SPRITE_SHEET_SIGNATURE:
 				dwIcon = ICO_SPTSHT;
 				break;
 		}
@@ -40,7 +40,7 @@ class CTreeDropTarget : public CIDropTarget
 		ATLASSERT(pTreeInfo);
 		if(!pTreeInfo) return NULL;
 
-		DWORD dwIcon = _FindIcon((LPCOZFILE)pTreeInfo->GetData());
+		DWORD dwIcon = _FindIcon((LPCOLFILE)pTreeInfo->GetData());
 		// If we can't recognize the dropped file, we don't use it.
 		if(dwIcon == ICO_UNKNOWN) {
 			delete pTreeInfo;
@@ -68,7 +68,7 @@ class CTreeDropTarget : public CIDropTarget
 				sPath += ".set";
 				break;
 			default:
-				sPath += ".oz";
+				sPath += ".ol";
 				break;
 		}
 		if(!pTreeInfo->Save(sPath)) {
@@ -127,20 +127,20 @@ public:
 			if(pData != NULL) {
 				pTreeInfo = NULL;
 
-				// check if the object contains a valid OZ file as the data:
-				LPCOZFILE pOZFile = (LPCOZFILE)pData;
+				// check if the object contains a valid OL file as the data:
+				LPCOLFILE pOLFile = (LPCOLFILE)pData;
 				
-				if(VerifyOZFile(&pOZFile)) {
+				if(VerifyOLFile(&pOLFile)) {
 					CString sName;
 					DWORD dwSize = 0;
 
-					dwSize = pOZFile->dwSize;
+					dwSize = pOLFile->dwSize;
 					pData = new BYTE[dwSize];
-					memcpy(pData, pOZFile, dwSize);
+					memcpy(pData, pOLFile, dwSize);
 
-					// Find the name of the OZ file, to be shown in the tree:
-					char tmp[sizeof(pOZFile->ID)];
-					strcpy(tmp, pOZFile->ID);
+					// Find the name of the OL file, to be shown in the tree:
+					char tmp[sizeof(pOLFile->ID)];
+					strcpy(tmp, pOLFile->ID);
 					strtok(tmp, "\n");								// signature
 					LPSTR name = strtok(NULL, "\n");				// name
 					if(name) sName = name;

@@ -222,9 +222,11 @@ LRESULT CFoldersTreeBox::OnFileItemSelected(UINT /*uMsg*/, WPARAM wParam, LPARAM
 		case 'W': // World
 		case 'M': // Map
 			break;
-		case 'S': // Sprite (Sprite Sheet)
-			m_pMainFrame->ScriptFileOpen(sFileName, 0);
+		case 'S': {// Sprite (Sprite Sheet)
+			CSprite *pSprite = m_pMainFrame->m_pOLKernel->FindSprite(pTreeInfo->GetDisplayName());
+			m_pMainFrame->SptShtFileOpen(pSprite->GetSpriteSheet(), (LPCSTR)pSprite->GetName());
 			break;
+		}
 		default:
 			break;
 	}
@@ -275,11 +277,11 @@ LRESULT CFoldersTreeBox::OnBegindrag(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 
 	pBitmap = pTreeInfo->GetThumbnail();// try to get the thumbnail
 
-	// check if the object contains a valid OZ file as the data:
-	LPCOZFILE pOZFile = (LPCOZFILE)(pTreeInfo->GetData());
+	// check if the object contains a valid OL file as the data:
+	LPCOLFILE pOLFile = (LPCOLFILE)(pTreeInfo->GetData());
 
-	if(VerifyOZFile(&pOZFile)) {
-		hGlobal = GlobalAlloc(GMEM_MOVEABLE, pOZFile->dwSize);
+	if(VerifyOLFile(&pOLFile)) {
+		hGlobal = GlobalAlloc(GMEM_MOVEABLE, pOLFile->dwSize);
 		if(!hGlobal) {
 			pDropSource->Release();
 			pDataObject->Release();
@@ -289,11 +291,11 @@ LRESULT CFoldersTreeBox::OnBegindrag(int idCtrl, LPNMHDR pnmh, BOOL& bHandled)
 		BYTE *pMem = (BYTE*)GlobalLock(hGlobal);
 		ASSERT(pMem);
 
-		memcpy(pMem, pOZFile, pOZFile->dwSize);
+		memcpy(pMem, pOLFile, pOLFile->dwSize);
 		GlobalUnlock(hGlobal);
 
-		if(pOZFile->dwBitmapOffset && !pBitmap) {
-			pBitmap = (BITMAP *)((LPBYTE)pOZFile + pOZFile->dwBitmapOffset);
+		if(pOLFile->dwBitmapOffset && !pBitmap) {
+			pBitmap = (BITMAP *)((LPBYTE)pOLFile + pOLFile->dwBitmapOffset);
 			pBitmap->bmBits = (LPVOID)((LPBYTE)pBitmap + sizeof(BITMAP));
 		}
 	} else {

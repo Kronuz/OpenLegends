@@ -53,7 +53,7 @@ LRESULT CThumbnailsBox::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 {
 	LRESULT lResult = DefWindowProc();
 
-	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D8.dll"))) {
+	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D9.dll"))) {
 		MessageBox("Couldn't load graphics plugin, check plugin version.", "Quest Designer");
 	}
 
