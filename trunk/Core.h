@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -72,8 +72,8 @@ enum CURSOR {
 ////////////////////////////////////////////////////////////////////
 // Files stuff:
 #pragma pack(1)
-// All Open Zelda saved files must have this header:
-struct _OpenZeldaFile {
+// All Open Legends saved files must have this header:
+struct _OpenLegendsFile {
 	char ID[160];			// ID, Name and Description Separated by '\n' and ended by '\0'
 	DWORD dwSignature;		// Signature of the file. (all OZ signatures have 0x7a6f in the low word)
 	DWORD dwSize;			// Size of the file (or memory)
@@ -82,12 +82,12 @@ struct _OpenZeldaFile {
 };
 #pragma pack()
 
-typedef _OpenZeldaFile OZFILE;
-typedef _OpenZeldaFile *LPOZFILE;
-typedef const _OpenZeldaFile *LPCOZFILE;
+typedef _OpenLegendsFile OZFILE;
+typedef _OpenLegendsFile *LPOZFILE;
+typedef const _OpenLegendsFile *LPCOZFILE;
 
 // List of valid file types, their IDs and Signatures:
-#define OZ_NAME				"Open Zelda"
+#define OZ_NAME				"Open Legends"
 
 const char OZF_ID[]			= OZ_NAME;
 const WORD OZF_SIGNATURE	= 0x5a4f;
@@ -105,7 +105,7 @@ const char OZF_MAP_GROUP_ID[]			= MAKEOZID("Map Group");
 const char OZF_WORLD_ID[]				= MAKEOZID("World");
 const char OZF_SPRITE_SHEET_GROUP_ID[]	= MAKEOZID("Sprite Sheet");
 
-// verifies that the pointer passed as pOZFile is a valid Open Zelda file in memory
+// verifies that the pointer passed as pOZFile is a valid Open Legends file in memory
 inline bool VerifyOZFile(LPCOZFILE *ppOZFile)
 {
 	LPCOZFILE pOZFile = *ppOZFile;
@@ -113,7 +113,7 @@ inline bool VerifyOZFile(LPCOZFILE *ppOZFile)
 
 	if(!pOZFile) return false;
 
-	if(::IsBadReadPtr(pOZFile, sizeof(_OpenZeldaFile))) return false;
+	if(::IsBadReadPtr(pOZFile, sizeof(_OpenLegendsFile))) return false;
 	if(strncmp(pOZFile->ID, OZF_ID, sizeof(OZF_ID)-1)) return false;
 	if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) return false;
 
@@ -128,7 +128,7 @@ inline LPCSTR GetNameFromOZFile(LPCOZFILE pOZFile, LPSTR szBuffer, int nBuffSize
 	ASSERT(pOZFile);
 	ASSERT(nBuffSize>0);
 	ASSERT(!::IsBadStringPtr(szBuffer, nBuffSize));
-	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenZeldaFile)));
+	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenLegendsFile)));
 
 	int nNameLen = 0;
 	LPSTR aux = strchr(pOZFile->ID, '\n');
@@ -150,7 +150,7 @@ inline LPCSTR GetDescFromOZFile(LPCOZFILE pOZFile, LPSTR szBuffer, int nBuffSize
 	ASSERT(pOZFile);
 	ASSERT(nBuffSize>0);
 	ASSERT(!::IsBadStringPtr(szBuffer, nBuffSize));
-	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenZeldaFile)));
+	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenLegendsFile)));
 
 	int nNameLen = 0;
 	LPSTR aux = strchr(pOZFile->ID, '\n');
