@@ -1,0 +1,5 @@
+;DESCRIPTION	'DirectGraphics 2D Graphics plugin for Open Legends.'
+LIBRARY			GraphicsD3D9.dll
+EXPORTS
+	QueryGfxInterface
+	ReleaseGfxInterface
