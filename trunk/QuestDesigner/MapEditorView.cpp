@@ -50,7 +50,7 @@ LRESULT CMapEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 {
 	LRESULT lResult = DefWindowProc();
 
-	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D8.dll"))) {
+	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D9.dll"))) {
 		MessageBox("Couldn't load graphics plugin, check plugin version.", "Quest Designer");
 	}
 
@@ -278,6 +278,80 @@ bool CMapEditorView::DoFileReload()
 	return false;
 }
 
+void CMapEditorView::RunPopUpCmd(int nCmd)
+{
+	CPoint Point;
+	switch(nCmd) {
+		case 1:		Mirror();					break;
+		case 2:		Flip();						break;
+		case 3:		CWRotate();					break;
+		case 4:		CCWRotate();				break;
+		case 5:		ToTop();					break;
+		case 6:		ToBottom();					break;
+		case 7:		
+			if(isFloating()) {
+				EndMoving(Point, NULL);
+				Duplicate(Point);
+				OnChangeSel(OCS_UPDATE);
+			} else {
+				Duplicate(Point);	
+			}
+			break;
+		case 8:		Copy();						break;
+		case 9:		Paste(Point);				break;
+		case 10:	Delete();					break;
+		case 11:	
+			if(isFloating()) {
+				CancelOperation();
+				m_DragState = tNone;
+				m_bDuplicating = false;
+				ReleaseCapture();
+				OnChangeSel(OCS_AUTO);
+			} else {
+				SelectNone();
+			}
+			break;
+		case 12: {
+			SObjProp *pObjProp = m_SelectionI->GetFirstSelection();
+			ATLASSERT(pObjProp);
+			if(pObjProp && pObjProp->pContext) {
+				CSprite *pSprite = static_cast<CSprite *>(pObjProp->pContext->GetDrawableObj());
+				CSpriteSheet *pSpriteSheet = pSprite->GetSpriteSheet();
+
+				GetMainFrame()->SptShtFileOpen(pSpriteSheet, (LPCSTR)pSprite->GetName());
+			}
+			break;
+		}
+		case 13: {
+			SObjProp *pObjProp = m_SelectionI->GetFirstSelection();
+			ATLASSERT(pObjProp);
+			if(pObjProp && pObjProp->pContext) {
+				CSprite *pSprite = static_cast<CSprite *>(pObjProp->pContext->GetDrawableObj());
+				const IScript *pScript = GetMainFrame()->m_pOLKernel->GetScript(pSprite);
+				 // if the selected sprite is an entity:
+				if(pScript) {
+					char szScriptFile[MAX_PATH];
+					pScript->GetScriptFilePath(szScriptFile, MAX_PATH);
+					if(!GetMainFrame()->ScriptFileOpen(szScriptFile)) {
+						CONSOLE_PRINTF("Error: Couldn't load script.");
+					}
+				} else {
+					CONSOLE_PRINTF("Warning: Script not found, or not an entity.");
+				}
+			}
+			break;
+		}
+		case 14: {
+			m_SelectionI->SelectionToGroup();
+			break;
+		}
+		case 15: {
+			m_SelectionI->GroupToSelection();
+			break;
+		}
+	}
+}
+
 LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	ATLASSERT(m_SelectionI);
@@ -286,6 +360,17 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	CMenu menu;
 	if(!menu.CreatePopupMenu())
 		return 0;
+
+	bool bIsEntity = false;
+	CSprite *pSprite = NULL;
+
+	SObjProp *pObjProp = m_SelectionI->GetFirstSelection();
+	if(pObjProp && pObjProp->pContext) {
+		pSprite = static_cast<CSprite *>(pObjProp->pContext->GetDrawableObj());
+		if(pSprite && pSprite->GetSpriteType() == tEntity) {
+			bIsEntity = true;
+		}
+	}
 
 	CPoint Point(lParam);
 	CPoint PopUpPoint(lParam);
@@ -304,6 +389,16 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 
 	ViewToWorld(&Point);
 
+	if(SelectedCount() == 1) {
+		menu.AppendMenu(MF_STRING, 12, "Edit &Sprite"); // Edit Sprite
+		if(bIsEntity) {
+			menu.AppendMenu(MF_STRING, 13, "Edit Sprite S&cript"); // Edit Sprite Script
+			SetMenuDefaultItem(menu.m_hMenu, 13, FALSE);
+		} else {
+			SetMenuDefaultItem(menu.m_hMenu, 12, FALSE);
+		}
+		menu.AppendMenu(MF_SEPARATOR);
+	}
 	if(isFloating()) {
 		menu.AppendMenu(MF_STRING, 1, "&Mirror");
 		menu.AppendMenu(MF_STRING, 2, "&Flip");
@@ -329,13 +424,11 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		menu.AppendMenu(MF_SEPARATOR);
 		menu.AppendMenu(MF_STRING, 10, "De&lete");
 		menu.AppendMenu(MF_SEPARATOR);
-		menu.AppendMenu(MF_STRING, 11, "Select &None");
+		menu.AppendMenu(MF_STRING, 11, "Select &None"); // Select None
 	}
-	if(SelectedCount() == 1) {
-		menu.AppendMenu(MF_STRING, 12, "Edit &Sprite");
-	} else if(SelectedCount() > 1) {
-		if(m_SelectionI->isGroup())	menu.AppendMenu(MF_STRING, 14, "&Ungroup");
-		else menu.AppendMenu(MF_STRING, 13, "&Group");
+	if(SelectedCount() > 1) {
+		if(m_SelectionI->isGroup())	menu.AppendMenu(MF_STRING, 15, "&Ungroup");
+		else menu.AppendMenu(MF_STRING, 14, "&Group");
 	}
 
 	menu.EnableMenuItem(9, MF_GRAYED);
@@ -382,56 +475,7 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	
 	int nCmd = menu.TrackPopupMenu(TPM_RETURNCMD, PopUpPoint.x, PopUpPoint.y, (HWND)wParam);
 
-	switch(nCmd) {
-		case 1:		Mirror();					break;
-		case 2:		Flip();						break;
-		case 3:		CWRotate();					break;
-		case 4:		CCWRotate();				break;
-		case 5:		ToTop();					break;
-		case 6:		ToBottom();					break;
-		case 7:		
-			if(isFloating()) {
-				EndMoving(Point, NULL);
-				Duplicate(Point);
-				OnChangeSel(OCS_UPDATE);
-			} else {
-				Duplicate(Point);	
-			}
-			break;
-		case 8:		Copy();						break;
-		case 9:		Paste(Point);				break;
-		case 10:	Delete();					break;
-		case 11:	
-			if(isFloating()) {
-				CancelOperation();
-				m_DragState = tNone;
-				m_bDuplicating = false;
-				ReleaseCapture();
-				OnChangeSel(OCS_AUTO);
-			} else {
-				SelectNone();
-			}
-			break;
-		case 12: {
-			SObjProp *pObjProp = m_SelectionI->GetFirstSelection();
-			ATLASSERT(pObjProp);
-			if(pObjProp && pObjProp->pContext) {
-				CSprite *pSprite = (CSprite *)pObjProp->pContext->GetDrawableObj();
-				CSpriteSheet *pSpriteSheet = pSprite->GetSpriteSheet();
-
-				GetMainFrame()->SptShtFileOpen(pSpriteSheet, (LPCSTR)pSprite->GetName());
-			}
-			break;
-		}
-		case 13: {
-			m_SelectionI->SelectionToGroup();
-			break;
-		}
-		case 14: {
-			m_SelectionI->GroupToSelection();
-			break;
-		}
-	}
+	RunPopUpCmd(nCmd);
 
 	if(isFloating()) SetCapture();
 
@@ -490,6 +534,7 @@ void CMapEditorView::UIUpdateMenuItems()
 		}
 		m_hContainer = pThumbnails->GetClient();
 	}
+
 	pMainUpdateUI->UIEnable(ID_APP_SAVE, hasChanged());	
 
 /* Undo features and stuff will be left pending for the next major release */
@@ -984,11 +1029,18 @@ LRESULT CMapEditorView::OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL
 LRESULT CMapEditorView::OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
 	CDrawableContext *pDrawableContext = m_SelectionI->GetLastSelected();
-	if(pDrawableContext) {
-		CSprite *pSprite = (CSprite *)pDrawableContext->GetDrawableObj();
-		CSpriteSheet *pSpriteSheet = pSprite->GetSpriteSheet();
 
-		GetMainFrame()->SptShtFileOpen(pSpriteSheet, (LPCSTR)pSprite->GetName());
+	if(pDrawableContext) {
+		SObjProp *pObjProp = m_SelectionI->GetFirstSelection();
+		if(pObjProp && pObjProp->pContext) {
+			CSprite *pSprite = static_cast<CSprite *>(pObjProp->pContext->GetDrawableObj());
+			if(pSprite && pSprite->GetSpriteType() == tEntity) {
+				RunPopUpCmd(13);
+			}
+			else {
+				RunPopUpCmd(12);
+			}
+		}
 	}
 
 	return 0;

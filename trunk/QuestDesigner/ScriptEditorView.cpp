@@ -385,7 +385,7 @@ bool CScriptEditorView::DoFileSave(LPCTSTR lpszFilePath)
 }
 bool CScriptEditorView::DoFileSaveAs()
 {
-	static TCHAR szFilter[] = "OZ Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
+	static TCHAR szFilter[] = "OL Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(FALSE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
 	if(IDOK == wndFileDialog.DoModal()) {
@@ -460,6 +460,14 @@ void CScriptEditorView::UIUpdateMenuItems()
 	pUpdateUI->UIEnable(ID_APP_RELOAD, !m_sFilePath.IsEmpty());
 	pUpdateUI->UIEnable(ID_APP_SAVE, IsModified());	
 	pUpdateUI->UIEnable(ID_APP_SAVE_AS, TRUE );
+
+	if(pMainFrm->m_PaneWindows.size() >= (ID_VIEW_PANELAST-ID_VIEW_PANEFIRST)) {
+		CTabbedDockingWindow *pDebugger = pMainFrm->m_PaneWindows[ID_PANE_DEBUGGER-ID_VIEW_PANEFIRST];
+		if(Connected() && pDebugger->IsWindowVisible() == FALSE) {
+			pDebugger->Toggle();
+			pDebugger->Activate();
+		}
+	}
 		
 	pUpdateUI->UIEnable(ID_UNDO, CanUndo());
 	pUpdateUI->UIEnable(ID_REDO, CanRedo());

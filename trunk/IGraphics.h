@@ -223,7 +223,7 @@ interface IBuffer
 	virtual bool SetBuffer(void *pBuffer) = 0;
 
 	//! Invalidates the data in the buffer. This function releases or deletes the contained buffer.
-	virtual void Invalidate() = 0;
+	virtual void Invalidate(bool full) = 0;
 
 	//! This touches the buffer, making its content dirty. A dirty buffer is updated in the next render.
 	virtual void Touch() = 0;
@@ -270,7 +270,7 @@ interface ITexture
 	virtual void* GetSrcInfo() const = 0; //!< Obtains the texture's source file information.
 
 	//! Invalidates the data in the texture. It releases or deletes the contained texture.
-	virtual void Invalidate() = 0;
+	virtual void Invalidate(bool full) = 0;
 
 	//! Gets the ID of the device that created this texture.
 	virtual DWORD GetDeviceID() const = 0;

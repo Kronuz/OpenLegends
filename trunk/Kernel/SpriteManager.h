@@ -101,6 +101,8 @@ enum _Direction {
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
+interface IScript;
+
 class CGameManager;
 class CSpriteSheet;
 class CLayer;
@@ -351,6 +353,7 @@ public:
 protected:
 
 public:
+	const IScript* GetScript() const;
 	bool Run(const CDrawableContext &context, RUNACTION action);
 	bool Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorModulation);
 	bool NeedToDraw(const CDrawableContext &context) { return CBackground::NeedToDraw(context); }

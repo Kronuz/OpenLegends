@@ -251,7 +251,7 @@ static cell AMX_NATIVE_CALL core_strlen(AMX *amx,cell *params)
   return len;
 }
 
-#if defined OZDoc
+#if defined OLDoc
 strcmp(const string1[], const string2[]); /*!< 
 	\ingroup core
 	\brief Compares two strings
@@ -295,7 +295,7 @@ static cell AMX_NATIVE_CALL core_strcmp(AMX *amx,cell *params)
   return strcmp(szString1, szString2);
 }
 
-#if defined OZDoc
+#if defined OLDoc
 stricmp(const string1[], const string2[]); /*!< 
 	\ingroup core
 	\brief Case insensitive comparison of two strings.

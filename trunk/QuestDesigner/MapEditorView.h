@@ -156,6 +156,7 @@ public:
 	LRESULT OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	void RunPopUpCmd(int nCmd);
 	
 	void UIUpdateMenuItems();
 	void UIUpdateStatusBar();

@@ -129,11 +129,11 @@ public:
 
 		pBitmap = pTreeInfo->GetThumbnail();// try to get the thumbnail
 
-		// check if the object contains a valid OZ file as the data:
-		_OpenLegendsFile *pOZFile = (_OpenLegendsFile*)(pTreeInfo->GetData());
-		if(pOZFile) if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) pOZFile = NULL;
-		if(pOZFile) {
-			hGlobal = GlobalAlloc(GMEM_MOVEABLE, pOZFile->dwSize);
+		// check if the object contains a valid OL file as the data:
+		_OpenLegendsFile *pOLFile = (_OpenLegendsFile*)(pTreeInfo->GetData());
+		if(pOLFile) if(LOWORD(pOLFile->dwSignature) != OLF_SIGNATURE) pOLFile = NULL;
+		if(pOLFile) {
+			hGlobal = GlobalAlloc(GMEM_MOVEABLE, pOLFile->dwSize);
 			if(!hGlobal) {
 				pDropSource->Release();
 				pDataObject->Release();
@@ -143,11 +143,11 @@ public:
 			BYTE *pMem = (BYTE*)GlobalLock(hGlobal);
 			ASSERT(pMem);
 
-			memcpy(pMem, pOZFile, pOZFile->dwSize);
+			memcpy(pMem, pOLFile, pOLFile->dwSize);
 			GlobalUnlock(hGlobal);
 
-			if(pOZFile->dwBitmapOffset && !pBitmap) {
-				pBitmap = (BITMAP *)((LPBYTE)pOZFile + pOZFile->dwBitmapOffset);
+			if(pOLFile->dwBitmapOffset && !pBitmap) {
+				pBitmap = (BITMAP *)((LPBYTE)pOLFile + pOLFile->dwBitmapOffset);
 				pBitmap->bmBits = (LPVOID)((LPBYTE)pBitmap + sizeof(BITMAP));
 			}
 		} else {

@@ -142,8 +142,8 @@ I want to thank all people who helped me and collaborated in one way or the othe
           source code;\r\n\
       + LittleBuddy for his support as a consultant and \r\n\
           his scripting expertise;\r\n\
-      + Alias Jargon;\r\n\
       + KingOfHeart, for testing and support;\r\n\
+      + Alias Jargon;\r\n\
       + HocusPocus;\r\n\
       + GodGinrai;\r\n\
       + and last, but not least, the guys at GU who have \r\n\

@@ -72,14 +72,16 @@ CVFile::~CVFile()
 inline int wildcardcmp(const char *a, const char *b)
 {
 	int c = 0;
-	while(*a && *b) {
-		if(*a=='*' && *(a+1)==*b) a++;
-		if(*a!=*b && *a!='*' && *a!='?') return *a-*b;
-		if(*a!=*b && (*a=='\\' || *a=='/' || *b=='\\' || *b=='/')) return *a-*b;
-		if(*a!='*') a++;
-		b++;
+	char ca = tolower(*a);
+	char cb = tolower(*b);
+	while(ca && cb) {
+		if(ca=='*' && *(a+1)==cb) ca = tolower(*(++a));
+		if(ca!=cb && ca!='*' && ca!='?') return ca-cb;
+		if(ca!=cb && (ca=='\\' || ca=='/' || cb=='\\' || cb=='/')) return ca-cb;
+		if(ca!='*') ca = tolower(*(++a));
+		cb = tolower(*(++b));
 	}
-	return *a-*b;
+	return ca-cb;
 }
 int CVFile::ForEachVirtualFile(FILESPROC ForEach, LPARAM lParam)
 {
@@ -109,7 +111,7 @@ int CVFile::ForEachVirtualFile(FILESPROC ForEach, LPARAM lParam)
 				file_info.external_fa |= FILE_ATTRIBUTE_DIRECTORY;
 			} else if(file_info.external_fa == 0) file_info.external_fa |= FILE_ATTRIBUTE_NORMAL;
 
-			if( (file_info.external_fa & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY ||
+			if( /*(file_info.external_fa & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY ||*/
 				wildcardcmp(sInFile, szCurrentFileName) == 0 ) {
 				int cnt = ForEach(sFile + '\\' + szCurrentFileName, file_info.external_fa, lParam);
 				if(cnt < 0) {

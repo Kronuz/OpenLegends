@@ -50,6 +50,8 @@ public:
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
+		MESSAGE_HANDLER(WMQD_SELECT, OnSelectSprite)
+
 		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
 		CHAIN_MSG_MAP(CGEditorFrame)
@@ -65,6 +67,8 @@ public:
 	CUpdateUIBase* GetUpdateUI() {
 		return static_cast<CUpdateUIBase *>(this);
 	}
+
+	LRESULT OnSelectSprite(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
 
 	// Return the window's child control
 	CSptShtEditorView* GetView() { return m_pSptShtEditorView; }

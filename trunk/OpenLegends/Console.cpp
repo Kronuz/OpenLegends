@@ -31,6 +31,87 @@
 ////////////////////////////////////////////////
 // Externals
 CConsole* CConsole::_instance = NULL;
+char CConsole::ms_szLogFile[MAX_PATH] = "";
 
 ////////////////////////////////////////////////
 
+CConsole *CConsole::Instance() {
+	if(_instance == NULL) {
+		_instance = new CConsole;
+
+		// Find out where the program file is located:
+		GetModuleFileName(NULL, ms_szLogFile, MAX_PATH);
+
+		// Build a logfile name on the same path:
+		LPSTR aux = strchr(ms_szLogFile, '\0');
+		while(aux != ms_szLogFile && *aux != '\\') aux--;
+		if(*aux == '\\') aux++;
+		*aux = '\0';
+		strcat(ms_szLogFile, "OpenLegends.log");
+
+		// Create and clean the logfile:
+		FILE *arch = ::fopen(ms_szLogFile, "w");
+		if(arch) {
+			::fprintf(arch, " --- Log started for Open Legends --- \n");
+			::fclose(arch);
+		}
+	}
+	return _instance;
+}
+
+/*!
+	\param format Format specification.
+	\param argptr Pointer to list of arguments.
+	\return returns the number of characters written, 
+		not including the terminating null character, 
+		or a negative value if an output error occurs
+	\remarks This function takes a pointer to an argument list, and then 
+		formats and writes a log file.
+
+	Called for general purpose "console" output. This function prints general
+	purpose messages. The function is modelled after vprintf().
+*/
+int CConsole::vprintf(const char *format, va_list argptr) { 
+	// This creates a log (for debugging purposes only):
+	FILE *arch = ::fopen(ms_szLogFile, "at");
+	if(arch) {
+		::vfprintf(arch, format, argptr);
+		::fclose(arch);
+	}
+	return 0; 
+}
+/*!
+	\param format Format specification.
+	\param ... argument Optional arguments.
+	\return returns the number of characters written, 
+		not including the terminating null character, 
+		or a negative value if an output error occurs
+
+	Called for general purpose "console" output. This function prints general
+	purpose messages. The function is modelled after printf().
+*/
+int CConsole::printf(const char *format, ...) { 
+	va_list argptr;
+	va_start(argptr, format);
+	int ret = vprintf(format, argptr);
+	va_end(argptr);
+	return ret;
+}
+
+
+int CConsole::vfprintf(const char *format, va_list argptr) { 
+	// This creates a log (for debugging purposes only):
+	FILE *arch = ::fopen(ms_szLogFile, "at");
+	if(arch) {
+		::vfprintf(arch, format, argptr);
+		::fclose(arch);
+	}
+	return 0; 
+}
+int CConsole::fprintf(const char *format, ...) { 
+	va_list argptr;
+	va_start(argptr, format);
+	int ret = vfprintf(format, argptr);
+	va_end(argptr);
+	return ret;
+}

@@ -29,7 +29,7 @@
 #include <CodeSense.h>
 #include "CMCSWTL.h"
 
-#define CMLANG_ZES _T("OZ Script file")
+#define CMLANG_ZES _T("OL Script file")
 
 #define CMD_HELP		CMD_USER_BASE + 0
 #define CMD_STEPOVER	CMD_USER_BASE + 1

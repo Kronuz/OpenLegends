@@ -21,9 +21,11 @@
 
 interface IConsole
 {
-	virtual int print(const char *format, va_list argptr) = 0;
+	virtual int vfprintf(const char *format, va_list argptr) = 0; // for logging into a file only
+	virtual int vprintf(const char *format, va_list argptr) = 0; // for printing in the console and in the file
 	virtual int error(int number, char *message, char *filename, int firstline, int lastline, va_list argptr) = 0;
 
+	virtual int fprintf(const char *format, ...) = 0;
 	virtual int printf(const char *format, ...) = 0;
 	virtual int getch() = 0;
 	virtual int putch(int c) = 0;

@@ -54,7 +54,7 @@ int sc_printf(const char *message,...)
   va_list argptr;
 
   va_start(argptr,message);
-  ret = CConsole::Instance()->print(message, argptr);
+  ret = CConsole::Instance()->vprintf(message, argptr);
   va_end(argptr);
 
   return ret;

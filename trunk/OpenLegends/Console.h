@@ -30,37 +30,23 @@
 
 class CConsole : public IConsole
 {
+	static char ms_szLogFile[MAX_PATH];
 	static CConsole *_instance;
 public:
-	CConsole() {
-		FILE *arch = fopen("OpenLegends.log", "w");
-		fclose(arch);
-	}
-	~CConsole() {}
 
-	int print(const char *format, va_list argptr) { 
-		// This creates a log (for debugging purposes only):
-		FILE *arch = fopen("OpenLegends.log", "at");
-		vfprintf(arch, format, argptr);
-		fclose(arch);
-		return 0; 
-	}
-	int printf(const char *format, ...) { 
-		va_list argptr;
-		va_start(argptr, format);
-		int ret = print(format, argptr);
-		va_end(argptr);
-		return ret;
-	}
-	int gets(char *buffer, int buffsize) { return 0; }
+//////////////////////////////////////////////////////
+// Interface:
+	int vprintf(const char *format, va_list argptr);
+	int printf(const char *format, ...);
+
+	int vfprintf(const char *format, va_list argptr);
+	int fprintf(const char *format, ...);
+
 	int getch() { return 0; }
 	int putch(int c) { printf("%c", c); return 1; }
+	int gets(char *buffer, int buffsize) { return 0; }
 
 	int error(int number, char *message, char *filename, int firstline, int lastline, va_list argptr) { return 0; }
 
-	static CConsole* Instance() {
-		if(_instance) return _instance;
-		_instance = new CConsole;
-		return _instance;
-	}
+	static CConsole* Instance();
 };

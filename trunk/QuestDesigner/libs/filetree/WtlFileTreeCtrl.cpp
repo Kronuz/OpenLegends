@@ -50,12 +50,12 @@ void CTreeInfo::_Data2Info(LPBYTE pRawData)
 {
 	ATLASSERT(pRawData != NULL);
 	if(pRawData == NULL) return;
-	LPCOZFILE pOZFile = (LPCOZFILE)pRawData;
-	if(!VerifyOZFile(&pOZFile)) return;
+	LPCOLFILE pOLFile = (LPCOLFILE)pRawData;
+	if(!VerifyOLFile(&pOLFile)) return;
 
 	// Find name and description:
-	char tmp[sizeof(pOZFile->ID)];
-	strcpy(tmp, pOZFile->ID);
+	char tmp[sizeof(pOLFile->ID)];
+	strcpy(tmp, pOLFile->ID);
 	strtok(tmp, "\n");						// signature
 	LPSTR name = strtok(NULL, "\n");		// name
 	LPSTR desc = name + strlen(name) + 1;	// description
@@ -68,12 +68,12 @@ void CTreeInfo::_Data2Thumbnail()
 {
 	ATLASSERT(m_pRawData != NULL);
 	if(m_pRawData == NULL) return;
-	LPCOZFILE pOZFile = (LPCOZFILE)m_pRawData;
-	if(!VerifyOZFile(&pOZFile)) return;
+	LPCOLFILE pOLFile = (LPCOLFILE)m_pRawData;
+	if(!VerifyOLFile(&pOLFile)) return;
 
 	// Load the thumbnail:
-	if(pOZFile->dwBitmapOffset) {
-		LPBITMAP pBitmap = (LPBITMAP)(m_pRawData + pOZFile->dwBitmapOffset);
+	if(pOLFile->dwBitmapOffset) {
+		LPBITMAP pBitmap = (LPBITMAP)(m_pRawData + pOLFile->dwBitmapOffset);
 		pBitmap->bmBits = (LPVOID)((LPBYTE)pBitmap + sizeof(BITMAP));
 		m_bmpThumbnail = *pBitmap;
 		m_dwMask |= ITEMTHUMBNAIL;
@@ -260,23 +260,23 @@ bool CTreeInfo::LoadThumbnail()
 
 	if(m_vFile.Open("r")) {
 		m_eType = titFile;
-		_OpenLegendsFile OZFile;
-		if(m_vFile.Read(&OZFile, sizeof(_OpenLegendsFile)) != sizeof(_OpenLegendsFile)) {
+		_OpenLegendsFile OLFile;
+		if(m_vFile.Read(&OLFile, sizeof(_OpenLegendsFile)) != sizeof(_OpenLegendsFile)) {
 			m_vFile.Close();
 			return false;
 		}
-		_Data2Info((LPBYTE)&OZFile);
+		_Data2Info((LPBYTE)&OLFile);
 
-		LPCOZFILE pOZFile = &OZFile;
-		VerifyOZFile(&pOZFile);
+		LPCOLFILE pOLFile = &OLFile;
+		VerifyOLFile(&pOLFile);
 
 		// Load the thumbnail:
-		if(pOZFile && OZFile.dwBitmapOffset) {
+		if(pOLFile && OLFile.dwBitmapOffset) {
 			size_t size = m_vFile.GetFileSize();
-			if(OZFile.dwBitmapOffset + sizeof(BITMAP) < size) {
-				size -= OZFile.dwBitmapOffset;
+			if(OLFile.dwBitmapOffset + sizeof(BITMAP) < size) {
+				size -= OLFile.dwBitmapOffset;
 				LPBYTE pBuffer = new BYTE[size];
-				m_vFile.Seek(OZFile.dwBitmapOffset, SEEK_SET);
+				m_vFile.Seek(OLFile.dwBitmapOffset, SEEK_SET);
 				m_vFile.Read(pBuffer, size);
 				SetData(pBuffer, size);
 				m_vFile.Close();
@@ -306,21 +306,21 @@ bool CTreeInfo::Update()
 	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
 	if(m_vFile.Open("wb")) {
 		m_eType = titFile;
-		_OpenLegendsFile OZFile;
-		m_vFile.Read(&OZFile, sizeof(_OpenLegendsFile));
+		_OpenLegendsFile OLFile;
+		m_vFile.Read(&OLFile, sizeof(_OpenLegendsFile));
 
-		LPCOZFILE pOZFile = &OZFile;
-		VerifyOZFile(&pOZFile);
+		LPCOLFILE pOLFile = &OLFile;
+		VerifyOLFile(&pOLFile);
 
-		if(pOZFile) {
-			LPSTR aux = strchr(OZFile.ID, '\n');
+		if(pOLFile) {
+			LPSTR aux = strchr(OLFile.ID, '\n');
 			if(aux) {
 				aux++;
 				std::string sTmp = m_sDisplayName + "\n" + m_sDescription;
-				strncpy(aux, sTmp.c_str(), sizeof(OZFile.ID) - (aux - OZFile.ID) - 1);
+				strncpy(aux, sTmp.c_str(), sizeof(OLFile.ID) - (aux - OLFile.ID) - 1);
 
 				m_vFile.Seek(0, SEEK_SET);
-				if(m_vFile.Write(&OZFile, sizeof(_OpenLegendsFile)) == sizeof(_OpenLegendsFile)) ret = true;
+				if(m_vFile.Write(&OLFile, sizeof(_OpenLegendsFile)) == sizeof(_OpenLegendsFile)) ret = true;
 			}
 		}
 		m_vFile.Close();

@@ -136,7 +136,10 @@ LRESULT CGEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 
 	// if we have lost the focus, in our own thread, cancel everything:
 	if(wParam != NULL) {
-		KillTimer(1); // stop the animations
+		// check if we are the topmost window in the MDI frame, if we don't, we kill the timer:
+		if(GetMainFrame() && GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
+			KillTimer(1); // stop the animations
+		}
 		KillTimer(3); // stop auto-scrolling
 		if(isFloating() || isMoving() || isResizing()) {
 			CancelOperation(false);
@@ -164,9 +167,9 @@ LRESULT CGEditorView::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL 
 {
 	if(wParam == 1) { // Render stuf:
 		// check if we are still the topmost window in the MDI frame, if we don't, we kill the timer:
-//		if(GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
-//			KillTimer(1); 
-//		}
+		if(GetMainFrame() && GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
+			KillTimer(1); 
+		}
 		DoFrame();
 		Render(NULL); // Animation
 	} else if(wParam == 2) { // Drag and drop stuff:

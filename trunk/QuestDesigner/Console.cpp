@@ -32,12 +32,30 @@
 // Externals
 HWND CConsole::ms_hWnd = NULL;
 CConsole* CConsole::_instance = NULL;
+char CConsole::ms_szLogFile[MAX_PATH] = "";
 
 ////////////////////////////////////////////////
 
 CConsole *CConsole::Instance() {
 	if(_instance == NULL) {
 		_instance = new CConsole;
+
+		// Find out where the program file is located:
+		GetModuleFileName(NULL, ms_szLogFile, MAX_PATH);
+
+		// Build a logfile name on the same path:
+		LPSTR aux = strchr(ms_szLogFile, '\0');
+		while(aux != ms_szLogFile && *aux != '\\') aux--;
+		if(*aux == '\\') aux++;
+		*aux = '\0';
+		strcat(ms_szLogFile, "QuestDesigner.log");
+
+		// Create and clean the logfile:
+		FILE *arch = ::fopen(ms_szLogFile, "w");
+		if(arch) {
+			::fprintf(arch, " --- Log started for Quest Designer --- \n");
+			::fclose(arch);
+		}
 	}
 	return _instance;
 }
@@ -55,33 +73,71 @@ CConsole *CConsole::Instance() {
 
 	Called for general purpose "console" output. This function prints general
 	purpose messages; errors go through sc_error(). The function is modelled
-	after printf().
+	after vprintf().
 */
-int CConsole::print(const char *format, va_list argptr) 
+int CConsole::vprintf(const char *format, va_list argptr) 
 {
 	InfoStruct info;
 	info.type = t_printf;
 	info.message = format;
 	info.argptr = argptr;
-		if(!::IsWindow(ms_hWnd)) return -1;
+	if(!::IsWindow(ms_hWnd)) return -1;
 
 	// This creates a log (for debugging purposes only):
-	FILE *arch = fopen("QuestDesigner.log", "at");
-	vfprintf(arch, format, argptr);
-	fclose(arch);
+	FILE *arch = ::fopen(ms_szLogFile, "at");
+	if(arch) {
+		::vfprintf(arch, format, argptr);
+		::fclose(arch);
+	}
 
 	SendMessage(ms_hWnd, WMQD_MESSAGE, 0, (LPARAM)&info);
 	return 1;
 }
 
+/*!
+	\param format Format specification.
+	\param ... argument Optional arguments.
+	\return returns the number of characters written, 
+		not including the terminating null character, 
+		or a negative value if an output error occurs
+
+	Called for general purpose "console" output. This function prints general
+	purpose messages; errors go through sc_error(). The function is modelled
+	after vprintf().
+*/
 int CConsole::printf(const char *format, ...) 
 {
 	va_list argptr;
 	va_start(argptr, format);
-	int ret = print(format, argptr);
+	int ret = vprintf(format, argptr);
 	va_end(argptr);
 	return ret;
 }
+
+int CConsole::vfprintf(const char *format, va_list argptr) 
+{
+	InfoStruct info;
+	info.type = t_printf;
+	info.message = format;
+	info.argptr = argptr;
+
+	// This creates a log (for debugging purposes only):
+	FILE *arch = ::fopen(ms_szLogFile, "at");
+	if(arch) {
+		::vfprintf(arch, format, argptr);
+		::fclose(arch);
+	}
+	return 1;
+}
+int CConsole::fprintf(const char *format, ...) 
+{
+	va_list argptr;
+	va_start(argptr, format);
+	int ret = vfprintf(format, argptr);
+	va_end(argptr);
+	return ret;
+}
+
 /*! 
      \param number The error number (as documented in the manual)
      \param message A string describing the error with embedded %d and %s tokens

@@ -18,7 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		Interfaces.h 
-	\brief		Interfaces and abstract classes used by the core of OZ.
+	\brief		Interfaces and abstract classes used by the core of OL.
 	\date		April 16, 2003
 
 	This file defines the interfaces needed to manage objects with names,

@@ -67,3 +67,9 @@ LRESULT CSptShtEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 
 	return 0;
 }
+
+LRESULT CSptShtEditorFrame::OnSelectSprite(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
+{
+	m_pSptShtEditorView->SpriteStep((LPCSTR)lParam);
+	return 0;
+}

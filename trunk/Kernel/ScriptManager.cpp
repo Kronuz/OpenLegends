@@ -20,7 +20,7 @@
 /*! \file		SpriteManager.cpp
 	\brief		Implementation of the classes that maintain and run scripts.
 	\date		August 04, 2003:
-					* Initial addition to OZ.
+					* Initial addition to OL.
 				November 01, 2003:
 					* Debugger added.
 */

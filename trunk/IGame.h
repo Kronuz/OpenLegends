@@ -30,6 +30,8 @@
 // Forward declarations
 struct GameInfo;
 
+class CSound;
+
 #define BUFFSIZE 200
 #define MAX_PROPS 50
 
@@ -419,6 +421,11 @@ interface IGame :
 	virtual void GetWorldSize(CSize &worldSize) const = 0;
 	virtual void SetWorldSize(const CSize &worldSize) = 0;
 
+	// Methods to find stuff in the world:
+	virtual CSprite *FindSprite(LPCSTR szName) = 0; //!< Finds a sprite using its name.
+	virtual CSound *FindSound(LPCSTR szName) = 0; //!< Finds a sound using its name.
+	virtual CScript *FindScript(LPCSTR szName) = 0; //!< Finds a script using its name.
+
 	virtual CMapGroup *FindMapGroup(int x, int y) const = 0; //!< Get the mapgroup at location (x,y)
 	virtual CMapGroup* BuildMapGroup(int x, int y, int width, int height) = 0;
 
@@ -427,6 +434,7 @@ interface IGame :
 	virtual LPCSTR GetProjectName() const = 0;
 	virtual int CountScripts() const = 0;
 	virtual const IScript* GetScript(int idx) const = 0;
+	virtual const IScript* GetScript(CSprite *pSprite) const = 0;
 	virtual ISoundManager* GetSoundManager() const = 0;
 	/*	\brief Sets the callback function for different objects.
 
