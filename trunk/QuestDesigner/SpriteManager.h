@@ -119,10 +119,6 @@ public:
 struct SSpriteData {
 	// Sprite:
 	int iAnimSpd;		//!< Animation speed of the sprite
-	bool bVisible;		//!< Is the sprite visible?
-	bool bFlipped;		//!< Is the sprite flipped?
-	bool bMirrored;		//!< Is the sprite mirrored?
-	int iRotation;		//!< Sprite rotation (0, 90 180, or 270)
 };
 struct SMaskData : public SSpriteData
 {
@@ -189,6 +185,7 @@ struct SEntityData : public SBackgroundData
 	\todo Write the implementation of this class.
 */
 class CSprite :
+	public IDrawableObject,
 	public CNamedObj
 {
 public:
@@ -265,6 +262,11 @@ class CMaskMap :
 public:
 	CMaskMap(LPCSTR szName);
 protected:
+
+public:
+	bool Draw(CDrawableContext &) { return false; }
+	bool NeedToDraw(CDrawableContext&) { return false; }
+	bool IsAt(RECT, CDrawableContext&) { return false; }
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -286,12 +288,16 @@ protected:
 	\todo Write the implementation of this class.
 */
 class CBackground : 
-	//public IDrawableObject,
 	public CSprite
 {
 public:
 	CBackground(LPCSTR szName);
 protected:
+
+public:
+	bool Draw(CDrawableContext &) { return false; }
+	bool NeedToDraw(CDrawableContext&) { return false; }
+	bool IsAt(RECT, CDrawableContext&) { return false; }
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -315,10 +321,18 @@ class CEntity :
 {
 public:
 	CEntity(LPCSTR szName);
-
 protected:
+
+public:
+	bool Draw(CDrawableContext &) { return false; }
+	bool NeedToDraw(CDrawableContext&) { return false; }
+	bool IsAt(RECT, CDrawableContext&) { return false; }
 };
 
+#define SPT_POS			0x000001ff
+#define SPT_MIRRORED	0x00001000
+#define SPT_FLIPPED		0x00002000
+#define SPT_VISIBLE		0x00004000
 /////////////////////////////////////////////////////////////////////////////
 /*! \class	CSpriteContext
 	\brief		Flyweight sprites context class.
@@ -336,8 +350,30 @@ class CSpriteContext :
 	public CDrawableContext
 {
 public:
-	void MoveTo(POINT NewPos) = 0; //!< Moves the sprite
-	void SetStatus(DWORD Flags) = 0;
+	void Mirror(bool bMirror = true) {			//!< Mirrors the object.
+		if(bMirror) m_dwStatus |= SPT_MIRRORED;
+		else		m_dwStatus &= ~SPT_MIRRORED; 
+}
+	void Flip(bool bFlip = true) {				//!< Flips the object.
+		if(bFlip)	m_dwStatus |= SPT_FLIPPED;
+		else		m_dwStatus &= ~SPT_FLIPPED; 
+	}
+	void Rotate(int nAngle) {					//!< Rotates the object (the angle is given in degrees)
+		ASSERT(nAngle<=360 && nAngle>=0);
+		if(nAngle==360) nAngle = 0;
+		m_dwStatus &= ~SPT_POS;
+		m_dwStatus |= nAngle;
+	}
+	void ShowSprite(bool bShow = true) {			//!< Shows/hides the object.
+		if(bShow)	m_dwStatus |= SPT_VISIBLE;
+		else		m_dwStatus &= ~SPT_VISIBLE; 
+	}
+
+	bool Draw() {
+		if(m_pDrawableObj->NeedToDraw(*this))
+			return m_pDrawableObj->Draw(*this);
+		return false;
+	}
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -112,7 +112,7 @@ CSprite *CProjectManager::CreateSprite(_spt_type sptType, LPCSTR szName)
 			break;
 		}
 	}
-	ATLASSERT(pSprite);
+	ASSERT(pSprite);
 	return pSprite;
 }
 CSprite *CProjectManager::FindSprite(LPCSTR szName)
@@ -206,7 +206,7 @@ CSprite *CProjectManager::ReferSprite(LPCSTR szName, _spt_type sptType)
 }
 CSprite *CProjectManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet *pSpriteSheet)
 {
-	ATLASSERT(pSpriteSheet);
+	ASSERT(pSpriteSheet);
 
 	CSprite *pSprite = NULL;
 	int idx = m_UndefSprites.FindKey(szName);
@@ -246,7 +246,7 @@ int CALLBACK CProjectManager::LoadSheet(LPCTSTR szFile, LPARAM lParam)
 void CProjectManager::DeleteScript(int nIndex)
 {
 	CScript *pScript = m_Scripts.GetValueAt(nIndex);
-	ATLASSERT(pScript);
+	ASSERT(pScript);
 	SendMessage(m_shWnd, 
 		WMQD_DELTREE, 
 		NULL, 
@@ -261,7 +261,7 @@ void CProjectManager::DeleteScript(int nIndex)
 void CProjectManager::DeleteSpriteSheet(int nIndex)
 {
 	CSpriteSheet *pSpriteSheet = m_SpriteSheets[nIndex];
-	ATLASSERT(pSpriteSheet);
+	ASSERT(pSpriteSheet);
 	SendMessage(m_shWnd, 
 		WMQD_DELTREE, 
 		0, 

@@ -28,6 +28,9 @@
 #include "WorldEditorView.h"
 #include "WorldEditorFrm.h"
 
+#define MAXMAPSX 256
+#define MAXMAPSY 256
+
 CWorldEditorView::CWorldEditorView(CWorldEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
 	m_bClean(true),
@@ -64,8 +67,8 @@ LRESULT CWorldEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lP
 	m_hFont6 =   CreateFont(6, 0, 0, 0, FW_NORMAL, 0, 0, 0, 0, 0, 0, 0, 0, "Tahoma");
 
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
-	m_WorldSize.cx = szMap.cx*256;
-	m_WorldSize.cy = szMap.cy*256;
+	m_WorldSize.cx = szMap.cx*MAXMAPSX;
+	m_WorldSize.cy = szMap.cy*MAXMAPSY;
 	SetScrollSize(m_WorldSize);
 
 	return lRet;
@@ -79,7 +82,7 @@ void CWorldEditorView::DoPaint(CDCHandle dc)
 	GetClientRect(&rcClient);
 	rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 
-	dc.FillRect(rcClient, RGB(255, 255, 255));
+	dc.FillRect(rcClient, -1);
 
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
 
@@ -119,15 +122,21 @@ void CWorldEditorView::DoPaint(CDCHandle dc)
 	dc.SelectPen(oldPen);
 	dc.SelectFont(oldFont);
 	
-	//dc.BitBlt(0, 0, 100, 100, dcMem, 0, 0, SRCCOPY);
 	m_bClean = true;
 	UpdateMouse(m_MousePoint);
 }
 
 LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
-
 	int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+	int oldZoom = m_Zoom;
+
+	if(zDelta<0) {
+		if(++m_Zoom > 10) m_Zoom=10;
+	} else {
+		if(--m_Zoom < 1) m_Zoom=1;
+	}
+	if(oldZoom == m_Zoom) return 0;
 
 	CPoint MousePoint(lParam);
 	ScreenToClient(&MousePoint);
@@ -135,30 +144,25 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 
 	WorldPoint.x += GetScrollPos(SB_HORZ);
 	WorldPoint.y += GetScrollPos(SB_VERT);
-	WorldPoint.x *= m_Zoom;
-	WorldPoint.y *= m_Zoom;
-
-	if(zDelta<0) {
-		if(++m_Zoom > 10) m_Zoom=10;
-	} else {
-		if(--m_Zoom < 1) m_Zoom=1;
-	}
+	WorldPoint.x *= oldZoom;
+	WorldPoint.y *= oldZoom;
 
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
-	m_WorldSize.cx = szMap.cx*256;
-	m_WorldSize.cy = szMap.cy*256;
+	m_WorldSize.cx = szMap.cx*MAXMAPSX;
+	m_WorldSize.cy = szMap.cy*MAXMAPSY;
 	
 	// Now we validate the new scrolling position:
 	CRect rcClient;
 	GetClientRect(&rcClient);
 	CPoint ScrollPoint(WorldPoint.x/m_Zoom-MousePoint.x, WorldPoint.y/m_Zoom-MousePoint.y);
+	SetScrollSize(m_WorldSize, FALSE);
+
 	if(ScrollPoint.x < 0) ScrollPoint.x = 0;
 	if(ScrollPoint.y < 0) ScrollPoint.y = 0;
 	if(ScrollPoint.x > m_WorldSize.cx-rcClient.right) ScrollPoint.x = m_WorldSize.cx-rcClient.right;
 	if(ScrollPoint.y > m_WorldSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldSize.cy-rcClient.bottom;
-
-	SetScrollSize(m_WorldSize, FALSE);
 	SetScrollOffset(ScrollPoint);
+
 	UpdateWindow();
 
 	return 0;
@@ -178,7 +182,7 @@ LRESULT CWorldEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	return 0;
 }
 
-void CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
+bool CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 {
 	bool bScroll = false;
 	rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
@@ -208,15 +212,19 @@ void CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 	} 
 
 	UpdateMouse(point);
-	if(bScroll == false) return;
+	if(bScroll == false) return false;
 
 	rcClient.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
+
 	if(ScrollPoint.x < 0) ScrollPoint.x = 0;
 	if(ScrollPoint.y < 0) ScrollPoint.y = 0;
 	if(ScrollPoint.x > m_WorldSize.cx-rcClient.right) ScrollPoint.x = m_WorldSize.cx-rcClient.right;
 	if(ScrollPoint.y > m_WorldSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldSize.cy-rcClient.bottom;
 	SetScrollOffset(ScrollPoint);
+
 	UpdateWindow();
+
+	return true;
 }
 LRESULT CWorldEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
 {
@@ -277,10 +285,6 @@ void CWorldEditorView::UpdateMouse(CPoint point)
 	CRect rcSelect;
 	CDCHandle dc = GetDC();
 	
-	CBrush brushw, brushb;
-	brushw.CreateSolidBrush(RGB(255,255,255));
-	brushb.CreateSolidBrush(RGB(0,0,0));
-
 	int iBox;
 	if(m_Zoom == 1) {
 		iBox = 5;
@@ -305,8 +309,9 @@ void CWorldEditorView::UpdateMouse(CPoint point)
 		GetClientRect(&rcClient);
 		rcSelect &= rcClient;
 
-		if(!rcSelect.IsRectEmpty())
-			dc.FillRect(rcSelect, brushw);
+		if(!rcSelect.IsRectEmpty()) {
+			InvalidateRect(rcSelect);
+		}
 	}
 
 	sMap = point;
@@ -320,6 +325,6 @@ void CWorldEditorView::UpdateMouse(CPoint point)
 
 	rcSelect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
 
-	dc.FillRect(rcSelect, brushb);
+	dc.FillRect(rcSelect, 1);
 	ReleaseDC(dc);
 }

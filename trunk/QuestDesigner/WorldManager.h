@@ -34,13 +34,25 @@
 #include "Console.h"
 #include "interfaces.h"
 
-class CMap :
+#include "SpriteManager.h"
+
+class CLayer :
+	public CNamedObj,
 	public CConsole
 {
+	CSimpleArray<CSpriteContext*> m_Sprites;
+public:
+	CLayer(LPCSTR szName);
+};
+
+class CMap :
+	public CConsole,
+	public IDocumentObject
+{
+	CSimpleArray<CLayer*> m_Layers;
 public:
 	CMap();
 	~CMap();
-
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -55,10 +67,10 @@ public:
 	map of the game.
 */
 class CWorld :
+	public CNamedObj,
 	public CConsole,
 	public IDocumentObject
 {
-	CString m_sWorldName;
 	CSimpleArray<CMap*> m_Maps;
 public:
 	CWorld();
@@ -67,5 +79,4 @@ public:
 	// Loading/Saving methods:
 	bool Load(LPCSTR szFile); //!< Loads the world from a file
 	bool Save(LPCSTR szFile) { return false; } //!< Saves the world to a file
-
 };

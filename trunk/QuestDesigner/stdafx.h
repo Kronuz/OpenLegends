@@ -109,3 +109,5 @@ extern CAppModule _Module;
 #define ICO_EMPTY			0x0909
 
 #define SIMPLE_MESSAGE_HANDLER(msg, func) if(uMsg==msg) { bHandled=TRUE; lResult=func(wParam,lParam); if(bHandled) return TRUE; }
+
+#define ASSERT ATLASSERT
