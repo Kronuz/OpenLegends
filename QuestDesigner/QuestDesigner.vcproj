@@ -235,6 +235,9 @@
 				<File
 					RelativePath=".\PropertiesDockingView.cpp">
 				</File>
+				<File
+					RelativePath=".\ThumbnailsBox.cpp">
+				</File>
 			</Filter>
 			<Filter
 				Name="Properties"
@@ -361,6 +364,9 @@
 				</File>
 				<File
 					RelativePath="PropertiesDockingView.h">
+				</File>
+				<File
+					RelativePath=".\ThumbnailsBox.h">
 				</File>
 				<File
 					RelativePath="ToolBarBox.h">
@@ -722,6 +728,9 @@
 			</File>
 			<File
 				RelativePath=".\res\Toolbar3PropertyView.bmp">
+			</File>
+			<File
+				RelativePath=".\res\Wait.ico">
 			</File>
 			<File
 				RelativePath="res\Warning.ico">

@@ -49,6 +49,7 @@ class CGEditorView :
 
 protected:
 	DWORD m_dwTick;
+	HWND  m_hContainer;
 
 	CRect m_rcScrollLimits;
 
@@ -87,6 +88,7 @@ protected:
 	bool Paste(const CPoint &Point);
 
 	bool Zoom(float zoom);
+	void ScrollTo(CPoint ScrollPoint);
 	void ScrollTo(int x, int y);
 public:
 	bool Cut();
@@ -113,11 +115,6 @@ public:
 	CGEditorView(CGEditorFrame *pParentFrame);
 
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
-
-	// Called to translate window messages before they are dispatched 
-	virtual BOOL PreTranslateMessage(MSG *pMsg);
-	// Called to clean up after window is destroyed
-	virtual void OnFinalMessage(HWND /*hWnd*/);
 
 	BEGIN_MSG_MAP(CGEditorView)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
@@ -211,7 +208,7 @@ public:
 	virtual void GetWorldPosition(CPoint *_pPoint) = 0;
 
 	virtual void HoldOperation() = 0;
-	virtual void CancelOperation() = 0;
+	virtual void CancelOperation(bool bPropagate = true) = 0;
 
 	virtual bool isResizing() = 0;
 	virtual bool isMoving() = 0;
@@ -254,13 +251,14 @@ public:
 	virtual void UpdateView() = 0;
 
 	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL) = 0;
+	virtual void OnZoom() = 0; // Called after a zooming
 
-	virtual BOOL OnIdle();
+	virtual BOOL OnIdle() = 0; // Called on idle
 	virtual bool hasChanged() = 0;
 
 	virtual bool DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle = _T("Untitled"), WPARAM wParam = NULL, LPARAM lParam = NULL) = 0;
 	virtual bool DoFileClose() = 0;
-	virtual bool DoFileSave(LPCTSTR lpszFilePath) = 0;
+	virtual bool DoFileSave(LPCTSTR lpszFilePath = NULL) = 0;
 	virtual bool DoFileSaveAs() = 0;
 	virtual bool DoFileReload() = 0;
 };

@@ -40,6 +40,7 @@
 
 #include "FoldersTreeBox.h"
 #include "BuildOutputBox.h"
+#include "ThumbnailsBox.h"
 #include "PropertiesDockingView.h"
 
 #include "ProjectFactory.h"
@@ -108,6 +109,7 @@ protected:
 	CMultiPaneStatusBarCtrl m_wndStatusBar;
 	CTabbedMDICommandBarCtrl m_CmdBar;
 
+public:
 	std::vector<CTabbedDockingWindow*> m_PaneWindows;
 	typedef std::vector<CTabbedDockingWindow*>::iterator _PaneWindowIter;
 
@@ -122,12 +124,12 @@ protected:
 	CPlainTextView m_TaskListView;
 	CPlainTextView m_DescriptionView;
 	CBuildOutputBox m_OutputBox;
+	CThumbnailsBox m_ThumbnailsBox;
 
 	CPropertyView m_PropertiesView;
 
 ////////////////////////////////////////////////////////
 
-public:
 	BOOL m_bLayers;
 	CSuperComboBoxCtrl m_ctrlLayers;
 	CTrueColorToolBarCtrl m_ctrlProjectToolBar;
@@ -344,6 +346,8 @@ public:
 
 	int CountChilds(_child_type ChildType = tAny);
 	CChildFrame* FindChild(LPCSTR lpszName);
+
+	void StatusBar(LPCSTR szMessage, UINT Icon); // used to change the status bar message and icon.
 
 	int Select(LPCTSTR szFilename, LPARAM lParam);
 	int FileOpen(LPCTSTR szFilename, LPARAM lParam=0, BOOL bReadOnly=FALSE);

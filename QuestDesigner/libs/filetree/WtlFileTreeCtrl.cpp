@@ -209,8 +209,9 @@ bool CTreeInfo::Save()
 	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
 	if(m_DataSize == 0) return false;
 
-	if(m_vFile.Write(m_pRawData, m_DataSize) == m_DataSize)
-		m_eType = titFile;
+	if(m_vFile.Write(m_pRawData, m_DataSize) != m_DataSize) return false;
+
+	m_eType = titFile;
 	return true;
 }
 bool CTreeInfo::Save(LPCSTR _szFilePath) 

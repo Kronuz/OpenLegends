@@ -72,6 +72,8 @@ BOOL CMainFrame::OnIdle()
 	// Update all the toolbar items
 	UIUpdateToolBar();
 
+	m_ThumbnailsBox.OnIdle();
+
 	return FALSE;
 }
 
@@ -156,7 +158,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	AddSimpleReBarBand(hMainToolBar, NULL, TRUE, 0, TRUE);
 
 	// create a status bar
-	if(!CreateSimpleStatusBar(_T("Ready")) ||
+	if(!CreateSimpleStatusBar(_T("")) ||
 		 !m_wndStatusBar.SubclassWindow(m_hWndStatusBar) ||
 		 !m_wndStatusBar.SetPanes(nStatusBarPanes, 
 		 sizeof(nStatusBarPanes)/sizeof(int), false) ) {
@@ -165,11 +167,11 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 		return -1;      // fail to create
 	}
 
-	HICON hIcon = AtlLoadIconImage(IDI_ICO_OK, LR_DEFAULTCOLOR);
-	m_wndStatusBar.SetPaneIcon(ID_ICON_PANE, hIcon);
+    StatusBar("Loading...", IDI_ICO_WAIT);
 
 	// finally we create the MDI client
 	if(!CreateMDIClient()) {
+	    StatusBar("Failed to create MDI client", IDI_ICO_ERROR);
 		ATLTRACE("Failed to create MDI client\n");
 		return -1;      // fail to create
 	}
@@ -197,6 +199,8 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	InitializeDefaultPanes();
 
 	PostMessage(CWM_INITIALIZE);
+
+    StatusBar("Ready", IDI_ICO_OK);
 
 	return 0;
 }
@@ -254,14 +258,20 @@ void CMainFrame::InitializeDefaultPanes()
 
 	DWORD dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL;
 	m_TaskListView.Create(m_hWnd,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+	
 	m_DescriptionView.Create(m_hWnd,	rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
-	m_OutputBox.Create(m_hWnd,			rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+
 	m_OutputBox.m_pMainFrame = this;
+	m_OutputBox.Create(m_hWnd,			rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+
+	m_ThumbnailsBox.m_pMainFrame = this;
+	m_ThumbnailsBox.Create(m_hWnd,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
 
 	HWND hPane = 
-	CreatePane(m_TaskListView,      _T("Things To Do"),			ilIcons.ExtractIcon(6),  rcDockH, NULL,dockwins::CDockingSide(dockwins::CDockingSide::sRight));
-	CreatePane(m_DescriptionView,   _T("Project Description"),	ilIcons.ExtractIcon(3),  rcDockH, hPane,dockwins::CDockingSide(dockwins::CDockingSide::sRight));
-	CreatePane(m_OutputBox,         _T("Output Window"),		ilIcons.ExtractIcon(10), rcDockH, hPane,dockwins::CDockingSide(dockwins::CDockingSide::sRight));
+	CreatePane(m_ThumbnailsBox,		_T("Thumbnails"),			ilIcons.ExtractIcon(14), rcDockH, NULL,  dockwins::CDockingSide(dockwins::CDockingSide::sRight));
+	CreatePane(m_TaskListView,      _T("Things To Do"),			ilIcons.ExtractIcon(6),  rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
+	CreatePane(m_DescriptionView,   _T("Project Description"),	ilIcons.ExtractIcon(3),  rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
+	CreatePane(m_OutputBox,         _T("Output Window"),		ilIcons.ExtractIcon(10), rcDockH, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sRight));
 
 	//////////////////////// Second Pane:
 
@@ -272,8 +282,9 @@ void CMainFrame::InitializeDefaultPanes()
 
 	//////////////////////// Third Pane:
 
-	m_GameProject.Create(m_hWnd);
 	m_GameProject.m_pMainFrame = this;
+	m_GameProject.Create(m_hWnd);
+
 	m_Quest.Create(m_hWnd);
 	m_SpriteSets.Create(m_hWnd);
 	m_SpriteSets.InitDragDrop();
@@ -283,7 +294,6 @@ void CMainFrame::InitializeDefaultPanes()
 	CreatePane(m_GameProject,		_T("Project"),		ilIcons.ExtractIcon(2),  rcDockV, NULL, dockwins::CDockingSide(dockwins::CDockingSide::sBottom));
 	CreatePane(m_Quest,				_T("Quest"),		ilIcons.ExtractIcon(14), rcDockV, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sBottom));
 	CreatePane(m_SpriteSets,		_T("Sprite Sets"),	ilIcons.ExtractIcon(4),	 rcDockV, hPane, dockwins::CDockingSide(dockwins::CDockingSide::sBottom));
-
 }
 
 LRESULT CMainFrame::OnInitialize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -298,7 +308,7 @@ LRESULT CMainFrame::OnInitialize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 	m_stateMgr.Add(sstate::CRebarStateAdapter(m_hWndToolBar));
 	m_stateMgr.Add(sstate::CToggleWindowAdapter(m_hWndStatusBar));
 	m_stateMgr.Add(mgrDockWnds);
-	m_stateMgr.Restore();
+	//m_stateMgr.Restore();
 	UpdateLayout();
 
 	ShowWindow(SW_SHOW);
@@ -310,6 +320,26 @@ LRESULT CMainFrame::OnInitialize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 
 LRESULT CMainFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
+	bool bModified = true;
+	int nChild = 0;
+	CChildFrame *pChildFrame;
+	while(m_ChildList.GetSize()) {
+		if(nChild >= m_ChildList.GetSize()) {
+			bModified = false;
+			nChild = 0;
+		}
+		pChildFrame = m_ChildList[nChild++];
+		if(pChildFrame->hasChanged()) {
+			nChild = 0;
+			bModified = true;
+			pChildFrame->SetFocus();
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+		} else if(bModified == false) {
+			nChild = 0;
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+		}
+	}
+
 	bHandled=FALSE;
 	//m_stateMgr.Store();
 	return 0;
@@ -398,6 +428,8 @@ LRESULT CMainFrame::OnProjectOpen()
 	UIUpdateToolBar();
 	UpdateWindow();
 
+    StatusBar("Loading...", IDI_ICO_WAIT);
+
 	::SendMessage(m_GameProject, WM_SETREDRAW, FALSE, 0);
 	g_sHomeDir = "C:\\qd\\Quest Designer 2.1.4\\";
 	m_pOZKernel->Load(g_sHomeDir);
@@ -405,9 +437,16 @@ LRESULT CMainFrame::OnProjectOpen()
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 	m_SpriteSets.PopulateTree(g_sHomeDir + "Sprite Sets");
 
+	DWORD dwInitTicks = GetTickCount();
+	CONSOLE_DEBUG("Building thumbnails...\n");
+	m_ThumbnailsBox.DoFileOpen("");
+	CONSOLE_DEBUG("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+
 	m_bProjectLoaded = true;
 
 	UIEnableToolbar(TRUE);
+
+    StatusBar("Ready", IDI_ICO_OK);
 
 	return 0;
 }
@@ -626,8 +665,6 @@ int CMainFrame::MapCreate(CPoint &Point)
 		return 0;
 	}
 	return 1;
-
-	return 0;
 }
 
 int CMainFrame::MapFileOpen(CPoint &Point)
@@ -640,7 +677,11 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 	// Searching for an open child with the same file:
 	if(Select(szTitle, 0)) return 1;
 
-	if(!pMapGroupI->Load()) return 0;
+    StatusBar("Loading...", IDI_ICO_WAIT);
+	if(!pMapGroupI->Load()) {
+	    StatusBar("Couldn't load the map group! (1)", IDI_ICO_ERROR);
+		return 0;
+	}
 
 	CMapEditorFrame *pChild = new CMapEditorFrame(this);
 	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
@@ -653,8 +694,11 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 	if(!pView->DoFileOpen(NULL, szTitle, (WPARAM)pMapGroupI)) {
 		// kill the failed window (will delete itself)
 		::PostMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+	    StatusBar("Couldn't load the map group! (2)", IDI_ICO_ERROR);
 		return 0;
 	}
+    StatusBar("Ready", IDI_ICO_OK);
+
 	return 1;
 }
 
@@ -685,6 +729,14 @@ int CMainFrame::SptShtFileOpen(CSpriteSheet *pSpriteSheet, LPCSTR lpszSprite)
 	return 1;
 }
 
+void CMainFrame::StatusBar(LPCSTR szMessage, UINT Icon)
+{
+	m_wndStatusBar.SetPaneText(0, szMessage);
+	HICON hIcon = AtlLoadIconImage(Icon, LR_DEFAULTCOLOR);
+	m_wndStatusBar.SetPaneIcon(ID_ICON_PANE, hIcon);
+	DeleteObject(hIcon);
+}
+
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
 	if(!m_pOZKernel->CloseWorld()) {
@@ -699,9 +751,13 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 		}
 		m_pOZKernel->CloseWorld(true);
 	} 
+    StatusBar("Loading...", IDI_ICO_WAIT);
 	m_pOZKernel->LoadWorld(szFilename);
 
-	if(Select(_T("World Editor"), 0)) return 1;
+	if(Select(_T("World Editor"), 0)) {
+	    StatusBar("Couldn't open the World editor window!", IDI_ICO_ERROR);
+		return 1;
+	}
 
 	CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
 	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
@@ -711,6 +767,7 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 
 	OnIdle(); // Force idle processing to update the toolbar.
 
+    StatusBar("Ready", IDI_ICO_OK);
 	return 1;
 }
 
@@ -767,6 +824,12 @@ void CMainFrame::UIUpdateMenuItems()
 	}
 
 	if( ActiveChildType!=tMapEditor ) {
+		if(m_PaneWindows.size() >= (ID_VIEW_PANELAST-ID_VIEW_PANEFIRST)) {
+			CTabbedDockingWindow *pThumbnails = m_PaneWindows[ID_PANE_THUMBNAILS-ID_VIEW_PANEFIRST];
+			if(pThumbnails->IsWindowVisible() == TRUE) {
+				pThumbnails->Toggle();
+			}
+		}
 		m_ctrlLayers.EnableWindow(FALSE);
 		m_bLayers = FALSE;
 	}

@@ -31,6 +31,11 @@
 					  (The vertices color and alpha value are set ar Draw time using
 					   two stages for the color (aditive blending) and modulation for
 					   alpha blending)
+				October 8, 2003
+					+ Improvement. All methods converting from float to int, missed
+					  the +0.5f adjustment, now added.
+				    + Optimization. Some methods used SetRect() instead of setting the
+					  values on RECT creation. SetRect is now only used when needed.
 	\author		Kronuz
 	\remarks	Known bugs:
 				Take the next scenario. There is an open map (being displayed), the
@@ -412,8 +417,8 @@ inline void CGraphicsD3D8::RenderRect(const RECT &rectDest, ARGBCOLOR rgbColor) 
 {
 	float l = (float)(rectDest.left);
 	float t = (float)(rectDest.top);
-	float r = (float)(rectDest.right) - 1;
-	float b = (float)(rectDest.bottom) - 1;
+	float r = (float)(rectDest.right) - 1.0f;
+	float b = (float)(rectDest.bottom) - 1.0f;
 
 	D3DCDVERTEX rect[5] = {
 		{ l, t, 0.0f, rgbColor },
@@ -789,6 +794,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 }
 void CGraphicsD3D8::GetWorldRect(RECT *Rect_) const
 {
+	// This doesn't need +0.5f adjustment:
 	::SetRect(Rect_,
 		(int)((float)(Rect_->left+m_RectView.left)/m_Zoom),
 		(int)((float)(Rect_->top+m_RectView.top)/m_Zoom),
@@ -799,23 +805,36 @@ void CGraphicsD3D8::GetWorldRect(RECT *Rect_) const
 
 void CGraphicsD3D8::GetWorldPosition(POINT *Point_) const
 {
+	// This doesn't need +0.5f adjustment:
 	Point_->x = (int)((float)(Point_->x+m_RectView.left)/m_Zoom);
 	Point_->y = (int)((float)(Point_->y+m_RectView.top)/m_Zoom);
 }
 
 void CGraphicsD3D8::GetViewPosition(POINT *Point_) const
 {
+/*	Point_->x = (int)((float)Point_->x * m_Zoom + 0.5f) - m_RectView.left;
+	Point_->y = (int)((float)Point_->y * m_Zoom + 0.5f) - m_RectView.top;
+	/*/
 	Point_->x = (int)((float)Point_->x*m_Zoom)-m_RectView.left;
 	Point_->y = (int)((float)Point_->y*m_Zoom)-m_RectView.top;
+	/**/
 }
 void CGraphicsD3D8::GetViewRect(RECT *Rect_) const
 {
+/*	::SetRect(Rect_,
+		(int)((float)Rect_->left * m_Zoom + 0.5f) - m_RectView.left,
+		(int)((float)Rect_->top * m_Zoom + 0.5f) - m_RectView.top,
+		(int)((float)Rect_->right * m_Zoom + 0.5f) - m_RectView.left,
+		(int)((float)Rect_->bottom * m_Zoom + 0.5f) - m_RectView.top
+	);
+	/*/
 	::SetRect(Rect_,
 		(int)((float)Rect_->left*m_Zoom)-m_RectView.left,
 		(int)((float)Rect_->top*m_Zoom)-m_RectView.top,
 		(int)((float)Rect_->right*m_Zoom)-m_RectView.left,
 		(int)((float)Rect_->bottom*m_Zoom)-m_RectView.top
 	);
+	/**/
 }
 
 RECT CGraphicsD3D8::GetVisibleRect() const
@@ -859,12 +878,20 @@ bool CGraphicsD3D8::SetWindowView(HWND hWnd, const RECT &client, const RECT &wor
 		delete [](m_pGrid[1]); m_pGrid[1] = NULL;
 	}
 
+	RECT rcWorldView = {
+		(int)((float)client.left / m_Zoom + 0.5f), 
+		(int)((float)client.top / m_Zoom + 0.5f), 
+		(int)(((float)client.right + m_Zoom) / m_Zoom + 0.5f), 
+		(int)(((float)client.bottom + m_Zoom) / m_Zoom + 0.5f)
+	};
+	/*/
 	RECT rcWorldView;
 	::SetRect(&rcWorldView, 
 		(int)((float)client.left / m_Zoom), 
 		(int)((float)client.top / m_Zoom), 
 		(int)(((float)client.right + m_Zoom) / m_Zoom), 
 		(int)(((float)client.bottom + m_Zoom) / m_Zoom));
+	/**/
 
 	// We need the intersecting rectangle:
 	::IntersectRect(&m_RectClip, &world, &rcWorldView);
@@ -1045,14 +1072,32 @@ bool CGraphicsD3D8::DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLO
 		//  (see bellow)
 		
 		// First the rectangle exactly dow the view is cleared (R1):
+		::SetRect(&Rect, 
+			(int)((float)RectClip.left * m_Zoom + 0.5f), 
+			(int)((float)RectClip.bottom * m_Zoom + 0.5f), 
+			(int)((float)RectClip.right * m_Zoom + 0.5f), 
+			m_RectView.bottom
+		);
+		/*/
 		::SetRect(&Rect, (int)((float)RectClip.left*m_Zoom), (int)((float)RectClip.bottom*m_Zoom), (int)((float)RectClip.right*m_Zoom), m_RectView.bottom);
+		/**/
+
 		::IntersectRect(&Rect, &Rect, &m_RectView);
 		::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
 		// if it isn't empty, then we actually clear it:
 		if(!::IsRectEmpty(&Rect)) RenderFill(Rect, rgbColor); 
 
 		// Next the rectangle at the right of the view is cleared (R2):
+		::SetRect(&Rect, 
+			(int)((float)RectClip.right * m_Zoom + 0.5f), 
+			(int)((float)RectClip.top * m_Zoom + 0.5f), 
+			m_RectView.right, 
+			m_RectView.bottom
+		);
+		/*/
 		::SetRect(&Rect, (int)((float)RectClip.right*m_Zoom), (int)((float)RectClip.top*m_Zoom), m_RectView.right, m_RectView.bottom);
+		/**/
+
 		::IntersectRect(&Rect, &Rect, &m_RectView);
 		::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
 		// if it isn't empty, then we actually clear it:
@@ -1060,7 +1105,16 @@ bool CGraphicsD3D8::DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLO
 	}
 
 	if(rgbBoundaries.rgbAlpha != 0) {
+		::SetRect(&Rect, 
+			(int)((float)RectClip.left * m_Zoom + 0.5f), 
+			(int)((float)RectClip.top * m_Zoom + 0.5f), 
+			(int)((float)RectClip.right * m_Zoom + 0.5f), 
+			(int)((float)RectClip.bottom * m_Zoom + 0.5f)
+		);
+		/*/
 		::SetRect(&Rect, (int)((float)RectClip.left*m_Zoom), (int)((float)RectClip.top*m_Zoom), (int)((float)RectClip.right*m_Zoom), (int)((float)RectClip.bottom*m_Zoom));
+		/**/
+
 		::OffsetRect(&Rect, -m_RectView.left, -m_RectView.top);
 		if(!::IsRectEmpty(&Rect)) RenderRect(Rect, rgbBoundaries);
 	}
@@ -1112,10 +1166,10 @@ bool CGraphicsD3D8::BeginCapture(RECT *rectDesired, float zoom)
 	int height = rectDesired->bottom - rectDesired->top;
 
 	if(width > ms_nScreenWidth)
-		rectDesired->right = rectDesired->left + (int)((float)ms_nScreenWidth);
+		rectDesired->right = rectDesired->left + ms_nScreenWidth;
 
 	if(height > ms_nScreenHeight)
-		rectDesired->bottom = rectDesired->top + (int)((float)ms_nScreenHeight);
+		rectDesired->bottom = rectDesired->top + ms_nScreenHeight;
 
 	Clear(NULL, m_rgbClearColor); // white background
 	if(FAILED(ms_pD3DDevice->BeginScene())) return false;
@@ -1125,10 +1179,10 @@ bool CGraphicsD3D8::BeginCapture(RECT *rectDesired, float zoom)
 	m_RectOldClip = m_RectClip;
 
 	m_RectClip = *rectDesired;
-	m_RectClip.top = (int)((float)m_RectClip.top/zoom);
-	m_RectClip.bottom = (int)((float)m_RectClip.bottom/zoom);
-	m_RectClip.left = (int)((float)m_RectClip.left/zoom);
-	m_RectClip.right = (int)((float)m_RectClip.right/zoom);
+	m_RectClip.top = (int)((float)m_RectClip.top / zoom + 0.5f);
+	m_RectClip.bottom = (int)((float)m_RectClip.bottom / zoom + 0.5f);
+	m_RectClip.left = (int)((float)m_RectClip.left / zoom + 0.5f);
+	m_RectClip.right = (int)((float)m_RectClip.right / zoom + 0.5f);
 
 	D3DXMATRIX matTmp;
 	D3DXMatrixScaling(&m_WorldMatrix, zoom, zoom, 1.0);
@@ -1232,8 +1286,7 @@ void CGraphicsD3D8::DrawText(const POINT &pointDest, LPCSTR lpString, ...) const
 	vsprintf(lpBuffer, lpString, argptr);
 	va_end(argptr);
 
-	RECT rect;
-	::SetRect(&rect, pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300);
+	RECT rect = { pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300 };
 	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, m_rgbFontColor);
 }
 void CGraphicsD3D8::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR lpString, ...) const
@@ -1246,8 +1299,7 @@ void CGraphicsD3D8::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR 
 	vsprintf(lpBuffer, lpString, argptr);
 	va_end(argptr);
 
-	RECT rect;
-	::SetRect(&rect, pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300);
+	RECT rect = { pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300 };
 	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, rgbColor);
 }
 
@@ -1264,26 +1316,32 @@ void CGraphicsD3D8::FillRect(const RECT &rectDest, ARGBCOLOR rgbColor) const
 
 void CGraphicsD3D8::DrawRect(const RECT &rectDest, ARGBCOLOR rgbColor, int bordersize) const
 {
-	RECT brc;
-
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_WorldMatrix));
 
+	RECT brc;
 	// Draw top and left
-	SetRect(&brc, rectDest.left+bordersize, rectDest.top, rectDest.right-bordersize, rectDest.top + bordersize);
+	::SetRect(&brc, rectDest.left+bordersize, rectDest.top, rectDest.right-bordersize, rectDest.top + bordersize);
 	RenderFill(brc, rgbColor);
-	SetRect(&brc, rectDest.left, rectDest.top, rectDest.left+bordersize, rectDest.bottom);
+	::SetRect(&brc, rectDest.left, rectDest.top, rectDest.left+bordersize, rectDest.bottom);
 	RenderFill(brc, rgbColor);
 
 	// Draw bottom and right
-	SetRect(&brc, rectDest.left+bordersize, rectDest.bottom-bordersize, rectDest.right-bordersize, rectDest.bottom);
+	::SetRect(&brc, rectDest.left+bordersize, rectDest.bottom-bordersize, rectDest.right-bordersize, rectDest.bottom);
 	RenderFill(brc, rgbColor);
-	SetRect(&brc, rectDest.right-bordersize, rectDest.top, rectDest.right, rectDest.bottom);
+	::SetRect(&brc, rectDest.right-bordersize, rectDest.top, rectDest.right, rectDest.bottom);
 	RenderFill(brc, rgbColor);
 }
 
 void CGraphicsD3D8::SelectingBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 {
 	// For now, this does the same as BoundingBox. (should be changed to dotted lines)
+	RECT Rects = {
+		(int)((float)rectDest.left * m_Zoom + 0.5f),
+		(int)((float)rectDest.top * m_Zoom + 0.5f),
+		(int)((float)rectDest.right * m_Zoom + 0.5f),
+		(int)((float)rectDest.bottom * m_Zoom + 0.5f)
+	};
+	/*/
 	RECT Rects;
 	::SetRect(&Rects,
 		(int)((float)rectDest.left * m_Zoom),
@@ -1291,6 +1349,7 @@ void CGraphicsD3D8::SelectingBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 		(int)((float)rectDest.right * m_Zoom),
 		(int)((float)rectDest.bottom * m_Zoom)
 	);
+	/**/
 
 	// Offset the rectangle from world to view
 	::OffsetRect(&Rects, -m_RectView.left, -m_RectView.top);
@@ -1438,6 +1497,13 @@ bool CGraphicsD3D8::DrawGrid(int size, ARGBCOLOR rgbColor)
 
 void CGraphicsD3D8::BoundingBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 {
+	RECT Rects = {
+		(int)((float)rectDest.left * m_Zoom + 0.5f),
+		(int)((float)rectDest.top * m_Zoom + 0.5f),
+		(int)((float)rectDest.right * m_Zoom + 0.5f),
+		(int)((float)rectDest.bottom * m_Zoom + 0.5f)
+	};
+	/*/
 	RECT Rects;
 	::SetRect(&Rects,
 		(int)((float)rectDest.left * m_Zoom),
@@ -1445,6 +1511,7 @@ void CGraphicsD3D8::BoundingBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 		(int)((float)rectDest.right * m_Zoom),
 		(int)((float)rectDest.bottom * m_Zoom)
 	);
+	/**/
 
 	// Offset the rectangle from world to view
 	::OffsetRect(&Rects, -m_RectView.left, -m_RectView.top);
@@ -1458,6 +1525,14 @@ void CGraphicsD3D8::BoundingBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 }
 void CGraphicsD3D8::SelectionBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 {
+	RECT Rects = {
+		(int)((float)rectDest.left * m_Zoom + 0.5f),
+		(int)((float)rectDest.top * m_Zoom + 0.5f),
+		(int)((float)rectDest.right * m_Zoom + 0.5f),
+		(int)((float)rectDest.bottom * m_Zoom + 0.5f)
+	};
+
+	/*/ // The method bellow (used before) was slower, and the new one seems a lot better:
 	// Convert to inclusive-inclusive; inclusive-exclusive is keeped for any zoom beyond 100% since 
 	// we want the bounding box on the lower-right side of the pixels. For those, we convert latter.
 	RECT Rects;
@@ -1473,7 +1548,7 @@ void CGraphicsD3D8::SelectionBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 	} else {
 		Rects.right += (int)m_Zoom;
 		Rects.bottom += (int)m_Zoom;
-	}
+	}/**/
 
 	// Offset the rectangle from world to view
 	::OffsetRect(&Rects, -m_RectView.left, -m_RectView.top);

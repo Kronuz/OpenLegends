@@ -26,6 +26,8 @@
 
 #include "GEditorView.h"
 
+#include <vector>
+
 #include "../IGame.h"
 #include "../Core.h"
 
@@ -42,15 +44,32 @@ private:
 	CSize m_szSptSht;
 	CImage m_Image;
 
-	CString m_sInitSprite;
-	CSpriteSheet *m_pSpriteSheet;
-
 	CVFile m_fnFile;
 	float m_fScale;
 	int m_nStep;
+
+//////////////////////////////////
+	CString m_sInitSprite;
+	CSpriteSheet *m_pSpriteSheet;
+
+	typedef std::vector<CSprite*> vectorSprite;
+	vectorSprite m_Sprites;
+
+
+	CSprite* LocateInitSprite();
+	void SelectionBox(HDC hDC, const CRect &rectDest, COLORREF rgbColor);
+
+//////////////////////////////////
 public:
+
 	// Construction/Destruction
 	CSptShtEditorView(CSptShtEditorFrame *pParentFrame);
+
+	// Called to translate window messages before they are dispatched 
+	virtual BOOL PreTranslateMessage(MSG *pMsg) { return FALSE; }
+
+	// Called to clean up after window is destroyed
+	virtual void OnFinalMessage(HWND /*hWnd*/) { delete this; }
 
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
@@ -62,6 +81,8 @@ public:
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
 
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
+
+		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
 		
 		MENU_COMMAND_HANDLER(ID_COPY,				Copy)
 		MENU_COMMAND_HANDLER(ID_PASTE,				Paste)
@@ -96,8 +117,7 @@ public:
 
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	
-	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
-	LRESULT OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
 	void UIUpdateMenuItems();
 	void UIUpdateStatusBar();
@@ -105,6 +125,8 @@ public:
 	void OnAnim();
 	void OnParallax();
 	void OnSound();
+
+	void OnZoom();
 
 	BOOL CanUndo();
 	BOOL CanRedo();
@@ -124,7 +146,7 @@ public:
 	virtual void GetWorldPosition(CPoint *_pPoint);
 
 	virtual void HoldOperation();
-	virtual void CancelOperation();
+	virtual void CancelOperation(bool bPropagate = true);
 
 	virtual bool isResizing();
 	virtual bool isMoving();

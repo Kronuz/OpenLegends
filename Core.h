@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <functional>
+
 // Flags for the sprites and their transformations (higher byte of the status reserved):
 #define SNORMAL				GFX_NORMAL	
 #define SMIRRORED			GFX_MIRRORED
@@ -102,6 +104,48 @@ inline bool VerifyOZFile(LPCOZFILE *ppOZFile)
 	*ppOZFile = pOZFile;
 	return true;
 }
+inline LPCSTR GetNameFromOZFile(LPCOZFILE pOZFile, LPSTR szBuffer, int nBuffSize)
+{
+	ASSERT(pOZFile);
+	ASSERT(nBuffSize>0);
+	ASSERT(!::IsBadStringPtr(szBuffer, nBuffSize));
+	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenZeldaFile)));
+
+	int nNameLen = 0;
+	LPSTR aux = strchr(pOZFile->ID, '\n');
+	if(aux) {
+		aux++;
+		LPSTR aux2 = strchr(aux, '\n');
+		if(aux2) nNameLen = aux2 - aux;
+		else nNameLen = (int)strlen(aux);
+
+		nNameLen = min(nBuffSize-1, nNameLen);
+
+		strncpy(szBuffer, aux, nNameLen);
+	}
+	szBuffer[nNameLen] = '\0';
+	return szBuffer;
+}
+inline LPCSTR GetDescFromOZFile(LPCOZFILE pOZFile, LPSTR szBuffer, int nBuffSize)
+{
+	ASSERT(pOZFile);
+	ASSERT(nBuffSize>0);
+	ASSERT(!::IsBadStringPtr(szBuffer, nBuffSize));
+	ASSERT(!::IsBadReadPtr(pOZFile, sizeof(_OpenZeldaFile)));
+
+	int nNameLen = 0;
+	LPSTR aux = strchr(pOZFile->ID, '\n');
+	if(aux) {
+		aux = strchr(aux+1, '\n');
+		if(aux) {
+			aux++;
+			nNameLen = min(nBuffSize-1, (int)strlen(aux));
+			strncpy(szBuffer, aux, nNameLen);
+		}
+	}
+	szBuffer[nNameLen] = '\0';
+	return szBuffer;
+}
 
 ////////////////////////////////////////////////////////////////////
 
@@ -125,10 +169,18 @@ struct SInfo;
 */
 class CNamedObj 
 {
-	CBString m_sName;
 protected:
+	CBString m_sName;
 	CNamedObj(LPCSTR szName) : m_sName(szName) { }
 public:
+	const struct NameCompare : 
+	public std::binary_function<const CNamedObj*, LPCSTR, bool> {
+		bool operator()(const CNamedObj *a, LPCSTR b) const {
+			return(a->m_sName == b);
+		}
+	};
+	friend NameCompare;
+
 	const CBString& GetName() const { return m_sName; }
 	void SetName(LPCSTR szName)  { m_sName = szName; }
 };

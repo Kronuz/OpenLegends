@@ -91,12 +91,8 @@ CSprite *CGameManager::FindSprite(LPCSTR szName)
 	std::vector<CSpriteSheet*>::iterator SheetIterator = m_SpriteSheets.begin();
 	while(SheetIterator != m_SpriteSheets.end()) {
 		if(*SheetIterator) {
-			std::map<CBString, CSprite*>::iterator SpriteIterator;
-			SpriteIterator = (*SheetIterator)->m_Sprites.find(szName);
-			if(SpriteIterator != (*SheetIterator)->m_Sprites.end()) {
-				return SpriteIterator->second;
-			}
-
+			CSprite *pSprite = (*SheetIterator)->FindSprite(szName);
+			if(pSprite) return pSprite;
 		}
 		SheetIterator++;
 	}
@@ -242,10 +238,15 @@ CSprite *CGameManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet
 	} 
 
 	if(pSprite) {
-		pSpriteSheet->m_Sprites.insert(CSpriteSheet::pairSprite(szName, pSprite));
 		pSprite->SetSpriteSheet(pSpriteSheet);
-		// We send a message letting know that a new sprite has just been defined
 
+		/*
+		pSpriteSheet->m_Sprites.push_back(pSprite);
+		/*/
+		pSpriteSheet->m_Sprites.insert(CSpriteSheet::pairSprite(szName, pSprite));
+		/**/
+
+		// We send a message letting know that a new sprite has just been defined
 		CallbackProc(
 			Sprite, 
 			pSprite, 
@@ -382,11 +383,14 @@ CSpriteSheet* CGameManager::MakeSpriteSheet(CSpriteSheet *pSpriteSheet)
 
 	return pSpriteSheet;
 }
-int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, LPARAM lParam)
+int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam)
 {
 	CGameManager *pGameManager = reinterpret_cast<CGameManager*>(lParam);
 	CSpriteSheet *pSpriteSheet = new CSpriteSheet(pGameManager);
 	ASSERT(pSpriteSheet);
+
+	// if it is a directory:
+	if((dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY) return 0;
 
 	CVFile vfFile(szFile);
 	pSpriteSheet->Load(vfFile);

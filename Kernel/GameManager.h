@@ -105,7 +105,7 @@ protected:
 	void DeleteSound(int nIndex);
 
 public:
-	static int CALLBACK LoadSheet(LPCTSTR szFile, LPARAM lParam);
+	static int CALLBACK LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam);
 
 	// Construction/Destruction:
 	CGameManager();
@@ -199,6 +199,11 @@ public:
 
 	CMapGroup *FindMapGroup(int x, int y) const; //!< Get the map group at location (x,y)
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
+	CThumbnails* GetThumbnails() {
+		static CThumbnails *s_Thumbnails;
+		if(!s_Thumbnails) s_Thumbnails = new CThumbnails;
+		return s_Thumbnails;
+	}
 
 	void SetSoundCallback(STATUSCHANGEDPROC *StatusChanged, LPARAM lParam);
 	void SetSpriteCallback(STATUSCHANGEDPROC *StatusChanged, LPARAM lParam);

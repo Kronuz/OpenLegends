@@ -189,9 +189,7 @@ protected:
 	void PreSort();
 	void Sort(int nSubLayer);
 
-	bool AddSibling(CDrawableContext *object, bool bAllowDups_=true);
-	bool AddChild(CDrawableContext *object, bool bAllowDups_=true);
-	bool InsertChild(CDrawableContext *object, int nInsertion = -1);
+	bool __Draw(const IGraphics *pIGraphics);
 
 	bool GetFirstChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
@@ -199,11 +197,19 @@ protected:
 	bool GetFirstChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
 
-	bool __Draw(const IGraphics *pIGraphics);
+	bool AddSibling(CDrawableContext *object, bool bAllowDups_=true);
+	bool AddChild(CDrawableContext *object, bool bAllowDups_=true);
+	bool InsertChild(CDrawableContext *object, int nInsertion = -1);
 public:
+
 	mutable LPVOID m_pPtr;							//!< Multipurpose pointer for the drawable context.
 	mutable IBuffer *m_pBuffer[CONTEXT_BUFFERS];	//!< Buffers for the drawable context (to use as needed)
-	
+
+	// reorder the objects, leaving a space between nRoomAt and nRoomAt+nRoomSize. 
+	// Returns the next availible free Ordering position (i.e. nRoomAt if specified)
+	// leaves holes between objects of nStep size (nStep must be >= 1)
+	int ReOrder(int nStep, int nRoomAt = -1, int nRoomSize = 0);
+
 	void Invalidate() {
 		for(int i=0; i<CONTEXT_BUFFERS; i++) {
 			if(m_pBuffer[i]) m_pBuffer[i]->Invalidate();
@@ -216,7 +222,7 @@ public:
 	}
 
 	CDrawableContext(LPCSTR szName="");
-	~CDrawableContext();
+	virtual ~CDrawableContext();
 
 	const CBString& GetObjName() const;
 
@@ -230,6 +236,8 @@ public:
 	int GetObjSubLayer() const;
 	int GetObjLayer() const;
 	int GetObjOrder() const;
+
+	void SetObjOrder(int nNewOrder); // use this carefully
 
 	CDrawableContext* GetParent() const;
 	CDrawableContext* GetSibling(int idx) const;
@@ -291,6 +299,8 @@ public:
 
 	bool KillChild(CDrawableContext *pDrawableContext_);
 	bool KillChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
+
+	void Clean(); // recursivelly clean the Drawable context freeing all allocated memory.
 
 	int Objects(int init=0); // How many not-null objects are under this context. 
 
@@ -387,17 +397,17 @@ public:
 		Size.SetSize(0, 0);
 	}
 
-	/*! \brief Obtains a rect represening the objects base rect or point.
+	/*! \brief Obtains a rect represening the objects origin or base point.
 
-		The reference CRect sended is modified in this function.
+		The reference CPoint sended is modified in this function.
 		
 		\remarks
 		This is used for drawing order. If, for instance, isometric or
 		Y-Ordered drawing order is selected, the location of the base points
 		(probably where the object touches or should touch the ground) is needed.
 	*/
-	virtual void GetBaseRect(CRect &Rect) {
-		Rect.SetRectEmpty();
+	virtual void GetOrigin(CPoint &Point) {
+		Point.SetPoint(0, 0);
 	}
 
 };
@@ -500,10 +510,14 @@ protected:
 
 	CDrawableContext *m_pLastSelected;
 	typedef vector<SObjProp> vectorObject;
-	vectorObject m_Objects; //!< Sprites in the selection.
 	vectorObject::iterator m_CurrentSel;
 
-	int GetBoundingRect(CRect *pRect_);
+	int m_nPasteGroup;
+	int m_nCurrentGroup;
+	vector<vectorObject> m_Objects; //!< Sprites in the selection.
+	vector<string> m_ObjectsNames;
+
+	int GetBoundingRect(CRect *pRect_, int nPasteGroup_ = 0);
 
 	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
 	virtual void BuildRealSelectionBounds() = 0;
@@ -516,6 +530,9 @@ protected:
 
 	void SetInitialMovingPoint(const CPoint &point_);
 
+	bool SelectGroupWith(const CDrawableContext *pDrawableContext);
+	void DeleteInGroups(const CDrawableContext *pDrawableContext);
+
 public:
 	CDrawableSelection(CDrawableContext **ppDrawableContext_);
 	virtual ~CDrawableSelection() {
@@ -523,13 +540,18 @@ public:
 	}
 
 	// Interface Definition:
+	virtual void CleanPasteGroups();
+	virtual int SetNextPasteGroup(LPCSTR szGroupName, int nNew = -1);
+
+	virtual LPCSTR GetSelectionName(LPSTR szName, int size) = 0;
+	virtual void SetSelectionName(LPCSTR szName) = 0;
 
 	virtual SObjProp* GetFirstSelection();
 	virtual SObjProp* GetNextSelection();
 
 	virtual CDrawableContext* GetLastSelected() { return m_pLastSelected; }
 
-	virtual void HoldSelection(bool bHold = true) { m_bHoldSelection = bHold; }
+	virtual void HoldSelection(bool bHold = true) { if(bHold) SortSelection(); m_bHoldSelection = bHold; }
 	virtual bool isHeld() { return m_bHoldSelection; }
 	
 	virtual void LockLayer(int nLayer, bool bLock = true);
@@ -574,6 +596,7 @@ public:
 	virtual bool isMoving();
 	virtual bool isSelecting();
 	virtual bool isFloating();
+	virtual bool isGroup();
 
 	virtual int Count();
 
@@ -582,7 +605,10 @@ public:
 	// Make abstract methods:
 	virtual bool Draw(const IGraphics *pGraphics_) = 0; 
 	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false) = 0;
-	virtual bool Paste(LPVOID pBuffer, const CPoint &point_) = 0;
+	virtual bool Paste(LPCVOID pBuffer, const CPoint &point_) = 0;
+
+	virtual bool FastPaste(LPCVOID pBuffer, const CPoint &point_) = 0;
+	virtual bool GetPastedSize(LPCVOID pBuffer, SIZE *pSize) = 0;
 
 	virtual bool SetClip(const CRect *pRect, ARGBCOLOR rgbColor = COLOR_ARGB(0,0,0,0));
 	virtual bool Paint(IGraphics *pGraphicsI, WORD wFlags); // render the map group to the screen
@@ -626,6 +652,11 @@ inline void CDrawableContext::GetSize(CSize &_Size) const
 inline int CDrawableContext::GetObjSubLayer() const
 {
 	return m_nSubLayer;
+}
+inline void CDrawableContext::SetObjOrder(int nNewOrder)
+{
+	m_nOrder = nNewOrder;
+	m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 }
 inline int CDrawableContext::GetObjOrder() const
 {

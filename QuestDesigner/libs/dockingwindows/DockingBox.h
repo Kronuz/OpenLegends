@@ -391,7 +391,6 @@ public:
 		if(bRes)
 		{
 			DFMHDR dockHdr;
-			DFMHDR dockHdr;
 			dockHdr.hBar=GetOwnerDockingBar();
 			bRes=CDockingBox::IsWindowBox(dockHdr.hBar);
 			if(bRes)

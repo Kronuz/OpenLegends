@@ -50,6 +50,7 @@ public:
 private:
 	CSpriteSheet *m_pSpriteSheet;
 	int m_nLines;
+	int m_nCatalog;
 
 	int ReadSprite(CVFile &vfFile);
 public:

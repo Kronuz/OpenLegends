@@ -170,6 +170,7 @@ LRESULT CFoldersTreeBox::OnAddTree(WPARAM wParam, LPARAM lParam)
 
 	hItem = m_ctrlTree.GetRootItem();
 	ATLASSERT(hItem);
+	m_ctrlTree.Expand(hItem);
 	m_ctrlTree.SetItemImage(hItem, (ICO_PROJECT>>8), (ICO_PROJECT&0xff));
 
 	return TRUE;
@@ -204,6 +205,7 @@ void CFoldersTreeBox::PopulateTree(LPCSTR szRootFolder)
 {
 	m_ctrlTree.SetRootFolder(szRootFolder);
 	m_ctrlTree.PostMessage(WM_POPULATE_TREE);
+	m_ctrlTree.Expand(m_ctrlTree.GetRootItem());
 }
 
 LRESULT CFoldersTreeBox::OnFileItemSelected(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)

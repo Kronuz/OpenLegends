@@ -197,6 +197,15 @@ class CSprite :
 	public CDrawableObject
 {
 public:
+	const struct CatalogCompare : 
+	public std::binary_function<const CSprite*, const CSprite*, bool> {
+		bool operator()(const CSprite *a, const CSprite *b) const {
+			return(a->m_nCatalog > b->m_nCatalog);
+		}
+	};
+	friend CatalogCompare;
+
+	int m_nCatalog;
 	CSprite(LPCSTR szName);
 	virtual ~CSprite();
 
@@ -262,12 +271,22 @@ public:
 	void SetSpriteData(SSpriteData *pSpriteData);
 	SSpriteData* GetSpriteData();
 
-	void GetSize(CSize &Size) { 
+	// CDrawableObject Interface:
+	virtual void GetSize(CSize &Size) { 
 		Size.SetSize(m_Boundaries[0].Width(), m_Boundaries[0].Height());
 	}
-	void GetBaseRect(CRect &Rect) {
-		Rect.SetRectEmpty();
+	virtual void GetOrigin(CPoint &Point) {
+		Point.SetPoint(
+			m_Boundaries[0].CenterPoint().x - m_Boundaries[0].left, 
+			m_Boundaries[0].Height() );
 	}
+
+	// CSprite Interface:
+	virtual void GetBaseRect(CRect &Rect) {
+		Rect = m_Boundaries[0];
+	}
+	virtual void SetCatalogOrder(int nCatalog) { m_nCatalog = nCatalog; }
+	virtual int GetCatalogOrder() { return m_nCatalog; }
 
 };
 
@@ -363,8 +382,17 @@ class CSpriteSheet :
 protected:
 	CGameManager *m_pGameManager;
 
+	/*
+	typedef std::vector<CSprite *> vectorSprite;
+	vectorSprite m_Sprites; //!< Flyweight pool of sprites.
+	/*/
+	typedef std::vector<CSprite *> vectorSprite;
+	vectorSprite m_Catalog; //!< Sprites' catalog.
+
 	typedef std::pair<CBString, CSprite*> pairSprite;
-	std::map<CBString, CSprite*> m_Sprites; //!< Flyweight pool of sprites.
+	typedef std::map<CBString, CSprite*> mapSprite;
+	mapSprite m_Sprites; //!< Flyweight pool of sprites.
+	/**/
 
 	//! No one but the Project Manager is alowed to create Sprite Sheets
 	CSpriteSheet(CGameManager *pGameManager);
@@ -374,6 +402,9 @@ public:
 
 	const CBString& GetName() const { return CNamedObj::GetName(); }
 
+	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
+
+	// Interface:
 	virtual LPCSTR GetFilePath(LPSTR szPath, size_t buffsize) const
 	{
 		strncpy(szPath, (LPCSTR)m_fnFile.GetAbsFilePath(), buffsize);
@@ -384,8 +415,31 @@ public:
 		strncpy(szPath, (LPCSTR)GetName(), buffsize);
 		return szPath;
 	}
-
-	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
+	virtual CSprite* FindSprite(LPCSTR szSpriteName) const
+	{
+		/*
+		vectorSprite::const_iterator Iterator = 
+			find_if(m_Sprites.begin(), m_Sprites.end(), bind2nd(CNamedObj::NameCompare(), szSpriteName));
+		if(Iterator == m_Sprites.end()) return NULL;
+		return *Iterator;
+		/*/
+		mapSprite::const_iterator Iterator = m_Sprites.find(szSpriteName);
+		if(Iterator == m_Sprites.end()) return NULL;
+		return Iterator->second;
+		/**/
+	}
+	// sort by the catalog:
+	void BuildCatalog()
+	{
+		if(m_Catalog.empty()) {
+			mapSprite::iterator Iterator = m_Sprites.begin();
+			while(Iterator != m_Sprites.end()) {
+				m_Catalog.push_back(Iterator->second);
+				Iterator++;
+			}
+			sort(m_Catalog.begin(), m_Catalog.end(), CSprite::CatalogCompare());
+		}
+	}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -509,17 +563,35 @@ struct _SpriteSet {
 class CSpriteSelection :
 	public CDrawableSelection
 {
+	bool m_bHighlightOnly;
+
 	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
 	void BuildRealSelectionBounds();
 
-	bool PasteSpriteSet(CLayer *pLayer, LPBYTE pRawBuffer);
-	bool PasteFile(CLayer *pLayer, LPCSTR szFilePath);
-	bool PasteSprite(CLayer *pLayer, LPCSTR szSprite);
+	// Pastes a buffer in the specified point, without selecting it, and returns a
+	// rect with the ending location of the pasted buffer (empty on fail)
+	CRect PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, const CPoint *pPoint = NULL, bool bPaste = true);
+	CRect PasteFile(CLayer *pLayer, LPCSTR szFilePath, const CPoint *pPoint = NULL, bool bPaste = true);
+	CRect PasteSprite(CLayer *pLayer, LPCSTR szSprite, const CPoint *pPoint = NULL, bool bPaste = true);
+	CRect PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoint *pPoint = NULL, bool bPaste = true) ;
 
 public:
-	CSpriteSelection(CDrawableContext **ppDrawableContext_) : CDrawableSelection(ppDrawableContext_) {}
+	CSpriteSelection(CDrawableContext **ppDrawableContext_) : 
+	  CDrawableSelection(ppDrawableContext_), m_bHighlightOnly(false) 
+	  {
+	  }
 
 	// Interface Definition:
+	virtual void SetHighlightMode(bool bHighlight = true) { m_bHighlightOnly = bHighlight; }
+
+	virtual void SelectionToGroup(LPCSTR szGroupName = "");
+	virtual void GroupToSelection();
+
+	virtual void SelectionToTop();
+	virtual void SelectionToBottom();
+	virtual void SelectionDown();
+	virtual void SelectionUp();
+
 	virtual void FlipSelection();
 	virtual void MirrorSelection();
 	virtual void CWRotateSelection();
@@ -532,7 +604,17 @@ public:
 	// by the kernel you can set bDeleteBitmap to true, so the memory gets deleted 
 	// in the copy process. In this case, *ppBitmap is nulled to avoid missuses.
 	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false); 
-	virtual bool Paste(LPVOID pBuffer, const CPoint &point_);
+	virtual bool Paste(LPCVOID pBuffer, const CPoint &point_);
+
+	virtual bool FastPaste(LPCVOID pBuffer, const CPoint &point_);
+	virtual bool FastPaste(CSprite *pSprite, const CPoint &point_ );
+
+	virtual bool GetPastedSize(LPCVOID pBuffer, SIZE *pSize);
+	virtual bool GetPastedSize(CSprite *pSprite, SIZE *pSize);
+	
+	virtual LPCSTR GetSelectionName(LPSTR szName, int size);
+	virtual void SetSelectionName(LPCSTR szName);
+
 };
 
 
