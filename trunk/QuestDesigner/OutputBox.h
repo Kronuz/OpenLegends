@@ -37,15 +37,16 @@ public:
 	BOOL PreTranslateMessage(MSG* pMsg);
 
 	BEGIN_MSG_MAP(COutputBox)
-    
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)  
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 
 		CHAIN_MSG_MAP_ALT(CRichEditCommands<COutputBox>, 1)
 		DEFAULT_REFLECTION_HANDLER()
-
 	END_MSG_MAP()
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnRequestScrollToEnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	void WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt=NULL);
 	void Empty();

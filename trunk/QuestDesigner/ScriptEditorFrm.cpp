@@ -65,6 +65,7 @@ LRESULT CScriptEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
 				MAKEINTRESOURCE(IDI_DOC_SCRIPT),
 				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
 	SetIcon(hIcon, ICON_SMALL);
+	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDISCRIPTED)));
 
 	m_pScriptEditorView = new CScriptEditorView(this);
 

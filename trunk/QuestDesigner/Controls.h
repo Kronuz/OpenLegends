@@ -9,12 +9,26 @@
 #ifndef __CONTROLS_H__
 #define __CONTROLS_H__
 
+class CTreeInfo {
+public:
+	char m_szPath[MAX_PATH];
+	DWORD_PTR m_dwData;
+	CTreeInfo(LPCSTR szPath, DWORD_PTR dwData) {
+		strncpy(m_szPath, szPath, MAX_PATH);
+		m_dwData = dwData;
+	}
+};
+
+#include <WtlFileTreeCtrl.h>
+
 #include "DragDropImpl.h"
 
 #include "EditDropTarget.h"
 #include "ListviewDropTarget.h"
 #include "StaticDropTarget.h"
 #include "TreeDropTarget.h"
+
+#include "../IGame.h"
 
 class CEditBox : public CWindowImpl<CEditBox, WTL::CEdit>, public WTL::CEditCommands<CEditBox>
 {
@@ -66,18 +80,33 @@ public:
 
 };
 
-class CTreeBox : public CWindowImpl<CTreeBox, WTL::CTreeViewCtrl>
+class CTreeBox : public CWtlFileTreeCtrl
 {
 	CIDropTarget* m_pDropTarget;
 public:
+	
+	DECLARE_WND_SUPERCLASS(NULL, CWtlFileTreeCtrl::GetWndClassName())
+
 	BEGIN_MSG_MAP(CTreeBox)
+		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		REFLECTED_NOTIFY_CODE_HANDLER(TVN_BEGINDRAG, OnBegindrag)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
-		DEFAULT_REFLECTION_HANDLER()
+
+		REFLECTED_NOTIFY_CODE_HANDLER(TVN_BEGINDRAG, OnBegindrag)
+
+		CHAIN_MSG_MAP(CWtlFileTreeCtrl);
+
+		REFLECT_NOTIFICATIONS()
 	END_MSG_MAP()
 	
 	CTreeBox():m_pDropTarget(NULL){}
+
+	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		LRESULT lRet = DefWindowProc(uMsg, wParam, lParam);
+
+		return lRet;
+	}
 
 	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
@@ -96,7 +125,9 @@ public:
 		NMTREEVIEW* pnmtv = (NMTREEVIEW*)pnmh;
 		USES_CONVERSION;
 		CComBSTR bstr;
+		
 		GetItemText(pnmtv->itemNew.hItem, bstr.m_str);
+		_SpriteSet *pSpriteSet = (_SpriteSet*)GetItemData(pnmtv->itemNew.hItem);
 		
 		CIDropSource* pdsrc = new CIDropSource;
 		if(pdsrc == NULL)
@@ -118,10 +149,23 @@ public:
 		medium.tymed = TYMED_HGLOBAL;
 		TCHAR* str = OLE2T(bstr.m_str);
 
-		medium.hGlobal = GlobalAlloc(GMEM_MOVEABLE, strlen(str)+1); //for NULL
-		TCHAR* pMem = (TCHAR*)GlobalLock(medium.hGlobal);
-		strcpy(pMem,str);
-		GlobalUnlock(medium.hGlobal);
+		if(pSpriteSet) {
+			if(strcmp(pSpriteSet->Info.ID, "Quest Designer Sprite Set")) pSpriteSet = NULL;
+			else if(pSpriteSet->Info.dwSignature != QUEST_SET_SIGNATURE) pSpriteSet = NULL;
+		}
+
+		if(pSpriteSet) {
+			int size = (int)(sizeof(_SpriteSet::_SpriteSetInfo)+sizeof(_SpriteSet::_SpriteSetData)*pSpriteSet->Info.nSize);
+			medium.hGlobal = GlobalAlloc(GMEM_MOVEABLE, size);
+			BYTE *pMem = (BYTE*)GlobalLock(medium.hGlobal);
+			memcpy(pMem, pSpriteSet, size);
+			GlobalUnlock(medium.hGlobal);
+		} else {
+			medium.hGlobal = GlobalAlloc(GMEM_MOVEABLE, sizeof(TCHAR)*(strlen(str)+1)); //for NULL
+			TCHAR *pMem = (TCHAR*)GlobalLock(medium.hGlobal);
+			strcpy(pMem, str);
+			GlobalUnlock(medium.hGlobal);
+		}
 
 		pdobj->SetData(&fmtetc,&medium,TRUE);
 		

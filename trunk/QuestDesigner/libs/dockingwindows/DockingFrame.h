@@ -52,7 +52,7 @@ class ATL_NO_VTABLE CDockingFrameImplBase : public TBase
 	};
 public:
 	CDockingFrameImplBase()
-		:m_vPackage(false),m_hPackage(true)
+		:m_vPackage(true),m_hPackage(false)
 	{
 	}
 	void ApplySystemSettings()
@@ -96,8 +96,8 @@ public:
 	{
 		CRect rc;
 		GetWindowRect(&rc);
-		pMinMaxInfo->ptMinTrackSize.x=0;
-		pMinMaxInfo->ptMinTrackSize.y=0;
+		pMinMaxInfo->ptMinTrackSize.x=150;
+		pMinMaxInfo->ptMinTrackSize.y=100;
 		m_vPackage.GetMinMaxInfo(pMinMaxInfo);
 		pMinMaxInfo->ptMinTrackSize.x+=rc.Width()-m_vPackage.Width();
 		pMinMaxInfo->ptMinTrackSize.y+=rc.Height()-m_vPackage.Height();
@@ -220,7 +220,7 @@ public:
 		if(dockWnd.IsDocking())
 			dockWnd.Undock();
 
-		DFDOCKPOS dockHdr;
+		DFDOCKPOS dockHdr={0};
 		dockHdr.hdr.code=DC_SETDOCKPOSITION;
 		dockHdr.hdr.hWnd=dockWnd.m_hWnd;
 		dockHdr.hdr.hBar=m_hWnd;

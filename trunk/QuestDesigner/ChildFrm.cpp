@@ -36,12 +36,18 @@ void CChildFrame::SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmd
 {
 	m_pCmdBar = pCmdBar;
 }
-
+LRESULT CChildFrame::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled) {
+	bHandled = FALSE;
+	if(wParam == SIZE_MINIMIZED) ShowWindow(FALSE);
+	return 0;
+}
 LRESULT CChildFrame::Register(_child_type ChildType)
 {
 	ATLASSERT(m_pMainFrame);
+
 	m_pMainFrame->m_ChildList.Add(this);
 	m_ChildType = ChildType;
+
 	return TRUE;
 }
 LRESULT CChildFrame::Unregister()

@@ -92,18 +92,16 @@ protected:
 
 	// The windows status bar
 	CMultiPaneStatusBarCtrl m_wndStatusBar;
-
 	CTabbedMDICommandBarCtrl m_CmdBar;
 
-	// Information docking window:
-	CTabbedDockingWindow m_InfoFrame;
-	// World list docking window:
-	CTabbedDockingWindow m_ListFrame;
+	std::vector<CTabbedDockingWindow*> m_PaneWindows;
+	typedef std::vector<CTabbedDockingWindow*>::iterator _PaneWindowIter;
 
-	// Properties docking window:
-	CPropertiesDockingView m_PropFrame;
+	std::vector<HICON> m_PaneWindowIcons;
+	typedef std::vector<HICON>::iterator _PaneWindowIconsIter;
 
 ////////////////////////////////////////////////////////
+	CFoldersTreeBox m_SpriteSets;
 	CFoldersTreeBox m_GameProject;
 	CFoldersTreeBox m_Quest;
 
@@ -111,9 +109,15 @@ protected:
 	CPlainTextView m_DescriptionView;
 	CBuildOutputBox m_OutputBox;
 
+	CPropertyView m_PropertiesView;
+
 ////////////////////////////////////////////////////////
 
 public:
+	CComboBox m_Layers;
+
+////////////////////////////////////////////////////////
+
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MAINFRAME)
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
@@ -121,6 +125,7 @@ public:
 
 	BEGIN_UPDATE_UI_MAP(CMainFrame)
 		UPDATE_ELEMENT(ID_MAPED_NEW, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_MAPED_LAYER, UPDUI_TOOLBAR)
 
 		UPDATE_ELEMENT(ID_SCRIPTED_RELOAD, UPDUI_MENUPOPUP)
 
@@ -153,6 +158,8 @@ public:
 		UPDATE_ELEMENT(ID_APP_NEW, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_OPEN, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_SAVE, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_APP_SAVEALL, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_APP_PRINT, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_BUILD, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_STOPBUILD, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_CONFIG, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
@@ -166,8 +173,13 @@ public:
 		UPDATE_ELEMENT(ID_APP_MAPED, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_SPTSHTED, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 
-		UPDATE_ELEMENT(ID_APP_INFORMATION, UPDUI_MENUPOPUP)
-		UPDATE_ELEMENT(ID_APP_PROPERTIES, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_PANE_OUTPUTWINDOW        , UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_PANE_PROPERTIES          , UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_PANE_PROJECTDESCRIPTION  , UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_PANE_THINGSTODO          , UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_PANE_PROJECTEXPLORER     , UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_PANE_QUESTEXPLORER       , UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_PANE_SPRITESETEXPLORER   , UPDUI_MENUPOPUP)
 
 		UPDATE_ELEMENT(ID_UNDO, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_REDO, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
@@ -180,6 +192,7 @@ public:
 
 	BEGIN_MSG_MAP(CMainFrame)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
+		MESSAGE_HANDLER(WM_CLOSE, OnClose)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(CWM_INITIALIZE, OnInitialize)
 
@@ -188,6 +201,8 @@ public:
 
 		COMMAND_ID_HANDLER(ID_APP_NEW, OnFileNew)
 		COMMAND_ID_HANDLER(ID_APP_OPEN, OnFileOpen)
+
+		COMMAND_ID_HANDLER(ID_PROJECT_OPEN, OnProjectOpen)
 
 		COMMAND_ID_HANDLER(ID_APP_TOOLBAR, OnViewToolBar)
 		COMMAND_ID_HANDLER(ID_APP_STATUS_BAR, OnViewStatusBar)
@@ -205,10 +220,13 @@ public:
 		SIMPLE_MESSAGE_HANDLER(WMQD_BUILDBEGIN, m_OutputBox.BeginBuildMsg)
 		SIMPLE_MESSAGE_HANDLER(WMQD_BUILDEND, m_OutputBox.EndBuildMsg)
 
-		SIMPLE_MESSAGE_HANDLER(WMQD_ADDTREE, m_GameProject.AddTree)
-		SIMPLE_MESSAGE_HANDLER(WMQD_DELTREE, m_GameProject.DelTree)
+		SIMPLE_MESSAGE_HANDLER(WMQD_ADDTREE, m_GameProject.OnAddTree)
+		SIMPLE_MESSAGE_HANDLER(WMQD_DELTREE, m_GameProject.OnDelTree)
 
-		COMMAND_TOGGLE_MEMBER_HANDLER(ID_APP_INFORMATION, m_InfoFrame)
+		if(uMsg == WM_COMMAND && (LOWORD(wParam) >= ID_VIEW_PANEFIRST && LOWORD(wParam) <= ID_VIEW_PANELAST)) {
+			ATLASSERT(m_PaneWindows.size() >= (ID_VIEW_PANELAST-ID_VIEW_PANEFIRST));
+			m_PaneWindows[LOWORD(wParam) - ID_VIEW_PANEFIRST]->Toggle();
+		}
 
 		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER(ID_APP_CONFIG, OnAppConfig)
@@ -229,6 +247,8 @@ public:
 //	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
+
 	void InitializeDefaultPanes();
 	LRESULT OnInitialize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -236,6 +256,8 @@ public:
 	LRESULT OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+	LRESULT OnProjectOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	
 	LRESULT OnScriptFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnScriptFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -258,8 +280,9 @@ public:
 
 	LRESULT OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
+	HWND CreatePane(HWND hWndClient, LPCTSTR sName, HICON hIcon, CRect& rcDock, HWND hDockTo, dockwins::CDockingSide side);
 public:
-	int CountChilds(_child_type ChildType);
+	int CountChilds(_child_type ChildType = tAny);
 	CChildFrame* FindChild(LPCSTR lpszName);
 
 	int Select(LPCTSTR szFilename, LPARAM lParam);

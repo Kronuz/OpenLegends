@@ -425,6 +425,8 @@ public:
 					m_pImpl->Store(&mstate,key);
         }
     }
+    // Hydra
+    /*
     void Restore()
     {
         CMainState mstate(m_strMainKey);
@@ -435,6 +437,25 @@ public:
         else
 			m_pImpl->RestoreDefault();
     }
+    */
+    // Fixed version
+    bool Restore()
+    {
+      CMainState mstate(m_strMainKey);
+      CRegKey key;
+      if (mstate.Restore() &&
+        (key.Open(mstate.MainKey(),
+        ctxtMainWindow,
+        KEY_READ) == ERROR_SUCCESS))
+      {
+        m_pImpl->Restore(&mstate,key);
+        return true;
+      }
+      else
+        m_pImpl->RestoreDefault();
+      return false;
+    }
+
 protected:
     tstring	m_strMainKey;
 	CImpl*	m_pImpl;
@@ -589,11 +610,12 @@ protected:
 				REBARBANDINFO rbi;
 				ZeroMemory(&rbi,sizeof(REBARBANDINFO));
 				rbi.cbSize = sizeof(REBARBANDINFO);
-				rbi.fMask = RBBIM_ID | RBBIM_COLORS |									
+				rbi.fMask = RBBIM_ID | /* RBBIM_COLORS |*/ // Hydra: interferes with theme changes.
 							RBBIM_SIZE | RBBIM_STYLE
-							#if (_WIN32_IE >= 0x0400)
-								| RBBIM_HEADERSIZE | RBBIM_IDEALSIZE
-							#endif	
+// Hydra : causes toolbar creep to the left on app restarts
+//							#if (_WIN32_IE >= 0x0400)
+//								| RBBIM_HEADERSIZE | RBBIM_IDEALSIZE
+//							#endif	
 								;
 				m_rebar.GetBandInfo(i, &rbi);
 				::RegSetValueEx(key,sstrKey.str().c_str(),NULL,REG_BINARY,

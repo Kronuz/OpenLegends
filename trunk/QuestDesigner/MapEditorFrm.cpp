@@ -52,10 +52,6 @@ BOOL CMapEditorFrame::OnIdle()
 		// fake idle processing for the view so it updates
 		m_pMapEditorView->OnIdle();
 	}
-
-	// Update all the toolbar items
-	UIUpdateToolBar();
-
 	return FALSE;
 }
 
@@ -66,6 +62,7 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 				MAKEINTRESOURCE(IDI_DOC_MAP),
 				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
 	SetIcon(hIcon, ICON_SMALL);
+	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIMAPED)));
 
 	m_pMapEditorView = new CMapEditorView(this);
 

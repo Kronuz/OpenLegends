@@ -128,15 +128,18 @@ protected:
 	{
 		if(begin!=end)
 		{
-			position low=bounds.low;
-			position offset=low-(*begin);			
+			double low=bounds.low;
+			double offset=low-begin->get_real();
 			(*begin)=low;
 			bounds.low+=traits::min_distance(*begin);
 			bounds.hi-=distance_limit(++begin,end);
 			while(begin!=end)
 			{
-				(*begin)+=offset;
-				(*begin)=bounds.bind(low+position(((*begin)-low)*ratio));
+				(*begin)= begin->get_real() + offset;
+// pk021110 replaced following line due to truncation error.
+// Also CPtrFrame & CWndFrame classes modified to use double m_pos.
+//				(*begin)=(double)(bounds.bind(low+position(((*begin)-low)*ratio)));
+				(*begin)=max((double)bounds.low,min((double)bounds.hi,low+(begin->get_real()-low)*ratio));
 				distance d=traits::min_distance(*begin);
 				bounds.hi+=d;
 				bounds.low=(*begin)+d;

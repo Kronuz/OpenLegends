@@ -47,6 +47,40 @@ BOOL COutputBox::PreTranslateMessage(MSG* pMsg)
 	pMsg;
 	return FALSE;
 }
+LRESULT COutputBox::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
+{
+	CMenu menu;
+	if(!menu.CreatePopupMenu())
+		return 0;
+	menu.AppendMenu(MF_STRING, 1, "Clear");
+	menu.AppendMenu(MF_SEPARATOR);
+	menu.AppendMenu(MF_STRING, 2, "Copy");
+	int nCmd = menu.TrackPopupMenu(TPM_RETURNCMD,LOWORD(lParam),HIWORD(lParam),m_hWnd);
+	if(nCmd == 1) {
+		SetRedraw(FALSE);
+		SetSel(0,-1);
+		ReplaceSel("");
+		SetRedraw(TRUE);
+		RedrawWindow();
+	} else if(nCmd == 2) {
+		long nStartChar, nEndChar;
+		SetRedraw(FALSE);
+		GetSel(nStartChar, nEndChar);
+		if(nStartChar == nEndChar) SetSel(0,-1);
+		Copy();
+		SetSel(nStartChar, nEndChar);
+		SetRedraw(TRUE);
+		RedrawWindow();
+	}
+
+	return 0;
+}
+
+// we need to scroll to end.
+LRESULT COutputBox::OnRequestScrollToEnd(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+{
+	return 1;
+}
 
 void COutputBox::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
 {

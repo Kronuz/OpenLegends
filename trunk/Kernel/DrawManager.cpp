@@ -362,6 +362,7 @@ bool CDrawableContext::GetNextChildIn(const RECT &rect_, CDrawableContext **ppDr
 CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_CurrentCursor(eIDC_ARROW),
 	m_nSnapSize(1),
+	m_nLayer(0),
 	m_rcSelection(0,0,0,0),
 	m_ptInitialPoint(0,0),
 	m_bFloating(false),
@@ -385,61 +386,85 @@ int CDrawableSelection::GetBoundingRect(CRect &Rect_)
 	return nObjects;
 }
 
-void CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains) {
+void CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains) 
+{
+	int nLayer = m_Objects.size()?m_nLayer:-1;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
 	while(pDrawableContext) {
-		map<CDrawableContext*, SObjProp>::iterator Iterator;
-		Iterator = m_Objects.find(pDrawableContext);
-		if(Iterator==m_Objects.end()) {
-			CRect Rect;
-			pDrawableContext->GetRect(Rect);
-			pDrawableContext->SelectContext();
-			m_Objects.insert(pairObject(pDrawableContext, SObjProp(Rect, relative, relative)));
-			pDrawableContext->SelectContext();
-			CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
-			CONSOLE_DEBUG("The selected object is on layer %d, and sublayer: %d.\n", pDrawableContext->GetObjLayer(), pDrawableContext->GetObjSubLayer());
-			return;
-		}
-		if(Chains>0) {
-			if(m_Objects.size()<=1) return; // ignore if there's only one object
-			if(Iterator->second.eXChain<4) Iterator->second.eXChain = (_Chain)((int)Iterator->second.eXChain+1);
-			else {
-				Iterator->second.eXChain = (_Chain)0;
-				if(Iterator->second.eYChain<4) Iterator->second.eYChain = (_Chain)((int)Iterator->second.eYChain+1);
-				else Iterator->second.eYChain = (_Chain)0;
+		if(pDrawableContext->GetObjLayer() == nLayer || nLayer == -1) {
+			nLayer = pDrawableContext->GetObjLayer();
+			m_nLayer = nLayer;
+
+			map<CDrawableContext*, SObjProp>::iterator Iterator;
+			Iterator = m_Objects.find(pDrawableContext);
+			if(Iterator==m_Objects.end()) {
+				CRect Rect;
+				pDrawableContext->GetRect(Rect);
+				pDrawableContext->SelectContext();
+				m_Objects.insert(pairObject(pDrawableContext, SObjProp(Rect, relative, relative)));
+				pDrawableContext->SelectContext();
+				CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
+				CONSOLE_DEBUG("The selected object is on layer %d, and sublayer: %d.\n", pDrawableContext->GetObjLayer(), pDrawableContext->GetObjSubLayer());
+				return;
 			}
-			CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->second.eXChain, (int)Iterator->second.eYChain);
-			return;
-		} else if(Chains<0) {
-			if(m_Objects.size()<=1) return; // ignore if there's only one object
-			if(Iterator->second.eXChain>0) Iterator->second.eXChain = (_Chain)((int)Iterator->second.eXChain-1);
-			else {
-				Iterator->second.eXChain = (_Chain)4;
-				if(Iterator->second.eYChain>0) Iterator->second.eYChain = (_Chain)((int)Iterator->second.eYChain-1);
-				else Iterator->second.eYChain = (_Chain)4;
+			if(Chains>0) {
+				if(m_Objects.size()<=1) return; // ignore if there's only one object
+				if(Iterator->second.eXChain<4) Iterator->second.eXChain = (_Chain)((int)Iterator->second.eXChain+1);
+				else {
+					Iterator->second.eXChain = (_Chain)0;
+					if(Iterator->second.eYChain<4) Iterator->second.eYChain = (_Chain)((int)Iterator->second.eYChain+1);
+					else Iterator->second.eYChain = (_Chain)0;
+				}
+				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->second.eXChain, (int)Iterator->second.eYChain);
+				return;
+			} else if(Chains<0) {
+				if(m_Objects.size()<=1) return; // ignore if there's only one object
+				if(Iterator->second.eXChain>0) Iterator->second.eXChain = (_Chain)((int)Iterator->second.eXChain-1);
+				else {
+					Iterator->second.eXChain = (_Chain)4;
+					if(Iterator->second.eYChain>0) Iterator->second.eYChain = (_Chain)((int)Iterator->second.eYChain-1);
+					else Iterator->second.eYChain = (_Chain)4;
+				}
+				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->second.eXChain, (int)Iterator->second.eYChain);
+				return;
 			}
-			CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->second.eXChain, (int)Iterator->second.eYChain);
-			return;
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
 	}
 }
-void CDrawableSelection::SelPointRemove(const CPoint &point_) {
+void CDrawableSelection::SelPointRemove(const CPoint &point_) 
+{
+	int nLayer = m_Objects.size()?m_nLayer:-1;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
 	while(pDrawableContext) {
-		pDrawableContext->SelectContext(false);
-		if(m_Objects.erase(pDrawableContext) != 0) return;
+		if(pDrawableContext->GetObjLayer() == nLayer || nLayer == -1) {
+			nLayer = pDrawableContext->GetObjLayer();
+
+			pDrawableContext->SelectContext(false);
+			if(m_Objects.erase(pDrawableContext) != 0) return;
+		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
 	}
 }
 
 // Interface:
-void CDrawableSelection::SetSnapSize(int nSnapSize_)
+int CDrawableSelection::GetLayer()
 {
+	return m_nLayer;
+}
+void CDrawableSelection::SetLayer(int nLayer_)
+{
+	m_nLayer = nLayer_;
+	if(m_nLayer < 0) m_nLayer = 0;
+	if(m_nLayer > MAX_LAYERS) m_nLayer = MAX_LAYERS;
+}
+void CDrawableSelection::SetSnapSize(int nSnapSize_, bool bShowGrid_)
+{
+	m_bShowGrid = bShowGrid_;
 	m_nSnapSize = nSnapSize_;
 }
 int CDrawableSelection::Count()
@@ -648,17 +673,22 @@ void CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Chains) {
 		SelPointAdd(m_rcSelection.TopLeft(), Chains);
 		return;
 	}
-
+	int nLayer = m_Objects.size()?m_nLayer:-1;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
-		map<CDrawableContext*, SObjProp>::const_iterator Iterator;
-		Iterator = m_Objects.find(pDrawableContext);
-		if(Iterator==m_Objects.end()) {
-			CRect Rect;
-			pDrawableContext->GetRect(Rect);
-			pDrawableContext->SelectContext();
-			m_Objects.insert(pairObject(pDrawableContext, SObjProp(Rect, relative, relative)));
+		if(pDrawableContext->GetObjLayer() == nLayer || nLayer == -1) {
+			nLayer = pDrawableContext->GetObjLayer();
+			m_nLayer = nLayer;
+
+			map<CDrawableContext*, SObjProp>::const_iterator Iterator;
+			Iterator = m_Objects.find(pDrawableContext);
+			if(Iterator==m_Objects.end()) {
+				CRect Rect;
+				pDrawableContext->GetRect(Rect);
+				pDrawableContext->SelectContext();
+				m_Objects.insert(pairObject(pDrawableContext, SObjProp(Rect, relative, relative)));
+			}
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildIn(m_rcSelection, &pDrawableContext);
@@ -675,11 +705,16 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_) {
 	if(m_rcSelection.Width()<=1 && m_rcSelection.Height()<=1) 
 		SelPointRemove(m_rcSelection.TopLeft());
 
+	int nLayer = m_Objects.size()?m_nLayer:-1;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
-		pDrawableContext->SelectContext(false);
-		m_Objects.erase(pDrawableContext);
+		if(pDrawableContext->GetObjLayer() == nLayer || nLayer == -1) {
+			nLayer = pDrawableContext->GetObjLayer();
+
+			pDrawableContext->SelectContext(false);
+			m_Objects.erase(pDrawableContext);
+		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildIn(m_rcSelection, &pDrawableContext);
 	}
@@ -795,6 +830,8 @@ bool CDrawableSelection::Paint(IGraphics *pGraphicsI, WORD wFlags)
 	if(pGraphicsI->BeginPaint()) {
 		bRet &= (*m_ppMainDrawable)->Draw(pGraphicsI);
 		bRet &= pGraphicsI->DrawFrame();
+		if(m_bShowGrid) 
+			bRet &= pGraphicsI->DrawGrid(16, COLOR_ARGB(100,0,0,255));
 		bRet &= Draw(pGraphicsI);
 		bRet &= pGraphicsI->EndPaint();
 	} else return false;

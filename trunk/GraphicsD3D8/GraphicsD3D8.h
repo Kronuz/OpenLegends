@@ -148,6 +148,7 @@ class CGraphicsD3D8 :
 
 	RECT m_RectView;
 	RECT m_RectClip;
+	RECT m_RectWorld;
 
 	bool m_bCapture;
 	RECT m_RectOldClip;
@@ -167,6 +168,10 @@ class CGraphicsD3D8 :
 	HWND m_hWnd;
 #endif
 
+	D3DCDVERTEX *m_pGrid[2];
+	int m_nGridLines[2];
+	void BuildGrid(int nGridIdx, int nGridSize, ARGBCOLOR rgbColor);
+	void UpdateGrid(int nGridSize, ARGBCOLOR rgbColor);
 
 	DWORD FigureOutVertexProcessing();
 	void FigureOutDisplayMode(D3DFORMAT currentFormat, UINT width, UINT height);
@@ -207,6 +212,7 @@ public:
 	bool BeginPaint();
 	bool DrawFrame();
 	bool EndPaint();
+	bool DrawGrid(int nGridSize, ARGBCOLOR rgbColor);
 
 	bool BeginCapture(RECT *rectDesired, float zoom);
 	bool EndCapture(WORD *pDest, RECT &rcPortion, RECT &rcFull);

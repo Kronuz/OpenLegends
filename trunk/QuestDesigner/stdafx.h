@@ -103,12 +103,12 @@ extern CAppModule _Module;
 /*! Message sent to the window when a file needs to be opened and line or object shown. */
 #define WMQD_SELECT			(WMQD_FIRST+6)
 
-#define WMQD_ADDTREE		(WMQD_FIRST+7)
-#define WMQD_DELTREE		(WMQD_FIRST+8)
+#define WMQD_ADDTREE		(WMQD_FIRST+8)
+#define WMQD_DELTREE		(WMQD_FIRST+9)
 
-#define WMQD_DRAGLEAVE		(WMQD_FIRST+9)
-#define WMQD_DRAGOVER		(WMQD_FIRST+10)
-#define WMQD_DRAGENTER		(WMQD_FIRST+11)
+#define WMQD_DRAGLEAVE		(WMQD_FIRST+10)
+#define WMQD_DRAGOVER		(WMQD_FIRST+11)
+#define WMQD_DRAGENTER		(WMQD_FIRST+12)
 
 /*! Message sent to a window view when an object has been dropped to it. */
 #define WMQD_DROPOBJ		(WMQD_FIRST+20)

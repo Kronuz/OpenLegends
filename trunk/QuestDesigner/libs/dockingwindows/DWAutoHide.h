@@ -1227,6 +1227,7 @@ protected:
 		CSizeTrackerFull(HWND hWnd,CPoint pt,const CSide& side,long minSize,const CRect& rcBound)
 			: m_wnd(hWnd),m_side(side)
 		{
+			m_rc.SetRectEmpty();
 			m_wnd.GetWindowRect(&m_rc);
 			CWindow wndParent=m_wnd.GetParent();
 			wndParent.ScreenToClient(&m_rc);
@@ -1320,8 +1321,9 @@ protected:
 	};
 public:
 	CAutoHideManager() 
-		: m_pActive(0)
+		: m_barThickness(0),m_pActive(0),m_pTracked(0)
 	{
+		m_rcBound.SetRectEmpty();
 		m_side=0;
 	}
 	bool Initialize(HWND hWnd)
@@ -1547,7 +1549,7 @@ public:
 		HDOCKBAR hBar=GetParent();
 		assert(::IsWindow(hBar));
 		DFDOCKPOS* pHdr=0;
-		DFDOCKPOS dockHdr;
+		DFDOCKPOS dockHdr={0};
 		if(bUnpin)
 		{
 //			dockHdr.hdr.code=DC_SETDOCKPOSITION;

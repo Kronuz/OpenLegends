@@ -560,6 +560,7 @@ public:
    
    BEGIN_MSG_MAP(CPropertyListImpl)
       MESSAGE_HANDLER(WM_CREATE, OnCreate)
+      //MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
       MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
       MESSAGE_HANDLER(WM_SIZE, OnSize)
       MESSAGE_HANDLER(WM_VSCROLL, OnScroll)
@@ -582,6 +583,11 @@ public:
       CHAIN_MSG_MAP_ALT(COwnerDraw<CPropertyListImpl>, 1)
       DEFAULT_REFLECTION_HANDLER()
    END_MSG_MAP()
+
+	LRESULT OnEraseBackground(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled) 
+	{
+		return 1;
+	}
 
    LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
    {

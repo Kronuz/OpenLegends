@@ -158,7 +158,7 @@ protected:
 			m_dockHdr.rect.right=m_dockHdr.rect.left+m_size.cx;
 			m_dockHdr.rect.bottom=m_dockHdr.rect.top+m_size.cy;
 			m_docker.AdjustDragRect(&m_dockHdr);
-			if((GetKeyState(VK_CONTROL) & 0x80000000) || !m_docker.AcceptDock(&m_dockHdr))
+			if((GetKeyState(VK_CONTROL) & 0x8000) || !m_docker.AcceptDock(&m_dockHdr))
 			{
 				m_dockHdr.hdr.hBar=HNONDOCKBAR;
 				m_dockHdr.rect.left=x+m_offset.cx;
@@ -470,7 +470,7 @@ class CDockingWindowPlacement : public DFDOCKPOS
 {
 public:
 	CDockingWindowPlacement(T& dw)
-		:m_dw(dw)
+		:DFDOCKPOS(0),m_dw(dw)
 	{
 		hdr.hBar=HNONDOCKBAR;
 	}
@@ -747,7 +747,7 @@ public:
 	bool PinBtnPress()
 	{
 		assert(IsDocking());
-		DFDOCKPOS dockHdr;
+		DFDOCKPOS dockHdr={0};
 //		dockHdr.hdr.code=DC_GETDOCKPOSITION;
 		dockHdr.hdr.hWnd=m_hWnd;
 		dockHdr.hdr.hBar=GetOwnerDockingBar();
@@ -889,6 +889,7 @@ class ATL_NO_VTABLE CTitleDockingWindowImpl
 public:
 	CTitleDockingWindowImpl()
 	{
+		::ZeroMemory(&m_pos, sizeof(DFDOCKPOS));
 		m_pos.hdr.hBar=HNONDOCKBAR;
 	}
 	virtual bool Undock()
@@ -1000,6 +1001,13 @@ protected:
 	if(uMsg == WM_COMMAND && id == LOWORD(wParam)) \
 	{ \
 		member.Toggle(); \
+	}
+
+// Hydra: *added!*
+#define COMMAND_TOGGLE_MEMBER_HANDLER_PTR(id, member) \
+	if(uMsg == WM_COMMAND && id == LOWORD(wParam)) \
+	{ \
+		member->Toggle(); \
 	}
 
 //please don't use CStateKeeper class anymore!
