@@ -5,8 +5,8 @@ What's new:
 --------------------------------------------------
 Legend:
    QD = Quest Designer
-   OZ = Open Legends
-   QZ = Quest Designer and Open Legends
+   OL = Open Legends
+   QL = Quest Designer and Open Legends
    ++ = Other areas such as graphics creation or publishing
    * = General comment
    + = New feature added
@@ -15,47 +15,51 @@ Legend:
 
 Open Legends Project v.1.0.0: (not yet released)
 > QD: Paths & way-points edition.
-> OZ: Paths and path finding algorithms.
-> OZ: Advanced script API functions.
+> OL: Paths and path finding algorithms.
+> OL: Advanced script API functions.
 > QD: Sprite Sheet editor fully functional.
 
 Open Legends Project v.0.9.0: (not yet released)
 > QD: Saving/Loading sprite sheet files.
 > QD: Sprite Sheet Editor working (without some extra functionality.)
-> OZ: Basic script API functions.
+> OL: Basic script API functions.
 > QD: Ask and auto-convert files to the new QD format upon quest opening.
 
-Open Legends Project v.0.8.5: (not yet released)
+Open Legends Project v.0.8.7: (not yet released)
 > QD: Properties window working.
 > QD: Saving/Loading quest files.
 > QD: Saving/Loading map files.
 > QD: Sprite Sets with names saved as Sprite Sets in the maps.
 > QD: Debugger inspection watches.
 
-Open Legends Project v.0.8.4: (September 10, 2004)
-- QZ: Fixed a bug on the graphics engine.
+Open Legends Project v.0.8.5: (September 8, 2004)
+* Name change due NoA request!
+* First release of Open Legends (formerly Open Zelda) 
 
-Open Legends Project v.0.8.2: (never released)
-- QZ: Fixed some major bugs on the graphics engine.
+Open Zelda Project v.0.8.4: (September 7, 2004)
+- QL: Fixed a bug on the graphics engine.
 
-Open Legends Project v.0.8.2: (never released)
-* First release of the new Open Legends.
+Open Zelda Project v.0.8.3: (never released)
+- QL: Fixed some major bugs on the graphics engine.
+
+Open Zelda Project v.0.8.2: (never released)
+* First release of the new Open Zelda.
 * A "What's new" file has been added.
 - QD: Some bug Fixes.
 + QD: Improved support for video cards in the GraphicsD3D8 plugin!
 + QD: Sprite sets remain grouped as long as you don't close the map group.
-+ QD: Support for the Open Legends debugger, to debug and test scripts in real time.
-+ OZ: Added the Open Legends debugger.
-+ OZ: Supports full screen and windowed mode.
-+ OZ: Added support for some filters. (Pixelate, Translation, Colorize, Croping, etc.)
++ QD: Support for the Open Zelda debugger, to debug and test scripts in real time.
++ OL: Added the Open Zelda debugger.
++ OL: Supports full screen and windowed mode.
++ OL: Added support for some filters. (Pixelate, Translation, Colorize, Croping, etc.)
 
-Open Legends Project v.0.8.1: (October 31, 2003)
+Open Zelda Project v.0.8.1: (October 31, 2003)
 - QD: Minor Bug fixes.
 + QD: Improved support for Sprite Sets.
 + QD: Support for thumbnails window.
 - QD: Fixed a bug that made windows to show improperly or in weird locations some times.
 
-Open Legends Project v.0.8.0: (October 7, 2003)
+Open Zelda Project v.0.8.0: (October 7, 2003)
 - QD: Many bug Fixes.
 + QD: Improved Properties window. (Color peeker, color sliders, etc.)
 + QD: Toolbar and application icons now support full 32 bits color!. (See note #6 in release notes.)
@@ -63,7 +67,7 @@ Open Legends Project v.0.8.0: (October 7, 2003)
 + QD: You can save Sprite Sets, as well as load them (still incomplete.)
 + QD: Added support for parallax views (See note #5 in release notes.)
 
-Open Legends Project v.0.7.x (September 10, 2003 - September 16, 2003)
+Open Zelda Project v.0.7.x (September 10, 2003 - September 16, 2003)
 * Introduced "lite" releases (See note #4 in release notes.)
 - QD: Bug fixes.
 + QD: Full layers and sublayers support has finally been added (still working on parallax.) 
@@ -71,17 +75,17 @@ Open Legends Project v.0.7.x (September 10, 2003 - September 16, 2003)
 + QD: Zoom In/Out behavior has been improved (Strider's idea.)
 + QD: Music and Sounds made optional while editing the map groups.
 
-Open Legends Project v.0.6.2 (September 1, 2003)
+Open Zelda Project v.0.6.2 (September 1, 2003)
 - QD: Bug fixes.
 + QD: Properties window has been improved.
 
-Open Legends Project v.0.6.1 (August 31, 2003)
+Open Zelda Project v.0.6.1 (August 31, 2003)
 - QD: Minor bug fixes.
 + QD: Properties window is now working.
 + QD: Map group music plays during map group edition.
 
-Open Legends Project v.0.6.0 (August 29, 2003)
-* Added tha new OZ pre-alpha for testing purposes
+Open Zelda Project v.0.6.0 (August 29, 2003)
+* Added tha new OL pre-alpha for testing purposes
 + QD: Zip files support has been added.
 + QD: Sound engine is now working wiht IT, MIDI, MOD, WAV, MP3, OGG support!
 + QD: Now you can add entities and sprites and create "sprite sets" (See note #2 in release notes.)
@@ -91,7 +95,7 @@ Open Legends Project v.0.6.0 (August 29, 2003)
 + QD: About box and other minor changes.
 + QD: Added support for intellisense on script edition. (not fully functional yet)
 
-Open Legends Project v.0.5.0 (June 2, 2003)
+Open Zelda Project v.0.5.0 (June 2, 2003)
 * Project separated in modules.
 - QD: Many bug fixes.
 + QD: Layers support added.
@@ -104,7 +108,7 @@ Open Legends Project v.0.5.0 (June 2, 2003)
 + QD: Properties window (not yet working.)
 + QD: Toolbars for the map editor.
 
-Open Legends Project v.0.1.0 (June 2, 2003)
+Open Zelda Project v.0.1.0 (June 2, 2003)
 * First release of the new Quest Designer.
 + QD: Graphics Engine is partially working.
 + QD: Scripts Editor is partially working.
@@ -130,7 +134,7 @@ These sprite sets can be resized, moved, and rotated as if they where single spr
 
 4. To use "lite" releases, download the latest non-lite release before the lite release, install it or uncompress it and then overwrite with the files in the lite release.
 
-5. Parallax is now fully functional. These are some facts about how parallax works in OZ:  
+5. Parallax is now fully functional. These are some facts about how parallax works in OL:  
 |  + if the layer's size is the same as the map group's size, 
 |    tha layer won't be parallaxed.
 |  + if the layer is the same size as the screen, it will 
@@ -154,7 +158,7 @@ FAQ
 ---------------------------------------------------
 Q: I have a Intel Graphics Chipset and I'm having problems (with GraphicsD3D8.dll)
 A:
-32-bit color depth is only supported by the Intel® 82830M graphics controller and Intel® 82845G graphics controller. 32-bit color is not supported by the Intel® 82810 and 82815 graphics controllers. As a result, a few games that require 32-bit color, such as Open Legends, will not run on the Intel 82810 or 82815 graphics controllers. 
+32-bit color depth is only supported by the Intel® 82830M graphics controller and Intel® 82845G graphics controller. 32-bit color is not supported by the Intel® 82810 and 82815 graphics controllers. As a result, a few games that require 32-bit color, such as Open Zelda, will not run on the Intel 82810 or 82815 graphics controllers. 
 
 Try to download and install the latest drivers from Intel. Also, you can try setting the video mode to 24 bits, but it might still be buggy as the card isn't really supported. If this doesn't work, then we are very sorry to say that there is no other known solution :( You may want to consider upgrading your computer by buying a new GFX card (we recommend ATI Radeon and/or NVidia Geforce cards) 
 
@@ -166,7 +170,7 @@ New versions will probably address this issue by eliminating the availability to
 Q: Where do I get the latest drivers / directX ?
 A:
 DirectX
-While a sufficiently recent version of DirectX is available on the official Open Legends website, we recommend that you install the latest version.
+While a sufficiently recent version of DirectX is available on the official Open Zelda website, we recommend that you install the latest version.
 You can get it (for free) here:
 http://www.microsoft.com/windows/directx/default.aspx 
 
