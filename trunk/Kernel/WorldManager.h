@@ -87,7 +87,6 @@ class CMapGroup :
 	CRect m_rcPosition;
 	const CWorld *m_pWorld;
 	BITMAP *m_pBitmap;
-	bool m_bChanged;
 	bool m_bLoaded;
 
 public:
@@ -102,7 +101,6 @@ public:
 	virtual bool Load();
 	virtual bool Save();
 
-	virtual bool hasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }
 	virtual void GetSize(CSize &_Size) const { CDrawableContext::GetSize(_Size); };
 
 	virtual bool isMapGroupAt(int x, int y) const;
@@ -119,7 +117,6 @@ public:
 	virtual void SetThumbnail(BITMAP *pBitmap) { 
 		delete []m_pBitmap;
 		m_pBitmap = pBitmap; 
-		m_bChanged = true;
 	}
 	virtual BITMAP* GetThumbnail(RECT *pRect) const;
 	virtual BITMAP* GetThumbnail(RECT *pRect, int x, int y) const;

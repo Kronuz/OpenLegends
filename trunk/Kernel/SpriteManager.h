@@ -330,7 +330,7 @@ public:
 protected:
 
 public:
-	bool Run(const CDrawableContext &context, LPARAM lParam);
+	bool Run(const CDrawableContext &context, RUNACTION action);
 	bool Draw(const CDrawableContext &context);
 	bool NeedToDraw(const CDrawableContext &context) { return CBackground::NeedToDraw(context); }
 };
@@ -372,6 +372,12 @@ public:
 	ITexture *m_pTexture; //! cached texture (valid only if it was aquired with the same Device ID)
 
 	CVFile& GetFileName() { return m_fnFile; }
+	LPCSTR GetFilePath(LPSTR szPath, size_t buffsize) const
+	{
+		strncpy(szPath, (LPCSTR)m_fnFile.GetFilePath(), buffsize);
+		return szPath;
+	}
+
 	CGameManager* GetGameManager() { return m_pGameManager; }
 
 	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);

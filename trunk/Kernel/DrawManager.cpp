@@ -106,7 +106,8 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 	m_Position(0,0),
 	m_Size(-1,-1),
 	m_nChildren(0),
-	m_bValidMap(false)
+	m_bValidMap(false),
+	m_pPtr(NULL)
 {
 	memset(m_pBuffer, 0, sizeof(m_pBuffer));
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
@@ -196,25 +197,25 @@ void CDrawableContext::Sort(int nSubLayer)
 	m_eSorted[nSubLayer] = m_eDrawType[nSubLayer];
 }
 
-inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawableContext, LPARAM lParam) const
+inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawableContext, RUNACTION action) const
 {
 	ASSERT(pDrawableContext);
 
 	// Start executing the scripts (or whatever)
 	for_each(
 		pDrawableContext->m_Children.begin(), pDrawableContext->m_Children.end(), 
-		bind2nd(RunContext(m_bVisible), lParam));
+		bind2nd(RunContext(m_bVisible), action));
 
 	if(pDrawableContext->m_pDrawableObj) {
 		if( pDrawableContext->isVisible()&&m_bVisible )
-			return pDrawableContext->m_pDrawableObj->Run(*pDrawableContext, lParam);
+			return pDrawableContext->m_pDrawableObj->Run(*pDrawableContext, action);
 	}
 	return true;
 }
-bool CDrawableContext::Run(LPARAM lParam) 
+bool CDrawableContext::Run(RUNACTION action) 
 {
 	RunContext Run(true);
-	return Run(this, lParam);
+	return Run(this, action);
 }
 
 inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawableContext, const IGraphics *pIGraphics) const
@@ -389,6 +390,7 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_ptInitialPoint(0,0),
 	m_bFloating(false),
 	m_bChanged(true),
+	m_bModified(false),
 	m_pBitmap(NULL)
 {
 	m_ppMainDrawable = ppDrawableContext_;
@@ -571,7 +573,7 @@ void CDrawableSelection::EndResizing(const CPoint &point_)
 	if(m_eCurrentState!=eResizing) return;
 	ResizeTo(point_);
 	m_eCurrentState = eNone;
-	if(m_ptInitialPoint != point_) m_bChanged = true;
+	if(m_ptInitialPoint != point_) m_bModified = m_bChanged = true;
 }
 void CDrawableSelection::StartMoving(const CPoint &point_)
 {
@@ -590,7 +592,7 @@ void CDrawableSelection::DeleteSelection()
 
 	m_Objects.clear();
 	m_bFloating = false;
-	m_bChanged = true;
+	m_bModified = m_bChanged = true;
 	CONSOLE_DEBUG("%d objects left.\n", (*m_ppMainDrawable)->Objects());
 }
 void CDrawableSelection::Cancel()
@@ -646,7 +648,7 @@ void CDrawableSelection::EndMoving(const CPoint &point_)
 	MoveTo(point_);
 	m_eCurrentState = eNone;
 	m_bFloating = false;
-	if(m_ptInitialPoint != point_) m_bChanged = true;
+	if(m_ptInitialPoint != point_) m_bModified = m_bChanged = true;
 }
 // pauses all changes and restores original state on the move or resize operations.
 void CDrawableSelection::HoldOperation() 

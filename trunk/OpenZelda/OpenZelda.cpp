@@ -266,8 +266,14 @@ void Render()
 	// Update timings and stuff for the animations
 	float fps = CProjectFactory::Interface(g_hWnd)->UpdateFPS(50);
 	if(fps != -1.0f) {
-		g_pMapGroupI->Run((LPARAM)g_pMapGroupI);
+		RUNACTION action;
+		action.m_Ptr = (LPVOID)g_pMapGroupI;
 
+		// run the scripts for the next frame:
+		action.bJustWait = false;
+		g_pMapGroupI->Run(action);
+		CProjectFactory::Interface(g_hWnd)->WaitScripts();
+		
 		if(g_pGraphicsI->BeginPaint()) {
 			g_pMapGroupI->Draw(g_pGraphicsI);
 			g_pGraphicsI->DrawText(CPoint(10,10), COLOR_ARGB(255,255,255,255), "%4.1f fps", fps);
