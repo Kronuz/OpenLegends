@@ -51,7 +51,7 @@ public:
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_CREATE, OnDestroy)
 
-		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
+		//MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
 
 	END_MSG_MAP()
 
@@ -65,7 +65,6 @@ public:
 
 		CImageList images;
 		images.Create(IDB_FOLDERS, 16, 0, RGB(255,255,255));
-		SetImageList(images, TVSIL_NORMAL);
 		bHandled = TRUE;
 		return 0;
 	}

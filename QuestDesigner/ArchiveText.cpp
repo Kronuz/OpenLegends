@@ -226,7 +226,7 @@ bool CProjectTxtArch::WriteObject(LPCSTR szFile)
 	return false;
 }
 
-bool CLayerTxtArch::ReadObject(LPCSTR szFile)
+bool CMapTxtArch::ReadObject(LPCSTR szFile)
 {
 	FILE *fInFile = fopen(szFile, "rt");
 	CString sLine;
@@ -263,7 +263,7 @@ bool CLayerTxtArch::ReadObject(LPCSTR szFile)
 	}
 	return true;
 }
-int CLayerTxtArch::ReadSprite(FILE *fInFile)
+int CMapTxtArch::ReadSprite(FILE *fInFile)
 {
 	CHAR buff[100];
 	CString sLine;
@@ -300,6 +300,7 @@ int CLayerTxtArch::ReadSprite(FILE *fInFile)
 	CSpriteContext *pSpriteContext = new CSpriteContext(sID);
 	pSpriteContext->SetDrawableObj(pSprite);
 	pSpriteContext->MoveTo(x/2, y/2);
+	if(pSprite->GetSpriteType() == tBackground) pSpriteContext->Tile();
 
 	if(pSprite->GetSpriteType() == tBackground || pSprite->GetSpriteType() == tEntity) {
 		pSpriteContext->SetSubLayer(static_cast<CBackground *>(pSprite)->GetSubLayer());
@@ -310,12 +311,14 @@ int CLayerTxtArch::ReadSprite(FILE *fInFile)
 		return 0;
 	}
 
-
-	m_pLayer->AddSpriteContext(pSpriteContext);
+	if(!m_pLayer->AddSpriteContext(pSpriteContext)) {
+		printf("Warning: Duplicated sprite not added at (%d, %d).\n", x/2, y/2);
+		delete pSpriteContext;
+	}
 
 	return 1;
 }
-int CLayerTxtArch::ReadTile(FILE *fInFile)
+int CMapTxtArch::ReadTile(FILE *fInFile)
 {
 	CHAR buff[100];
 	CString sLine;
@@ -349,7 +352,7 @@ int CLayerTxtArch::ReadTile(FILE *fInFile)
 
 	CSprite *pSprite = CProjectManager::Instance()->FindSprite(sName);
 	if(!pSprite) {
-		printf("Layer error: Couldn't find the requested fill!\n");
+		printf("Map error: Couldn't find the requested fill!\n");
 		return 0;
 	}
 
@@ -368,12 +371,15 @@ int CLayerTxtArch::ReadTile(FILE *fInFile)
 		return 0;
 	}
 
-	m_pLayer->AddSpriteContext(pSpriteContext);
+	if(!m_pLayer->AddSpriteContext(pSpriteContext)) {
+		printf("Warning: Duplicated sprite not added at (%d, %d).\n", (x2-x1)/2, (y2-y1)/2);
+		delete pSpriteContext;
+	}
 
 	return 1;
 }
 
-bool CLayerTxtArch::WriteObject(LPCSTR szFile)
+bool CMapTxtArch::WriteObject(LPCSTR szFile)
 {
 	return false;
 }

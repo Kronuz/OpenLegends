@@ -29,6 +29,8 @@
 #include "GraphicsD3D.h"
 #include "WorldManager.h"
 
+#include "SpriteManager.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CMapEditorFrame;
@@ -39,7 +41,7 @@ class CMapEditorView :
 {
 private:
 	static CMapGroup *m_MapGroup;
-	CDrawableSelection m_Selection;
+	CSpriteSelection m_Selection;
 
 	CSize m_szMap;
 	CGraphicsD3D8 m_CGraphicsD3D8;

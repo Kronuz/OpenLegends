@@ -41,41 +41,27 @@
 /*! \class		CLayer
 	\brief		CLayer class.
 	\author		Kronuz
-	\version	1.0
+	\version	1.2
 	\date		May 31, 2003
+				June 3, 2003
 
-	A layer contains a list of all the sprites it has, and Layer 
+	A Layer contains a list of all the sprites it has, so its 
 	children are Sprites.
 */
 class CLayer :
 	public CConsole,
-	public CNamedObj,			// Layers can have a name.
-	public IDocumentObject,		// Layers can be loaded from a file.
+	public IDocumentObject,		// Maps can be loaded from a file into a layer.
 	public CDrawableContext		// Layers can be painted on the screen.
 {
+	CPoint m_ptLoadPoint;
+
 public:
-	CLayer(LPCSTR szName);
+	void SetLoadPoint(int x, int y);
+	void SetLoadPoint(const POINT &point_);
+	CLayer();
 	~CLayer();
 
-	void AddSpriteContext(CSpriteContext *pSpriteContext);
-};
-
-/////////////////////////////////////////////////////////////////////////////
-/*! \class		CMap
-	\brief		CMap class.
-	\author		Kronuz
-	\version	1.0
-	\date		May 31, 2003
-
-	Map children are Layers.
-*/
-class CMap :
-	public CConsole,
-	public CDrawableObject		// Maps can be painted on the screen.
-{
-public:
-	CMap();
-	~CMap();
+	bool AddSpriteContext(CSpriteContext *pSpriteContext);
 };
 
 /////////////////////////////////////////////////////////////////////////////

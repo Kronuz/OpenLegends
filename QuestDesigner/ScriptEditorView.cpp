@@ -349,42 +349,42 @@ void CScriptEditorView::UIUpdateMenuItems()
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	CUpdateUIBase *pUpdateUI = pMainFrm->GetUpdateUI();
 
-	pUpdateUI->UIEnable(ID_FILE_RELOAD, !m_sFilePath.IsEmpty());
-	pUpdateUI->UIEnable(ID_FILE_SAVE, IsModified());	
-	pUpdateUI->UIEnable(ID_FILE_SAVE_AS, TRUE );
+	pUpdateUI->UIEnable(ID_SCRIPTED_RELOAD, !m_sFilePath.IsEmpty());
+	pUpdateUI->UIEnable(ID_SCRIPTED_SAVE, IsModified());	
+	pUpdateUI->UIEnable(ID_SCRIPTED_SAVE_AS, TRUE );
 		
-	pUpdateUI->UIEnable(ID_EDIT_UNDO, CanUndo());
-	pUpdateUI->UIEnable(ID_EDIT_REDO, CanRedo());
+	pUpdateUI->UIEnable(ID_SCRIPTED_UNDO, CanUndo());
+	pUpdateUI->UIEnable(ID_SCRIPTED_REDO, CanRedo());
 
-	pUpdateUI->UIEnable(ID_EDIT_CUT, CanCut());
-	pUpdateUI->UIEnable(ID_EDIT_COPY, CanCopy());
-	pUpdateUI->UIEnable(ID_EDIT_PASTE, CanPaste());
-	pUpdateUI->UIEnable(ID_EDIT_CLEAR, IsSelection());
+	pUpdateUI->UIEnable(ID_SCRIPTED_CUT, CanCut());
+	pUpdateUI->UIEnable(ID_SCRIPTED_COPY, CanCopy());
+	pUpdateUI->UIEnable(ID_SCRIPTED_PASTE, CanPaste());
+	pUpdateUI->UIEnable(ID_SCRIPTED_ERASE, IsSelection());
 
-	pUpdateUI->UIEnable(ID_EDIT_READ_ONLY, TRUE);
-	pUpdateUI->UISetCheck(ID_EDIT_READ_ONLY, (IsReadOnly()?1:0));
+	pUpdateUI->UIEnable(ID_SCRIPTED_READ_ONLY, TRUE);
+	pUpdateUI->UISetCheck(ID_SCRIPTED_READ_ONLY, (IsReadOnly()?1:0));
 
-	pUpdateUI->UIEnable(ID_EDIT_SHOW_WHITE_SPACE, TRUE);
-	pUpdateUI->UISetCheck(ID_EDIT_SHOW_WHITE_SPACE, IsWhitespaceDisplayEnabled());
+	pUpdateUI->UIEnable(ID_SCRIPTED_SHOW_WHITE_SPACE, TRUE);
+	pUpdateUI->UISetCheck(ID_SCRIPTED_SHOW_WHITE_SPACE, IsWhitespaceDisplayEnabled());
 
 	// get the current selection
 	BOOL bSelection, bColumnSelection;
 	bSelection = IsSelection(bColumnSelection);
 
-	pUpdateUI->UIEnable(ID_EDIT_TAB, TRUE ); // can always indent
-	pUpdateUI->UIEnable(ID_EDIT_UNTAB, (bSelection && !bColumnSelection));
+	pUpdateUI->UIEnable(ID_SCRIPTED_TAB, TRUE ); // can always indent
+	pUpdateUI->UIEnable(ID_SCRIPTED_UNTAB, (bSelection && !bColumnSelection));
 
-	pUpdateUI->UIEnable(ID_EDIT_FIND_SELECTION, (bSelection && !bColumnSelection));
+	pUpdateUI->UIEnable(ID_SCRIPTED_FIND_SELECTION, (bSelection && !bColumnSelection));
 		
-	pUpdateUI->UIEnable(ID_EDIT_UPPERCASE, (bSelection && !bColumnSelection));
-	pUpdateUI->UIEnable(ID_EDIT_LOWERCASE, (bSelection && !bColumnSelection));
-	pUpdateUI->UIEnable(ID_EDIT_TABIFY, bSelection);
-	pUpdateUI->UIEnable(ID_EDIT_UNTABIFY, bSelection);
+	pUpdateUI->UIEnable(ID_SCRIPTED_UPPERCASE, (bSelection && !bColumnSelection));
+	pUpdateUI->UIEnable(ID_SCRIPTED_LOWERCASE, (bSelection && !bColumnSelection));
+	pUpdateUI->UIEnable(ID_SCRIPTED_TABIFY, bSelection);
+	pUpdateUI->UIEnable(ID_SCRIPTED_UNTABIFY, bSelection);
 
 	// retrive the number of bookmarks
 	int nCount = GetAllBookmarks(NULL);
 	
-	pUpdateUI->UIEnable(ID_EDIT_GOTO_NEXT_BOOKMARK, nCount>0);
-	pUpdateUI->UIEnable(ID_EDIT_GOTO_PREV_BOOKMARK, nCount>0);
-	pUpdateUI->UIEnable(ID_EDIT_CLEAR_ALL_BOOKMARKS, nCount>0);
+	pUpdateUI->UIEnable(ID_SCRIPTED_GOTO_NEXT_BOOKMARK, nCount>0);
+	pUpdateUI->UIEnable(ID_SCRIPTED_GOTO_PREV_BOOKMARK, nCount>0);
+	pUpdateUI->UIEnable(ID_SCRIPTED_CLEAR_ALL_BOOKMARKS, nCount>0);
 }

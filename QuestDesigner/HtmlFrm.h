@@ -49,7 +49,7 @@ class CHtmlFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
+	//DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
 
 	// The windows view (the child control)
 	CHtmlView *m_pHtmlView;
@@ -68,8 +68,8 @@ public:
 
 		MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
-		COMMAND_ID_HANDLER(ID_FILE_SAVE, OnFileSave)
-		COMMAND_ID_HANDLER(ID_FILE_CLOSE, OnFileClose)
+		COMMAND_ID_HANDLER(ID_APP_SAVE, OnFileSave)
+		COMMAND_ID_HANDLER(ID_APP_CLOSE, OnFileClose)
 
 		CHAIN_MSG_MAP(CChildFrame)
 		// Pass all unhandled WM_COMMAND messages to the client window or 'view'

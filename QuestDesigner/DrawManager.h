@@ -40,12 +40,15 @@
 
 #pragma once
 #include "Interfaces.h"
+#include "Console.h"
+
+#define MAX_SUBLAYERS 6
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CDrawableObject;
 
-enum DRAWTYPE { topView, yOrder, leftIso, rightIso };
+enum DRAWTYPE { birthOrder, yOrder, leftIso, rightIso, noOrder };
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CDrawableContext
@@ -59,60 +62,64 @@ enum DRAWTYPE { topView, yOrder, leftIso, rightIso };
 */
 class CDrawableContext
 {
-	const struct ContextZYXCompare {
-		bool operator()(CDrawableContext* a, CDrawableContext* b) {
-			if(a->m_nSubLayer < b->m_nSubLayer) return true;
-			if(a->m_nSubLayer > b->m_nSubLayer) return false;
-			if(a->m_Position.y < b->m_Position.y) return true;
-			if(a->m_Position.y > b->m_Position.y) return false;
-			if(a->m_Position.x < b->m_Position.x) return true;
-			return false;
-		}
+	const struct ContextSubLayerCompare {
+		bool operator()(CDrawableContext* a, CDrawableContext* b);
 	};
-	const struct ContextZYiXCompare {
-		bool operator()(CDrawableContext* a, CDrawableContext* b) {
-			if(a->m_nSubLayer < b->m_nSubLayer) return true;
-			if(a->m_nSubLayer > b->m_nSubLayer) return false;
-			if(a->m_Position.y < b->m_Position.y) return true;
-			if(a->m_Position.y > b->m_Position.y) return false;
-			if(a->m_Position.x > b->m_Position.x) return true;
-			return false;
-		}
+	const struct ContextYCompare {
+		bool operator()(CDrawableContext* a, CDrawableContext* b);
+	};
+	const struct ContextYXCompare {
+		bool operator()(CDrawableContext* a, CDrawableContext* b);
+	};
+	const struct ContextYiXCompare {
+		bool operator()(CDrawableContext* a, CDrawableContext* b);
 	};
 	const struct ContextOrderCompare {
-		bool operator()(CDrawableContext* a, CDrawableContext* b) {
-			if(a->m_nSubLayer < b->m_nSubLayer) return true;
-			if(a->m_nSubLayer > b->m_nSubLayer) return false;
-			if(a->m_nOrder < b->m_nOrder) return true;
-			return false;
-		}
+		bool operator()(CDrawableContext* a, CDrawableContext* b);
 	};
-	friend ContextZYXCompare;
-	friend ContextZYiXCompare;
+	friend ContextSubLayerCompare;
+	friend ContextYXCompare;
+	friend ContextYiXCompare;
 	friend ContextOrderCompare;
 
 private:
 	IGraphics *m_pIGraphics;
 
-	CDrawableContext *m_pParent;	//! parent drawable object
 	vector<CDrawableContext*> m_Children;
-	vector<CDrawableContext *>::iterator m_ChildIterator;
-	vector<CDrawableContext *>::iterator m_LastChildIteratorUsed;
+	vector<CDrawableContext *>::iterator m_LayersMap[MAX_SUBLAYERS+2];
+	vector<CDrawableContext *>::reverse_iterator m_LayersRMap[MAX_SUBLAYERS+2];
+
+	vector<CDrawableContext *>::reverse_iterator m_ChildIterator;
+	vector<CDrawableContext *>::reverse_iterator m_LastChildIteratorUsed;
 	int m_nChildren;
 
 	CDrawableObject *m_pDrawableObj;
 
-	DRAWTYPE m_eDrawType;	//!< Ordering type for child sprites.
-	int m_nOrder;			//!< Number of sprites added before this one to the layer.
-	int m_nSubLayer;		//!< Object's sub layer (relative to the layer)
-	CPoint m_Position;		//!< Object's position.
-
-	mutable CSize m_Size;	//!< If the context's size is 0,0 then the size is obtained from the drawable object.
+	DRAWTYPE m_eDrawType[MAX_SUBLAYERS];	//!< Ordering type for child sprites.
+	DRAWTYPE m_eSorted[MAX_SUBLAYERS];		//!< The current sort of the children.
+	bool m_bValidMap;						//!< Indicates if the layers map is valid.
+	int m_nOrder;							//!< Number of siblings at the time of the creation.
 
 protected:
+	int m_nSubLayer;						//!< Object's current sub layer (relative to the layer)
+	CPoint m_Position;						//!< Object's position.
+
+	mutable CSize m_Size;			//!< If the context's size is 0,0 then the size is obtained from the drawable object.
+	CDrawableContext *m_pParent;	//! parent drawable object
 	DWORD m_dwStatus;
 
-	void AddChild(CDrawableContext *object);
+	bool AddSibling(CDrawableContext *object);
+	bool AddChild(CDrawableContext *object);
+	void PreSort();
+	void Sort(int nSubLayer);
+
+	bool Draw(int nSubLayer, IGraphics *pIGraphics=NULL);
+
+	bool GetFirstChildAt(int nSubLayer, const POINT &point_, CDrawableContext **ppDrawableContext_);
+	bool GetNextChildAt(int nSubLayer, const POINT &point_, CDrawableContext **ppDrawableContext_);
+
+	bool GetFirstChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
+	bool GetNextChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
 
 public:
 	IBuffer *m_pBuffer; //!< Buffer for the drawable context (to use as needed)
@@ -136,6 +143,16 @@ public:
 	void GetAbsRect(CRect &_Rect) const;
 	void GetAbsFinalRect(CRect &_Rect) const;
 
+	/*! \brief Changes the current relative position and relative size of the object.
+		\param rect_ Receives the rect marking the new boundaries of the object.
+		The <B>SetRect</B> function sets the new object's boundaries, changing the object's
+		position and size as necessary. The position of the object, and the boundaries received
+		by this function are relative to its parent object.
+
+		\remarks This function expects a normalized RECT.
+		\sa GetRect(), GetPosition(), SetPosition(), GetSize(), SetSize(), 
+			GetAbsRect(), GetAbsPosition(), GetAbsFinalRect(), MoveTo()
+	*/
 	void SetRect(const RECT &_rect);
 
 	bool isAt(int x, int y) const;
@@ -152,6 +169,9 @@ public:
 
 	void ShowSprite(bool bShow = true);
 	bool isVisible() const;
+
+	void Rotate(bool bRotate = true);
+	bool isRotated() const;
 
 	bool Draw(IGraphics *pIGraphics=NULL);
 
@@ -255,25 +275,53 @@ enum CURSOR {
 	eIDC_ARROWDEL
 };
 
-class CDrawableSelection
+class CDrawableSelection :
+	public CConsole
 {
 	CSimpleArray<CDrawableContext*> m_Objects; //!< Sprites in the selection.
 
 	CDrawableContext **m_ppMainDrawable;
 	CRect m_rcSelection;
-	bool m_bSelecting;
+	CPoint m_ptLastMove;
 
+	CURSOR m_CurrentCursor;
+	enum _CurrentState { eNone, eSelecting, eMoving, eResizing } 
+		m_eCurrentState;
+	enum _CursorPosition { eLT, eMT, eRT, eLM, eRM, eLB, eMB, eRB } 
+		m_eCursorPosition, 
+		m_eInitCursorPosition;
+
+	void SelPointAdd(const POINT &point_);
+	void SelPointRemove(const POINT &point_);
+
+protected:
+	int GetBoundingRect(CRect &Rect_);
+
+	virtual void ResizeContext(CDrawableContext *context, const POINT &point_);
+	virtual void MoveContext(CDrawableContext *context, const POINT &point_);
 public:
 	CDrawableSelection(CDrawableContext **ppDrawableContext_);
-	void StartSelection(const POINT &point_);
-	void DragSelection(const POINT &point_);
-	void CancelSelection();
-	void EndSelectionAdd(const POINT &point_);
-	void PointSelectionAdd(const POINT &point_);
-	void PointSelectionRemove(const POINT &point_);
-	void EndSelectionRemove(const POINT &point_);
+
+	void StartResizing(const POINT &point_);
+	void ResizeTo(const POINT &point_);
+	void EndResizing(const POINT &point_);
+
+	void StartMoving(const POINT &point_);
+	void MoveTo(const POINT &point_);
+	void EndMoving(const POINT &point_);
+
+	void StartSelBox(const POINT &point_);
+	void CancelSelBox();
+	void SizeSelBox(const POINT &point_);
+	void EndSelBoxAdd(const POINT &point_);
+	void EndSelBoxRemove(const POINT &point_);
+
 	void CleanSelection();
+
+	bool isResizing();
+	bool isMoving();
+	bool isSelecting();
 	 
 	CURSOR GetMouseStateAt(const IGraphics *pGraphics_, const POINT &point_);
-	virtual void Draw(const IGraphics *pGraphics_);
+	void Draw(const IGraphics *pGraphics_);
 };

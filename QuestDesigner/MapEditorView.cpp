@@ -238,7 +238,11 @@ LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 
 	m_pGraphics->GetWorldPosition(Point);
 	if(m_CursorStatus==eIDC_ARROW || m_CursorStatus==eIDC_ARROWADD || m_CursorStatus==eIDC_ARROWDEL) 
-		m_Selection.StartSelection(Point);
+		m_Selection.StartSelBox(Point);
+	else if(m_CursorStatus==eIDC_SIZEALL)
+		m_Selection.StartMoving(Point);
+	else if(m_CursorStatus==eIDC_SIZENESW || m_CursorStatus==eIDC_SIZENS || m_CursorStatus==eIDC_SIZENWSE ||m_CursorStatus==eIDC_SIZEWE)
+		m_Selection.StartResizing(Point);
 	
 	SetCapture();
 
@@ -254,10 +258,16 @@ LRESULT CMapEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	ToCursor(m_CursorStatus);
 
 	m_pGraphics->GetWorldPosition(Point);
-	if((wParam&MK_SHIFT)==MK_SHIFT) m_Selection.EndSelectionRemove(Point);
-	else {
-		if((wParam&MK_CONTROL)==0) m_Selection.CleanSelection();
-		m_Selection.EndSelectionAdd(Point);
+	if(m_Selection.isSelecting()) {
+		if((wParam&MK_SHIFT)==MK_SHIFT) m_Selection.EndSelBoxRemove(Point);
+		else {
+			if((wParam&MK_CONTROL)==0) m_Selection.CleanSelection();
+			m_Selection.EndSelBoxAdd(Point);
+		}
+	} else if(m_Selection.isMoving()) {
+		m_Selection.EndMoving(Point);
+	} else if(m_Selection.isResizing()) {
+		m_Selection.EndResizing(Point);
 	}
 
 	ReleaseCapture();
@@ -273,9 +283,13 @@ LRESULT CMapEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWADD;
 	ToCursor(m_CursorStatus);
 
-	if(m_CursorStatus==eIDC_ARROW || m_CursorStatus==eIDC_ARROWADD || m_CursorStatus==eIDC_ARROWDEL) {
-		m_Selection.CancelSelection();
-		m_Selection.CleanSelection();
+	if(m_Selection.isSelecting()) {
+		m_Selection.CancelSelBox();
+	} else {
+		if(m_CursorStatus==eIDC_ARROW || m_CursorStatus==eIDC_ARROWADD || m_CursorStatus==eIDC_ARROWDEL) {
+			m_Selection.CancelSelBox();
+			m_Selection.CleanSelection();
+		}
 	}
 
 	return 0;
@@ -326,7 +340,13 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	m_pGraphics->GetWorldPosition(Point);
 
 	if((wParam&MK_LBUTTON)==MK_LBUTTON) {
-		m_Selection.DragSelection(Point);
+		if(m_Selection.isSelecting()) {
+			m_Selection.SizeSelBox(Point);
+		} else if(m_Selection.isMoving()) {
+			m_Selection.MoveTo(Point);
+		} else if(m_Selection.isResizing()) {
+			m_Selection.ResizeTo(Point);
+		}
 		Invalidate();
 	}
 

@@ -70,12 +70,12 @@ public:
 	bool WriteObject(LPCSTR szFile);
 };
 
-class CLayerTxtArch :
+class CMapTxtArch :
 	public CConsole,
 	public IArchive
 {
 public:
-	CLayerTxtArch(CLayer *pLayer) : m_pLayer(pLayer) {}
+	CMapTxtArch(CLayer *pLayer) : m_pLayer(pLayer) {}
 private:
 	int m_nLines;
 	CLayer *m_pLayer;

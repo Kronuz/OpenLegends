@@ -38,7 +38,7 @@ class CWorldEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
+	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDIWORLDED)
 
 	// The window's view (the child control)
 	CWorldEditorView *m_pWorldEditorView;

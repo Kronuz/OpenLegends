@@ -42,7 +42,7 @@ class CScriptEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
+	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDISCRIPTED)
 	virtual BOOL OnIdle();
 
 	// The window's view (the child control)

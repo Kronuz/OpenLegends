@@ -132,15 +132,15 @@ DWORD CGraphicsD3D8::FigureOutVertexProcessing()
 {
 	ASSERT(ms_pD3D);
 
-	D3DCAPS8 d3dCaps;
-	ms_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, m_devType, &d3dCaps );
+	D3DCAPS8 D3DCaps;
+	ms_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, m_devType, &D3DCaps );
 
 	// Set the device/format for SW vertex processing
 	DWORD dwBehavior = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
 	// Confirm the device/format for HW vertex processing
-	if(d3dCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT ) {
-		if(d3dCaps.DevCaps & D3DDEVCAPS_PUREDEVICE ) {
+	if(D3DCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT ) {
+		if(D3DCaps.DevCaps & D3DDEVCAPS_PUREDEVICE ) {
 			dwBehavior = D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE;
 		} else {
 			dwBehavior = D3DCREATE_HARDWARE_VERTEXPROCESSING;
@@ -263,6 +263,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		printf(" | Version: %d.%d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart));
 		printf(" | Acceleration: %s rasterization\n", (m_devType==D3DDEVTYPE_HAL)?"Hardware":"Software");
 		printf(" | Max Texture Size: %dx%d\n", D3DCaps.MaxTextureWidth, D3DCaps.MaxTextureHeight);
+		printf(" | Max Primitives & Vertices: %d/%d\n", D3DCaps.MaxVertexIndex, D3DCaps.MaxPrimitiveCount);
 	}
 	D3DTRACE("DEBUG: IGraphics initialized. (%d references)\n", ms_nCount);
 
