@@ -42,6 +42,11 @@
 					- Bug fix: Using filters, Zooming was messing up with the final
 					  flipped texture. Showing 2x, 4x, etc. parts of the texture, 
 					  instead of just 0x-1x parts of it. Fixed!
+			    September 10, 2004
+					- Bug fix: Some cards didn't work... now it has 
+					  partial support for those cards and doesn't crash.
+			    September 14, 2004
+					- Bug Fix:  Added only square textures and power of 2 textures support.
 	\author		Kronuz
 	\remarks	Known bugs:
 				Take the next scenario. There is an open map (being displayed), the
@@ -53,7 +58,8 @@
 				this provokes wrong scaling for the sprites in that sprite-sheet.
 				Texture transformation is changed as it should, but the textures
 				still show wrong. ??
-
+				There's a strange flickering when there are two 
+				running GraphicsD3D engines (i.e. QD and OL debugger)
 */
 
 #include "stdafx.h"
@@ -61,7 +67,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface Version Definition:
-const WORD IGraphics::Version = 0x0400;
+const WORD IGraphics::Version = 0x0410;
 
 //////////////////////////////////////////////////////////////////////////////
 // Needed Libraries:
@@ -128,6 +134,15 @@ BOOL APIENTRY DllMain( HANDLE hModule,
     return TRUE;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// Misc functions:
+static int int_log2(int val) 
+{
+    int log = 0;
+    while ((val >>= 1) != 0)
+		log++;
+    return log;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface implementation begins here:
@@ -151,14 +166,10 @@ IDirect3DTexture8 *CGraphicsD3D8::ms_pHelperTexture2 = NULL;
 IDirect3DSurface8 *CGraphicsD3D8::ms_pHelperSurface2 = NULL;
 int CGraphicsD3D8::ms_nHelperWidth;
 int CGraphicsD3D8::ms_nHelperHeight;
+D3DFORMAT CGraphicsD3D8::ms_TextureFormat;
 
 #ifdef _USE_HWVB
 std::vector<CBufferD3D8*> CGraphicsD3D8::ms_Buffers;
-#endif
-
-#ifdef _USE_SWAPCHAINS
-HWND CGraphicsD3D8::ms_hWnd = 0;
-std::map<IDirect3DSwapChain8**, D3DPRESENT_PARAMETERS*> CGraphicsD3D8::ms_SwapChains;
 #endif
 
 CBufferD3D8::CBufferD3D8(SVertexBuffer *pBuffer) : 
@@ -178,7 +189,7 @@ void CBufferD3D8::Touch()
 	m_bDirty = true;
 }
 
-void CBufferD3D8::Invalidate() 
+void CBufferD3D8::Invalidate(bool full) 
 {
 	if(m_pBuffer) {
 		delete m_pBuffer;
@@ -220,7 +231,7 @@ CTextureD3D8::CTextureD3D8(IDirect3DTexture8 *pTexture, D3DXIMAGE_INFO &imageInf
 CTextureD3D8::~CTextureD3D8() {
 	CONSOLE_DEBUG4("DEBUG: ITexture deleted.\n"); 
 }
-void CTextureD3D8::Invalidate() { 
+void CTextureD3D8::Invalidate(bool full) { 
 	if(m_pTexture) {
 		m_pTexture->Release(); 
 		CONSOLE_DEBUG3("DEBUG: Invalidating a texture.\n"); 
@@ -423,8 +434,8 @@ inline void CGraphicsD3D8::FigureOutDisplayMode(D3DFORMAT currentFormat, UINT wi
 		currentFormat		// a good default because it should work
 	};
 
-	int aModeFormatNumber = 7;
-	int bestModeFormatNumber = 7;
+	int aModeFormatNumber = 8;
+	int bestModeFormatNumber = 8;
 
 	for(UINT i=0; i<numModes; i++) {
 		if(FAILED(ms_pD3D->EnumAdapterModes(D3DADAPTER_DEFAULT, i, &aMode))) return;
@@ -681,22 +692,19 @@ inline bool CGraphicsD3D8::Recover()
 {
 	CONSOLE_DEBUG1("DEBUG: Recovering device...\n"); 
 
-#ifdef _USE_SWAPCHAINS
-	HWND m_hWnd = ms_hWnd;
-#endif
 	if(!SetMode(m_hWnd, ms_bWindowed, ms_nScreenWidth, ms_nScreenHeight)) return false;
 
 	return true;
 }
-inline void CGraphicsD3D8::Invalidate()
+inline void CGraphicsD3D8::Invalidate(bool full)
 {
-	// Release the helper textures: 
-
+	// Release indirectly created references: 
 	if(ms_pD3DDevice && ms_pBackBufferSurface) {
-		if(SUCCEEDED(ms_pD3DDevice->SetRenderTarget(ms_pBackBufferSurface, NULL))) {
-		}
+		D3DVERIFY(ms_pD3DDevice->SetRenderTarget(ms_pBackBufferSurface, NULL));
+		D3DVERIFY(ms_pD3DDevice->SetTexture(0, NULL));
 	}
 
+	// Release the helper textures: 
 	if(ms_pHelperSurface) {
 		ms_pHelperSurface->Release();
 		ms_pHelperSurface = NULL;
@@ -717,17 +725,24 @@ inline void CGraphicsD3D8::Invalidate()
 		ms_pBackBufferSurface->Release();
 		ms_pBackBufferSurface = NULL;
 	}
-
-	// Invalidate and release all textures
-	ITexture *pTexture;
-	std::map<std::string, CTextureD3D8*>::const_iterator texIter = ms_Textures.begin();
-	while(texIter != ms_Textures.end()) {
-		pTexture = texIter->second;
-		pTexture->Invalidate();
-		pTexture->Release();
-		texIter++;
+	if(m_pD3DFont) {
+		m_pD3DFont->Release();
+		m_pD3DFont = NULL;
 	}
-	ms_Textures.clear();
+
+	// Not needed for recovery, since textures are managed:
+	// Invalidate and release all textures
+	if(full) {
+		ITexture *pTexture;
+		std::map<std::string, CTextureD3D8*>::const_iterator texIter = ms_Textures.begin();
+		while(texIter != ms_Textures.end()) {
+			pTexture = texIter->second;
+			pTexture->Invalidate(full);
+			pTexture->Release();
+			texIter++;
+		}
+		ms_Textures.clear();
+	}
 
 #ifdef _USE_HWVB
 	// Release all hardware vertex buffers
@@ -741,24 +756,6 @@ inline void CGraphicsD3D8::Invalidate()
 		buffIter++;
 	}
 #endif
-
-	if(m_pD3DFont) {
-		m_pD3DFont->Release();
-		m_pD3DFont = NULL;
-	}
-
-#ifdef _USE_SWAPCHAINS
-	// Release all swap chains:
-	std::map<IDirect3DSwapChain8**, D3DPRESENT_PARAMETERS*>::const_iterator scIter = ms_SwapChains.begin();
-	while(scIter != ms_SwapChains.end()) {
-		if((*scIter->first)) {
-			CONSOLE_DEBUG2("DEBUG: Invalidating a SwapChain for hWnd: %d.\n", m_d3dpp.hDeviceWindow);
-			(*scIter->first)->Release();
-			(*scIter->first) = NULL;
-		}
-		scIter++;
-	}
-#endif
 }
 
 CGraphicsD3D8::CGraphicsD3D8() :
@@ -766,11 +763,7 @@ CGraphicsD3D8::CGraphicsD3D8() :
 	m_bCapture(false),
 	m_bFilters(false),
 	m_bFilterPixelate(false),
-#ifdef _USE_SWAPCHAINS
-	m_pSwapChain(NULL),
-#else
 	m_hWnd(NULL),
-#endif
 	m_Zoom(0.0f),
 	m_rgbFilterBkColor(0),
 	m_rgbClearColor(0),
@@ -786,27 +779,31 @@ CGraphicsD3D8::CGraphicsD3D8() :
 	::SetRect(&m_RectClip, 0, 0, 0, 0);
 	::SetRect(&m_RectWorld, 0, 0, 0, 0);
 	::SetRect(&m_RectOldClip, 0, 0, 0, 0);
-
-#ifdef _USE_SWAPCHAINS
-	ms_SwapChains.insert(pairSwapChain(&m_pSwapChain, &m_d3dpp));
-#endif
 }
 CGraphicsD3D8::~CGraphicsD3D8()
 {
 	delete []m_pGrid[0];
 	delete []m_pGrid[1];
 	Finalize();
-#ifdef _USE_SWAPCHAINS
-	ms_SwapChains.erase(&m_pSwapChain);
-#endif
 }
 
 bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight)
 {
-	Invalidate();
+	if(SetModeA(hWnd, bWindowed, nScreenWidth, nScreenHeight)) {
+		return SetModeB(hWnd, bWindowed, nScreenWidth, nScreenHeight);
+	}
+	return false;
+}
+bool CGraphicsD3D8::SetModeA(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight)
+{
+	HRESULT hr;
+	char szError[256];
 
-	if(FAILED(ms_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &ms_PreferredMode))) {
-		CONSOLE_PRINTF("ERROR (D3D8): Couldn't receive the current display mode.\n");
+	Invalidate(false);
+
+	if(FAILED(hr=ms_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &ms_PreferredMode))) {
+		D3DXGetErrorString(hr, szError, 255);
+		CONSOLE_PRINTF("ERROR (D3D8:%s): Couldn't receive the current display mode.\n", szError);
 		return false;
 	}
 	if(ms_pD3DDevice == NULL) ms_WindowedMode = ms_PreferredMode;
@@ -830,26 +827,55 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 	ms_d3dpp.EnableAutoDepthStencil = FALSE;
 	ms_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;	// for screenshots
 
+	// Find out the best supported texture format for the device preferred format:
+	ms_TextureFormat = D3DFMT_UNKNOWN;
+	D3DFORMAT fsFormats[8] = {
+		D3DFMT_A8R8G8B8,
+			D3DFMT_X8R8G8B8,
+			D3DFMT_R8G8B8,
+			D3DFMT_A4R4G4B4,
+			D3DFMT_A1R5G5B5,
+			D3DFMT_X1R5G5B5,
+			D3DFMT_R5G6B5,
+			ms_PreferredMode.Format
+	};
+	for(UINT i=0; i<8; i++) {
+		if(SUCCEEDED(ms_pD3D->CheckDeviceFormat(D3DADAPTER_DEFAULT, m_devType, ms_PreferredMode.Format, 0, 
+			D3DRTYPE_TEXTURE, 
+			fsFormats[i]))) { 
+				ms_TextureFormat = fsFormats[i];
+				break;
+			}
+	}
+
+	return true;
+}
+
+bool CGraphicsD3D8::SetModeB(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight)
+{
+	HRESULT hr;
+	char szError[256];
+
 	if(ms_pD3DDevice) {
 		// Reset the device
-		if(FAILED(ms_pD3DDevice->Reset(&ms_d3dpp))) {
-				CONSOLE_PRINTF("ERROR (D3D8): Couldn't reset the device.\n");
-				return false;
+		if(FAILED(hr = ms_pD3DDevice->Reset(&ms_d3dpp))) {
+			D3DXGetErrorString(hr, szError, 255);
+			CONSOLE_PRINTF("ERROR (D3D8:%s): Couldn't reset the device.\n", szError);
+			return false;
 		}
 	} else {
 		// Create the device
-		if(FAILED( ms_pD3D->CreateDevice(D3DADAPTER_DEFAULT, m_devType, hWnd,
+		if(FAILED(hr = ms_pD3D->CreateDevice(D3DADAPTER_DEFAULT, m_devType, hWnd,
 				FigureOutVertexProcessing(), &ms_d3dpp, &ms_pD3DDevice) )) { 
-			CONSOLE_PRINTF("ERROR (D3D8): Couldn't create the device.\n");
+			D3DXGetErrorString(hr, szError, 255);
+			CONSOLE_PRINTF("ERROR (D3D8:%s): Couldn't create the device.\n", szError);
 			return false;
 		}
 	}
-	
 	SetFont("Arial", 12, COLOR_ARGB(255,255,255,255), FW_BOLD); // initialize a default font.
 
 	ms_bWindowed = bWindowed;
 
-#ifndef _USE_SWAPCHAINS
 	ms_nScreenWidth = ms_PreferredMode.Width;
 	ms_nScreenHeight = ms_PreferredMode.Height;
 
@@ -862,52 +888,61 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 	// Get the Description of the Primary Render Surface.
 	D3DSURFACE_DESC SurfaceDescription;
 	D3DVERIFY(ms_pBackBufferSurface->GetDesc(&SurfaceDescription));
-	
+
+	// If the device only supports sqare textures:
+	if(!(ms_D3DCaps.TextureOpCaps & D3DPTEXTURECAPS_SQUAREONLY)) {
+		SurfaceDescription.Width = SurfaceDescription.Height = max(SurfaceDescription.Width, SurfaceDescription.Height);
+	}
+
+	// If the device only supports textures in powers of two:
+	if((ms_D3DCaps.TextureOpCaps & D3DPTEXTURECAPS_POW2)) {
+		if(!(ms_D3DCaps.TextureOpCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL)) {
+			SurfaceDescription.Width = 2 << int_log2(SurfaceDescription.Width);
+			SurfaceDescription.Height = 2 << int_log2(SurfaceDescription.Height);
+		}
+	}
+
 	// CreateTexture Fails on some video cards with some screen depths (i.e. 16 bits)
 	// Create the Texture we will Render our scene to (for Filters in general), 
 	// which is essentialy a Back Buffer duplicate.
-	D3DVERIFY(ms_pD3DDevice->CreateTexture(
+	if(FAILED(hr=ms_pD3DDevice->CreateTexture(
 		SurfaceDescription.Width, 
 		SurfaceDescription.Height, 
 		1, 
-		SurfaceDescription.Usage,
-		SurfaceDescription.Format, 
-		SurfaceDescription.Pool, 
+		SurfaceDescription.Usage, // should always be D3DUSAGE_RENDERTARGET
+		ms_TextureFormat, 
+		SurfaceDescription.Pool, // should always be D3DPOOL_DEFAULT
 		&ms_pHelperTexture
-	));
-
-	// Get the surface from this texture.
-	D3DVERIFY(ms_pHelperTexture->GetSurfaceLevel(0, &ms_pHelperSurface));
+	))) {
+		D3DXGetErrorString(hr, szError, 255);
+		CONSOLE_PRINTF("ERROR (D3D8:%s): Video card only partially supported. No filters available (cropping, etc.)\n", szError);
+	} else {
+		// Get the surface from this texture.
+		D3DVERIFY(ms_pHelperTexture->GetSurfaceLevel(0, &ms_pHelperSurface));
+	}
 
 	// Create a second Texture we will Render our scene to (for Pixelate effect), 
 	// which is essentialy a Back Buffer duplicate.
-	D3DVERIFY(ms_pD3DDevice->CreateTexture(
+	if(FAILED(hr=ms_pD3DDevice->CreateTexture(
 		SurfaceDescription.Width, 
 		SurfaceDescription.Height, 
 		1, 
-		SurfaceDescription.Usage,
-		SurfaceDescription.Format, 
-		SurfaceDescription.Pool, 
+		SurfaceDescription.Usage, // should always be D3DUSAGE_RENDERTARGET
+		ms_TextureFormat, 
+		SurfaceDescription.Pool, // should always be D3DPOOL_DEFAULT
 		&ms_pHelperTexture2
-	));
-
-	// Get the surface from this texture.
-	D3DVERIFY(ms_pHelperTexture2->GetSurfaceLevel(0, &ms_pHelperSurface2));
+	))) {
+		D3DXGetErrorString(hr, szError, 255);
+		CONSOLE_PRINTF("ERROR (D3D8:%s): Video card only partially supported. No special effects available (pixelate, etc.)\n", szError);
+	} else {
+		// Get the surface from this texture.
+		D3DVERIFY(ms_pHelperTexture2->GetSurfaceLevel(0, &ms_pHelperSurface2));
+	}
 
 	ms_nHelperWidth = SurfaceDescription.Width;
 	ms_nHelperHeight = SurfaceDescription.Height;
-/**/
-#else
-	ms_hWnd = hWnd;
-	ms_nScreenWidth = nScreenWidth;
-	ms_nScreenHeight = nScreenHeight;
-	// we need to create a new surface almost every frame for the effects here... 
-	// So we wont support effects with swap chains for now.
-#endif
 
-#ifndef _USE_SWAPCHAINS
 	PostInitialize(ms_nScreenWidth, ms_nScreenHeight);
-#endif
 	return true;
 }
 
@@ -917,7 +952,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 {
 	m_devType = D3DDEVTYPE_HAL; // Hardware acceleration
 //	m_devType = D3DDEVTYPE_REF; // 
-//	m_devType = D3DDEVTYPE_SW; // 
+//	m_devType = D3DDEVTYPE_SW;  // 
 
 	if(m_bInitialized) return true;
 
@@ -930,39 +965,31 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		}
 	}
 
+	if(ms_pD3DDevice == NULL) {
+		// Start Setting the new mode (just get information this time)
+		if(!SetModeA(hWnd, bWindowed, nScreenWidth, nScreenHeight)) return false;
+	}
+
 	if(ms_nCount == 0) { // on the first run only...
 		// get some information about the D3D Driver for later use:
 		ZeroMemory(&ms_D3DCaps, sizeof(D3DCAPS8)); // clear it
 		D3DVERIFY(ms_pD3D->GetDeviceCaps(D3DADAPTER_DEFAULT, m_devType, &ms_D3DCaps));
-
-		//ms_D3DCaps.MaxVertexIndex = 1024;
-		//ms_D3DCaps.MaxPrimitiveCount = 1024;
 	}
 
-	if(ms_pD3DDevice == NULL) {
-		if(!SetMode(hWnd, bWindowed, nScreenWidth, nScreenHeight)) return false;
-	}
-
-	ms_nCount++;
 	bool bStatus = true;
-	m_bInitialized = true;
-#ifndef _USE_SWAPCHAINS
-	PostInitialize(ms_nScreenWidth, ms_nScreenHeight);
-#endif
 
-	if(ms_nCount == 1) {
+	if(ms_nCount++ == 0) {
 		D3DADAPTER_IDENTIFIER8 D3DAdapterID;
 		D3DVERIFY(ms_pD3D->GetAdapterIdentifier(D3DADAPTER_DEFAULT, NULL, &D3DAdapterID));
 
 		// Output driver info
-		CONSOLE_PRINTF("Using Microsoft Direct3D Version 8.0 '%s'\n", D3DAdapterID.Driver);
-		CONSOLE_PRINTF("Plugin version: %d.%d\n", HIBYTE(Version), LOBYTE(Version));
+		CONSOLE_PRINTF("Using plugin for Microsoft Direct3D Version 8.0 '%s' (v%d.%d)\n", D3DAdapterID.Driver, HIBYTE(Version), LOBYTE(Version));
 		CONSOLE_PRINTF(" | Description: %s (%d)\n", D3DAdapterID.Description, HIWORD(D3DAdapterID.DriverVersion.HighPart));
 		CONSOLE_PRINTF(" | Version: %d.%d build %d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart), LOWORD(D3DAdapterID.DriverVersion.LowPart));
-		CONSOLE_LOG   (" | dwVendorId: %d\n", D3DAdapterID.VendorId);
-		CONSOLE_LOG   (" | dwDeviceId: %d\n", D3DAdapterID.DeviceId);
-		CONSOLE_LOG   (" | dwSubSysId: %d\n", D3DAdapterID.SubSysId);
-		CONSOLE_LOG   (" | dwRevision: %d\n", D3DAdapterID.VendorId);
+		CONSOLE_LOG   (" | dwVendorId: 0x%08X\n", D3DAdapterID.VendorId);
+		CONSOLE_LOG   (" | dwDeviceId: 0x%08X\n", D3DAdapterID.DeviceId);
+		CONSOLE_LOG   (" | dwSubSysId: 0x%08X\n", D3DAdapterID.SubSysId);
+		CONSOLE_LOG   (" | dwRevision: 0x%08X\n", D3DAdapterID.VendorId);
 		CONSOLE_LOG   (" | Mode: %dx%d at %dHz (%s)\n", ms_PreferredMode.Width, ms_PreferredMode.Height, ms_PreferredMode.RefreshRate, GetFormat(ms_PreferredMode.Format));
 		CONSOLE_PRINTF(" | Acceleration: %s rasterization\n", (m_devType==D3DDEVTYPE_HAL)?"Hardware":"Software");
 		CONSOLE_PRINTF(" | Max Texture Size: %dx%d\n", ms_D3DCaps.MaxTextureWidth, ms_D3DCaps.MaxTextureHeight);
@@ -977,7 +1004,8 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		CONSOLE_LOG   (" | Pixel Shader Version: %d.%d\n", HIBYTE(LOWORD(ms_D3DCaps.PixelShaderVersion)), LOBYTE(LOWORD(ms_D3DCaps.PixelShaderVersion)));
 
 		// Print caps (do not change order, add at the end if needed):
-		CONSOLE_LOG   (" | Device Caps: 0x%08X ", ms_D3DCaps.DevCaps);
+		CONSOLE_LOG   (" | Device Caps: ");
+		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.DevCaps);
 		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.PrimitiveMiscCaps);
 		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.RasterCaps);
 		CONSOLE_LOG   ("0x%08X ", ms_D3DCaps.ZCmpCaps);
@@ -997,25 +1025,19 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 #ifdef _USE_HWVB
 		CONSOLE_PRINTF(" | Using Hardware Vertex Buffers!\n");
 #endif
-#ifdef _USE_SWAPCHAINS
-		CONSOLE_PRINTF(" | Using SwapChains!\n");
-#endif	
 		if(!(ms_D3DCaps.DevCaps & D3DPMISCCAPS_BLENDOP)) {
-			CONSOLE_PRINTF(" | Device does not support the alpha-blending operations.\n");
+			CONSOLE_PRINTF(" | Device does not support the alpha-blending operations. *\n");
 			bStatus = false;
 		} 
 		if(!(ms_D3DCaps.RasterCaps & D3DPRASTERCAPS_ANTIALIASEDGES)) {
-			//CONSOLE_PRINTF(" | Device does not support antialiasing on lines.\n");
+			CONSOLE_LOG(" | Device does not support antialiasing on lines.\n");
 		}
 		if(!(ms_D3DCaps.RasterCaps & D3DPRASTERCAPS_PAT)) {
 			CONSOLE_PRINTF(" | Device does not support patterned drawing.\n");
 		}
 		if(!(ms_D3DCaps.TextureCaps & D3DPTEXTURECAPS_ALPHA)) {
-			CONSOLE_PRINTF(" | Device does not support alpha channel in texture pixels.\n");
+			CONSOLE_PRINTF(" | Device does not support alpha channel in texture pixels. *\n");
 			bStatus = false;
-		}
-		if(!(ms_D3DCaps.TextureOpCaps & D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR)) {
-			CONSOLE_PRINTF(" | Device does not support advanced texture operations (only partial lightness support).\n");
 		}
 		if(!(ms_D3DCaps.TextureCaps & D3DPTEXTURECAPS_ALPHA) || !(ms_D3DCaps.TextureCaps & D3DPMISCCAPS_BLENDOP)) {
 			CONSOLE_PRINTF(" | Device does not support full alpha channel in textures.\n");
@@ -1023,19 +1045,54 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		if(ms_D3DCaps.MaxTextureWidth < 512 || ms_D3DCaps.MaxTextureHeight < 512) {
 			CONSOLE_PRINTF(" | Device only supports exceptionally small textures (smaller than 512x512.)\n");
 		}
-		 
+
+		if((ms_D3DCaps.TextureOpCaps & D3DPTEXTURECAPS_SQUAREONLY)) {
+			CONSOLE_LOG(" | Square-only textures.\n");
+		} else {
+			CONSOLE_LOG(" | Non-square textures.\n");
+		}
+		if((ms_D3DCaps.TextureOpCaps & D3DPTEXTURECAPS_POW2)) {
+			if((ms_D3DCaps.TextureOpCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL)) {
+				CONSOLE_LOG(" | Conditional non-pow2 texture size support.\n");
+			} else  {
+				CONSOLE_LOG(" | Textures must be a power of 2 in size.\n");
+			}
+		} else {
+			CONSOLE_LOG(" | Textures do not need to be a power of 2 in size.\n");
+		}
+
 		// Extra requirements:
 		if(  (ms_D3DCaps.MaxTextureBlendStages < 2) || 
 			!(ms_D3DCaps.TextureOpCaps & D3DTOP_MODULATE) ||
 			!(ms_D3DCaps.TextureOpCaps & D3DTOP_MODULATE2X) ) {
 			bStatus = false;
 		}
+		if(ms_TextureFormat == D3DFMT_UNKNOWN) {
+			CONSOLE_LOG(" | Couldn't find a valid texture format. *\n");
+			bStatus = false;
+		}
 	}
 
 	if(!bStatus) {
-		CONSOLE_PRINTF("ERROR (D3D8): Video card not supported, sorry.\n");
+		CONSOLE_PRINTF(" | Video card not supported.\n");
+		CONSOLE_PRINTF(" +-----------------------------------------------------------------------------\n");
+		CONSOLE_PRINTF("FATAL ERROR (D3D8): Video card not supported, sorry.\n");
 	} else {
-		CONSOLE_LOG("Supported video card.\n");
+		if(ms_nCount == 1) {
+			CONSOLE_PRINTF(" | Running in %s color mode\n", GetFormat(ms_TextureFormat));
+			CONSOLE_PRINTF(" | Supported video card.\n");
+			CONSOLE_PRINTF(" +-----------------------------------------------------------------------------\n");
+			if(!(ms_D3DCaps.TextureOpCaps & D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR)) {
+				CONSOLE_PRINTF("ERROR (D3D8): Video card only partially supported. Only partial lightness is supported.\n");
+			}
+		}
+		if(ms_pD3DDevice == NULL) {
+			// Set the new screen mode:
+			if(!SetModeB(hWnd, bWindowed, nScreenWidth, nScreenHeight)) return false;
+		}
+
+		m_bInitialized = true;
+		PostInitialize(ms_nScreenWidth, ms_nScreenHeight);
 	}
 
 	return bStatus;
@@ -1052,11 +1109,7 @@ void CGraphicsD3D8::GetWorldPosition(POINT *Point_) const
 }
 void CGraphicsD3D8::SetWorldPosition(const POINT *Point_)
 {
-#ifdef _USE_SWAPCHAINS
-	HWND hWnd = m_d3dpp.hDeviceWindow;
-#else
 	HWND hWnd = m_hWnd;
-#endif
 	if(Point_) {
 		OffsetRect(&m_RectView, -m_RectView.left, -m_RectView.top);
 		OffsetRect(&m_RectView, (int)((float)Point_->x*m_Zoom + 0.5f), (int)((float)Point_->y*m_Zoom + 0.5f));
@@ -1139,22 +1192,6 @@ float CGraphicsD3D8::GetCurrentZoom() const
 {
 	return m_Zoom;
 }
-#ifdef _USE_SWAPCHAINS
-bool CGraphicsD3D8::BuildSwapChain()
-{
-	m_d3dpp.BackBufferFormat = ms_PreferredMode.Format; 
-
-	if(FAILED(ms_pD3DDevice->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain))) {
-		CONSOLE_PRINTF("ERROR (D3D8): Couldn't create additional swap chain (2).\n");
-		return false;
-	}
-	CONSOLE_DEBUG2("DEBUG: SwapChain created for hWnd: %d.\n", m_d3dpp.hDeviceWindow);
-
-	PostInitialize(m_d3dpp.BackBufferWidth, m_d3dpp.BackBufferHeight);
-	return true;
-}
-#endif
-
 bool CGraphicsD3D8::SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, const RECT *pWorld)
 {
 	if(!m_bInitialized) return true;
@@ -1189,35 +1226,15 @@ bool CGraphicsD3D8::SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, c
 	// We need the intersecting rectangle:
 	::IntersectRect(&m_RectClip, &m_RectWorld, &rcWorldView);
 
-#ifndef _USE_SWAPCHAINS
 	m_hWnd = hWnd;
-#else
-	if(pClient) {
-		if(m_pSwapChain) {
-			CONSOLE_DEBUG2("DEBUG: Invalidating a SwapChain for hWnd: %d.\n", m_d3dpp.hDeviceWindow);
-			m_pSwapChain->Release(); 
-			m_pSwapChain = NULL;
-		}
-
-		ZeroMemory(&m_d3dpp, sizeof(D3DPRESENT_PARAMETERS)); // clear it
-		
-		m_d3dpp.BackBufferWidth  = m_RectView.right-m_RectView.left;	// The back buffer width
-		m_d3dpp.BackBufferHeight = m_RectView.bottom-m_RectView.top;	// The back buffer height
-
-		m_d3dpp.SwapEffect = D3DSWAPEFFECT_COPY;
-
-		m_d3dpp.hDeviceWindow = hWnd;
-		m_d3dpp.Windowed = ms_bWindowed;						// Set windowed mode
-		m_d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;		// for screenshots
-
-		return BuildSwapChain();
-	}
-#endif
 	return true;
 }
 
 bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, float scale) const
 {
+	HRESULT hr;
+	char szError[256];
+
 	if(!m_bInitialized) return false;
 	ASSERT(ms_pD3DDevice);
 
@@ -1226,18 +1243,19 @@ bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, f
 	if(texIter == ms_Textures.end()) {
 		IDirect3DTexture8 *pTexture;
 		D3DXIMAGE_INFO	imageInfo;
-		if(FAILED( D3DXCreateTextureFromFileEx(ms_pD3DDevice, filename, 
-				0, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
+		if(FAILED(hr=D3DXCreateTextureFromFileEx(ms_pD3DDevice, filename, 
+				0, 0, 1, 0, ms_TextureFormat, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
 				D3DCOLOR_ARGB(255,0,255,0), &imageInfo, NULL, &pTexture) )) {
-			CONSOLE_PRINTF("WARNING (D3D8): Couldn't create texture from '%s'.\n", filename);
+			D3DXGetErrorString(hr, szError, 255);
+			CONSOLE_PRINTF("WARNING (D3D8:%s): Couldn't create texture from '%s'.\n", szError, filename);
 			return false;
 		}
 		D3DSURFACE_DESC surfaceDesc;
 		pTexture->GetLevelDesc(0, &surfaceDesc);
-		if(surfaceDesc.Format != D3DFMT_A8R8G8B8) {
-			CONSOLE_PRINTF("WARNING (D3D8): Texture created with an invalid format (%s)\n", GetFormat(surfaceDesc.Format));
-			CONSOLE_PRINTF("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
-			CONSOLE_PRINTF("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
+		if(surfaceDesc.Format != ms_TextureFormat) {
+			CONSOLE_LOG("WARNING (D3D8): Texture created with a different format (%s)\n", GetFormat(surfaceDesc.Format));
+			CONSOLE_LOG("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
+			CONSOLE_LOG("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
 		}
 
 		CTextureD3D8 *pCTextureD3D8 = new CTextureD3D8(pTexture, imageInfo, surfaceDesc);
@@ -1251,6 +1269,9 @@ bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, f
 }
 bool CGraphicsD3D8::CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcData, UINT SrcData, ITexture **texture, float scale) const
 {
+	HRESULT hr;
+	char szError[256];
+
 	if(!m_bInitialized) return false;
 	ASSERT(ms_pD3DDevice);
 
@@ -1259,18 +1280,20 @@ bool CGraphicsD3D8::CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcD
 	if(texIter == ms_Textures.end()) {
 		IDirect3DTexture8 *pTexture;
 		D3DXIMAGE_INFO	imageInfo;
-		if(FAILED( D3DXCreateTextureFromFileInMemoryEx(ms_pD3DDevice, pSrcData, SrcData, 
-				0, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
+		if(FAILED(hr=D3DXCreateTextureFromFileInMemoryEx(ms_pD3DDevice, pSrcData, SrcData, 
+				0, 0, 1, 0, ms_TextureFormat, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
 				D3DCOLOR_ARGB(255,0,255,0), &imageInfo, NULL, &pTexture) )) {
-			CONSOLE_PRINTF("WARNING (D3D8): Couldn't create texture from memory.\n");
+			D3DXGetErrorString(hr, szError, 255);
+			CONSOLE_PRINTF("WARNING (D3D8:%s): Couldn't create texture from memory.\n", szError);
 			return false;
 		}
+
 		D3DSURFACE_DESC surfaceDesc;
 		pTexture->GetLevelDesc(0, &surfaceDesc);
-		if(surfaceDesc.Format != D3DFMT_A8R8G8B8) {
-			CONSOLE_PRINTF("WARNING (D3D8): Texture created with an invalid format (%s)\n", GetFormat(surfaceDesc.Format));
-			CONSOLE_PRINTF("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
-			CONSOLE_PRINTF("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
+		if(surfaceDesc.Format != ms_TextureFormat) {
+			CONSOLE_LOG("WARNING (D3D8): Texture created with an invalid format (%s)\n", GetFormat(surfaceDesc.Format));
+			CONSOLE_LOG("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
+			CONSOLE_LOG("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
 		}
 		CONSOLE_DEBUG("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
 		CONSOLE_DEBUG("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
@@ -1400,7 +1423,7 @@ bool CGraphicsD3D8::FlushFilters(bool bClear)
 	}
 	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
 
-	if(m_fFilterPixelate != 1.0f) {
+	if(ms_pHelperSurface && ms_pHelperSurface2 && m_fFilterPixelate != 1.0f) {
 		D3DCDTVERTEX Pixelate[4] = {
 			{0.0f, 0.0f, 0.0f, COLOR_ARGB(255,255,255,255), 0.0f, 0.0f},
 			{0.0f, (float)(ms_nHelperHeight)*m_fFilterPixelate, 0.0f, COLOR_ARGB(255,255,255,255), 0.0f, 1.0f},
@@ -1411,6 +1434,7 @@ bool CGraphicsD3D8::FlushFilters(bool bClear)
 		// Set the Render Target back to the default one.
 		if(FAILED(ms_pD3DDevice->SetRenderTarget(ms_pHelperSurface2, NULL))) {
 			m_bFilters = false; // deactivate filters on error
+			return false;
 		}
 
 		D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_IdentityMatrix));
@@ -1423,12 +1447,18 @@ bool CGraphicsD3D8::FlushFilters(bool bClear)
 
 		D3DVERIFY(ms_pD3DDevice->SetTexture(0, ms_pHelperTexture2));
 	} else {
-		D3DVERIFY(ms_pD3DDevice->SetTexture(0, ms_pHelperTexture));
+		if(ms_pHelperSurface) {
+			D3DVERIFY(ms_pD3DDevice->SetTexture(0, ms_pHelperTexture));
+		} else {
+			m_bFilters = false; // deactivate filters on error
+			return false;
+		}
 	}
 
 	// Set the Render Target back to the default one.
 	if(FAILED(ms_pD3DDevice->SetRenderTarget(ms_pBackBufferSurface, NULL))) {
 		m_bFilters = false; // deactivate filters on error
+		return false;
 	}
 
 	// Clear the current target surface with the Filter Background Clear Color set by a SetFilterBkColor() call.
@@ -1453,11 +1483,8 @@ int CGraphicsD3D8::Finalize()
 		m_bInitialized = false;
 		CONSOLE_DEBUG("DEBUG: IGraphics finalized. (%d references)\n", ms_nCount);
 	}
-#ifdef _USE_SWAPCHAINS
-	if(m_pSwapChain) { m_pSwapChain->Release(); m_pSwapChain = NULL; }
-#endif
 	if(ms_nCount == 0) {
-		Invalidate();
+		Invalidate(true);
 
 		if(ms_pD3DDevice!=NULL) { ms_pD3DDevice->Release(); ms_pD3DDevice = NULL; }
 		if(ms_pD3D!=NULL) { ms_pD3D->Release(); ms_pD3D = NULL; }
@@ -1466,6 +1493,8 @@ int CGraphicsD3D8::Finalize()
 }
 bool CGraphicsD3D8::BeginPaint()
 {
+	HRESULT hr;
+
 	if(!m_bInitialized) return false;
 	if(m_bCapture) {
 		m_WorldMatrix = m_OldWorldMatrix;
@@ -1473,7 +1502,6 @@ bool CGraphicsD3D8::BeginPaint()
 		m_bCapture = false;
 	}
 
-	HRESULT hr;
     if(FAILED(hr=ms_pD3DDevice->TestCooperativeLevel())) {
         // If the device was lost, do not render until we get it back
 		if(hr == D3DERR_DEVICELOST) { return true; }
@@ -1482,26 +1510,10 @@ bool CGraphicsD3D8::BeginPaint()
 		if(hr == D3DERR_DEVICENOTRESET) { if(Recover() == false) return false; }
 	}
 
-#ifdef _USE_SWAPCHAINS
-	if(ms_bWindowed) {
-		if(m_pSwapChain == NULL) { if(!BuildSwapChain()) return false; }
-
-		LPDIRECT3DSURFACE8 pBack = NULL;
-		if(FAILED(m_pSwapChain->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBack))) return false;
-
-		ASSERT(pBack);
-		if(FAILED(ms_pD3DDevice->SetRenderTarget(pBack, NULL))) {
-			pBack->Release();
-			return false;
-		}
-
-		pBack->Release();
-	}
-#endif
 	// if there are any filters active:
 	if(m_bFilters) {
 		// Set the Render Target to the helper texture/surface.
-		if(FAILED(ms_pD3DDevice->SetRenderTarget(ms_pHelperSurface, NULL))) {
+		if(!ms_pHelperSurface || FAILED(ms_pD3DDevice->SetRenderTarget(ms_pHelperSurface, NULL))) {
 			m_bFilters = false; // deactivate filters on error
 		}
 	}
@@ -1519,9 +1531,6 @@ bool CGraphicsD3D8::DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLO
 {
 	if(!m_bInitialized) return false;
 	ASSERT(ms_pD3DDevice);
-#ifdef _USE_SWAPCHAINS
-	ASSERT((m_pSwapChain || !ms_bWindowed));
-#endif
 	// we don't want zoom or translation for this
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_IdentityMatrix));
 
@@ -1591,22 +1600,15 @@ bool CGraphicsD3D8::EndPaint()
 {
 	if(!m_bInitialized) return false;
 	ASSERT(ms_pD3DDevice);
-#ifdef _USE_SWAPCHAINS
-	ASSERT((m_pSwapChain || !ms_bWindowed));
-#endif
 
 	if(FAILED(ms_pD3DDevice->EndScene())) return false;
 
 	if(ms_bWindowed) {
-#ifdef _USE_SWAPCHAINS
-		if(FAILED(m_pSwapChain->Present(NULL, NULL, NULL, NULL))) return false;
-#else
 		RECT Rect;
 		Rect.top = Rect.left = 0;
 		Rect.right = m_RectView.right-m_RectView.left;
 		Rect.bottom = m_RectView.bottom-m_RectView.top;
 		if(FAILED(ms_pD3DDevice->Present(&Rect, &Rect, m_hWnd, NULL))) return false;
-#endif
 	} else {
 		if(FAILED(ms_pD3DDevice->Present(NULL, NULL, NULL, NULL))) return false;
 	}
@@ -1615,11 +1617,12 @@ bool CGraphicsD3D8::EndPaint()
 
 bool CGraphicsD3D8::BeginCapture(RECT *rectDesired, float zoom)
 {
+	HRESULT hr;
+
 	if(!m_bInitialized) return false;
 	if(zoom == 0) return false;
 	if(m_bCapture==true) return false;
 
-	HRESULT hr;
     if(FAILED(hr=ms_pD3DDevice->TestCooperativeLevel())) {
         // If the device was lost, do not render until we get it back
 		if(hr == D3DERR_DEVICELOST) { return true; }
@@ -1924,9 +1927,6 @@ bool CGraphicsD3D8::DrawGrid(int size, ARGBCOLOR rgbColor)
 {
 	if(!m_bInitialized) return false;
 	ASSERT(ms_pD3DDevice);
-#ifdef _USE_SWAPCHAINS
-	ASSERT((m_pSwapChain || !ms_bWindowed));
-#endif
 
 	UpdateGrid(size, rgbColor);
 
@@ -2125,7 +2125,7 @@ void CGraphicsD3D8::Render(
 	SVertexBuffer *retVertexBuffer = NULL;
 	if(buffer) {
 		if(*buffer) {
-			if((*buffer)->GetDeviceID() != GetDeviceID()) (*buffer)->Invalidate();
+			if((*buffer)->GetDeviceID() != GetDeviceID()) (*buffer)->Invalidate(false);
 			VertexBuffer = retVertexBuffer = static_cast<SVertexBuffer *>((*buffer)->GetBuffer());
 		}
 	}
@@ -2181,7 +2181,8 @@ void CGraphicsD3D8::Render(
 		// full lightness support:
 		if(ms_D3DCaps.TextureOpCaps & D3DTEXOPCAPS_MODULATEALPHA_ADDCOLOR) {
 			// Strider asked for this black to full white lightness system, but it doesn't work 
-			// on all the video cards (doesn't work on the Intel 82815) why? maybe stages not supported.
+			// on all the video cards (doesn't work on the Intel 82815) why? 
+			// > It can't do D3DTOP_MODULATEALPHA_ADDCOLOR
 			// KingOfHeart repored the Intel 82815 bug on this (all sprites are shown grey)
 			float lightnessAlpha;
 			BYTE lightnessValue;
@@ -2205,7 +2206,7 @@ void CGraphicsD3D8::Render(
 				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
 			}
 		} else {
-			// Alternative to the lightness (from black to lighter sprites),
+			// Alternative to the lightness (from black to lighter sprites)
 			if(ms_bLastRendered == false) {
 				ms_bLastRendered = true;
 				D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
