@@ -21,31 +21,45 @@ public:
 		{
 			BYTE *pData = (BYTE*)GlobalLock(medium.hGlobal);
 
-			_SpriteSet *pSpriteSet = (_SpriteSet*)pData;
-			TCHAR* pStr = (TCHAR*)pData;
+			char pName[30] = {0};
 
-			if(strcmp(pSpriteSet->Info.ID, "Quest Designer Sprite Set")) pSpriteSet = NULL;
+			_SpriteSet *pSpriteSet = (_SpriteSet*)pData;
+			LPSTR pStr = (LPSTR)pData;
+
+			if(strncmp(pSpriteSet->Info.ID, QUEST_SET_ID, QUEST_SET_IDLEN)) pSpriteSet = NULL;
 			else if(pSpriteSet->Info.dwSignature != QUEST_SET_SIGNATURE) pSpriteSet = NULL;
 
 			if(pSpriteSet) {
-				int size = (int)(sizeof(_SpriteSet::_SpriteSetInfo)+sizeof(_SpriteSet::_SpriteSetData)*pSpriteSet->Info.nSize);
-				pData = new BYTE[size];
-				memcpy(pData, pSpriteSet, size);
+				pData = new BYTE[pSpriteSet->Info.dwSize];
+				memcpy(pData, pSpriteSet, pSpriteSet->Info.dwSize);
 			} else pData = NULL;
 
 			// TreeView_GetSelection(m_hTargetWnd)
+			LPSTR init = strchr(pStr, '\n');
+			LPSTR end = NULL;
+			if(init) end = strchr(++init, '\n');
+			if(init && end) {
+				strncpy(pName, init, min(end-init, 29));
+			} 
+			if(!*pName && init) {
+				strncpy(pName, pStr, min(init-pStr, 29));
+			} 
+			if(!*pName) {
+				strncpy(pName, pStr, 29);
+			}
+			pName[29] = '\0';
 
 			TVINSERTSTRUCT tvins;
 			tvins.hParent = TVI_ROOT;
 			tvins.hInsertAfter = TVI_LAST;
 			TVITEM tvit = {0};
 			tvit.mask = TVIF_TEXT;
-			tvit.pszText = pStr;
+			tvit.pszText = pName;
 			tvins.item = tvit;
 			tvins.item.mask = TVIF_PARAM | TVIF_TEXT;
 			tvins.item.lParam = (LPARAM)pData;
-			tvins.item.pszText = pStr;
-			tvins.item.cchTextMax = strlen(pStr)+1;
+			tvins.item.pszText = pName;
+			tvins.item.cchTextMax = 30;
 			TreeView_InsertItem(m_hTargetWnd, &tvins);
 
 			GlobalUnlock(medium.hGlobal);

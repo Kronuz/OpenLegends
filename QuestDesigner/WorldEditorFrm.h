@@ -44,29 +44,18 @@ public:
 	// Construction/Destruction:
 	CWorldEditorFrame(CMainFrame *pMainFrame);
 
-	virtual void OnFinalMessage(HWND /*hWnd*/);
-
 	BEGIN_MSG_MAP(CWorldEditorFrame)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		MESSAGE_HANDLER(WM_FORWARDMSG, OnForwardMsg)
-		MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
 		
 		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
 		CHAIN_MSG_MAP(CChildFrame)
-		// Pass all unhandled WM_COMMAND messages to the client window or 'view'
-		CHAIN_CLIENT_COMMANDS ()
-		// Reflect all the WM_NOTIFY messages to the client window
-
-		REFLECT_NOTIFICATIONS()
 
 	END_MSG_MAP()
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
-	LRESULT OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 
 	// Return the window's child control
 	CWorldEditorView* GetView() { return m_pWorldEditorView; }

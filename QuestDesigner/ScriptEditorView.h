@@ -76,9 +76,13 @@ class CScriptEditorView:
 	public CodeSenseControlNotifications<CScriptEditorView>,
 	public CodeSenseControlCommands<CScriptEditorView>
 {
+	typedef CWindowImpl<CScriptEditorView, CodeSenseControl> baseClass;
+
 	HFONT m_hFont;
 	CM_POSITION m_posSel;
 	TCHAR m_szTipFunc[MAX_FUNC_NAME];
+	int m_nParenthesis;
+	bool m_bCodeTip;
 
 public:
 	bool m_bModified;
@@ -90,9 +94,7 @@ public:
 	DECLARE_WND_SUPERCLASS(NULL, CodeSenseControl::GetWndClassName())
 
 	// Called to translate window messages before they are dispatched 
-	BOOL PreTranslateMessage(MSG *pMsg);
-	// Called to do idle processing
-	virtual BOOL OnIdle();
+	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	// Called to clean up after window is destroyed
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
@@ -209,8 +211,10 @@ public:
 	void UIUpdateStatusBar();
 	void UIUpdateMenuItems();
 
+	// Called to do idle processing
+	virtual BOOL OnIdle();
 	// has the content of the control changed?
-	bool hasChanged();
+	virtual bool hasChanged();
 
 	void SaveProfile();
 	void LoadProfile();
@@ -225,6 +229,9 @@ public:
 	BOOL OnKeyPress ( CM_KEYDATA *pkd );
 	LRESULT OnCodeTip ( CM_CODETIPDATA * );
 	BOOL OnCodeTipInitialize( CM_CODETIPDATA *pctd );
+	BOOL OnCodeTipCancel( CM_CODETIPDATA *pctd );
 	BOOL OnCodeTipUpdate( CM_CODETIPDATA *pctd );
+
+	virtual HWND SetFocus() { return baseClass::SetFocus(); }
 
 };

@@ -86,6 +86,8 @@ LRESULT CWorldEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lP
 	m_WorldFullSize.cy = szMap.cy*m_szWorld.cy;
 	SetScrollSize(m_WorldFullSize);
 
+	SetMsgHandled(FALSE);
+
 	return nResult;
 }
 LRESULT CWorldEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
@@ -98,6 +100,7 @@ LRESULT CWorldEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 	if(m_hFont10) DeleteObject(m_hFont10);
 	if(m_hFont8) DeleteObject(m_hFont8);
 	if(m_hFont6) DeleteObject(m_hFont6);
+
 	return 0;
 }
 
@@ -317,7 +320,7 @@ LRESULT CWorldEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 
 	UpdateMouse(Point);
 
-	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) SetFocus();
+	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) baseClass::SetFocus();
 
 	return 0;
 }
@@ -366,10 +369,14 @@ bool CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 }
 LRESULT CWorldEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
-	if(GetMainFrame()->GetOldFocus(tWorldEditor) == m_hWnd) return 0;
+	if(GetMainFrame()->GetOldFocus(tAny) == m_hWnd) return 0;
 	GetMainFrame()->SetOldFocus(tWorldEditor, m_hWnd);
 
+	HWND hWnd = GetMainFrame()->m_hWnd;
+	::SendMessage(hWnd, WMP_CLEAR, 0, 0);
+
 	Invalidate();
+
 	return 0;
 }
 LRESULT CWorldEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
@@ -559,16 +566,16 @@ void CWorldEditorView::UpdateSelections()
 	ReleaseDC(dc);
 }
 
-void CWorldEditorView::ToCursor(CURSOR cursor_)
+CURSOR CWorldEditorView::ToCursor(CURSOR cursor_)
 {
 	HCURSOR hCursor;
 
+	CURSOR OldCursor = m_CursorStatus;
 	m_CursorStatus = cursor_;
 	
 	if(m_bPanning) {
 		cursor_ = eIDC_HAND;
 	}
-
 	switch(cursor_) {
 		case eIDC_ARROW:	hCursor = LoadCursor(NULL, IDC_ARROW); break;
 		case eIDC_CROSS:	hCursor = LoadCursor(NULL, IDC_CROSS); break;
@@ -584,6 +591,7 @@ void CWorldEditorView::ToCursor(CURSOR cursor_)
 	}
 
 	SetCursor(hCursor);
+	return OldCursor;
 }
 
 void CWorldEditorView::UpdateMouse(const CPoint &point)

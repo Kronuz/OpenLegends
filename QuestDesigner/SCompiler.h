@@ -36,9 +36,7 @@
 	In order of this class to work properly, the public member
 	SCompiler::ms_hWnd must be set with a valid window handle.
 */
-class SCompiler :
-	public CConsole
-{
+class SCompiler {
 	friend DWORD WINAPI ThreadProc( LPVOID lpParameter );
 
 	static SCompiler *_instance;

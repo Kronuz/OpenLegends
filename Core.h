@@ -28,20 +28,24 @@
 #define DROTATE				((SROTATE_90<<_SPT_ROT))
 
 enum CURSOR {
-	eIDC_HAND,
-	eIDC_ARROW,
-	eIDC_CROSS,
-	eIDC_NO,
-	eIDC_SIZEALL,
-	eIDC_SIZENESW,
-	eIDC_SIZENS,
-	eIDC_SIZENWSE,
-	eIDC_SIZEWE,
-	eIDC_ARROWADD,
-	eIDC_ARROWDEL,
-	eIDC_ARROWSELECT
-};
+	eIDC_HAND			= 0x0001,	// cePanning
+	eIDC_ARROW			= 0x0002,	// ceToSelect
+	eIDC_CROSS			= 0x0004,
+	eIDC_NO				= 0x0008,
+	eIDC_SIZEALL		= 0x0010,	// ceMoving
+	eIDC_SIZENESW		= 0x0020,	// ceResizing
+	eIDC_SIZENS			= 0x0040,	// ceResizing
+	eIDC_SIZENWSE		= 0x0080,	// ceResizing
+	eIDC_SIZEWE			= 0x0100,	// ceResizing
+	eIDC_ARROWADD		= 0x0200,	// ceToSelect
+	eIDC_ARROWDEL		= 0x0400,	// ceToSelect
+	eIDC_ARROWSELECT	= 0x0800,	// ceToSelect
 
+	cePanning			= 0x0001,
+	ceToMove			= 0x0010,
+	ceToResize			= 0x01E0,
+	ceToSelect			= 0x0E02
+};
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 struct SPropertyList;

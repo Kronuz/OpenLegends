@@ -408,7 +408,8 @@
 // 2.1
 #define CMD_CODELIST                    ( CMD_FIRST + 142 )
 #define CMD_CODETIP                     ( CMD_FIRST + 143 )
-#define CMD_LAST                        ( CMD_FIRST + 143 )
+#define CMD_DESTROYCODETIP              ( CMD_FIRST + 144 )
+#define CMD_LAST                        ( CMD_FIRST + 144 )
 
 // all register commands must be at or higher than CMD_USER_BASE
 #define CMD_USER_BASE                   ( CMD_FIRST + 900 )
@@ -1187,6 +1188,8 @@ EXTERN_C CME_CODE CMUnregisterCommand( WORD wCmd );
                 ( ( DWORD ) ::SendMessage( hWnd, CMM_GETBORDERSTYLE, 0, 0 ) )
 #define CM_GetCurrentToken( hWnd ) \
                 ( ( DWORD ) ::SendMessage( hWnd, CMM_GETCURRENTTOKEN, 0, 0 ) )
+#define CM_GetTokenAt( hWnd, col, row ) \
+                ( ( DWORD ) ::SendMessage( hWnd, CMM_GETCURRENTTOKEN, col, row ) )
 #define CM_UpdateControlPositions( hWnd ) \
                 ( ( void ) ::SendMessage( hWnd, CMM_UPDATECONTROLPOSITIONS, 0, 0 ) )
 

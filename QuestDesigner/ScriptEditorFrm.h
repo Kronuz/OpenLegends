@@ -27,39 +27,28 @@
 #include "ChildFrm.h"
 #include "ScriptEditorView.h"
 
-//class CIdleHandlerWithPump;
-
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CMainFrame;
-class CIdleHandlerPump;
 
 /////////////////////////////////////////////////////////////////////////////
 // This class manages the script editor frame
 class CScriptEditorFrame :
-	public CChildFrame, 
-	public CIdleHandlerPump // (idle stuff usually not required on child frames)
+	public CChildFrame
 {
 protected:
 public:
-	virtual BOOL OnIdle();
-
 	// The window's view (the child control)
 	CScriptEditorView *m_pScriptEditorView;
 
 	// Construction/Destruction:
 	CScriptEditorFrame(CMainFrame *pMainFrame);
 
-	virtual void OnFinalMessage(HWND /*hWnd*/);
-
 	BEGIN_MSG_MAP(CScriptEditorFrame)
 		MESSAGE_HANDLER(WM_CLOSE, OnClose)
 
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		MESSAGE_HANDLER(WM_FORWARDMSG, OnForwardMsg)
-		MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
-		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		
 		MESSAGE_HANDLER(WMQD_SELECT, OnSelectLine)
 
@@ -67,11 +56,6 @@ public:
 
 		CHAIN_MSG_MAP(CChildFrame)
 		// Pass all unhandled WM_COMMAND messages to the client window or 'view'
-
-		CHAIN_CLIENT_COMMANDS()
-		// Reflect all the WM_NOTIFY messages to the client window
-
-		REFLECT_NOTIFICATIONS()
 
 	END_MSG_MAP()
 
@@ -86,8 +70,6 @@ public:
 	LRESULT OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL /*&bHandled*/);
 
 	LRESULT OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnSelectLine(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
 

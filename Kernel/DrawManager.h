@@ -20,6 +20,16 @@
 /*! \file		DrawManager.h 
 	\brief		Interface for CDrawableObject and CDrawableContext.
 	\date		April 28, 2003
+				September 06, 2003: 
+						+ Resorting is not needed when moving or resizing birthOrder type objects.
+						  * Optimization 1: Only schedule a sort for sorting types that have
+						    anything to do with the position of the context, such as yOrder.
+						    This sorting was frequently done, but seldom really needed.
+						+ There is no need to create a sorting functor every time.
+						  * Optimization 2: Sorting functors where made member objects of the 
+						    CDrawableContext class.
+				September 06, 2003: 
+						+ Object sorting added for selections. (Object map was changed for vector)
 
 	The interface CDrawableObject represents an object that can, somehow, be draw on
 	the screen. This drawing is done using a flyweight pool of "drawable" objects to save
@@ -103,23 +113,23 @@ protected:
 	const struct ContextSubLayerCompare : 
 	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
-	};
+	} m_cmpSubLayer; // *Optimization (2)
 	const struct ContextYCompare :
 	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
-	};
+	} m_cmpY; // *Optimization (2)
 	const struct ContextYXCompare :
 	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
-	};
+	} m_cmpYX; // *Optimization (2)
 	const struct ContextYiXCompare :
 	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
-	};
+	} m_cmpYiX; // *Optimization (2)
 	const struct ContextOrderCompare :
 	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
-	};
+	} m_cmpOrder; // *Optimization (2)
 
 	const class DrawContext :
 	public binary_function<CDrawableContext*, const IGraphics *, bool> {
@@ -154,12 +164,12 @@ private:
 
 	vector<CDrawableContext *>::reverse_iterator m_ChildIterator;
 	vector<CDrawableContext *>::reverse_iterator m_LastChildIteratorUsed;
-	int m_nChildren;
+	size_t m_nInsertion;
 
 	DRAWTYPE m_eDrawType[MAX_SUBLAYERS];	//!< Ordering type for child sprites.
 	DRAWTYPE m_eSorted[MAX_SUBLAYERS];		//!< The current sort of the children.
 	bool m_bValidMap;						//!< Indicates if the layers map is valid. (also if iterators are valid)
-	int m_nOrder;							//!< Number of siblings at the time of the creation.
+	size_t m_nOrder;						//!< Number of siblings at the time of the creation.
 
 protected:
 	CDrawableObject *m_pDrawableObj;
@@ -177,6 +187,7 @@ protected:
 
 	bool AddSibling(CDrawableContext *object, bool bAllowDups_=true);
 	bool AddChild(CDrawableContext *object, bool bAllowDups_=true);
+	bool InsertChild(CDrawableContext *object, int nInsertion = -1);
 
 	bool GetFirstChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
@@ -204,13 +215,15 @@ public:
 	void SetSize(int x, int y);
 	void GetSize(CSize &_Size) const;
 
-	void SetObjSubLayer(int layer);
-	void SetObjLayer(int layer);
+	bool SetObjSubLayer(int nLayer);
+	bool SetObjLayer(int nLayer);
 
 	int GetObjSubLayer() const;
 	int GetObjLayer() const;
 	int GetObjOrder() const;
 
+	CDrawableContext* GetParent() const;
+	CDrawableContext* GetSibling(int idx) const;
 	CDrawableContext* GetChild(int idx) const;
 
 	void MoveTo(int x, int y);
@@ -264,7 +277,11 @@ public:
 	bool GetFirstChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_);
 
+	bool PopChild(CDrawableContext *pDrawableContext_);
+	bool PopChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
+
 	bool KillChild(CDrawableContext *pDrawableContext_);
+	bool KillChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
 
 	int Objects(int init=0); // How many not-null objects are under this context. 
 
@@ -405,11 +422,28 @@ class CDrawableSelection
 	void SelPointRemove(const CPoint &point_);
 
 protected:
+	const struct ObjPropContextEqual : 
+	public binary_function<SObjProp, const CDrawableContext*, bool> {
+		bool operator()(const SObjProp &a, const CDrawableContext *b) const;
+	} m_equalContext;
+
+	const struct ObjPropLayerEqual : 
+	public binary_function<SObjProp, int, bool> {
+		bool operator()(const SObjProp &a, const int &b) const;
+	} m_equalLayer;
+
+	const struct SelectionCompare : 
+	public binary_function<SObjProp, SObjProp, bool> {
+		bool operator()(const SObjProp &a, const SObjProp &b) const;
+	} m_cmpSelection;
+
 	BITMAP *m_pBitmap;
 
 	CURSOR m_CurrentCursor;
 	enum _CurrentState { eNone, eSelecting, eMoving, eResizing } 
 		m_eCurrentState;
+
+	bool m_bAllowMultiLayerSel;
 
 	bool m_bCursorLeft;
 	bool m_bCursorTop;
@@ -430,17 +464,22 @@ protected:
 	CPoint m_ptInitialPoint;
 	CDrawableContext **m_ppMainDrawable;
 
-	typedef pair<CDrawableContext*, SObjProp> pairObject;
-	typedef map<CDrawableContext*, SObjProp> mapObject;
-	mapObject m_Objects; //!< Sprites in the selection.
+	bool m_bLockedLayers[MAX_LAYERS]; // keeps the locked layers
+
+	typedef vector<SObjProp> vectorObject;
+	vectorObject m_Objects; //!< Sprites in the selection.
 	int GetBoundingRect(CRect &Rect_);
 
-	virtual void ResizeObject(CDrawableContext *Object, const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
+	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
 	virtual void BuildRealSelectionBounds() = 0;
+
+	void SortSelection();
 
 	bool BeginPaint(IGraphics *pGraphicsI, WORD wFlags = 0);
 	bool DrawAll(IGraphics *pGraphicsI);
 	bool EndPaint(IGraphics *pGraphicsI);
+
+	void SetInitialMovingPoint(const CPoint &point_);
 
 public:
 	CDrawableSelection(CDrawableContext **ppDrawableContext_);
@@ -450,6 +489,9 @@ public:
 
 	// Interface Definition:
 
+	virtual void LockLayer(int nLayer, bool bLock = true);
+	virtual bool isLocked(int nLayer);
+	
 	// returns true if the object has been modified from its initial state.
 	virtual bool IsModified() { return m_bModified; }
 
@@ -474,6 +516,7 @@ public:
 	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains);
 	virtual void EndSelBoxRemove(const CPoint &point_);
 
+	virtual void SetLayerSelection(int nLayer);
 	virtual void DeleteSelection();
 	virtual void Cancel();
 
@@ -494,7 +537,7 @@ public:
 
 	// Make abstract methods:
 	virtual bool Draw(const IGraphics *pGraphics_) = 0; 
-	virtual HGLOBAL Copy() = 0;
+	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false) = 0;
 	virtual bool Paste(LPVOID pBuffer, const CPoint &point_) = 0;
 
 	virtual bool Paint(IGraphics *pGraphicsI, WORD wFlags); // render the map group to the screen
@@ -549,26 +592,48 @@ inline int CDrawableContext::GetObjLayer() const
 	if(m_pParent) return m_pParent->m_nSubLayer;
 	return -1;
 }
-inline void CDrawableContext::SetObjLayer(int layer) 
+inline bool CDrawableContext::SetObjLayer(int nLayer) 
 {
-}
-inline void CDrawableContext::SetObjSubLayer(int layer) 
-{ 
-	m_nSubLayer = layer; 
+	bool bRet = false;
 	if(m_pParent) {
-		m_bValidMap = false;
+		if(nLayer == m_pParent->m_nSubLayer) 
+			return true; //same current layer
+
+		CDrawableContext *pNewLayer = m_pParent->GetSibling(nLayer);
+		if(pNewLayer) { // if the new layer exists, try changing the layer:
+			if(m_pParent->PopChild(this)) {
+				bRet = pNewLayer->InsertChild(this, m_nOrder);
+				ASSERT(bRet);
+			}
+		}
+	}
+	return bRet;
+}
+inline bool CDrawableContext::SetObjSubLayer(int nLayer) 
+{ 
+	m_nSubLayer = nLayer; 
+	if(m_pParent) {
+		// let the parent know one of its layers has changed.
+		m_pParent->m_bValidMap = false;
 		m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 	}
+	return true;
 }
 inline void CDrawableContext::MoveTo(int x, int y) 
 { 
 	m_Position.SetPoint(x,y); 
-	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	}
 }
 inline void CDrawableContext::MoveTo(const CPoint &_point) 
 {
 	m_Position = _point;
-	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	}
 }
 inline void CDrawableContext::GetPosition(CPoint &_Point) const 
 { 
@@ -607,7 +672,10 @@ inline void CDrawableContext::GetAbsFinalRect(CRect &_Rect) const
 inline void CDrawableContext::SetRect(const CRect &_Rect) 
 {
 	m_Position = _Rect.TopLeft();
-	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	}
 
 	if(m_Size.cx != _Rect.Width() || m_Size.cy != _Rect.Height()) {
 		m_Size.SetSize(_Rect.Width(), _Rect.Height());
@@ -620,7 +688,10 @@ inline void CDrawableContext::SetAbsRect(const CRect &_Rect)
 	if(m_pParent) m_pParent->GetAbsPosition(Position);
 
 	m_Position = _Rect.TopLeft() - Position;
-	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	}
 
 	if(m_Size.cx != _Rect.Width() || m_Size.cy != _Rect.Height()) {
 		m_Size.SetSize(_Rect.Width(), _Rect.Height());
@@ -633,7 +704,10 @@ inline void CDrawableContext::SetAbsFinalRect(const CRect &_Rect)
 	if(m_pParent) m_pParent->GetAbsPosition(Position);
 
 	m_Position = _Rect.TopLeft() - Position;
-	if(m_pParent) m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	}
 
 	if(isRotated()) {
 		if(m_Size.cx != _Rect.Height() || m_Size.cy != _Rect.Width()) {
@@ -720,6 +794,17 @@ inline void CDrawableContext::SelectContext(bool bSelect)
 inline bool CDrawableContext::isSelected() const
 {
 	return m_bSelected;
+}
+
+inline CDrawableContext* CDrawableContext::GetParent() const
+{
+	return m_pParent;
+}
+
+inline CDrawableContext* CDrawableContext::GetSibling(int idx) const
+{
+	if(m_pParent == NULL) return NULL;
+	return m_pParent->GetChild(idx);
 }
 
 inline CDrawableContext* CDrawableContext::GetChild(int idx) const

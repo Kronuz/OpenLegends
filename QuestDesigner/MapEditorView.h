@@ -24,139 +24,63 @@
 
 #pragma once
 
-#include "ChildView.h"
+#include "GEditorView.h"
+#include "SuperCombo.h"
 
 #include "../IGraphics.h"
 #include "../IGame.h"
 #include "../Core.h"
-
-#include "WindowDropTarget.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CMapEditorFrame;
 
 class CMapEditorView : 
-	public CChildView,
-	public CScrollWindowImpl<CMapEditorView>
+	public CGEditorView
 {
-	typedef CScrollWindowImpl<CMapEditorView> baseClass;
+	typedef CGEditorView baseClass;
 private:
-	bool m_bModified;
-
-	CMapGroup *m_pMapGroupI;
-	CSpriteSelection *m_SelectionI;
-
-	CSize m_szMap;
 	IGraphics *m_pGraphicsI;
-
-	DWORD m_dwTick;
-	float m_Zoom;
-	int m_nSnapSize;
-	bool m_bFloating;
-	enum { tNone, tToDrag, tWaiting, tDragging } m_DragState;
-	bool m_bIgnoreClick;
-
-	bool m_bMulSelection;
-	bool m_bSnapToGrid;
+	CMapGroup *m_pMapGroupI;
+	ISoundManager *m_pSoundManager;
+	CSpriteSelection *m_SelectionI;
 	bool m_bShowMasks;
 	bool m_bShowBoundaries;
-	bool m_bShowGrid;
 
-	bool m_bAnimated;
+	CSize m_szMap;
 
-	bool m_bPanning;
-	CPoint m_PanningPoint;
-
-	CURSOR m_CursorStatus;
-	CURSOR m_OldCursorStatus;
-
-	CIDropTarget* m_pDropTarget;
-	CIDropSource* m_pDropSource;
-
-	LRESULT BeginDrag();
-	CIDataObject* CreateOleObj(CIDropSource *pDropSource);
-
-	bool Paste(CPoint &Point);
-
-	bool Cut();
-	bool Copy();
-	bool Paste();
-	bool Delete();
 	bool Flip();
 	bool Mirror();
 	bool CWRotate();
 	bool CCWRotate();
 
 	bool InsertPlayer();
-	bool SingleSel();
-	bool MultipleSel();
-	bool SelectAll();
-	bool SelectNone();
-	bool NoZoom();
-	bool ZoomIn();
-	bool ZoomOut();
 	bool ToggleMask();
 	bool ToggleBounds();
-	bool ToggleGrid();
-	bool TogleSnap();
 
-	bool Zoom(float zoom);
-	void ScrollTo(int x, int y);
-	void OnChange();
-	void OnChangeSel(IPropertyEnabled *pPropObj = NULL);
 public:
-
-	// Initialize drag and drop
-	bool InitDragDrop();
-
 	// Construction/Destruction
 	CMapEditorView(CMapEditorFrame *pParentFrame);
 
 	DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
 	// Called to translate window messages before they are dispatched 
-	BOOL PreTranslateMessage(MSG *pMsg);
-
-	// Called to do idle processing
-	virtual BOOL OnIdle();
+	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	// Called to clean up after window is destroyed
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
 	BEGIN_MSG_MAP(CWorldEditView)
-		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
-		MESSAGE_HANDLER(WM_TIMER, OnTimer)
-
-		MESSAGE_HANDLER(WM_SIZE, OnSize)
-		MESSAGE_HANDLER(WM_VSCROLL, OnVScroll)
-		MESSAGE_HANDLER(WM_HSCROLL, OnHScroll)
+		COMMAND_CODE_HANDLER(CBN_SELCHANGE, OnSelChange)
+		COMMAND_CODE_HANDLER(CBN_STATECHANGE, OnStateChange)
 
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
-		
-		MESSAGE_HANDLER(WM_MOUSELEAVE, OnMouseLeave)
-		MESSAGE_HANDLER(WMQD_DRAGLEAVE, OnDragLeave)
-		MESSAGE_HANDLER(WMQD_DRAGOVER, OnDragOver)
 
-		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
-		MESSAGE_HANDLER(WM_MOUSEWHEEL, OnMouseWheel)
-
-		MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
-		MESSAGE_HANDLER(WM_LBUTTONUP,	OnLButtonUp)
-		MESSAGE_HANDLER(WM_RBUTTONDOWN, OnRButtonDown)
-		MESSAGE_HANDLER(WM_RBUTTONUP,	OnRButtonUp)
-		MESSAGE_HANDLER(WM_MBUTTONDOWN, OnMButtonDown)
-		MESSAGE_HANDLER(WM_MBUTTONUP,	OnMButtonUp)
-
-		MESSAGE_HANDLER(WMQD_DROPOBJ,	OnDropObject)
 		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		
-		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
-		MESSAGE_HANDLER(WM_KEYUP, OnKeyUp)
-
 		MENU_COMMAND_HANDLER(ID_MAPED_FLIP,			Flip)
 		MENU_COMMAND_HANDLER(ID_MAPED_MIRROR,		Mirror)
 		MENU_COMMAND_HANDLER(ID_MAPED_C90,			CWRotate)
@@ -178,52 +102,79 @@ public:
 		MENU_COMMAND_HANDLER(ID_MAPED_GRID,			ToggleGrid)
 		MENU_COMMAND_HANDLER(ID_MAPED_GRIDSNAP,		TogleSnap)
 
+		MENU_COMMAND_HANDLER(ID_APP_NOSOUND,		OnNoSound)
+
 		CHAIN_MSG_MAP(baseClass);
 	END_MSG_MAP()
 
+	LRESULT OnStateChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND hWndCtl, BOOL& bHandled);
+	LRESULT OnSelChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND hWndCtl, BOOL& bHandled);
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
-	LRESULT OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-	LRESULT OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 
-	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
-	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
-
-	LRESULT OnMouseLeave(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
-	LRESULT OnDragLeave(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
-	LRESULT OnDragOver(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
-	
-	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
-	LRESULT OnVScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
-	LRESULT OnHScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
-
-	LRESULT OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-	LRESULT OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
-
-	LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-
-	LRESULT OnDropObject(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
-	void DoPaint(CDCHandle dc);
 	bool DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle = _T("Untitled"));
-
-	void Render();
-	void UpdateView();
-	void ToCursor(CURSOR cursor_);
 
 	void UIUpdateMenuItems();
 	void UIUpdateStatusBar();
 
-	bool hasChanged();
+	void OnNoSound();
+
+	// Called to do idle processing
+	virtual BOOL OnIdle();
+	// has the content of the control changed?
+	virtual bool hasChanged();
+
+	virtual HWND SetFocus() { return baseClass::baseClass::SetFocus(); }
+//////////////////////
+	virtual void GetWorldPosition(CPoint *_pPoint);
+
+	virtual void HoldOperation();
+	virtual void CancelOperation();
+
+	virtual bool isResizing();
+	virtual bool isMoving();
+	virtual bool isFloating();
+	virtual bool isSelecting();
+
+	virtual void StartSelBox(const CPoint &_Point, CURSOR *_pCursor);
+	virtual void SizeSelBox(const CPoint &_Point, CURSOR *_pCursor);
+	virtual IPropertyEnabled* EndSelBoxRemove(const CPoint &_Point, LPARAM lParam);
+	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &_Point, LPARAM lParam);
+	virtual void CancelSelBox();
+	virtual IPropertyEnabled* SelectPoint(const CPoint &_Point, CURSOR *_pCursor);
+
+	virtual void StartMoving(const CPoint &_Point, CURSOR *_pCursor);
+	virtual void MoveTo(const CPoint &_Point, CURSOR *_pCursor);
+	virtual void EndMoving(const CPoint &_Point, LPARAM lParam);
+
+	virtual void StartResizing(const CPoint &_Point, CURSOR *_pCursor);
+	virtual void ResizeTo(const CPoint &_Point, CURSOR *_pCursor);
+	virtual void EndResizing(const CPoint &_Point, LPARAM lParam);
+
+	virtual bool SelectedAt(const CPoint &_Point);
+	virtual int SelectedCount();
+
+	virtual void PasteSelection(LPVOID _pBuffer, const CPoint &_Point);
+	virtual HGLOBAL CopySelection(BITMAP **ppBitmap, bool bDeleteBitmap);
+	virtual BITMAP* CaptureSelection(float _fZoom);
+	virtual void CleanSelection();
+	virtual void DeleteSelection();
+
+	virtual bool GetMouseStateAt(const CPoint &_Point, CURSOR *_pCursor);
+	virtual void CalculateLimits();
+	virtual void UpdateSnapSize(int _SnapSize);
+	virtual void Render();
+	virtual void UpdateView();
+
+	virtual void OnChange();
+	virtual void OnChangeSel(IPropertyEnabled *pPropObj = NULL);
 };

@@ -31,10 +31,6 @@ CWorldEditorFrame::CWorldEditorFrame(CMainFrame *pMainFrame) :
 	m_pWorldEditorView(NULL)
 { 
 }	
-void CWorldEditorFrame::OnFinalMessage(HWND /*hWnd*/)
-{
-	delete this;
-}
 
 LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
@@ -61,31 +57,17 @@ LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 	m_sChildName = _T("World Editor");
 	SetTitle(m_sChildName);
 
+	m_pChildView = m_pWorldEditorView;
+
 	CChildFrame::Register(tWorldEditor);
-	SetMsgHandled(FALSE);
+	bHandled = FALSE;
 
 	return TRUE;
 }
 LRESULT CWorldEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
 	CChildFrame::Unregister();
-	return 0;
-}
-LRESULT CWorldEditorFrame::OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
-{
-	LPMSG pMsg = (LPMSG)lParam;
-	// we need the base class to do its stuff
-	if(baseClass::PreTranslateMessage(pMsg))
-		return TRUE;
-
-	// the messages need to be hended to the active view
-	return m_pWorldEditorView->PreTranslateMessage(pMsg);
-}
-LRESULT CWorldEditorFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
-{
-	// System settings or metrics have changed.  Propogate this message
-	// to all the child windows so they can update themselves as appropriate.
-	SendMessageToDescendants(uMsg, wParam, lParam, TRUE);
+	bHandled = FALSE;
 
 	return 0;
 }

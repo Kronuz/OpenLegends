@@ -38,7 +38,7 @@ LRESULT CFoldersTreeBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 
 	int cx = ::GetSystemMetrics(SM_CXSMICON), cy = ::GetSystemMetrics(SM_CYSMICON);
 
-	m_ImageList.Create(cx, cy, ILC_COLOR32 | ILC_MASK, 4, 4);
+	m_ImageList.Create(cx, cy, ILC_COLOR32 | ILC_MASK, IDI_END-IDI_BEGIN, 0);
 
 	HICON hIcon = NULL;
 	// NOTE: Don't Load using the LR_LOADTRANSPARENT bit, because the icon
@@ -46,7 +46,7 @@ LRESULT CFoldersTreeBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 	//  We will load this as LR_SHARED so that we don't have to do a DeleteIcon.
 
 	// Load all needed icons:
-	ATLASSERT(IDI_END - IDI_BEGIN < 20);
+	ATLASSERT(IDI_END-IDI_BEGIN < 20);
 	for(int nIcoIdx=0; nIcoIdx<II_END; nIcoIdx++) {
 		hIcon = (HICON)::LoadImage(
 					_Module.GetResourceInstance(),
