@@ -562,7 +562,7 @@ void Render()
 			//g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
 			//g_pSecondMapGroupI->Draw(g_pGraphicsI);
 
-			bool bFilters = g_pGraphicsI->SetFilter(EnableFilters, false);
+			bool bFilters = g_pGraphicsI->SetFilter(EnableFilters, (void*)false);
 			// Draw information about the frame rate and other things:
 			g_pGraphicsI->DrawText(CPoint(10,10), COLOR_ARGB(255,255,255,255), "%4.1f fps", fps);
 			if(g_bDebug) {

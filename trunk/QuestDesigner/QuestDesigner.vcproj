@@ -113,7 +113,8 @@
 				InterfaceIdentifierFileName="QuestDesigner_i.c"
 				ProxyFileName="QuestDesigner_p.c"/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCPostBuildEventTool"
+				CommandLine="upx -f $(SolutionDir)$(OutDir)/$(ProjectName).exe"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -228,6 +229,9 @@
 				Filter="">
 				<File
 					RelativePath="BuildOutputBox.cpp">
+				</File>
+				<File
+					RelativePath=".\DebugBox.cpp">
 				</File>
 				<File
 					RelativePath="FoldersTreeBox.cpp">
@@ -363,6 +367,9 @@
 					RelativePath="BuildOutputBox.h">
 				</File>
 				<File
+					RelativePath=".\DebugBox.h">
+				</File>
+				<File
 					RelativePath="FoldersTreeBox.h">
 				</File>
 				<File
@@ -429,6 +436,9 @@
 					Name="propertylist"
 					Filter="">
 					<File
+						RelativePath=".\libs\propertylist\PropertyGrid.h">
+					</File>
+					<File
 						RelativePath="libs\propertylist\PropertyItem.h">
 					</File>
 					<File
@@ -439,6 +449,9 @@
 					</File>
 					<File
 						RelativePath="libs\propertylist\PropertyList.h">
+					</File>
+					<File
+						RelativePath=".\libs\propertylist\PropertyTree.h">
 					</File>
 				</Filter>
 				<Filter

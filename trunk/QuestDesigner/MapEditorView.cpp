@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -912,7 +912,7 @@ void CMapEditorView::Render(WPARAM wParam)
 	}
 
 	// show entities, and if set, also sprite boundaries and masks
-	WORD wFlags = SPRITE_ENTITIES | (m_bShowBoundaries?SPRITE_BOUNDS:0) | (m_bShowMasks?SPRITE_MASKS:0);
+	WORD wFlags = GRAPHICS_FILTERS | SPRITE_ENTITIES | (m_bShowBoundaries?SPRITE_BOUNDS:0) | (m_bShowMasks?SPRITE_MASKS:0);
 	m_SelectionI->Paint(m_pGraphicsI, wFlags);
 }
 

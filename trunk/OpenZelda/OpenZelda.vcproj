@@ -87,7 +87,8 @@
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCPostBuildEventTool"
+				CommandLine="upx -f $(SolutionDir)$(OutDir)/$(ProjectName).exe"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

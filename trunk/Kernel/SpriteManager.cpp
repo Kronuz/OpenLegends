@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -84,6 +84,7 @@ bool CBackground::NeedToDraw(const CDrawableContext &scontext)
 		CRect rcLocation;
 		CRect rcVisible;
 		pGraphics->GetVisibleRect(&rcVisible);
+		rcVisible.InflateRect(1, 1); // adjacent sprites are painted (just in case, for zooms)
 		scontext.GetAbsFinalRect(rcLocation);
 		rcLocation.IntersectRect(rcVisible, rcLocation);
 		if(!rcLocation.IsRectEmpty()) return true;

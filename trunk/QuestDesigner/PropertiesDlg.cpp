@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -60,6 +60,11 @@ LRESULT CPropertiesDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 	m_NotImplementedSheet.SetDetails("Properties under construction...", "Sorry!");
 	m_PropertiesSheets.Add(&m_NotImplementedSheet);
 	m_CtrlContainer.AddItem(m_NotImplementedSheet); // 0
+
+	m_GeneralSheet.Create(m_CtrlContainer);
+	m_GeneralSheet.SetDetails("General properties under construction...", "Sorry!");
+	m_PropertiesSheets.Add(&m_GeneralSheet);
+	m_CtrlContainer.AddItem(m_GeneralSheet); // 1
 
 	// and select a sheet...
 	if(m_DefaultSheet == -1) { // this lets us jump to a particular sheet..

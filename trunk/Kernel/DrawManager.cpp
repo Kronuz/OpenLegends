@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
@@ -1398,41 +1398,48 @@ inline bool CDrawableSelection::BeginPaint(IGraphics *pGraphicsI, WORD wFlags)
 	ASSERT(m_ppMainDrawable);
 	if(!*m_ppMainDrawable) return false;
 
+	/* // For testing only:
 	static bool bret = false;
 	static DWORD qq = GetTickCount();
 	static float fAux = 1.00f;
-	CSprite::SetShowOptions(wFlags);
 
 	ARGBCOLOR argb = COLOR_ARGB((int)(255.0f*(0.5f+(fAux/2.0f))), 128, 128, 128);
-
 	int move = (int)(400.0f - 800.0f * fAux);
+	/**/
+
+	CSprite::SetShowOptions(wFlags);
 	DWORD color = ::GetSysColor(COLOR_APPWORKSPACE);
 	pGraphicsI->SetFilterBkColor(COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)));
-	pGraphicsI->SetFilter(Alpha, &COLOR_ARGB(255,128,128,128));
 
+	// Activate the filters:
+	if((wFlags & GRAPHICS_FILTERS) == GRAPHICS_FILTERS) 
+		pGraphicsI->SetFilter(EnableFilters, (void*)true);
+
+	/* // For testing only:
 	float pixelate = 17.0f - 16.0f * fAux;
 	pGraphicsI->SetFilter(Pixelate, &pixelate);
-	//pGraphicsI->SetFilter(Alpha, &argb);
-	//pGraphicsI->SetFilter(HorzMove, &move);
+	/*pGraphicsI->SetFilter(Alpha, &argb);
+	pGraphicsI->SetFilter(HorzMove, &move);
+	/**/
 	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
 	if(pGraphicsI->BeginPaint()) {
-
-	if(GetTickCount() > qq + 60) {
-		qq = GetTickCount();
-		if(bret) fAux /= 0.8f;
-		else fAux *= 0.8f;
-		if(fAux<0.025f) {
-			fAux = 0.025f;
-			bret = true;
-		} else if(fAux>1.0f) {
-			fAux = 1.0f;
-			qq+=2000;
-			bret = false;
+		/* // For testing only:
+		if(GetTickCount() > qq + 60) {
+			qq = GetTickCount();
+			if(bret) fAux /= 0.8f;
+			else fAux *= 0.8f;
+			if(fAux<0.025f) {
+				fAux = 0.025f;
+				bret = true;
+			} else if(fAux>1.0f) {
+				fAux = 1.0f;
+				qq+=2000;
+				bret = false;
+			}
 		}
+		/**/
+		return true;
 	}
-	return true;
-	}
-
 	return false;
 }
 inline bool CDrawableSelection::EndPaint(IGraphics *pGraphicsI)

@@ -3,14 +3,43 @@ http://www.openzelda.com/
 
 What's new:
 --------------------------------------------------
+Legend:
+   QD = Quest Designer
+   OZ = Open Zelda
+   QZ = Quest Designer and Open Zelda
+   ++ = Other areas such as graphics creation or publishing
+   * = General comment
+   + = New feature added
+   - = Feature or bug eliminated
+   > = To be added before or on that release (what's missing)
+
+Open Zelda Project v.1.0.0: (not yet released)
+> QD: Paths & way-points edition.
+> OZ: Paths and path finding algorithms.
+> OZ: Advanced script API functions.
+
+Open Zelda Project v.0.9.0: (not yet released)
+> QD: Saving/Loading sprite sheet files.
+> QD: Sprite Sheet Editor working (without some extra functionality.)
+> OZ: Basic script API functions.
+> QD: Ask and auto-convert files to the new QD format upon quest opening.
+
+Open Zelda Project v.0.8.5: (not yet released)
+> QD: Properties window working.
+> QD: Saving/Loading quest files.
+> QD: Saving/Loading map files.
+> QD: Sprite Sets with names saved as Sprite Sets in the maps.
+> QD: Debugger inspection watches.
 
 Open Zelda Project v.0.8.2: (not yet released)
 * First release of the new Open Zelda.
 * A "What's new" file has been added.
++ QD: Some bug Fixes.
 + QD: Sprite sets remain grouped as long as you don't close the map group.
 + QD: Support for the Open Zelda debugger, to debug and test scripts in real time.
 + OZ: Added the Open Zelda debugger.
 + OZ: Supports full screen and windowed mode.
++ OZ: Added support for some filters. (Pixelate, Translation, Colorize, Croping, etc.)
 
 Open Zelda Project v.0.8.1: (October 31, 2003)
 - QD: Minor Bug fixes.
@@ -31,7 +60,7 @@ Open Zelda Project v.0.7.x (September 10, 2003 - September 16, 2003)
 - QD: Bug fixes.
 + QD: Full layers and sublayers support has finally been added (still working on parallax.) 
 + QD: Subselection of objects (See note #3 in release notes.)
-+ QD: Zoom In/Out behavior has been improved.
++ QD: Zoom In/Out behavior has been improved (Strider's idea.)
 + QD: Music and Sounds made optional while editing the map groups.
 
 Open Zelda Project v.0.6.2 (September 1, 2003)
@@ -121,6 +150,10 @@ A:
 
 Try to download and install the latest drivers from Intel. Also, you can try setting the video mode to 24 bits, but it might still be buggy as the card isn't really supported. If this doesn't work, then we are very sorry to say that there is no other known solution :( You may want to consider upgrading your computer by buying a new GFX card (we recommend ATI Radeon and/or NVidia Geforce cards) 
 
+Q: I only see gray color on the map editor
+A:
+This has been detected on Intel 82815 graphics controllers, when the lightness option is set to work from black to full white.
+New versions will probably address this issue by eliminating the availability to get full white changing the lightness.
 
 Q: Where do I get the latest drivers / directX ?
 A:

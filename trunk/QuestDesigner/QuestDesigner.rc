@@ -485,7 +485,7 @@ CAPTION "About Quest Designer"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,7,153,50,14
-    CTEXT           "Copyright (C) 2003. Kronuz (Germán Méndez Bravo)",
+    CTEXT           "Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)",
                     IDC_STATIC,146,149,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
     GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
@@ -498,7 +498,7 @@ BEGIN
     LTEXT           "Open Zelda Website:",IDC_STATIC,175,119,68,8
     LTEXT           "http://www.openzelda.com",IDC_URL1_STATIC,259,119,88,8
     PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,153,70,14
-    CTEXT           "Copyright (C) 2001-2003. Open Zelda's Project",
+    CTEXT           "Copyright (C) 2001-2004. Open Zelda's Project",
                     IDC_STATIC,146,159,250,8
 END
 
@@ -543,8 +543,8 @@ IDD_PROPERTIES_NOTIMPLEMENTED DIALOGEX 0, 0, 250, 170
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    CTEXT           "Properties sheet under construction.",IDC_STATIC_INFO,0,
-                    76,250,8
+    CTEXT           "Properties sheet under construction.",IDC_STATIC_INFO2,
+                    0,76,250,8
 END
 
 IDD_ACK DIALOGEX 0, 0, 268, 253
@@ -576,6 +576,55 @@ BEGIN
     CTEXT           "Peek",IDC_STATIC,7,23,58,12,SS_SUNKEN
 END
 
+IDD_PROPERTIES_GENERAL DIALOGEX 0, 0, 250, 170
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CTEXT           "General properties under construction!!",
+                    IDC_STATIC_INFO,0,7,250,8
+    COMBOBOX        IDC_COMBO1,85,25,82,14,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Screen Size:",IDC_STATIC,12,28,69,8
+    CONTROL         "Full screen by default:",IDC_CHECK1,"Button",
+                    BS_AUTOCHECKBOX | BS_LEFTTEXT | WS_TABSTOP,12,64,82,10,
+                    WS_EX_RIGHT
+    CONTROL         "Parallax enabled:",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | 
+                    BS_LEFTTEXT | WS_TABSTOP,137,64,82,10,WS_EX_RIGHT
+END
+
+IDD_PROPERTIES_PLUGINS DIALOGEX 0, 0, 250, 170
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CTEXT           "Plugins properties under construction!!",
+                    IDC_STATIC_INFO,0,7,250,8
+    RTEXT           "Graphics Plugin:",-1,12,28,69,8
+    EDITTEXT        IDC_EDIT2,85,25,127,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BUTTON2,214,25,13,12
+    RTEXT           "Input Plugin:",-1,12,44,69,8
+    EDITTEXT        IDC_EDIT4,85,41,127,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BUTTON4,214,41,13,12
+    PUSHBUTTON      "!",IDC_BUTTON3,228,25,13,12
+    PUSHBUTTON      "!",IDC_BUTTON5,228,41,13,12
+END
+
+IDD_PROPERTIES_PATHS DIALOGEX 0, 0, 250, 170
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    EDITTEXT        IDC_EDIT1,85,25,127,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BUTTON1,214,25,13,12
+    RTEXT           "Temporary Path:",IDC_STATIC,12,28,70,8
+    CTEXT           "Path properties under construction!!",IDC_STATIC_INFO,0,
+                    7,250,8
+    EDITTEXT        IDC_EDIT2,85,41,127,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BUTTON6,214,41,13,12
+    RTEXT           "Quest Output Path:",IDC_STATIC,12,44,70,8
+    EDITTEXT        IDC_EDIT3,85,57,127,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BUTTON7,214,57,13,12
+    RTEXT           "Path:",IDC_STATIC,12,60,70,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -601,6 +650,31 @@ BEGIN
         RIGHTMARGIN, 261
         TOPMARGIN, 7
         BOTTOMMARGIN, 246
+    END
+
+    IDD_PROPERTIES_GENERAL, DIALOG
+    BEGIN
+        VERTGUIDE, 12
+        VERTGUIDE, 85
+        VERTGUIDE, 125
+        VERTGUIDE, 137
+        VERTGUIDE, 210
+        HORZGUIDE, 25
+        HORZGUIDE, 42
+    END
+
+    IDD_PROPERTIES_PLUGINS, DIALOG
+    BEGIN
+        VERTGUIDE, 12
+        VERTGUIDE, 85
+        HORZGUIDE, 25
+    END
+
+    IDD_PROPERTIES_PATHS, DIALOG
+    BEGIN
+        VERTGUIDE, 12
+        VERTGUIDE, 85
+        HORZGUIDE, 25
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -657,7 +731,7 @@ BEGIN
             VALUE "FileDescription", "Quest Designer v0.8.2 (beta)"
             VALUE "FileVersion", "1, 0, 0, 8"
             VALUE "InternalName", "QuestDesigner"
-            VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
+            VALUE "LegalCopyright", "Copyright © 2003-2004 by Kronuz. All rights reserved."
             VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Zelda\r\n"
             VALUE "OriginalFilename", "QuestDesigner.exe"
             VALUE "ProductName", "Quest Designer for Open Zelda"
