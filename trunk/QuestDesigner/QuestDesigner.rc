@@ -489,16 +489,16 @@ BEGIN
                     IDC_STATIC,146,149,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
     GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
-    CTEXT           "Quest Designer v.0.8.4 (beta)\nfor Open Zelda",
+    CTEXT           "Quest Designer v.0.8.4 (beta)\nfor Open Legends",
                     IDC_STATIC,7,122,132,17,0,WS_EX_TRANSPARENT
     EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
     LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
                     98,8
     LTEXT           "Author e-mail:",IDC_STATIC,175,130,44,8
-    LTEXT           "Open Zelda Website:",IDC_STATIC,175,119,68,8
-    LTEXT           "http://www.openzelda.com",IDC_URL1_STATIC,259,119,88,8
+    LTEXT           "Open Legends Website:",IDC_STATIC,175,119,68,8
+    LTEXT           "http://www.openlegends.com",IDC_URL1_STATIC,259,119,88,8
     PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,153,70,14
-    CTEXT           "Copyright (C) 2001-2004. Open Zelda's Project",
+    CTEXT           "Copyright (C) 2001-2004. Open Legends's Project",
                     IDC_STATIC,146,159,250,8
 END
 
@@ -556,7 +556,7 @@ BEGIN
     DEFPUSHBUTTON   "Close",IDOK,109,232,50,14
     LTEXT           "Portions of this software use:\n    CodeMax, Copyright 1997-2000 Barry Allyn,\n    CodeSense, Copyright 2000-2003 Nathan Lewis, and",
                     IDC_STATIC,21,21,219,27
-    LTEXT           "    Small Compiler, Copyright (c) 1997-2002 ITB CompuPhase.\n    All rights reserved.\n\nZelda is a registered trademark of Nintendo of America Inc.",
+    LTEXT           "    Small Compiler, Copyright (c) 1997-2002 ITB CompuPhase.\n    All rights reserved.\n\nLegends is a registered trademark of Nintendo of America Inc.",
                     IDC_STATIC,21,44,219,36
     LTEXT           "Code based in the conceptual design and original idea by Greg Denness.",
                     IDC_STATIC,20,7,232,8
@@ -726,15 +726,15 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
+            VALUE "Comments", "Quest Designer is a tool to create quests for Open Legends. http://www.openlegends.com/"
             VALUE "CompanyName", "by Kronuz"
             VALUE "FileDescription", "Quest Designer v0.8.4 (beta)"
             VALUE "FileVersion", "1, 0, 0, 8"
             VALUE "InternalName", "QuestDesigner"
             VALUE "LegalCopyright", "Copyright © 2003-2004 by Kronuz. All rights reserved."
-            VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Zelda\r\n"
+            VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Legends\r\n"
             VALUE "OriginalFilename", "QuestDesigner.exe"
-            VALUE "ProductName", "Quest Designer for Open Zelda"
+            VALUE "ProductName", "Quest Designer for Open Legends"
             VALUE "ProductVersion", "1, 0, 0, 8"
         END
     END
@@ -779,15 +779,15 @@ IDB_LOGO                PNG                     "res\\logo.png"
 STRINGTABLE 
 BEGIN
     IDR_MAINFRAME           "QuestDesigner"
-    IDR_MDICHILD            "Open Zelda Document"
+    IDR_MDICHILD            "Open Legends Document"
 END
 
 STRINGTABLE 
 BEGIN
-    IDR_MDISCRIPTED         "Open Zelda Script"
-    IDR_MDIMAPED            "Open Zelda Map"
-    IDR_MDIWORLDED          "Open Zelda World"
-    IDR_MDISPTSHTED         "Open Zelda Sprite Sheet"
+    IDR_MDISCRIPTED         "Open Legends Script"
+    IDR_MDIMAPED            "Open Legends Map"
+    IDR_MDIWORLDED          "Open Legends World"
+    IDR_MDISPTSHTED         "Open Legends Sprite Sheet"
 END
 
 STRINGTABLE 
@@ -806,7 +806,7 @@ BEGIN
     ID_APP_MAPED            "Open a map editor.\nOpen Map Editor"
     ID_APP_NEW              "Create a new document\nNew"
     ID_APP_OPEN             "Open an existent document.\nOpen"
-    ID_APP_PREFERENCES      "Open Zelda and Quest Designer Preferences.\nPreferences"
+    ID_APP_PREFERENCES      "Open Legends and Quest Designer Preferences.\nPreferences"
     ID_APP_PRINT            "Print current document.\nPrint"
 END
 

@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -68,7 +68,7 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 
 	// set-up the dialogs hyperlinks
 	m_wndHyperLinkURL1.SubclassWindow ( GetDlgItem ( IDC_URL1_STATIC ) );
-	m_wndHyperLinkURL1.SetHyperLink ( _T ("http://www.openzelda.com") );		
+	m_wndHyperLinkURL1.SetHyperLink ( _T ("http://www.openlegends.com") );		
 
 	m_wndHyperLinkEmail1.SubclassWindow ( GetDlgItem ( IDC_EMAIL1_STATIC ) );
 	m_wndHyperLinkEmail1.SetHyperLink ( _T ("mailto:kronuz@users.sourceforge.net") );		
@@ -88,7 +88,7 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 		fread(szLicense, 1, 20*1024-1, arch);
 		fclose(arch);
 	} else szLicense = _T("\
-Open Zelda Project\r\n\
+Open Legends Project\r\n\
 Copyright (C) 2001-2004\r\n\
 \r\n\
 This program is free software; you can redistribute it and/or modify it \
@@ -127,14 +127,14 @@ LRESULT CAckDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 {
 	CenterWindow(GetParent());
 	SetDlgItemText(IDC_THANKS_EDIT, _T("\
-I want to thank all people who helped me and collaborated in one way or the other and helped OpenZelda to become what it is today:\r\n\r\n\
+I want to thank all people who helped me and collaborated in one way or the other and helped OpenLegends to become what it is today:\r\n\r\n\
       + GD for his magnificent idea and original design;\r\n\
       + Strider for his support and all the new Sprite Sheets \r\n\
           he is working on;\r\n\
       + System Failure for the OpenGL plugin he is working on;\r\n\
       + Fenris (a.k.a. Sk8erHacker) for testing and \r\n\
           excellent support;\r\n\
-      + Hylian for his support and the Open Zelda \r\n\
+      + Hylian for his support and the Open Legends \r\n\
           domain name;\r\n\
       + Lukex for maintaining the official website and \r\n\
           starting a very useful help file,\r\n\
@@ -143,7 +143,7 @@ I want to thank all people who helped me and collaborated in one way or the othe
       + LittleBuddy for his support as a consultant and \r\n\
           his scripting expertise;\r\n\
       + Alias Jargon;\r\n\
-      + Raichu19192, for testing and support;\r\n\
+      + KingOfHeart, for testing and support;\r\n\
       + HocusPocus;\r\n\
       + GodGinrai;\r\n\
       + and last, but not least, the guys at GU who have \r\n\

@@ -69,7 +69,7 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "2D graphics engine using DirectGraphics 8 designed for Open Zelda. http://www.openzelda.com/"
+            VALUE "Comments", "2D graphics engine using DirectGraphics 8 designed for Open Legends. http://www.openlegends.com/"
             VALUE "CompanyName", "by Kronuz"
             VALUE "FileDescription", "DirectX 8 2D Graphics Engine plugin v1.4"
             VALUE "FileVersion", "4, 0, 0, 0"
@@ -77,7 +77,7 @@ BEGIN
             VALUE "LegalCopyright", "Copyright © 2003-2004 by Kronuz. All rights reserved."
             VALUE "LegalTrademarks", "All trademarks are property of their respective owners."
             VALUE "OriginalFilename", "GraphicsD3D8.dll"
-            VALUE "ProductName", "Open Zelda library"
+            VALUE "ProductName", "Open Legends library"
             VALUE "ProductVersion", "4, 0, 0, 0"
         END
     END

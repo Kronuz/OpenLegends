@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -19,13 +19,13 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \if	FullDocs
 	\file		Script.cpp
-	\brief		Main Open Zelda core natives for the scripts
+	\brief		Main Open Legends core natives for the scripts
 	\date		August 10, 2003
 
-	Improvements in the scripting engine since last Open Zelda version:
+	Improvements in the scripting engine since last Open Legends version:
 	[08/10/03] - The Abstract Virtual Machine now uses assembler code, so 
 				 now the entities run about five times faster than they used
-				 to run in Open Zelda 6.2.4.
+				 to run in Open Legends 6.2.4.
 	[08/10/03] - The core natives now include the stricmp() function to compare
 				 case insensitive strings.
 	[08/09/03] - The floating point native functions now have full support
@@ -44,23 +44,23 @@
 */
 
 /*!
-	\defgroup openzelda Open Zelda API functions
-	This is the API for Open Zelda scripts.
+	\defgroup openlegends Open Legends API functions
+	This is the API for Open Legends scripts.
 */
 /*!
 	\defgroup core Small's Core Functions
-	\ingroup openzelda
+	\ingroup openlegends
 	Core native functions for the Small language.
 */
 /*! 
 	\defgroup float Floating-point related Functions
-	\ingroup openzelda
+	\ingroup openlegends
 	Float tag type native functions.
 */
 /*!
-	\defgroup general General Open Zelda Functions
-	\ingroup openzelda
-	Main Open Zelda core functions.
+	\defgroup general General Open Legends Functions
+	\ingroup openlegends
+	Main Open Legends core functions.
 */
 
 #include "stdafx.h"
@@ -169,7 +169,7 @@ static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 	return 0;	
 }
 
-// Define a List of native General functions (Open Zelda core natives)
+// Define a List of native General functions (Open Legends core natives)
 extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "UpdateWorldCo",  UpdateWorldCo },
 	{ "GetTimeDelta",  GetTimeDelta },

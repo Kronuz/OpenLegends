@@ -130,7 +130,7 @@ public:
 		pBitmap = pTreeInfo->GetThumbnail();// try to get the thumbnail
 
 		// check if the object contains a valid OZ file as the data:
-		_OpenZeldaFile *pOZFile = (_OpenZeldaFile*)(pTreeInfo->GetData());
+		_OpenLegendsFile *pOZFile = (_OpenLegendsFile*)(pTreeInfo->GetData());
 		if(pOZFile) if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) pOZFile = NULL;
 		if(pOZFile) {
 			hGlobal = GlobalAlloc(GMEM_MOVEABLE, pOZFile->dwSize);

@@ -69,14 +69,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "Open Zelda kernel designed for Open Zelda. http://www.openzelda.com/"
+            VALUE "Comments", "Open Legends kernel designed for Open Legends. http://www.openlegends.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Open Zelda Kernel"
+            VALUE "FileDescription", "Open Legends Kernel"
             VALUE "FileVersion", "4, 0, 0, 0"
             VALUE "InternalName", "Kernel"
             VALUE "LegalCopyright", "Copyright © 2003-2004 by Kronuz. All rights reserved."
             VALUE "OriginalFilename", "Kernel.dll"
-            VALUE "ProductName", "Open Zelda library"
+            VALUE "ProductName", "Open Legends library"
             VALUE "ProductVersion", "4, 0, 0, 0"
         END
     END

@@ -1,4 +1,4 @@
-;DESCRIPTION	'DirectGraphics 2D Graphics plugin for Open Zelda.'
+;DESCRIPTION	'DirectGraphics 2D Graphics plugin for Open Legends.'
 LIBRARY			GraphicsD3D8.dll
 EXPORTS
 	QueryGfxInterface

@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		Kernel.h
-	\brief		This is the main game module, the core engine of Open Zelda.
+	\brief		This is the main game module, the core engine of Open Legends.
 	\date		June 27, 2003
 	\author		Kronuz
 */

@@ -7,7 +7,7 @@
  *
  *  Version: $Id$
  *
- *  Modified by Kronuz for the Open Zelda Project. August 12, 2003.
+ *  Modified by Kronuz for the Open Legends Project. August 12, 2003.
  */
 
 #include "stdafx.h"

@@ -1,4 +1,4 @@
-;DESCRIPTION	'OpenGL 2D Graphics plugin for Open Zelda.'
+;DESCRIPTION	'OpenGL 2D Graphics plugin for Open Legends.'
 LIBRARY			GraphicsOGL.dll
 EXPORTS
 	QueryGfxInterface

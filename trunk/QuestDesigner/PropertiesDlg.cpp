@@ -1,6 +1,6 @@
-/* QuestDesigner - Open Zelda's Project
+/* QuestDesigner - Open Legends's Project
    Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
-   Copyright (C) 2001-2003. Open Zelda's Project
+   Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -47,7 +47,7 @@ LRESULT CPropertiesDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*
 	m_PropertiesTree.Attach(GetDlgItem(IDC_PROPERTIES_TREE));
 
 	// Add the tree items
-	hParent=m_PropertiesTree.InsertItem(TVIF_TEXT | TVIF_PARAM, "Open Zelda Core", 0, 0, 0, 0, PROPERTIES_SHEET_NOTIMPLEMENTED, TVI_ROOT,TVI_LAST);
+	hParent=m_PropertiesTree.InsertItem(TVIF_TEXT | TVIF_PARAM, "Open Legends Core", 0, 0, 0, 0, PROPERTIES_SHEET_NOTIMPLEMENTED, TVI_ROOT,TVI_LAST);
 	hItem=m_PropertiesTree.InsertItem(TVIF_TEXT | TVIF_PARAM, "Sprites", 0, 0, 0, 0, PROPERTIES_SHEET_NOTIMPLEMENTED, hParent, TVI_LAST);
 	hItem=m_PropertiesTree.InsertItem(TVIF_TEXT | TVIF_PARAM, "Entities", 0, 0, 0, 0, PROPERTIES_SHEET_NOTIMPLEMENTED, hParent, TVI_LAST);
 	hItem=m_PropertiesTree.InsertItem(TVIF_TEXT | TVIF_PARAM, "Scripts", 0, 0, 0, 0, PROPERTIES_SHEET_NOTIMPLEMENTED, hParent, TVI_LAST);
