@@ -89,7 +89,7 @@ LRESULT CBuildOutputBox::OnLButtonDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/, 
 			CString sFile = strLineText.Mid(0,show);
 			int line = sFile.ReverseFind('(');
 			CString sLine= sFile.Mid(line+1);
-			m_pMainFrame->FileOpen(sFile.Mid(0,line),atol(sLine));
+			m_pMainFrame->ScriptFileOpen(sFile.Mid(0,line),atol(sLine));
 /////////////////////
 		}
 	}

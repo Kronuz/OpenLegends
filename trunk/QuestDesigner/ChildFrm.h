@@ -39,6 +39,8 @@ public:
 	typedef CTabbedMDIChildWindowImpl<CChildFrame> baseClass;
 protected:
 
+	CChildView *m_pChildView;
+
 	// Pointer to main frame
 	CMainFrame *m_pMainFrame;
 
@@ -52,6 +54,8 @@ public:
 	_child_type m_ChildType;
 	// Name given to the child window
 	CString m_sChildName;
+
+	bool hasChanged();
 
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
 

@@ -64,7 +64,7 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 	SetIcon(hIcon, ICON_SMALL);
 	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIMAPED)));
 
-	m_pMapEditorView = new CMapEditorView(this);
+	m_pChildView = m_pMapEditorView = new CMapEditorView(this);
 
 	// create our view
 	m_hWndClient = m_pMapEditorView->Create(m_hWnd, 

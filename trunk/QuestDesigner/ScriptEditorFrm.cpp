@@ -67,7 +67,7 @@ LRESULT CScriptEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
 	SetIcon(hIcon, ICON_SMALL);
 	SetMenu(::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDISCRIPTED)));
 
-	m_pScriptEditorView = new CScriptEditorView(this);
+	m_pChildView = m_pScriptEditorView = new CScriptEditorView(this);
 
 	// create our view
 	m_hWndClient = m_pScriptEditorView->Create(	m_hWnd, 

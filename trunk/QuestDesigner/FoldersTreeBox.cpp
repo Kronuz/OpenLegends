@@ -25,6 +25,8 @@
 
 #include "FoldersTreeBox.h"
 
+#include "MainFrm.h"
+
 BOOL CFoldersTreeBox::PreTranslateMessage(MSG* pMsg)
 {
 	return FALSE;
@@ -157,4 +159,14 @@ void CFoldersTreeBox::PopulateTree(LPCSTR szRootFolder)
 {
 	m_ctrlTree.SetRootFolder(szRootFolder);
 	m_ctrlTree.PostMessage(WM_POPULATE_TREE);
+}
+
+LRESULT CFoldersTreeBox::OnFileItemSelected(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+{
+	LPCSTR FileName = (LPCSTR)wParam;
+	if(*FileName=='E') m_pMainFrame->ScriptFileOpen(FileName+1, 0); // Entity (Script)
+	else if(*FileName=='W') NULL; // World
+	else if(*FileName=='M') NULL; // Map
+	else if(*FileName=='S') NULL; // Sprite (Sprite Sheet)
+	return TRUE;
 }

@@ -1,19 +1,20 @@
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 //
-//  CodeMax Code Editor Control
+//  CodeMax/CodeSense Code Editor Control
 //
-//  Copyright © 1997-2000  WinMain Software
+//  Original Copyright © 1997-2003 WinMain Software
+//  Portions Copyright © 2000-2003 Nathan Lewis
 //
-//  This header file declares all exported functionality of the CodeMax custom
-//  control.  For a complete description of all declarations below, please refer
-//  to the CodeMax documentation.
+//  This header file declares all exported functionality of the CodeMax
+//  custom control.  For a complete description of all declarations below,
+//  please refer to the CodeMax documentation.
 //
-/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
-#ifndef __CODEMAX_H__
-#define __CODEMAX_H__
+#ifndef _CODESENSE_H__INCLUDED_
+#define _CODESENSE_H__INCLUDED_
 
-#define CODEMAXWNDCLASS _T("CodeMax")
+#define CODESENSEWNDCLASS _T("CodeSense")
 
 #ifdef __cplusplus
 #define EXTERN_C extern "C"
@@ -46,13 +47,16 @@
 #define CM_MIN_TABSIZE                 2
 // left margin width (pixels)
 #define CM_CXLEFTMARGIN                24
+// maximum CodeList tooltip text length
+#define CM_MAX_CODELIST_TIP				128
+
 /////////////////////////////////////////////////////////////
 //
 // CMM_SETLINESTYLE style bits
 //
 //
 #define CML_OWNERDRAW      0x1      // Parent window should receive CMN_DRAWLINE notifications
-#define CML_NOTIFY_DEL     0x2      // Parent window should receive CMN_LINEDELETED notifications
+#define CML_NOTIFY_DEL     0x2      // Parent window should receive CMN_DELETELINE notifications
 
 /////////////////////////////////////////////////////////////
 //
@@ -198,6 +202,13 @@
 // 2.1
 #define CMM_SETBORDERSTYLE             ( WM_USER + 4160 )
 #define CMM_GETBORDERSTYLE             ( WM_USER + 4170 )
+#define CMM_SETCURRENTVIEW             ( WM_USER + 4180 )
+
+// Changed due to addition of CMM_SETCURRENTVIEW in CodeMax 2.1.0.14
+//#define CMM_GETCURRENTTOKEN            ( WM_USER + 4180 )
+#define CMM_GETCURRENTTOKEN            ( WM_USER + 5000 )
+#define CMM_UPDATECONTROLPOSITIONS     ( WM_USER + 5010 )
+
 
 /////////////////////////////////////////////////////////////
 //
@@ -230,6 +241,19 @@
 
 // 2.1
 #define CMN_FINDWRAPPED                310      // a find operation wrapped to start/end of buffer
+
+#define CMN_CODELIST                   320      // user has activated CodeList control
+#define CMN_CODELISTSELMADE            330      // user has selected an item in CodeList control
+#define CMN_CODELISTCANCEL             340      // user cancelled CodeList control
+#define CMN_CODELISTCHAR               350      // CodeList control received a WM_CHAR message
+#define CMN_CODETIP                    360      // user has activated CodeTip control
+#define CMN_CODETIPINITIALIZE          365      // application should initialize CodeTip control
+#define CMN_CODETIPCANCEL              370      // user cancelled CodeTip control
+#define CMN_CODETIPUPDATE              380      // the CodeTip control is about to be updated
+#define CMN_CODELISTSELWORD            390      // the CodeList control is about to select new item
+#define CMN_CODELISTSELCHANGE          400      // the CodeList selection has changed
+#define CMN_CODELISTHOTTRACK           410      // the mouse hot-tracking selection has changed
+
 
 /////////////////////////////////////////////////////////////
 //
@@ -381,7 +405,10 @@
 #define CMD_WHITESPACEDISPLAYOFF        ( CMD_FIRST + 139 )
 #define CMD_OVERTYPEON                  ( CMD_FIRST + 140 )
 #define CMD_OVERTYPEOFF                 ( CMD_FIRST + 141 )
-#define CMD_LAST                        ( CMD_FIRST + 141 )
+// 2.1
+#define CMD_CODELIST                    ( CMD_FIRST + 142 )
+#define CMD_CODETIP                     ( CMD_FIRST + 143 )
+#define CMD_LAST                        ( CMD_FIRST + 143 )
 
 // all register commands must be at or higher than CMD_USER_BASE
 #define CMD_USER_BASE                   ( CMD_FIRST + 900 )
@@ -608,7 +635,6 @@ typedef struct _CM_CMDFAILUREDATA {
     DWORD dwErr;        // CMDERR_XXX failure code
 } CM_CMDFAILUREDATA;
 
-
 /////////////////////////////////////////////////////////////
 //
 // CMN_REGISTEREDCMD notification data passed to parent window
@@ -661,6 +687,130 @@ typedef struct _CM_FINDWRAPPEDDATA {
     BOOL bForward;      // TRUE if wrapped while searching forward, FALSE if searching backward
 } CM_FINDWRAPPEDDATA;
 
+
+/////////////////////////////////////////////////////////////
+//
+// CMN_CODELIST, CMN_CODELISTSELMADE, CMN_CODELISTCANCEL
+// notification data passed to parent window
+//
+typedef struct _CM_CODELISTDATA
+{
+	NMHDR	hdr;		// standard notification data
+	HWND	hListCtrl;	// handle to list view control window
+
+} CM_CODELISTDATA, *LPCM_CODELISTDATA;
+
+
+/////////////////////////////////////////////////////////////
+//
+// CMN_CODELISTCHAR notification data passed to parent
+// window
+//
+typedef struct _CM_CODELISTKEYDATA
+{
+	CM_CODELISTDATA		clData;
+	WPARAM				wChar;		// character code of key pressed
+	LPARAM				lKeyData;	// key data (repeat count, scan code, etc.)
+
+} CM_CODELISTKEYDATA, *LPCM_CODELISTKEYDATA;
+
+
+/////////////////////////////////////////////////////////////
+//
+// CMN_CODELISTSELWORD notification data passed to parent
+// window
+//
+typedef struct _CM_CODELISTSELWORDDATA
+{
+	CM_CODELISTDATA		clData;
+	int					iItem;		// list item about to be selected
+
+} CM_CODELISTSELWORDDATA, *LPCM_CODELISTSELWORDDATA;
+
+
+/////////////////////////////////////////////////////////////
+//
+// CMN_CODELISTSELCHANGE notification data passed to parent
+// window
+//
+typedef struct _CM_CODELISTSELCHANGEDATA
+{
+	CM_CODELISTDATA		clData;
+	int					iItem;
+	LPTSTR				pszText;
+	TCHAR				szText[CM_MAX_CODELIST_TIP];
+	HINSTANCE			hInstance;
+
+} CM_CODELISTSELCHANGEDATA, *LPCM_CODELISTSELCHANGEDATA;
+
+
+/////////////////////////////////////////////////////////////
+//
+// CMN_CODELISTHOTTRACK notification data passed to parent
+// window
+//
+typedef struct _CM_CODELISTHOTTRACKDATA
+{
+	CM_CODELISTDATA		clData;
+	int					iItem;		// index of the list item that is "hot"
+
+} CM_CODELISTHOTTRACKDATA, *LPCM_CODELISTHOTTRACKDATA;
+
+
+/////////////////////////////////////////////////////////////
+//
+// CMN_CODETIPCANCEL, CMN_CODETIPINITIALIZE,
+// CMN_CODETIPUPDATE notification data passed to parent
+// window
+//
+
+// Structure used if nTipType is set to CM_TIPSTYLE_NORMAL
+typedef struct _CM_CODETIPDATA
+{
+	NMHDR	hdr;		// standard notification data
+	HWND	hToolTip;	// handle to tooltip window
+	UINT	nTipType;	// type of tooltip in use
+
+} CM_CODETIPDATA, *LPCM_CODETIPDATA;
+
+// Structure used if nTipType is set to CM_TIPSTYLE_HIGHLIGHT
+typedef struct _CM_CODETIPHIGHLIGHTDATA
+{
+	CM_CODETIPDATA		ctData;
+	UINT				nHighlightStartPos;
+	UINT				nHighlightEndPos;
+
+} CM_CODETIPHIGHLIGHTDATA, *LPCM_CODETIPHIGHLIGHTDATA;
+
+// structure used if nTipType is set to CM_TIPSTYLE_FUNCHIGHLIGHT
+typedef struct _CM_CODETIPFUNCHIGHLIGHTDATA
+{
+	CM_CODETIPDATA		ctData;
+	UINT				nArgument;
+
+} CM_CODETIPFUNCHIGHLIGHTDATA, *LPCM_CODETIPFUNCHIGHLIGHTDATA;
+
+// structure used if nTipType is set to CM_TIPSTYLE_MULTIFUNC
+typedef struct _CM_CODETIPMULTIFUNCDATA
+{
+	CM_CODETIPFUNCHIGHLIGHTDATA		ctfData;
+	UINT							nFuncCount;
+	UINT							nCurrFunc;
+
+} CM_CODETIPMULTIFUNCDATA, *LPCM_CODETIPMULTIFUNCDATA;
+
+/////////////////////////////////////////////////////////////
+//
+// Tooltip window styles specified as return value from
+// CMN_CODETIP notifications
+//
+#define CM_TIPSTYLE_NONE				0	// don't display a tooltip
+#define CM_TIPSTYLE_NORMAL				1	// standard tooltip window
+#define CM_TIPSTYLE_HIGHLIGHT			2	// tooltip with text highlighting
+#define CM_TIPSTYLE_FUNCHIGHLIGHT		3	// tooltip with function highlighting
+#define CM_TIPSTYLE_MULTIFUNC			4	// highlighting for multiple functions
+
+
 /////////////////////////////////////////////////////////////
 //
 // data passed to CMM_SETLINENUMBERING
@@ -703,6 +853,25 @@ typedef LRESULT CME_CODE;
 #define CM_VSCROLLBAR      6        // Over the vertical scrollbar
 #define CM_SIZEBOX         7        // Over the sizebox visible when both scrollbars are visible
 #define CM_LEFTMARGIN      8        // Over the left margin area
+
+
+/////////////////////////////////////////////////////////////
+//
+// CMM_GETCURRENTTOKEN return codes
+//
+//
+
+#define CM_TOKENTYPE_KEYWORD					0x01
+#define CM_TOKENTYPE_OPERATOR					0x02
+#define CM_TOKENTYPE_STRING						0x03
+#define CM_TOKENTYPE_SINGLELINECOMMENT			0x04
+#define CM_TOKENTYPE_MULTILINECOMMENT			0x05
+#define CM_TOKENTYPE_NUMBER						0x06
+#define CM_TOKENTYPE_SCOPEBEGIN					0x07
+#define CM_TOKENTYPE_SCOPEEND					0x08
+#define CM_TOKENTYPE_TEXT						0xff
+#define CM_TOKENTYPE_UNKNOWN					(DWORD)-1
+
 
 /////////////////////////////////////////////////////////////
 //
@@ -904,6 +1073,8 @@ EXTERN_C CME_CODE CMUnregisterCommand( WORD wCmd );
                 ( ( BOOL ) ::SendMessage( hWnd, CMM_GETFONTOWNERSHIP, 0, 0 ) )
 #define CM_GetCurrentView( hWnd ) \
                 ( ( int ) ::SendMessage( hWnd, CMM_GETCURRENTVIEW, 0, 0 ) )
+#define CM_SetCurrentView( hWnd, nLine ) \
+                ( ( CME_CODE ) ::SendMessage( hWnd, CMM_SETCURRENTVIEW, nLine, 0 ) )
 #define CM_GetViewCount( hWnd ) \
                 ( ( int ) ::SendMessage( hWnd, CMM_GETVIEWCOUNT, 0, 0 ) )
 #define CM_ShowScrollBar( hWnd, bHorz, bShow ) \
@@ -1014,4 +1185,12 @@ EXTERN_C CME_CODE CMUnregisterCommand( WORD wCmd );
                 ( ( CME_CODE ) ::SendMessage( hWnd, CMM_SETBORDERSTYLE, ( WPARAM ) ( dwStyle ), 0 ) )
 #define CM_GetBorderStyle( hWnd ) \
                 ( ( DWORD ) ::SendMessage( hWnd, CMM_GETBORDERSTYLE, 0, 0 ) )
-#endif
+#define CM_GetCurrentToken( hWnd ) \
+                ( ( DWORD ) ::SendMessage( hWnd, CMM_GETCURRENTTOKEN, 0, 0 ) )
+#define CM_UpdateControlPositions( hWnd ) \
+                ( ( void ) ::SendMessage( hWnd, CMM_UPDATECONTROLPOSITIONS, 0, 0 ) )
+
+
+/////////////////////////////////////////////////////////////////////////////////
+
+#endif//#ifndef _CODESENSE_H__INCLUDED_

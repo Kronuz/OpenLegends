@@ -7,7 +7,7 @@ int ForEachFile(LPCSTR lpFileName, FILESPROC ForEach, LPARAM lParam, int flags)
 	int files=0;
 	char filename[_MAX_PATH];
 	lstrcpy(filename, lpFileName);
-	LPTSTR fin = strchr(filename, '\0');
+	LPSTR fin = strchr(filename, '\0');
 
 	while(fin!=filename && *fin!='\\') fin = CharPrev(filename, fin);
 	if(*fin == '\\') fin = CharNext(fin);
@@ -23,7 +23,7 @@ int ForEachFile(LPCSTR lpFileName, FILESPROC ForEach, LPARAM lParam, int flags)
 			*fin = '\0';
 			lstrcat(filename, FindData.cFileName);
 
-			LPTSTR aux = strchr(filename, '\0');
+			LPSTR aux = strchr(filename, '\0');
 			if(flags & FEF_NOEXT) {
 				while(aux!=filename && *aux!='\\' && *aux!='.') aux = CharPrev(filename, aux);
 				if(*aux=='.') { *aux = '\0'; aux = CharPrev(filename, aux); }
@@ -48,3 +48,209 @@ int ForEachFile(LPCSTR lpFileName, FILESPROC ForEach, LPARAM lParam, int flags)
 	}
 	return files;
 }
+// returns key for HKEY_CURRENT_USER\"Software"\RegistryKey\ProfileName
+// creating it if it doesn't exist
+// responsibility of the caller to call RegCloseKey() on the returned HKEY
+HKEY GetAppRegistryKey( LPCSTR pszRegistryKey, LPCSTR pszProfileName  )
+{
+	ASSERT( pszRegistryKey != NULL  );
+	ASSERT( pszProfileName != NULL  );
+
+	HKEY hAppKey = NULL;
+	HKEY hSoftKey = NULL;
+	HKEY hCompanyKey = NULL;
+	if ( RegOpenKeyEx( HKEY_CURRENT_USER, "Software", 0, KEY_WRITE|KEY_READ,
+		&hSoftKey ) == ERROR_SUCCESS )
+	{
+		DWORD dw;
+		if ( RegCreateKeyEx( hSoftKey, pszRegistryKey, 0, REG_NONE,
+			REG_OPTION_NON_VOLATILE, KEY_WRITE|KEY_READ, NULL,
+			&hCompanyKey, &dw ) == ERROR_SUCCESS )
+		{
+			RegCreateKeyEx( hCompanyKey, pszProfileName, 0, REG_NONE,
+				REG_OPTION_NON_VOLATILE, KEY_WRITE|KEY_READ, NULL,
+				&hAppKey, &dw );
+		}
+	}
+	if ( hSoftKey != NULL )
+		RegCloseKey( hSoftKey );
+	if ( hCompanyKey != NULL )
+		RegCloseKey( hCompanyKey );
+
+	return hAppKey;
+}
+
+// returns key for:
+//      HKEY_CURRENT_USER\"Software"\RegistryKey\AppName\pszSection
+// creating it if it doesn't exist.
+// responsibility of the caller to call RegCloseKey() on the returned HKEY
+HKEY GetSectionKey( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection  )
+{
+	ASSERT( pszSection != NULL );
+
+	HKEY hSectionKey = NULL;
+	HKEY hAppKey = GetAppRegistryKey( pszRegistryKey, pszProfileName  );
+	if ( hAppKey == NULL )
+		return NULL;
+
+	DWORD dw;
+	RegCreateKeyEx( hAppKey, pszSection, 0, REG_NONE,
+		REG_OPTION_NON_VOLATILE, KEY_WRITE|KEY_READ, NULL,
+		&hSectionKey, &dw );
+	RegCloseKey( hAppKey );
+	return hSectionKey;
+}
+
+UINT RegGetProfileInt( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, int nDefault )
+{
+	ASSERT( pszSection != NULL );
+	ASSERT( pszEntry != NULL );
+	HKEY hSecKey = GetSectionKey( pszRegistryKey, pszProfileName, pszSection );
+	if ( hSecKey == NULL )
+	{
+		return nDefault;
+	}
+	else
+	{
+		DWORD dwValue;
+		DWORD dwType;
+		DWORD dwCount = sizeof( DWORD );
+		LONG lResult = RegQueryValueEx( hSecKey, ( LPSTR )pszEntry, NULL, &dwType,
+		( LPBYTE )&dwValue, &dwCount );
+		RegCloseKey( hSecKey );
+		if ( lResult == ERROR_SUCCESS )
+		{
+			ASSERT( dwType == REG_DWORD );
+			ASSERT( dwCount == sizeof( dwValue ) );
+			return ( UINT )dwValue;
+		}
+	}
+	return nDefault;
+}
+
+// buffer pointed to by pszText must be 1024 bytes long.
+LPCSTR RegGetProfileString( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, LPSTR pszValue, LPCSTR pszDefault )
+{
+	ASSERT( pszSection != NULL );
+	ASSERT( pszEntry != NULL );
+	HKEY hSecKey = GetSectionKey( pszRegistryKey, pszProfileName, pszSection );
+	if ( hSecKey == NULL )
+		return pszDefault;
+	DWORD dwType, dwCount;
+	LONG lResult = RegQueryValueEx( hSecKey, ( LPSTR )pszEntry, NULL, &dwType,
+		NULL, &dwCount );
+	if ( lResult == ERROR_SUCCESS )
+	{
+		ASSERT( dwType == REG_SZ );
+		LPSTR pszOut = new char[ dwCount + 1 ];
+		lResult = RegQueryValueEx( hSecKey, ( LPSTR )pszEntry, NULL, &dwType,
+			( LPBYTE )pszOut, &dwCount );
+		strncpy( pszValue, pszOut, min( 1024, dwCount ) );
+		pszValue[ 1024 ] = '\0';
+		delete [] pszOut;
+	}
+	RegCloseKey( hSecKey );
+	if ( lResult == ERROR_SUCCESS )
+	{
+		ASSERT( dwType == REG_SZ );
+		return pszValue;
+	}
+	return pszDefault;
+}
+
+BOOL RegGetProfileBinary( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry,	BYTE** ppData, UINT* pBytes )
+{
+	ASSERT( pszSection != NULL );
+	ASSERT( pszEntry != NULL );
+	ASSERT( ppData != NULL );
+	ASSERT( pBytes != NULL );
+	*ppData = NULL;
+	*pBytes = 0;
+	HKEY hSecKey = GetSectionKey( pszRegistryKey, pszProfileName, pszSection );
+	if ( hSecKey == NULL )
+		return FALSE;
+
+	DWORD dwType, dwCount;
+	LONG lResult = RegQueryValueEx( hSecKey, ( LPSTR )pszEntry, NULL, &dwType,
+		NULL, &dwCount );
+	*pBytes = dwCount;
+	if ( lResult == ERROR_SUCCESS )
+	{
+		ASSERT( dwType == REG_BINARY );
+		*ppData = new BYTE[*pBytes];
+		lResult = RegQueryValueEx( hSecKey, ( LPSTR )pszEntry, NULL, &dwType,
+			*ppData, &dwCount );
+	}
+	RegCloseKey( hSecKey );
+	if ( lResult == ERROR_SUCCESS )
+	{
+		ASSERT( dwType == REG_BINARY );
+		return TRUE;
+	}
+	else
+	{
+		delete [] *ppData;
+		*ppData = NULL;
+	}
+	return FALSE;
+}
+
+BOOL RegWriteProfileInt( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, int nValue )
+{
+	ASSERT( pszSection != NULL );
+	ASSERT( pszEntry != NULL );
+	HKEY hSecKey = GetSectionKey( pszRegistryKey, pszProfileName, pszSection );
+	if ( hSecKey == NULL )
+		return FALSE;
+	LONG lResult = RegSetValueEx( hSecKey, pszEntry, NULL, REG_DWORD,
+		( LPBYTE )&nValue, sizeof( nValue ) );
+	RegCloseKey( hSecKey );
+	return lResult == ERROR_SUCCESS;
+}
+
+BOOL RegWriteProfileString( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, LPCSTR pszValue )
+{
+	ASSERT( pszSection != NULL );
+	LONG lResult;
+	if ( pszEntry == NULL ) //delete whole section
+	{
+		HKEY hAppKey = GetAppRegistryKey( pszRegistryKey, pszProfileName );
+		if ( hAppKey == NULL )
+			return FALSE;
+		lResult = RegDeleteKey( hAppKey, pszSection );
+		RegCloseKey( hAppKey );
+	}
+	else if ( pszValue == NULL )
+	{
+		HKEY hSecKey = GetSectionKey( pszRegistryKey, pszProfileName, pszSection );
+		if ( hSecKey == NULL )
+			return FALSE;
+		// necessary to cast away const below
+		lResult = RegDeleteValue( hSecKey, ( LPSTR )pszEntry );
+		RegCloseKey( hSecKey );
+	}
+	else
+	{
+		HKEY hSecKey = GetSectionKey( pszRegistryKey, pszProfileName, pszSection );
+		if ( hSecKey == NULL )
+			return FALSE;
+		lResult = RegSetValueEx( hSecKey, pszEntry, NULL, REG_SZ,
+			( LPBYTE )pszValue, ( strlen( pszValue )+1 )*sizeof( char ) );
+		RegCloseKey( hSecKey );
+	}
+	return lResult == ERROR_SUCCESS;
+}
+
+BOOL RegWriteProfileBinary( LPCSTR pszRegistryKey, LPCSTR pszProfileName, LPCSTR pszSection, LPCSTR pszEntry, LPBYTE pData, UINT nBytes )
+{
+	ASSERT( pszSection != NULL );
+	LONG lResult;
+	HKEY hSecKey = GetSectionKey( pszRegistryKey, pszProfileName, pszSection );
+	if ( hSecKey == NULL )
+		return FALSE;
+	lResult = RegSetValueEx( hSecKey, pszEntry, NULL, REG_BINARY,
+		pData, nBytes );
+	RegCloseKey( hSecKey );
+	return lResult == ERROR_SUCCESS;
+}
+

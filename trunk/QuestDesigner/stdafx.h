@@ -25,6 +25,9 @@
 				July 20, 2003
 */
 
+#define APPNAME _T("Quest Designer")
+#define COMPANY _T("Open Zelda")
+
 #pragma once
 
 #pragma warning ( disable : 4530 )
@@ -52,6 +55,9 @@
 #endif
 
 #include <atlapp.h>
+
+#include <HtmlHelp.h>
+#pragma comment ( lib, "htmlhelp.lib" )
 
 extern CAppModule _Module;
 
@@ -82,6 +88,7 @@ extern CAppModule _Module;
 
 //#define _NO_MISCSTRING
 #define _NO_MISCTYPES
+
 #include "..\Misc.h"
 
 #include "IdleHandlerPump.h"
@@ -151,7 +158,7 @@ extern CAppModule _Module;
 	}
 
 /////////////////////////////////////////////////////////////////////////////
-// Bug fixes needed:
+// Bug fixes and updates needed:
 #if _ATL_VER == 0x0700
 #ifndef __MAXIMIZE_FIXUPDATE
 	#error WTL BUGFIX: MDI windows need a maximization related bugfix to work (see here)

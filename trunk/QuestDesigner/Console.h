@@ -55,6 +55,11 @@ public:
 	char *gets(char *buffer) { return NULL; }
 	int print(const char *format, va_list argptr);
 	int printf(const char *format, ...);
+	int putch(int c) { printf("%c", c); return 1; }
+
+	int gets(char *buffer, int buffsize) { return 0; }
+	int getch() { return 0; }
+
 	int error(int number, char *message, char *filename, int firstline, int lastline, va_list argptr);
 
 	static CConsole *Instance();

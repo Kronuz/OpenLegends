@@ -107,7 +107,7 @@
 
 CAppModule _Module;
 
-int StartCodeMax(CodeMaxLibrary *cmaxlib)
+int StartCodeSense(CodeSenseLibrary *cmaxlib)
 {
 	CM_LANGUAGE LangZES = { 
 	// language style
@@ -185,13 +185,13 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 {
 	CMainFrame wndMain;
 	CMessageLoop theLoop;
-	CodeMaxLibrary cmaxlib;
+	CodeSenseLibrary cmaxlib;
 
 	_Module.AddMessageLoop(&theLoop);
 	
 
-	if(!StartCodeMax(&cmaxlib)) {
-		ATLTRACE ( _T ( "CodeMax initialization failed!\n" ) );
+	if(!StartCodeSense(&cmaxlib)) {
+		ATLTRACE ( _T ( "CodeSense initialization failed!\n" ) );
 		return 0; // bail...
 	}
 

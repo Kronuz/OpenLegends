@@ -29,8 +29,17 @@
 #include <ssfiledialog.h>
 
 CScriptEditorView::CScriptEditorView(CScriptEditorFrame *pParentFrame) :
-	CChildView(pParentFrame)
+	CChildView(pParentFrame),
+	m_bModified(false),
+	m_hFont(NULL)
 {
+	m_szTipFunc[0] = _T('\0');
+}
+CScriptEditorView::~CScriptEditorView()
+{
+	if(m_hFont) {
+		DeleteObject(m_hFont);
+	}
 }
 
 // Called to translate window messages before they are dispatched 
@@ -47,7 +56,7 @@ BOOL CScriptEditorView::OnIdle()
 	// Update position display in the status bar
 	UIUpdateStatusBar();
 
-	bool bModified = (IsModified()?1:0);
+	bool bModified = (IsModified()?true:false);
 	if(bModified != m_bModified) {
 		m_bModified = bModified;
 		if(m_bModified) {
@@ -73,17 +82,28 @@ void CScriptEditorView::OnFinalMessage(HWND /*hWnd*/)
 
 LRESULT CScriptEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
-	// Let the CodeMax control be created
+	// Let the CodeSense control be created
 	LRESULT nResult = DefWindowProc();
-	// Set the current language and enable syntax highlighting
+	// Set the current language and load the profile
 	CME_VERIFY(SetLanguage(CMLANG_ZES));
-	CME_VERIFY(EnableColorSyntax());
-	CME_VERIFY(SetTabSize(3));
+
+	::CMRegisterCommand( CMD_HELP, _T("Help"), _T("Help") );
+	CM_HOTKEY cmHotKey = { 0, VK_F1, 0, 0 };
+	CMRegisterHotKey( &cmHotKey, CMD_HELP );
+
+	LoadProfile();
 
 	return nResult;
 }
 LRESULT CScriptEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
+	SaveProfile();
+	return 0;
+}
+
+LRESULT CScriptEditorView::OnMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
+{
+	UpdateControlPositions();
 	return 0;
 }
 
@@ -114,6 +134,21 @@ LRESULT CScriptEditorView::OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /
 LRESULT CScriptEditorView::OnFileSaveAs(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	DoFileSaveAs();
+	return 0;
+}
+
+LRESULT CScriptEditorView::OnCodeList1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	CodeList();
+	return 0;
+}
+LRESULT CScriptEditorView::OnCodeTip1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	CodeTip();
+	return 0;
+}
+LRESULT CScriptEditorView::OnCodeTip2(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
 	return 0;
 }
 
@@ -347,9 +382,9 @@ void CScriptEditorView::UIUpdateMenuItems()
 	CMainFrame *pMainFrm = GetMainFrame();
 	CUpdateUIBase *pUpdateUI = pMainFrm->GetUpdateUI();
 
-	pUpdateUI->UIEnable(ID_SCRIPTED_RELOAD, !m_sFilePath.IsEmpty());
-	pUpdateUI->UIEnable(ID_SCRIPTED_SAVE, IsModified());	
-	pUpdateUI->UIEnable(ID_SCRIPTED_SAVE_AS, TRUE );
+	pUpdateUI->UIEnable(ID_APP_RELOAD, !m_sFilePath.IsEmpty());
+	pUpdateUI->UIEnable(ID_APP_SAVE, IsModified());	
+	pUpdateUI->UIEnable(ID_APP_SAVE_AS, TRUE );
 		
 	pUpdateUI->UIEnable(ID_UNDO, CanUndo());
 	pUpdateUI->UIEnable(ID_REDO, CanRedo());
@@ -369,6 +404,10 @@ void CScriptEditorView::UIUpdateMenuItems()
 	BOOL bSelection, bColumnSelection;
 	bSelection = IsSelection(bColumnSelection);
 
+	pUpdateUI->UIEnable(ID_SCRIPTED_CODELIST, TRUE );
+	pUpdateUI->UIEnable(ID_SCRIPTED_CODETIP1, TRUE );
+	pUpdateUI->UIEnable(ID_SCRIPTED_CODETIP2, TRUE );
+
 	pUpdateUI->UIEnable(ID_SCRIPTED_TAB, TRUE ); // can always indent
 	pUpdateUI->UIEnable(ID_SCRIPTED_UNTAB, (bSelection && !bColumnSelection));
 
@@ -385,4 +424,516 @@ void CScriptEditorView::UIUpdateMenuItems()
 	pUpdateUI->UIEnable(ID_SCRIPTED_GOTO_NEXT_BOOKMARK, nCount>0);
 	pUpdateUI->UIEnable(ID_SCRIPTED_GOTO_PREV_BOOKMARK, nCount>0);
 	pUpdateUI->UIEnable(ID_SCRIPTED_CLEAR_ALL_BOOKMARKS, nCount>0);
+}
+
+bool CScriptEditorView::hasChanged()
+{
+	return (IsModified()?true:false);
+}
+
+void CScriptEditorView::OnRegisteredCommand ( CM_REGISTEREDCMDDATA *prcd )
+{
+	switch ( prcd->wCmd )
+	{
+		case CMD_HELP: {
+			char word[101];
+			int len = GetWordLength(NULL);
+			if(len>0 && len<100) {
+				GetWord(word, NULL);
+
+				HH_AKLINK link;
+				link.cbStruct =     sizeof(HH_AKLINK) ;
+				link.fReserved =    FALSE;
+				link.pszKeywords =  word; 
+				link.pszUrl =       NULL; 
+				link.pszMsgText =   NULL; 
+				link.pszMsgTitle =  NULL; 
+				link.pszWindow =    NULL;
+				link.fIndexOnFail = TRUE;
+
+				static DWORD dwCookie = NULL;
+				if(dwCookie==NULL) HtmlHelp(NULL, NULL, HH_INITIALIZE, (DWORD)&dwCookie);
+
+				HtmlHelp(m_hWnd, "ozscript.chm", HH_DISPLAY_TOC, NULL);
+				HtmlHelp(GetDesktopWindow(), "ozscript.chm", HH_KEYWORD_LOOKUP, (DWORD)&link);
+				HtmlHelp(m_hWnd, "ozscript.chm", HH_SYNC, NULL);
+			}
+		} break;
+	}
+}
+
+BOOL CScriptEditorView::OnKeyPress ( CM_KEYDATA *pkd )
+{
+	// Invoke the CodeTip feature when the user presses the '(' key. We'll
+	// determine whether or not we are actually ready to handle the message
+	// in the OnCodeTip() handler.
+	//
+	if( '(' == pkd->nKeyCode ) {
+		CodeTip();
+	}
+
+	return FALSE;
+}
+
+LRESULT CScriptEditorView::OnCodeTip ( CM_CODETIPDATA * )
+{
+	// We don't want to display a tip inside quoted or commented-out lines...
+	DWORD dwToken = GetCurrentToken();
+
+	if( CM_TOKENTYPE_TEXT == dwToken || CM_TOKENTYPE_KEYWORD == dwToken || CM_TOKENTYPE_UNKNOWN == dwToken ) {
+		// See if there is a valid function on the current line
+		if( GetCurrentFunction( NULL ) ) {
+			// We want to use the tooltip control that automatically
+			// highlights the arguments in the function prototypes for us.
+			// This type also provides support for overloaded function
+			// prototypes.
+			//
+			return CM_TIPSTYLE_MULTIFUNC;
+		}
+	}
+
+	// Don't display a tooltip
+	return CM_TIPSTYLE_NONE;
+}
+
+BOOL CScriptEditorView::OnCodeTipInitialize( CM_CODETIPDATA *pctd )
+{
+	ASSERT( CM_TIPSTYLE_MULTIFUNC == pctd->nTipType );
+
+	HWND hToolTip = pctd->hToolTip;
+	ASSERT( NULL != hToolTip );
+
+	LPCM_CODETIPMULTIFUNCDATA pmfData = (LPCM_CODETIPMULTIFUNCDATA)pctd;
+
+	// Save name of current function
+	GetCurrentFunction( m_szTipFunc );
+
+	// Default to first function prototype
+	pmfData->nCurrFunc = 0;
+
+	// Get first prototype for function
+	char szProto[MAX_FUNC_PROTO] = {0};
+	GetPrototype( m_szTipFunc, szProto, pmfData );
+
+	// Set tooltip text
+	::SetWindowText( hToolTip, szProto );
+
+	// Default to first argument
+	pmfData->ctfData.nArgument = 1;
+
+	// Apply changes to pmfData members
+	return TRUE;
+}
+BOOL CScriptEditorView::OnCodeTipUpdate( CM_CODETIPDATA *pctd )
+{
+	ASSERT( CM_TIPSTYLE_MULTIFUNC == pctd->nTipType );
+
+	HWND hToolTip = pctd->hToolTip;
+	ASSERT( NULL != hToolTip );
+
+	LPCM_CODETIPMULTIFUNCDATA pmfData = (LPCM_CODETIPMULTIFUNCDATA)pctd;
+
+	// Destroy the tooltip window if the caret is moved above or before the
+	// starting point.
+	//
+	CM_RANGE range = {0};
+
+	CME_VERIFY( GetSel( &range, TRUE ) );
+
+	if( range.posEnd.nLine < m_posSel.nLine ||
+		( range.posEnd.nCol < m_posSel.nCol &&
+		range.posEnd.nLine == m_posSel.nLine ) )
+	{
+		// Caret moved too far up / back
+		::DestroyWindow( hToolTip );
+		return FALSE;
+	}
+	else 
+	{
+		// Determine which argument to highlight
+		pmfData->ctfData.nArgument = GetCurrentArgument();
+
+		if( -1 == pmfData->ctfData.nArgument ) {
+			::DestroyWindow( hToolTip );// Right-paren found
+			return FALSE;
+		} else if( pmfData->nFuncCount )
+		{
+			// Function is overloaded, so get current prototype
+			char szProto[MAX_FUNC_PROTO] = {0};
+			GetPrototype( m_szTipFunc, szProto, pmfData );
+
+			// Set tooltip text
+			::SetWindowText( hToolTip, szProto );
+		}
+	}
+
+	// Apply changes to pmfData members
+	return TRUE;
+}
+
+int CScriptEditorView::GetCurrentArgument()
+{
+	// Parse the buffer to determine which argument to highlight...
+	//
+	int iArg = 1;
+	int nSubParen = 0;
+	CM_RANGE range = {0};
+	char szLine[10000] = {0};
+
+	CME_VERIFY( GetSel( &range, TRUE ) );
+
+	enum {
+		sNone,
+		sQuote,
+		sComment,
+		sMultiComment,
+		sEscape,
+		sSubParen,
+	
+	} state = sNone;
+
+	for( int nLine = m_posSel.nLine; nLine <= range.posEnd.nLine; nLine++ ) {
+		// Get next line from buffer
+		CME_VERIFY( GetLine( nLine, szLine ) );
+
+		if( nLine == range.posEnd.nLine ) {
+			// Trim off any excess beyond cursor pos so the argument with the
+			// cursor in it will be highlighted.
+			int iTrim = min( range.posEnd.nCol, lstrlen( szLine ) );
+			szLine[iTrim] = '\0';
+		}
+
+		if( nLine == m_posSel.nLine ) {
+			// Strip off function name & open paren.
+			LPSTR psz = strchr( szLine+m_posSel.nCol, '(' );
+			if(psz) strcpy( szLine, ++psz );
+			else return 0;
+		}
+
+		// Parse arguments from current line
+		for( int iPos = 0, len = strlen( szLine ); iPos < len; iPos++ ) {
+			switch( szLine[iPos] ) {
+			case '(':// Sub-parenthesis
+				{
+					switch( state ) {
+					case sSubParen:
+					case sNone:
+						state = sSubParen;
+						nSubParen++;
+						break;
+					case sEscape:
+						state = sQuote;
+						break;
+					}
+				}
+				break;
+
+			case '"':// String begin/end
+				{
+					switch( state ) {
+					case sQuote:
+						state = sNone;
+						break;
+					case sComment:
+					case sMultiComment:
+					case sSubParen:
+						break;
+					default:
+						state = sQuote;
+						break;
+					}
+				}
+				break;
+
+			case ',':// Argument separator
+				{
+					switch( state ) {
+					case sNone:
+						iArg++;
+						break;
+					case sEscape:
+						state = sQuote;
+						break;
+					}
+				}
+				break;
+
+			case ')':// End of function statement
+				{
+					switch( state ) {
+					case sNone:
+						return -1;// Destroy tooltip on return
+					case sEscape:
+						state = sQuote;
+						break;
+					case sSubParen:
+						if(--nSubParen==0)
+							state = sNone;
+						break;
+					}
+				}
+				break;
+
+			case '\\':// Escape sequence
+				{
+					switch( state ) {
+					case sQuote:
+						state = sEscape;
+						break;
+					case sEscape:
+						state = sQuote;
+						break;
+					}
+				}
+				break;
+
+			case '/':// Possible comment begin/end
+				{
+					switch( state ) {
+					case sNone:
+						{
+							if( iPos + 1 < len ) {
+								char c = szLine[iPos + 1];
+
+								if( '/' == c ) {
+									state = sComment;
+								} else if( '*' == c ) {
+									state = sMultiComment;
+									iPos++;
+								}
+							}
+						}
+						break;
+
+					case sMultiComment:
+						{
+							if( iPos && '*' == szLine[iPos - 1] )
+								state = sNone;
+						}
+						break;
+
+					case sEscape:
+						state = sQuote;
+						break;
+					}
+				}
+				break;
+
+			default:
+				{
+					if( sEscape == state )
+						state = sQuote;
+				}
+				break;
+			}
+
+			// No point in scanning each and every character in comment line!
+			if( sComment == state )
+				break;
+		}
+
+		// It's safe to clear this now that we're moving on to the next line
+		if( sComment == state )
+			state = sNone;
+	}
+
+	return iArg;
+}
+
+BOOL CScriptEditorView::GetPrototype( LPCSTR pszFunc, LPSTR pszProto, CM_CODETIPMULTIFUNCDATA *pmfData )
+{
+	strcpy(pszProto, pszFunc);
+	strcat(pszProto, "(a, b, c)");
+	pmfData->nFuncCount = 2;
+	return TRUE;
+}
+BOOL CScriptEditorView::GetCurrentFunction( LPSTR pszName, bool bMustExist )
+{
+	CM_RANGE range = {0};
+	char szLine[1000] = {0};
+	char szFunc[MAX_FUNC_NAME] = {0};
+
+	// Note:  We can't use CM_GetWord() here, because the user could have
+	// typed a function name followed by a space, and *then* the left
+	// parenthesis, i.e. "MessageBox ("
+
+	// Get the current line
+	GetSel( &range, TRUE );
+	GetLine( range.posEnd.nLine, szLine );
+
+	// There's nothing for us to do if the line is empty
+	if( '\0' == *szLine )
+		return FALSE;
+
+	int nEnd = range.posEnd.nCol - 1;
+
+	// Trim off trailing '(', if found
+	if( nEnd > 0 && nEnd < lstrlen( szLine ) )
+	{
+		if( '(' == szLine[ nEnd ] )
+			nEnd --;
+
+		// Trim off trailing whitespace
+		while( nEnd > 0 && ' ' == szLine[nEnd] )
+			nEnd --;
+	}
+
+	if( nEnd < 0 )
+		return FALSE;
+
+	// The function name begins at the first alphanumeric character on line
+	int nStart = min( nEnd, lstrlen( szLine ) );
+
+	while( nStart > 0 && ( _istalnum( szLine[nStart - 1] ) ||
+		'_' == szLine[nStart - 1] ) )
+	{
+		--nStart;
+	}
+
+	// Save the starting position for use with the CodeTip.  This is so we
+	// can destroy the tip window if the user moves the cursor back before or
+	// above the starting point.
+	//
+	m_posSel.nCol = nStart;
+	m_posSel.nLine = range.posEnd.nLine;
+
+	// Extract the function name
+	lstrcpyn( szFunc, szLine + nStart, nEnd - nStart + 2 );
+
+	if( '\0' == *szFunc )
+		return FALSE;
+
+	// If we don't care whether or not the function actually exists in the
+	// list, just return the string.
+	if( !bMustExist )
+	{
+		if( pszName )
+			lstrcpy( pszName, szFunc );
+
+		return TRUE;
+	}
+
+	// TODO: Look for the function name in the DB...
+
+	return FALSE;
+/*/
+	return TRUE;
+/**/
+}
+
+void CScriptEditorView::OnPropertiesChange()
+{
+	SaveProfile();
+}
+void CScriptEditorView::SaveProfile()
+{
+	// misc props
+	WriteProfileInt( SCRIPT_SECTION, KEY_COLORSYNTAX, IsColorSyntaxEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_HSPLITTER, IsSplitterEnabled( TRUE ) );
+	WriteProfileInt( SCRIPT_SECTION, KEY_VSPLITTER, IsSplitterEnabled( FALSE ) );
+	WriteProfileInt( SCRIPT_SECTION, KEY_HSCROLLBAR, HasScrollBar( TRUE ) );
+	WriteProfileInt( SCRIPT_SECTION, KEY_VSCROLLBAR, HasScrollBar( FALSE ) );
+	WriteProfileInt( SCRIPT_SECTION, KEY_WHOLEWORD, IsWholeWordEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_AUTOINDENTMODE, GetAutoIndentMode() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_SMOOTHSCROLLING, IsSmoothScrollingEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_LINETOOLTIPS, IsLineToolTipsEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_LEFTMARGIN, IsLeftMarginEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_COLUMNSEL, IsColumnSelEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_DRAGDROP, IsDragDropEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_CASESENSITIVE, IsCaseSensitiveEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_PRESERVECASE, IsPreserveCaseEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_TABEXPAND, IsTabExpandEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_TABSIZE, GetTabSize() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_NORMALIZECASE, IsNormalizeCaseEnabled() );
+	WriteProfileInt( SCRIPT_SECTION, KEY_SELBOUNDS, IsSelBoundsEnabled() );
+
+	// color info
+	CM_COLORS colors;
+	GetColors( &colors );
+	WriteProfileBinary( SCRIPT_SECTION, KEY_COLORS, ( LPBYTE ) &colors, sizeof( colors ) );
+
+	// font info
+	CM_FONTSTYLES fs;
+	GetFontStyles( &fs );
+	WriteProfileBinary( SCRIPT_SECTION, KEY_FONTSTYLES, ( LPBYTE ) &fs, sizeof( fs ) );
+
+	// font
+	LOGFONT lf;
+	HFONT hFont = ( HFONT ) SendMessage( WM_GETFONT, 0, 0 );
+	int cbSize = GetObject( hFont, sizeof( lf ), NULL );
+	GetObject( hFont, cbSize, &lf );
+	WriteProfileBinary( SCRIPT_SECTION, KEY_FONT, ( LPBYTE ) &lf, sizeof( lf ) );
+
+	CM_LINENUMBERING cmLineNum;
+	GetLineNumbering( &cmLineNum );
+	WriteProfileBinary( SCRIPT_SECTION, KEY_LINENUMBERING, ( LPBYTE ) &cmLineNum, sizeof( cmLineNum ) );
+}
+
+void CScriptEditorView::LoadProfile()
+{
+	// load window settings
+	EnableColorSyntax( GetProfileInt( SCRIPT_SECTION, KEY_COLORSYNTAX, TRUE ) );
+	ShowScrollBar( TRUE, GetProfileInt( SCRIPT_SECTION, KEY_HSCROLLBAR, TRUE ) );
+	ShowScrollBar( FALSE, GetProfileInt( SCRIPT_SECTION, KEY_VSCROLLBAR, TRUE ) );
+	EnableSplitter( TRUE, GetProfileInt( SCRIPT_SECTION, KEY_HSPLITTER, FALSE ) );
+	EnableSplitter( FALSE, GetProfileInt( SCRIPT_SECTION, KEY_VSPLITTER, TRUE ) );
+	EnableWholeWord( GetProfileInt( SCRIPT_SECTION, KEY_WHOLEWORD, FALSE ) );
+	SetAutoIndentMode( GetProfileInt( SCRIPT_SECTION, KEY_AUTOINDENTMODE, CM_INDENT_PREVLINE ) );
+	EnableSmoothScrolling( GetProfileInt( SCRIPT_SECTION, KEY_SMOOTHSCROLLING, FALSE ) );
+	EnableLineToolTips( GetProfileInt( SCRIPT_SECTION, KEY_LINETOOLTIPS, TRUE ) );
+	EnableLeftMargin( GetProfileInt( SCRIPT_SECTION, KEY_LEFTMARGIN, TRUE ) );
+	EnableColumnSel( GetProfileInt( SCRIPT_SECTION, KEY_COLUMNSEL, TRUE ) );
+	EnableDragDrop( GetProfileInt( SCRIPT_SECTION, KEY_DRAGDROP, TRUE ) );
+	EnableCaseSensitive( GetProfileInt( SCRIPT_SECTION, KEY_CASESENSITIVE, FALSE ) );
+	EnablePreserveCase( GetProfileInt( SCRIPT_SECTION, KEY_PRESERVECASE, FALSE ) );
+	EnableTabExpand( GetProfileInt( SCRIPT_SECTION, KEY_TABEXPAND, FALSE ) );
+	SetTabSize( GetProfileInt( SCRIPT_SECTION, KEY_TABSIZE, 3 ) );
+	EnableNormalizeCase( GetProfileInt( SCRIPT_SECTION, KEY_NORMALIZECASE, FALSE ) );
+	EnableSelBounds( GetProfileInt( SCRIPT_SECTION, KEY_SELBOUNDS, TRUE ) );
+
+	// colors
+	LPBYTE pColors;
+	UINT unSize;
+	if ( GetProfileBinary( SCRIPT_SECTION, KEY_COLORS, &pColors, &unSize ) )
+	{
+		if ( unSize == sizeof( CM_COLORS ) )
+		{
+			SetColors( (CM_COLORS *)pColors );
+		}
+		delete [] pColors;
+	}
+
+	// font info
+	LPBYTE pFontStyles;
+	if ( GetProfileBinary( SCRIPT_SECTION, KEY_FONTSTYLES, &pFontStyles, &unSize ) )
+	{
+		if ( unSize == sizeof( CM_FONTSTYLES ) )
+		{
+			SetFontStyles( (CM_FONTSTYLES *)pFontStyles );
+		}
+		delete [] pFontStyles;
+	}
+
+	// font
+	if ( !m_hFont )
+	{
+		LOGFONT *plf;
+		if ( GetProfileBinary( SCRIPT_SECTION, KEY_FONT, ( LPBYTE * ) &plf, &unSize ) )
+		{
+			m_hFont = CreateFontIndirect( plf );
+			delete [] plf;
+			SendMessage( WM_SETFONT, ( WPARAM ) m_hFont, 0 );
+		}
+	}
+
+	// colors
+	LPBYTE pLineNum;
+	if ( GetProfileBinary( SCRIPT_SECTION, KEY_LINENUMBERING, &pLineNum, &unSize ) )
+	{
+		if ( unSize == sizeof( CM_LINENUMBERING ) )
+		{
+			SetLineNumbering( (CM_LINENUMBERING *)pLineNum );
+		}
+		delete [] pLineNum;
+	}
 }

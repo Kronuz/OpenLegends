@@ -49,4 +49,20 @@ public:
 
 	CString& GetFilePath() { return m_sFilePath; }
 	CString& GetTitle() { return m_sTitle; }
+
+	virtual bool hasChanged() = 0;
+
+	UINT GetProfileInt( LPCSTR pszSection, LPCSTR pszEntry, int nDefault ) const
+		{ return RegGetProfileInt( COMPANY, APPNAME, pszSection, pszEntry, nDefault ); }
+	LPCSTR GetProfileString( LPCSTR pszSection, LPCSTR pszEntry, LPSTR pszValue, LPCSTR pszDefault ) const
+		{ return RegGetProfileString( COMPANY, APPNAME, pszSection, pszEntry, pszValue, pszDefault ); }
+	BOOL GetProfileBinary( LPCSTR pszSection, LPCSTR pszEntry, BYTE** ppData, UINT* pBytes ) const
+		{ return RegGetProfileBinary( COMPANY, APPNAME, pszSection, pszEntry, ppData, pBytes ); }
+	BOOL WriteProfileInt( LPCSTR pszSection, LPCSTR pszEntry, int nValue ) const
+		{ return RegWriteProfileInt( COMPANY, APPNAME, pszSection, pszEntry, nValue ); }
+	BOOL WriteProfileString( LPCSTR pszSection, LPCSTR pszEntry, LPCSTR pszValue ) const
+		{ return RegWriteProfileString( COMPANY, APPNAME, pszSection, pszEntry, pszValue ); }
+	BOOL WriteProfileBinary( LPCSTR pszSection, LPCSTR pszEntry, LPBYTE pData, UINT nBytes ) const
+		{ return RegWriteProfileBinary( COMPANY, APPNAME, pszSection, pszEntry, pData, nBytes ); }
+
 };
