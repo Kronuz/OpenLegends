@@ -90,10 +90,27 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 	if(pTexture == NULL) {
 		// We make use of lazy evaluation here to load the textures.
 		CVFile fn = pSpriteSheet->GetFileName();
-		CBString str = fn.GetPath() + fn.GetFileTitle();
-		if(!pGraphics->CreateTextureFromFile(str + ".png", &pTexture, 1.0f))
-			pGraphics->CreateTextureFromFile(str + ".bmp", &pTexture, 2.0f);
-		if(!pTexture) return false;
+		float scale = 1.0f;
+		fn.SetFileExt(".png");
+		if(!fn.FileExists()) {
+			scale = 2.0f;
+			fn.SetFileExt(".bmp");
+			CONSOLE_PRINTF("Kernel Warning: Couldn't find Sprite Sheet from PNG file,\n    trying to load from '%s' instead.\n", fn.GetFileName());
+			if(!fn.FileExists()) {
+				CONSOLE_PRINTF("Kernel Error: Couldn't find Sprite Sheet bitmap for '%s.spt'.\n", fn.GetFileTitle());
+				return false;
+			}
+		}
+		if(fn.Open()) {
+			int filesize = fn.GetFileSize();
+			LPCVOID pData = fn.ReadFile();
+			pGraphics->CreateTextureFromFileInMemory(fn.GetFileName(), pData, filesize, &pTexture, scale);
+			fn.Close();
+		}
+		if(!pTexture) {
+			CONSOLE_PRINTF("Kernel Error: Couldn't open Sprite Sheet bitmap for '%s.spt'.\n", fn.GetFileTitle());
+			return false;
+		}
 		if(pSpriteSheet->m_pTexture) pSpriteSheet->m_pTexture->Release();
 		pSpriteSheet->m_pTexture = pTexture->AddRef();
 	}
@@ -194,10 +211,10 @@ bool CEntity::Draw(const CDrawableContext &context)
 	return true;
 }
 
-bool CEntity::Run(const CDrawableContext &context, LPARAM lParam)
+bool CEntity::Run(const CDrawableContext &context, RUNACTION action)
 {
 	const SEntityData *pEntityData = static_cast<const SEntityData*>(m_pSpriteData);
-	pEntityData->pScript->RunScript(lParam);
+	pEntityData->pScript->RunScript(context, action);
 	
 	return true;
 }
@@ -536,15 +553,15 @@ bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite)
 {
 	CSprite *pSprite = CGameManager::Instance()->FindSprite(szSprite);
 	if(!pSprite) {
-		CONSOLE_OUTPUT("Paste error : Couldn't find the requested sprite: '%s'!\n", szSprite);
+		CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szSprite);
 		return false;
 	}
 	if(pSprite->GetSpriteType() == tMask) {
-		CONSOLE_OUTPUT("Paste error: Attempt to use mask '%s' as a sprite\n", szSprite);
+		CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", szSprite);
 		return false;
 	}
 	if(!pLayer) {
-		CONSOLE_OUTPUT("Paste error : Couldn't paste '%s' in the requested layer!\n", szSprite);
+		CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", szSprite);
 		return false;
 	}
 
@@ -568,15 +585,15 @@ bool CSpriteSelection::PasteObj(CLayer *pLayer, _SpriteSet::_SpriteSetData *pDat
 {
 	CSprite *pSprite = CGameManager::Instance()->FindSprite(pData->szName);
 	if(!pSprite) {
-		CONSOLE_OUTPUT("Paste error : Couldn't find the requested sprite: '%s'!\n", pData->szName);
+		CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", pData->szName);
 		return false;
 	}
 	if(pSprite->GetSpriteType() == tMask) {
-		CONSOLE_OUTPUT("Paste error: Attempt to use mask '%s' as a sprite\n", pData->szName);
+		CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", pData->szName);
 		return false;
 	}
 	if(!pLayer) {
-		CONSOLE_OUTPUT("Paste error : Couldn't paste '%s' in the requested layer!\n", pData->szName);
+		CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", pData->szName);
 		return false;
 	}
 
@@ -610,7 +627,7 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 		m_bFloating = true;
 	} else {
 		if(CopyBoard->Info.dwSignature != QUEST_SET_SIGNATURE) {
-			CONSOLE_OUTPUT("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
+			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
 			return false;
 		}
 
@@ -668,7 +685,7 @@ void CSpriteSelection::FlipSelection()
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}
-	m_bChanged = true;
+	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::MirrorSelection()
 {
@@ -703,7 +720,7 @@ void CSpriteSelection::MirrorSelection()
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}
-	m_bChanged = true;
+	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::CWRotateSelection()
 {
@@ -751,7 +768,7 @@ void CSpriteSelection::CWRotateSelection()
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}
-	m_bChanged = true;
+	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::CCWRotateSelection()
 {
@@ -799,5 +816,5 @@ void CSpriteSelection::CCWRotateSelection()
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}
-	m_bChanged = true;
+	m_bModified = m_bChanged = true;
 }

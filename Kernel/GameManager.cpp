@@ -80,7 +80,7 @@ CSprite *CGameManager::CreateSprite(_spt_type sptType, LPCSTR szName)
 			break;
 		}
 	}
-	if(!pSprite) CONSOLE_OUTPUT("The sprite '%s' couldn't be created!\n", szName);
+	if(!pSprite) CONSOLE_PRINTF("The sprite '%s' couldn't be created!\n", szName);
 	ASSERT(pSprite);
 	return pSprite;
 }
@@ -125,26 +125,26 @@ CScript *CGameManager::MakeScript(LPCSTR szName)
 	// create a new script object and try to find its file
 	CScript *pScript = new CScript;
 	CBString sPath = CBString("Entities\\") + szName + ".zes"; // relative by default
-	pScript->m_fnScriptFile.SetFilePath(sPath); 
-	if(!pScript->m_fnScriptFile.FileExists()) {
+	pScript->SetSource(sPath);
+	if(!pScript->SourceExists()) {
 		CBString sFileTitle = szName;
 		sFileTitle.SetAt(sFileTitle.GetLength()-1, '#');
-		pScript->m_fnScriptFile.SetFileTitle(sFileTitle);
-		if(!pScript->m_fnScriptFile.FileExists()) {
+		pScript->SetTitle(sFileTitle);
+		if(!pScript->SourceExists()) {
 			delete pScript;
 			return NULL; // couldn't find the script file
 		}
 	}
 
 	// Now we find the script file name in the map of scripts:
-	std::map<CBString, CScript*>::iterator Iterator = m_Scripts.find(pScript->m_fnScriptFile.GetFileTitle());
+	std::map<CBString, CScript*>::iterator Iterator = m_Scripts.find(pScript->GetTitle());
 	if(Iterator == m_Scripts.end()) { // there's no script file in the map (first time script):
-		m_Scripts.insert(pairScript(pScript->m_fnScriptFile.GetFileTitle(), pScript)); //add it to the map and ...
+		m_Scripts.insert(pairScript(pScript->GetTitle(), pScript)); //add it to the map and ...
 		// ... make a call to the client, to notify the script creation.
 		CallbackProc(
 			Script, 
 			pScript, 
-			(LPCSTR)(m_sProjectName + "\\Entities\\" + pScript->m_fnScriptFile.GetFileTitle()), 
+			(LPCSTR)(m_sProjectName + "\\Entities\\" + pScript->GetTitle()), 
 			Added);
 	} else { // otherwise, the script already is in the map, so we don't need the newly created object.
 		delete pScript; 
@@ -226,19 +226,6 @@ CSprite *CGameManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet
 	return pSprite;
 }
 
-int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, LPARAM lParam)
-{
-	CGameManager *pGameManager = reinterpret_cast<CGameManager*>(lParam);
-	CSpriteSheet *sstmp = new CSpriteSheet(pGameManager);
-	ASSERT(sstmp);
-	pGameManager->m_SpriteSheets.push_back(sstmp);
-
-	CVFile vfFile(szFile);
-	sstmp->Load(vfFile);
-
-	return 1;
-}
-
 void CGameManager::DeleteScript(int nIndex)
 {
 	std::map<CBString, CScript*>::iterator Iterator =  m_Scripts.begin();
@@ -250,7 +237,7 @@ void CGameManager::DeleteScript(int nIndex)
 		CallbackProc(
 			Script, 
 			NULL, 
-			m_sProjectName + "\\Entities\\" + pScript->m_fnScriptFile.GetFileTitle(),
+			m_sProjectName + "\\Entities\\" + pScript->GetTitle(),
 			Deleted);
 
 		delete pScript;
@@ -291,26 +278,26 @@ void CGameManager::DeleteSprite(LPCSTR szName)
 
 void CGameManager::Clean()
 {
-	if(m_SpriteSheets.size()) CONSOLE_OUTPUT("Freeing Sprite Sheets...\n");
+	if(m_SpriteSheets.size()) CONSOLE_PRINTF("Freeing Sprite Sheets...\n");
 	while(m_SpriteSheets.size()) {
 		DeleteSpriteSheet(0);
 	}
 
 	// Now we delete all undefined sprites (referred, but never really created)
-	if(m_UndefSprites.size()) CONSOLE_OUTPUT("Freeing Unreferred Sprites...\n");
+	if(m_UndefSprites.size()) CONSOLE_PRINTF("Freeing Unreferred Sprites...\n");
 	while(m_UndefSprites.size()) {
 		delete m_UndefSprites.begin()->second.pSprite;
 		m_UndefSprites.erase(m_UndefSprites.begin());
 	}
 
 	// Delete all loaded scripts
-	if(m_Scripts.size()) CONSOLE_OUTPUT("Freeing Scripts...\n");
+	if(m_Scripts.size()) CONSOLE_PRINTF("Freeing Scripts...\n");
 	while(m_Scripts.size()) {
 		DeleteScript(0);
 	}
 
 	// Delete all loaded sounds
-	if(m_Sounds.size()) CONSOLE_OUTPUT("Freeing Sounds...\n");
+	if(m_Sounds.size()) CONSOLE_PRINTF("Freeing Sounds...\n");
 	while(m_Sounds.size()) {
 		delete m_Sounds.begin()->second;
 		m_UndefSprites.erase(m_UndefSprites.begin());
@@ -330,21 +317,36 @@ int CALLBACK RemoveMask(LPVOID sprite, LPARAM lParam)
 	}
 	return 0;
 }
+
+int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, LPARAM lParam)
+{
+	CGameManager *pGameManager = reinterpret_cast<CGameManager*>(lParam);
+	CSpriteSheet *sstmp = new CSpriteSheet(pGameManager);
+	ASSERT(sstmp);
+	pGameManager->m_SpriteSheets.push_back(sstmp);
+
+	CVFile vfFile(szFile);
+	sstmp->Load(vfFile);
+
+	return 1;
+}
 bool CGameManager::Load(CVFile &vfFile)
 {
 	// this is to print how long did it take to load
 	DWORD dwInitTicks = GetTickCount();
 
 	m_sProjectName = vfFile.GetFileDesc();
-	g_sHomeDir = vfFile.GetPath();
-	CONSOLE_OUTPUT("Loading project: '%s' at %s...\n", vfFile.GetFileName(), vfFile.GetPath());
-
 	if(m_sProjectName == "") m_sProjectName = "Unnamed Project";
-	CBString sPath = g_sHomeDir + "Sprite Sheets\\*.spt";
-	ForEachFile(sPath, CGameManager::LoadSheet, (LPARAM)this, 0);
+
+	CONSOLE_PRINTF("Loading project: '%s' at %s...\n", m_sProjectName, vfFile.GetPath());
+
+	ASSERT(g_sHomeDir != "");
+	// CBString sPath = g_sHomeDir + "Sprite Sheets\\*.spt";
+	CVFile vfn = g_sHomeDir + "Sprite Sheets\\*.spt";
+	vfn.ForEachFile(CGameManager::LoadSheet, (LPARAM)this);
 
 	if(m_UndefSprites.size()) {
-		CONSOLE_OUTPUT("\nReferenced but undefined sprites:\n");
+		CONSOLE_PRINTF("\nReferenced but undefined sprites:\n");
 	}
 	std::map<CBString, SUndefSprite>::iterator Iterator = m_UndefSprites.begin();
 	while(Iterator != m_UndefSprites.end()) {
@@ -353,21 +355,25 @@ bool CGameManager::Load(CVFile &vfFile)
 		// sprite sheet and clear its mask reference if needed.
 		if(UndefSprite.pSprite->GetSpriteType() == tMask) {
 			if(ForEachSprite(RemoveMask, (LPARAM)UndefSprite.pSprite)) {
-				CONSOLE_OUTPUT("  Error: Undefined mask: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
+				CONSOLE_PRINTF("  Error: Undefined mask: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
 			} else {
-				CONSOLE_OUTPUT("  Warning: Undefined mask: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
+				CONSOLE_PRINTF("  Warning: Undefined mask: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
 			}
 		} else {
-			CONSOLE_OUTPUT("  Warning: Undefined sprite: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
+			CONSOLE_PRINTF("  Warning: Undefined sprite: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
 		}
 		delete UndefSprite.pSprite;
 		Iterator++;
 	}
 	m_UndefSprites.clear();
 
-	CONSOLE_OUTPUT("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 
 	return true;
+}
+void CGameManager::WaitScripts()
+{
+	CScript::WaitScripts();
 }
 float CGameManager::UpdateFPS(float fpsLock)
 {
@@ -567,4 +573,22 @@ int CGameManager::ForEachMap(FOREACHPROC ForEach, LPARAM lParam)
 int CGameManager::ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam)
 {
 	return 0;
+}
+
+int CGameManager::CountScripts() const
+{
+	return m_Scripts.size();
+}
+LPCSTR CGameManager::GetProjectName() const
+{
+	return m_sProjectName;
+}
+const IScript* CGameManager::GetScript(int idx) const
+{
+	ASSERT(idx<m_Scripts.size());
+	std::map<CBString, CScript*>::const_iterator Iter=m_Scripts.begin();
+	for(int i=0; Iter!=m_Scripts.end(); Iter++, i++) {
+		if(i == idx) return Iter->second;
+	}
+	return NULL;
 }

@@ -104,7 +104,6 @@ protected:
 
 public:
 	static int CALLBACK LoadSheet(LPCTSTR szFile, LPARAM lParam);
-	CBString& GetProjectName() { return m_sProjectName; }
 
 	// Construction/Destruction:
 	CGameManager();
@@ -115,6 +114,10 @@ public:
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
+
+	LPCSTR GetProjectName() const;
+	int CountScripts() const;
+	const IScript* GetScript(int idx) const;
 
 	// Object factory methods:
 	CSprite *ReferSprite(LPCSTR szName, _spt_type sptType, LPCSTR szFile_, int nLine_);  //!< Gets or makes a reference to a sprite.
@@ -158,6 +161,7 @@ protected:
 
 public:
 
+	void WaitScripts();
 	float UpdateFPS(float fpsLock = -1.0f);
 
 	// Loading/Saving methods:
@@ -166,7 +170,7 @@ public:
 	bool Save() { return false; }
 	bool Close(bool bForce) { return(m_sProjectName==""); } //!< Closes the project
 
-	bool Load(LPCSTR szFile) { return Load(CVFile(szFile)); }
+	bool Load(LPCSTR szFile) { return Load(CVFile(szFile, true)); }
 	bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
 
 

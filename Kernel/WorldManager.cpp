@@ -50,7 +50,6 @@ CMapGroup::CMapGroup() :
 	m_pBitmap(NULL),
 	m_rcPosition(0,0,0,0),
 	m_sMapID("New Map Group"),
-	m_bChanged(true),
 	m_bLoaded(false)
 {
 }
@@ -171,7 +170,7 @@ CWorld::CWorld(LPCSTR szName) :
 }
 CWorld::~CWorld()
 {
-	if(m_MapGroups.size()) CONSOLE_OUTPUT("\tFreeing World Maps...\n");
+	if(m_MapGroups.size()) CONSOLE_PRINTF("\tFreeing World Maps...\n");
 	for(UINT i=0; i<m_MapGroups.size(); i++) {
 		delete m_MapGroups[i];
 		m_MapGroups[i] = NULL;

@@ -77,6 +77,14 @@ struct ptr_equal_to : public binary_function<Type, Type, bool>
 	}
 };
 
+// This struct is used at run context time, it gives the required
+// information to the run procedures.
+typedef struct __RUNACTION {
+	bool bJustWait;		// Just wait for the running process to end (or kill them).
+	LPVOID m_Ptr;		// Multipurpose pointer passed to the run procedures.
+} RUNACTION;
+
+
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CDrawableContext
 	\brief		Flyweight drawable-objects context class.
@@ -122,11 +130,11 @@ protected:
 	};
 
 	const class RunContext :
-	public binary_function<CDrawableContext*, LPARAM, bool> {
+	public binary_function<CDrawableContext*, RUNACTION, bool> {
 		bool m_bVisible;
 	public:
 		RunContext(bool bVisible) : m_bVisible(bVisible) {}
-		bool operator()(CDrawableContext *pDrawableContext, LPARAM lParam) const;
+		bool operator()(CDrawableContext *pDrawableContext, RUNACTION action) const;
 	};
 	
 	friend ContextSubLayerCompare;
@@ -177,6 +185,7 @@ protected:
 
 	bool __Draw(const IGraphics *pIGraphics);
 public:
+	mutable LPVOID m_pPtr;							//!< Multipurpose pointer for the drawable context.
 	mutable IBuffer *m_pBuffer[CONTEXT_BUFFERS];	//!< Buffers for the drawable context (to use as needed)
 	
 	void Invalidate() {
@@ -262,7 +271,7 @@ public:
 	virtual bool Draw(const IGraphics *pIGraphics=NULL);
 	virtual bool DrawSelected(const IGraphics *pIGraphics=NULL);
 
-	virtual bool Run(LPARAM lParam);
+	virtual bool Run(RUNACTION action);
 
 	bool operator==(const CDrawableContext &context) const {
 		if( m_pDrawableObj == context.m_pDrawableObj &&	m_nSubLayer == context.m_nSubLayer ) {
@@ -301,7 +310,7 @@ public:
 	
 		Runs a command for the drawable object.
 	*/
-	virtual bool Run(const CDrawableContext &, LPARAM) {
+	virtual bool Run(const CDrawableContext &, RUNACTION) {
 		return false;
 	}
 
@@ -398,6 +407,7 @@ protected:
 	int m_nLayer;
 
 	bool m_bChanged;
+	bool m_bModified;
 	bool m_bFloating;
 	bool m_bCanResize;
 	bool m_bCanMove;
@@ -424,7 +434,12 @@ public:
 	}
 
 	// Interface Definition:
-	virtual bool hasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }
+
+	// returns true if the object has been modified from its initial state.
+	virtual bool IsModified() { return m_bModified; }
+
+	// returns whether or not the object has changed since last call to hasChanged()
+	virtual bool HasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }
 
 	virtual bool SelectedAt(const CPoint &point_); // Is there a selected object at this point?
 

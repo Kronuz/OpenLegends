@@ -122,12 +122,12 @@ retry:
 			pSprite = pGameManager->ReferSprite(sLine, sptType, fnSheetFile.GetFileName(), m_nLines);
 			if(!pSprite) {
 				state = eError;
-				CONSOLE_OUTPUT("Sprite error[0] in '%s'(%d): Expected a valid %s name instead of: '%s'\n", fnSheetFile.GetFileName(), m_nLines, (sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", sLine);
+				CONSOLE_PRINTF("Sprite error[0] in '%s'(%d): Expected a valid %s name instead of: '%s'\n", fnSheetFile.GetFileName(), m_nLines, (sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", sLine);
 			}
 			else {
 				if(pSprite->IsDefined()) {
 					state = eError;
-					CONSOLE_OUTPUT("%s error[1]: '%s' already defined in '%s' (%s)\n    '%s' redefinition attempt in '%s' (%s)\n", 
+					CONSOLE_PRINTF("%s error[1]: '%s' already defined in '%s' (%s)\n    '%s' redefinition attempt in '%s' (%s)\n", 
 						(sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", pSprite->GetName(), pSprite->GetSpriteSheet()->GetName(), pSprite->GetSpriteSheet()->GetFileName().GetFileName(),
 						pSprite->GetName(), m_pSpriteSheet->GetName(), fnSheetFile.GetFileName());
 				} else state = eAnim;
@@ -166,7 +166,7 @@ retry:
 					rcRect.NormalizeRect();
 					if( rcRect.IsRectEmpty()) {
 						if(iFrames == 1) state = eError;
-						CONSOLE_OUTPUT("Sprite error[2] in '%s'(%d): The size of the %s is not well defined (size is: %d x %d)\n", 
+						CONSOLE_PRINTF("Sprite error[2] in '%s'(%d): The size of the %s is not well defined (size is: %d x %d)\n", 
 							fnSheetFile.GetFileName(), m_nLines, 
 							(sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", 
 							rcRect.Width(), rcRect.Height());
@@ -196,7 +196,7 @@ retry:
 					pBackgroundData->pMaskMap = static_cast<CMaskMap*>(pGameManager->ReferSprite(sLine, tMask, fnSheetFile.GetFileName(), m_nLines));
 					if(!pBackgroundData->pMaskMap) {
 						state = eError;
-						CONSOLE_OUTPUT("Sprite error[3] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_nLines);
+						CONSOLE_PRINTF("Sprite error[3] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_nLines);
 					}
 				}
 			} 
@@ -206,7 +206,7 @@ retry:
 			else if(sLine == "FALSE") pSpriteData->nSubLayer = 1;
 			else {
 				state = eError;
-				CONSOLE_OUTPUT("Sprite error[4] in '%s'(%d): Invalid layer type.\n", fnSheetFile.GetFileName(), m_nLines);
+				CONSOLE_PRINTF("Sprite error[4] in '%s'(%d): Invalid layer type.\n", fnSheetFile.GetFileName(), m_nLines);
 			}
 			if(sptType == tEntity) pSpriteData->nSubLayer++;
 		} else if(state == eAlpha) {
@@ -220,7 +220,7 @@ retry:
 				pEntityData->pScript = pGameManager->MakeScript(pSprite->GetName());
 				if(!pEntityData->pScript) {
 //					state = eError;
-					CONSOLE_OUTPUT("Sprite warning in '%s'(%d): Couldn't find the script file for the entity %s.\n", fnSheetFile.GetFileName(), m_nLines, pSprite->GetName());
+					CONSOLE_PRINTF("Sprite warning in '%s'(%d): Couldn't find the script file for the entity %s.\n", fnSheetFile.GetFileName(), m_nLines, pSprite->GetName());
 				}
 			}
 			if(state != eError) {
@@ -295,7 +295,7 @@ int CMapTxtArch::ReadSprite(CVFile &vfFile)
 
 	CSprite *pSprite = CGameManager::Instance()->FindSprite(sName);
 	if(!pSprite) {
-		CONSOLE_OUTPUT("Map error in '%s' (%d): Couldn't find the requested sprite: '%s'!\n", vfFile.GetFileName(), m_nLines, sName);
+		CONSOLE_PRINTF("Map error in '%s' (%d): Couldn't find the requested sprite: '%s'!\n", vfFile.GetFileName(), m_nLines, sName);
 		return 0;
 	}
 
@@ -308,13 +308,13 @@ int CMapTxtArch::ReadSprite(CVFile &vfFile)
 		pSpriteContext->SetObjSubLayer(static_cast<CBackground *>(pSprite)->GetObjSubLayer());
 		pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
 	} else {
-		CONSOLE_OUTPUT("Map error in '%s' (%d): Attempt to use mask '%s' as a sprite\n", vfFile.GetFileName(), m_nLines, sName);
+		CONSOLE_PRINTF("Map error in '%s' (%d): Attempt to use mask '%s' as a sprite\n", vfFile.GetFileName(), m_nLines, sName);
 		delete pSpriteContext;
 		return 0;
 	}
 
 	if(!m_pLayer->AddSpriteContext(pSpriteContext, false)) {
-		CONSOLE_OUTPUT("Map warning in '%s' (%d): Duplicated sprite '%s' not added at (%d, %d).\n", vfFile.GetFileName(), m_nLines, sName, x, y); // x/2, y/2
+		CONSOLE_PRINTF("Map warning in '%s' (%d): Duplicated sprite '%s' not added at (%d, %d).\n", vfFile.GetFileName(), m_nLines, sName, x, y); // x/2, y/2
 		delete pSpriteContext;
 	}
 
@@ -340,7 +340,7 @@ int CMapTxtArch::ReadTile(CVFile &vfFile)
 
 	CSprite *pSprite = CGameManager::Instance()->FindSprite(sName);
 	if(!pSprite) {
-		CONSOLE_OUTPUT("Map error in '%s' (%d): Couldn't find the requested fill: '%s'!\n", vfFile.GetFileName(), m_nLines, sName);
+		CONSOLE_PRINTF("Map error in '%s' (%d): Couldn't find the requested fill: '%s'!\n", vfFile.GetFileName(), m_nLines, sName);
 		return 0;
 	}
 
@@ -354,13 +354,13 @@ int CMapTxtArch::ReadTile(CVFile &vfFile)
 		pSpriteContext->SetObjSubLayer(static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1);
 		pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
 	} else {
-		CONSOLE_OUTPUT("Map error in '%s' (%d): Attempt to use mask '%s' as a fill\n", vfFile.GetFileName(), m_nLines, sName);
+		CONSOLE_PRINTF("Map error in '%s' (%d): Attempt to use mask '%s' as a fill\n", vfFile.GetFileName(), m_nLines, sName);
 		delete pSpriteContext;
 		return 0;
 	}
 
 	if(!m_pLayer->AddSpriteContext(pSpriteContext, false)) {
-		CONSOLE_OUTPUT("Map warning in '%s' (%d): Duplicated sprite '%s' not added at (%d, %d).\n", vfFile.GetFileName(), m_nLines, sName, x2-x1, y2-y1); // (x2-x1)/2, (y2-y1)/2
+		CONSOLE_PRINTF("Map warning in '%s' (%d): Duplicated sprite '%s' not added at (%d, %d).\n", vfFile.GetFileName(), m_nLines, sName, x2-x1, y2-y1); // (x2-x1)/2, (y2-y1)/2
 		delete pSpriteContext;
 	}
 

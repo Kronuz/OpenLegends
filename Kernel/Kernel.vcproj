@@ -19,19 +19,19 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\libs\zlib"
+				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;__STL_DEBUG"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				UsePrecompiledHeader="3"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib"
+				AdditionalDependencies="zlib.lib amxexec.obj"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="..\libs\zlib"
@@ -48,7 +48,9 @@
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
-				Name="VCPreLinkEventTool"/>
+				Name="VCPreLinkEventTool"
+				Description="Compiling assembler code for the abstract virtual machine"
+				CommandLine="ml /Zd /Zf /Zi /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"/>
 			<Tool
 				Name="VCResourceCompilerTool"/>
 			<Tool
@@ -77,18 +79,20 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="TRUE"
 				OptimizeForWindowsApplication="TRUE"
-				AdditionalIncludeDirectories="..\libs\zlib"
+				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
-				UsePrecompiledHeader="3"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="0"/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCCustomBuildTool"
+				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff amxexec.asm
+"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib"
+				AdditionalDependencies="zlib.lib amxexec.obj"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\libs\zlib"
@@ -105,7 +109,9 @@
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
-				Name="VCPreLinkEventTool"/>
+				Name="VCPreLinkEventTool"
+				Description="Compiling assembler code for the abstract virtual machine"
+				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"/>
 			<Tool
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="NDEBUG"
@@ -130,18 +136,6 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm">
 			<File
-				RelativePath="ArchiveBinary.cpp">
-			</File>
-			<File
-				RelativePath="ArchiveText.cpp">
-			</File>
-			<File
-				RelativePath="DrawManager.cpp">
-			</File>
-			<File
-				RelativePath="..\FilePath.cpp">
-			</File>
-			<File
 				RelativePath="GameManager.cpp">
 			</File>
 			<File
@@ -152,9 +146,6 @@
 			</File>
 			<File
 				RelativePath="..\Misc.cpp">
-			</File>
-			<File
-				RelativePath=".\ScriptManager.cpp">
 			</File>
 			<File
 				RelativePath="SpriteManager.cpp">
@@ -177,42 +168,74 @@
 			<File
 				RelativePath="WorldManager.cpp">
 			</File>
+			<Filter
+				Name="Scripting"
+				Filter="">
+				<File
+					RelativePath=".\amxcons.cpp">
+				</File>
+				<File
+					RelativePath=".\Script.cpp">
+				</File>
+				<File
+					RelativePath=".\ScriptManager.cpp">
+				</File>
+				<Filter
+					Name="Abstract Machine"
+					Filter="">
+					<File
+						RelativePath=".\libs\amx\amx.c">
+					</File>
+					<File
+						RelativePath=".\libs\amx\amxcore.c">
+					</File>
+					<File
+						RelativePath=".\libs\amx\amxexec.asm">
+					</File>
+					<File
+						RelativePath=".\libs\amx\float.cpp">
+					</File>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Graphics"
+				Filter="">
+				<File
+					RelativePath="DrawManager.cpp">
+				</File>
+			</Filter>
+			<Filter
+				Name="File System"
+				Filter="">
+				<File
+					RelativePath="ArchiveBinary.cpp">
+				</File>
+				<File
+					RelativePath="ArchiveText.cpp">
+				</File>
+				<File
+					RelativePath="..\FilePath.cpp">
+				</File>
+			</Filter>
+			<Filter
+				Name="Sound"
+				Filter="">
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
-				RelativePath="ArchiveBinary.h">
-			</File>
-			<File
-				RelativePath="ArchiveText.h">
-			</File>
-			<File
 				RelativePath="..\Core.h">
-			</File>
-			<File
-				RelativePath="DrawManager.h">
-			</File>
-			<File
-				RelativePath="..\FilePath.h">
 			</File>
 			<File
 				RelativePath="GameManager.h">
 			</File>
 			<File
-				RelativePath="..\IArchiver.h">
-			</File>
-			<File
 				RelativePath="..\IConsole.h">
 			</File>
 			<File
-				RelativePath="..\IDraw.h">
-			</File>
-			<File
 				RelativePath="..\IGame.h">
-			</File>
-			<File
-				RelativePath="..\IGraphics.h">
 			</File>
 			<File
 				RelativePath="..\Interfaces.h">
@@ -227,12 +250,6 @@
 				RelativePath="resource.h">
 			</File>
 			<File
-				RelativePath=".\ScriptManager.h">
-			</File>
-			<File
-				RelativePath="SoundManager.h">
-			</File>
-			<File
 				RelativePath="SpriteManager.h">
 			</File>
 			<File
@@ -241,6 +258,62 @@
 			<File
 				RelativePath="WorldManager.h">
 			</File>
+			<Filter
+				Name="Scripting"
+				Filter="">
+				<File
+					RelativePath=".\Script.h">
+				</File>
+				<File
+					RelativePath=".\ScriptManager.h">
+				</File>
+				<Filter
+					Name="Abstract Machine"
+					Filter="">
+					<File
+						RelativePath="..\libs\amx.h">
+					</File>
+					<File
+						RelativePath=".\amx\osdefs.h">
+					</File>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Graphics"
+				Filter="">
+				<File
+					RelativePath="DrawManager.h">
+				</File>
+				<File
+					RelativePath="..\IDraw.h">
+				</File>
+				<File
+					RelativePath="..\IGraphics.h">
+				</File>
+			</Filter>
+			<Filter
+				Name="Sound"
+				Filter="">
+				<File
+					RelativePath="SoundManager.h">
+				</File>
+			</Filter>
+			<Filter
+				Name="File system"
+				Filter="">
+				<File
+					RelativePath="ArchiveBinary.h">
+				</File>
+				<File
+					RelativePath="ArchiveText.h">
+				</File>
+				<File
+					RelativePath="..\FilePath.h">
+				</File>
+				<File
+					RelativePath="..\IArchiver.h">
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
