@@ -638,7 +638,7 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 	Invalidate();
 
 	if(FAILED(ms_pD3D->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &ms_PreferredMode))) {
-		CONSOLE_OUTPUT("ERROR (D3D8): Couldn't receive the current display mode.\n");
+		CONSOLE_PRINTF("ERROR (D3D8): Couldn't receive the current display mode.\n");
 		return false;
 	}
 
@@ -665,14 +665,14 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 	if(ms_pD3DDevice) {
 		// Reset the device
 		if(FAILED(ms_pD3DDevice->Reset(&ms_d3dpp))) {
-				CONSOLE_OUTPUT("ERROR (D3D8): Couldn't reset the device.\n");
+				CONSOLE_PRINTF("ERROR (D3D8): Couldn't reset the device.\n");
 				return false;
 		}
 	} else {
 		// Create the device
 		if(FAILED( ms_pD3D->CreateDevice(D3DADAPTER_DEFAULT, m_devType, hWnd,
 				FigureOutVertexProcessing(), &ms_d3dpp, &ms_pD3DDevice) )) { 
-			CONSOLE_OUTPUT("ERROR (D3D8): Couldn't create the device.\n");
+			CONSOLE_PRINTF("ERROR (D3D8): Couldn't create the device.\n");
 			return false;
 		}
 	}
@@ -706,7 +706,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		ms_pD3D = Direct3DCreate8(D3D_SDK_VERSION); // Create Direct3D
 		if(ms_pD3D == NULL) {
 			// This will display a error message in the console
-			CONSOLE_OUTPUT("ERROR (D3D8): Couldn't initialize Direct3D.\n");
+			CONSOLE_PRINTF("ERROR (D3D8): Couldn't initialize Direct3D.\n");
 			return false;
 		}
 	}
@@ -730,21 +730,21 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		D3DVERIFY(ms_pD3D->GetAdapterIdentifier(D3DADAPTER_DEFAULT, NULL, &D3DAdapterID));
 
 		// Output driver info
-		CONSOLE_OUTPUT("Using Microsoft Direct3D Version 8.0 '%s'\n", D3DAdapterID.Driver);
-		CONSOLE_OUTPUT(" | Description: %s\n", D3DAdapterID.Description);
-		CONSOLE_OUTPUT(" | Version: %d.%d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart));
-		CONSOLE_OUTPUT(" | Acceleration: %s rasterization\n", (m_devType==D3DDEVTYPE_HAL)?"Hardware":"Software");
-		CONSOLE_OUTPUT(" | Max Texture Size: %dx%d\n", D3DCaps.MaxTextureWidth, D3DCaps.MaxTextureHeight);
+		CONSOLE_PRINTF("Using Microsoft Direct3D Version 8.0 '%s'\n", D3DAdapterID.Driver);
+		CONSOLE_PRINTF(" | Description: %s\n", D3DAdapterID.Description);
+		CONSOLE_PRINTF(" | Version: %d.%d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart));
+		CONSOLE_PRINTF(" | Acceleration: %s rasterization\n", (m_devType==D3DDEVTYPE_HAL)?"Hardware":"Software");
+		CONSOLE_PRINTF(" | Max Texture Size: %dx%d\n", D3DCaps.MaxTextureWidth, D3DCaps.MaxTextureHeight);
 		CONSOLE_DEBUG(" | Max Primitives & Vertices: %d/%d\n", D3DCaps.MaxVertexIndex, D3DCaps.MaxPrimitiveCount);
 #ifdef _USE_SWAPCHAINS
-		CONSOLE_OUTPUT(" | Using SwapChains!\n");
+		CONSOLE_PRINTF(" | Using SwapChains!\n");
 #endif	
 
 		if((D3DCaps.RasterCaps&D3DPRASTERCAPS_ANTIALIASEDGES)) {
-			CONSOLE_OUTPUT(" | Support for antialias on lines forming the convex outline of an object is available.\n");
+			CONSOLE_PRINTF(" | Support for antialias on lines forming the convex outline of an object is available.\n");
 		}
 		if((D3DCaps.RasterCaps&D3DPRASTERCAPS_PAT)) {
-			CONSOLE_OUTPUT(" | Support for patterned drawing is available for this driver.\n");
+			CONSOLE_PRINTF(" | Support for patterned drawing is available for this driver.\n");
 		}
 
 	}
@@ -797,7 +797,7 @@ bool CGraphicsD3D8::BuildSwapChain()
 	m_d3dpp.BackBufferFormat = ms_PreferredMode.Format; 
 
 	if(FAILED(ms_pD3DDevice->CreateAdditionalSwapChain(&m_d3dpp, &m_pSwapChain))) {
-		CONSOLE_OUTPUT("ERROR (D3D8): Couldn't create additional swap chain (2).\n");
+		CONSOLE_PRINTF("ERROR (D3D8): Couldn't create additional swap chain (2).\n");
 		return false;
 	}
 	CONSOLE_DEBUG2("DEBUG: SwapChain created for hWnd: %d.\n", m_d3dpp.hDeviceWindow);
@@ -881,7 +881,7 @@ bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, f
 		if(FAILED( D3DXCreateTextureFromFileEx(ms_pD3DDevice, filename, 
 				0, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
 				D3DCOLOR_ARGB(255,0,255,0), &imageInfo, NULL, &pTexture) )) {
-			CONSOLE_OUTPUT("WARNING (D3D8): Couldn't create texture from '%s'.\n", filename);
+			CONSOLE_PRINTF("WARNING (D3D8): Couldn't create texture from '%s'.\n", filename);
 			return false;
 		}
 
@@ -907,7 +907,7 @@ bool CGraphicsD3D8::CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcD
 		if(FAILED( D3DXCreateTextureFromFileInMemoryEx(ms_pD3DDevice, pSrcData, SrcData, 
 				0, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, D3DX_FILTER_NONE, D3DX_DEFAULT, 
 				D3DCOLOR_ARGB(255,0,255,0), &imageInfo, NULL, &pTexture) )) {
-			CONSOLE_OUTPUT("WARNING (D3D8): Couldn't create texture from memory.\n");
+			CONSOLE_PRINTF("WARNING (D3D8): Couldn't create texture from memory.\n");
 			return false;
 		}
 
