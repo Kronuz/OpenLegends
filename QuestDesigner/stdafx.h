@@ -90,7 +90,7 @@ extern CAppModule _Module;
 #define _NO_MISCTYPES
 
 #include "../Misc.h"
-#include "../IConsole.h"
+#include "Console.h""
 
 #include "IdleHandlerPump.h"
 

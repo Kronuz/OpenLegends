@@ -723,12 +723,15 @@ LRESULT CGEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL&
 	} else if(wParam == VK_SHIFT) {
 		ToCursor(m_OldCursorStatus);
 	} else if(wParam == VK_ESCAPE && !m_bPanning) {
-		bool bCancelOp = (isMoving() || isResizing()) && !isFloating();
-		CancelOperation();
-		m_DragState = tNone;
-		m_bDuplicating = false;
-		ReleaseCapture();
-		if(!bCancelOp) OnChangeSel();
+		if(isSelecting()) CancelSelBox();
+		else {
+			bool bCancelOp = (isMoving() || isResizing()) && !isFloating();
+			CancelOperation();
+			m_DragState = tNone;
+			m_bDuplicating = false;
+			ReleaseCapture();
+			if(!bCancelOp) OnChangeSel();
+		}
 	} else if(wParam == VK_ADD || wParam == VK_OEM_PLUS) {
 		ZoomIn();
 	} else if(wParam == VK_SUBTRACT || wParam == VK_OEM_MINUS) {
