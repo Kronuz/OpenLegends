@@ -245,7 +245,7 @@ protected:
 			no obstacle thus this areas do not slow down nor stop the entity from passing.
 		*/
 
-	bool Draw(const CDrawableContext &context, bool bBounds, ARGBCOLOR *rgbColorOverride, int nBuffer);
+	bool Draw(const CDrawableContext &context, bool bBounds, const ARGBCOLOR *rgbColorOverride, int nBuffer);
 
 public:
 	_spt_type GetSpriteType();
@@ -300,7 +300,7 @@ public:
 	int GetObjSubLayer() {
 		return reinterpret_cast<SBackgroundData*>(m_pSpriteData)->nSubLayer;
 	}
-	bool Draw(const CDrawableContext &context);
+	bool Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorOverride);
 	bool NeedToDraw(const CDrawableContext &scontext);
 };
 
@@ -329,7 +329,7 @@ protected:
 
 public:
 	bool Run(const CDrawableContext &context, RUNACTION action);
-	bool Draw(const CDrawableContext &context);
+	bool Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorOverride);
 	bool NeedToDraw(const CDrawableContext &context) { return CBackground::NeedToDraw(context); }
 };
 
@@ -430,11 +430,14 @@ public:
 const char QUEST_SET_ID[] = "Quest Designer Sprite Set";
 const int QUEST_SET_IDLEN = 25;
 
-#define SSD_WIDTHHEIGHT	0x01	// 0001
-#define SSD_TRANSCHAIN	0x02	// 0100
-#define SSD_ALPHA		0x04	// 1000
+#define SSD_WIDTHHEIGHT	0x01	// 00001
+#define SSD_CHAIN_X		0x02	// 00010
+#define SSD_CHAIN_Y		0x04	// 00100
+#define SSD_TRANS     	0x08	// 01000
+#define SSD_ALPHA		0x10	// 10000
 
 #pragma pack(1)
+typedef BYTE TREEBYTE[3];
 struct _SpriteSet {
 	struct _SpriteSetInfo {
 		char ID[200]; // ID, Name and Description Separated by '\n' and ended by '\0'
@@ -446,29 +449,28 @@ struct _SpriteSet {
 		// the name continues here 
 	} Info;
 	struct _SpriteSetData {	// (6 bytes)
-		unsigned Mask :		4;
-		unsigned NameLen :	5; // if it has the same name as the last sprite, this is 0.
-		unsigned Layer :	3;
-		unsigned SubLayer :	3;
-		bool tiled :		1;
-		WORD X;
-		WORD Y;
+		WORD Mask :		5;
+		WORD NameLen :	5; // if it has the same name as the last sprite, this is 0.
+		WORD Layer :	3;
+		WORD SubLayer :	3;
+		WORD X :		16;
+		WORD Y :		16;
 	};
-	struct _SpriteSetData01 { // mask 1	(3 bytes)
-		unsigned Width :	12; // 4096 x 4096
-		unsigned Height :	12;
+	struct _SpriteSetData01 { // mask 1	(4 bytes)
+		WORD Width :	16;
+		WORD Height :	16;
 	};
-	struct _SpriteSetData02 { // mask 42(1 bytes)
-		unsigned rotation :	2;
-		bool mirrored :		1;
-		bool flipped :		1;
-		_Chain XChain :		2;
-		_Chain YChain :		2;
+	struct _SpriteSetData02 { // masks 8,A,C,E (1 bytes)
+		BYTE rotation :	2;
+		BYTE mirrored :	1;
+		BYTE flipped :	1;
+		BYTE XChain :	2; // = Xchain - 1
+		BYTE YChain :	2; // = Ychain - 1
 	};
 	struct _SpriteSetData04 { // mask 4 (1 byte)
-		BYTE alpha;
+		BYTE alpha :		8;
 	};
-	// the name continues here 
+	// ...the name continues here 
 };
 #pragma pack()
 
@@ -528,8 +530,12 @@ inline void CSpriteContext::Flip(bool bFlip)
 }
 inline void CSpriteContext::Alpha(int alpha) 
 {
-	m_dwStatus &= ~SPT_ALPHA;
-	m_dwStatus |= ((alpha<<_SPT_ALPHA)&SPT_ALPHA);
+	DWORD newAlpha = ((alpha<<_SPT_ALPHA)&SPT_ALPHA);
+	if(newAlpha != (m_dwStatus&SPT_ALPHA)) {
+		m_dwStatus &= ~SPT_ALPHA;
+		m_dwStatus |= newAlpha;
+		Touch();
+	}
 }
 inline void CSpriteContext::Rotate(int rotate) 
 {

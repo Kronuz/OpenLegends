@@ -69,6 +69,7 @@ using namespace std;
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CDrawableObject;
+class CDrawableSelection;
 
 enum DRAWTYPE { birthOrder, yOrder, leftIso, rightIso, noOrder };
 
@@ -133,10 +134,11 @@ protected:
 
 	const class DrawContext :
 	public binary_function<CDrawableContext*, const IGraphics *, bool> {
+		bool m_bHighlight;
 		bool m_bSelected;
 		bool m_bVisible;
 	public:
-		DrawContext(bool bVisible, bool bSelected) : m_bVisible(bVisible), m_bSelected(bSelected) {}
+		DrawContext(bool bVisible, bool bSelected, bool bHighlight) : m_bVisible(bVisible), m_bSelected(bSelected), m_bHighlight(bHighlight) {}
 		bool operator()(CDrawableContext *pDrawableContext, const IGraphics *pIGraphics) const;
 	};
 
@@ -203,6 +205,11 @@ public:
 	void Invalidate() {
 		for(int i=0; i<CONTEXT_BUFFERS; i++) {
 			if(m_pBuffer[i]) m_pBuffer[i]->Invalidate();
+		}
+	}
+	void Touch() {
+		for(int i=0; i<CONTEXT_BUFFERS; i++) {
+			if(m_pBuffer[i]) m_pBuffer[i]->Touch();
 		}
 	}
 
@@ -289,12 +296,15 @@ public:
 	CDrawableObject* GetDrawableObj() const;
 
 	// Interface:
+	virtual bool isFlagged() { return false; }
+	virtual void Flag(bool bFlag) { bFlag; }
 	virtual bool GetInfo(SInfo *pI) const { return false; }
 	virtual bool GetProperties(SPropertyList *pPL) const { return false; }
 	virtual bool SetProperties(SPropertyList &PL) { return false; }
 
 	virtual bool Draw(const IGraphics *pIGraphics=NULL);
 	virtual bool DrawSelected(const IGraphics *pIGraphics=NULL);
+	virtual bool DrawSelectedH(const IGraphics *pIGraphics=NULL);
 
 	virtual bool Run(RUNACTION action);
 
@@ -347,7 +357,7 @@ public:
 		was not drawn (this is not necessarily an error - the
 		object may have determinated that it was obscured by others)
 	*/
-	virtual bool Draw(const CDrawableContext &) {
+	virtual bool Draw(const CDrawableContext &, const ARGBCOLOR * = NULL) {
 		return false;
 	}
 
@@ -390,14 +400,18 @@ enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
 struct SObjProp :
 	public IPropertyEnabled
 {
+	CDrawableSelection *pSelection;
 	CDrawableContext *pContext;
+	bool bSubselected;
 	CRect rcRect;
 	_Chain eXChain;
 	_Chain eYChain;
-	SObjProp(CDrawableContext *pContext_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pContext(pContext_), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_) {}
-	SObjProp(CDrawableContext *pContext_) : pContext(pContext_), eXChain(relative), eYChain(relative) {
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_) {}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative) {
 		pContext->GetAbsFinalRect(rcRect);
 	}
+	virtual bool isFlagged();
+	virtual void Flag(bool bFlag);
 	virtual bool GetInfo(SInfo *pI) const;
 	virtual bool GetProperties(SPropertyList *pPL) const;
 	virtual bool SetProperties(SPropertyList &PL);
@@ -418,6 +432,11 @@ struct SObjProp :
 */
 class CDrawableSelection
 {
+	friend SObjProp;
+
+	void EndSubSelBox(bool bAdd, const CPoint &point_, int Chains);
+	void SubSelPoint(bool bAdd, const CPoint &point_, int Chains);
+
 	IPropertyEnabled* SelPointAdd(const CPoint &point_, int Chains);
 	void SelPointRemove(const CPoint &point_);
 
@@ -460,6 +479,8 @@ protected:
 	bool m_bCanResize;
 	bool m_bCanMove;
 
+	bool m_bHoldSelection;
+
 	CRect m_rcSelection;
 	CPoint m_ptInitialPoint;
 	CDrawableContext **m_ppMainDrawable;
@@ -468,7 +489,7 @@ protected:
 
 	typedef vector<SObjProp> vectorObject;
 	vectorObject m_Objects; //!< Sprites in the selection.
-	int GetBoundingRect(CRect &Rect_);
+	int GetBoundingRect(CRect *pRect_);
 
 	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
 	virtual void BuildRealSelectionBounds() = 0;
@@ -489,6 +510,9 @@ public:
 
 	// Interface Definition:
 
+	virtual void HoldSelection(bool bHold = true) { m_bHoldSelection = bHold; }
+	virtual bool isHeld() { return m_bHoldSelection; }
+	
 	virtual void LockLayer(int nLayer, bool bLock = true);
 	virtual bool isLocked(int nLayer);
 	
@@ -516,8 +540,9 @@ public:
 	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains);
 	virtual void EndSelBoxRemove(const CPoint &point_);
 
+	virtual void GetSelBounds(CRect *pRect_);
 	virtual void SetLayerSelection(int nLayer);
-	virtual void DeleteSelection();
+	virtual int DeleteSelection();
 	virtual void Cancel();
 
 	virtual void CleanSelection();

@@ -106,7 +106,7 @@ LRESULT CMapEditorView::OnSelChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND hWn
 
 	m_SelectionI->SetLayerSelection(nLayer);
 
-	OnChangeSel();
+	OnChangeSel(OCS_UPDATE); // was OnChangeSel(OCS_AUTO)
 	UpdateView();
 
 	return 0;
@@ -123,6 +123,12 @@ LRESULT CMapEditorView::OnStateChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND h
 	int nVisibleState = GetMainFrame()->m_ctrlLayers.GetItemState(nLayer, "1_Visible");
 	int nLockedState = GetMainFrame()->m_ctrlLayers.GetItemState(nLayer, "2_Locked");
 	if(nVisibleState == CB_ERR || nLockedState == CB_ERR) return 0;
+
+	if(m_SelectionI->isHeld() && (nLockedState == 1)) {
+		CONSOLE_PRINTF("Warning: Can not lock layers while there are held selections, release the selection first.\n");
+		GetMainFrame()->m_ctrlLayers.SetItemState(nLayer, "2_Locked", 0);
+		nLockedState = 0;
+	}
 
 	m_pMapGroupI->ShowLayer(nLayer, (nVisibleState == 0));
 	m_SelectionI->LockLayer(nLayer, (nLockedState == 1));
@@ -153,7 +159,7 @@ LRESULT CMapEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		GetMainFrame()->m_ctrlLayers.SetCurSel(0);
 	}
 
-	OnChangeSel();
+	OnChangeSel(OCS_RENEW);
 
 	bHandled = FALSE;
 
@@ -217,7 +223,7 @@ bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle)
 	BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f);
 	m_pMapGroupI->SetThumbnail(pBitmap);
 
-	OnChangeSel();
+	OnChangeSel(OCS_RENEW);
 
 	UpdateView();
 	return true;
@@ -303,6 +309,18 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		}
 		pGetDataObject->Release();
 	}
+
+	if(isHeld()) {
+		menu.EnableMenuItem(1, MF_GRAYED);
+		menu.EnableMenuItem(2, MF_GRAYED);
+		menu.EnableMenuItem(3, MF_GRAYED);
+		menu.EnableMenuItem(4, MF_GRAYED);
+		menu.EnableMenuItem(5, MF_GRAYED);
+		menu.EnableMenuItem(6, MF_GRAYED);
+		menu.EnableMenuItem(7, MF_GRAYED);
+		menu.EnableMenuItem(9, MF_GRAYED);
+		menu.EnableMenuItem(10, MF_GRAYED);
+	}
 	
 	int nCmd = menu.TrackPopupMenu(TPM_RETURNCMD, PopUpPoint.x, PopUpPoint.y, (HWND)wParam);
 
@@ -317,7 +335,7 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 			if(isFloating()) {
 				EndMoving(Point, NULL);
 				Duplicate(Point);
-				OnChange();
+				OnChangeSel(OCS_UPDATE);
 			} else {
 				Duplicate(Point);	
 			}
@@ -331,7 +349,7 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 				m_DragState = tNone;
 				m_bDuplicating = false;
 				ReleaseCapture();
-				OnChangeSel();
+				OnChangeSel(OCS_AUTO);
 			} else {
 				SelectNone();
 			}
@@ -365,6 +383,9 @@ void CMapEditorView::UIUpdateMenuItems()
 
 	int nSelection = 0;
 	if(m_SelectionI && !isFloating()) nSelection = m_SelectionI->Count();
+	if(m_SelectionI) pMapUpdateUI->UISetCheck(ID_MAPED_SELHOLD, m_SelectionI->isHeld());
+	pMapUpdateUI->UIEnable(ID_MAPED_SELHOLD, (nSelection>1)?TRUE:FALSE);
+
 	pMapUpdateUI->UIEnable(ID_MAPED_TOTOP, nSelection);
 	pMapUpdateUI->UIEnable(ID_MAPED_OBJUP, nSelection);
 	pMapUpdateUI->UIEnable(ID_MAPED_OBJDWN, nSelection);
@@ -397,33 +418,32 @@ void CMapEditorView::UIUpdateMenuItems()
 
 */
 }
-
 inline bool CMapEditorView::Flip() 
 {
 	m_SelectionI->FlipSelection();
 	Invalidate();
-	OnChange();
+	OnChangeSel(OCS_UPDATE);
 	return true;
 }
 inline bool CMapEditorView::Mirror() 
 {
 	m_SelectionI->MirrorSelection();
 	Invalidate();
-	OnChange();
+	OnChangeSel(OCS_UPDATE);
 	return true;
 }
 inline bool CMapEditorView::CWRotate()
 {
 	m_SelectionI->CWRotateSelection();
 	Invalidate();
-	OnChange();
+	OnChangeSel(OCS_UPDATE);
 	return true;
 }
 inline bool CMapEditorView::CCWRotate()
 {
 	m_SelectionI->CCWRotateSelection();
 	Invalidate();
-	OnChange();
+	OnChangeSel(OCS_UPDATE);
 	return true;
 }
 bool CMapEditorView::InsertPlayer()
@@ -538,12 +558,16 @@ IPropertyEnabled* CMapEditorView::SelectPoint(const CPoint &_Point, CURSOR *_pCu
 {
 	m_SelectionI->CleanSelection();
 	m_SelectionI->StartSelBox(_Point);
-	OnChangeSel();
+	m_SelectionI->EndSelBoxAdd(_Point,0);
+	OnChangeSel(OCS_AUTO);
 	*_pCursor = eIDC_SIZEALL;
 	return NULL;
 }
 
-
+void CMapEditorView::GetSelectionBounds(CRect *_pRect)
+{
+	m_SelectionI->GetSelBounds(_pRect);
+}
 void CMapEditorView::StartMoving(const CPoint &_Point, CURSOR *_pCursor)
 {
 	m_SelectionI->StartMoving(_Point);
@@ -607,11 +631,18 @@ void CMapEditorView::CleanSelection()
 	m_SelectionI->CleanSelection();
 }
 
-void CMapEditorView::DeleteSelection()
+int CMapEditorView::DeleteSelection()
 {
-	m_SelectionI->DeleteSelection();
+	return m_SelectionI->DeleteSelection();
 }
-
+void CMapEditorView::HoldSelection(bool bHold)
+{
+	m_SelectionI->HoldSelection(bHold);
+}
+bool CMapEditorView::isHeld()
+{
+	return m_SelectionI->isHeld();
+}
 bool CMapEditorView::GetMouseStateAt(const CPoint &_Point, CURSOR *_pCursor)
 {
 	return m_SelectionI->GetMouseStateAt(m_pGraphicsI, _Point, _pCursor);
@@ -658,15 +689,16 @@ void CMapEditorView::UpdateView()
 	m_pGraphicsI->SetWindowView(m_hWnd, rcClient, rcClip, m_Zoom);
 }
 
-void CMapEditorView::OnChange()
-{
-	HWND hWnd = GetMainFrame()->m_hWnd;
-	::SendMessage(hWnd, WMP_UPDATE, 0, 0);
-}
-
-void CMapEditorView::OnChangeSel(IPropertyEnabled *pPropObj)
+void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 {
 	if(!m_SelectionI || !m_pMapGroupI) return;
+
+	HWND hWnd = GetMainFrame()->m_hWnd;
+
+	if(isHeld() && type == OCS_AUTO || type == OCS_UPDATE) {
+		::SendMessage(hWnd, WMP_UPDATE, 0, 0);
+		return;
+	}
 
 	for(int nLayer=0; nLayer<MAX_LAYERS; nLayer++) {
 		bool bVisible = m_pMapGroupI->isVisible(nLayer);
@@ -677,7 +709,6 @@ void CMapEditorView::OnChangeSel(IPropertyEnabled *pPropObj)
 	}
 	GetMainFrame()->m_ctrlLayers.SetCurSel(m_SelectionI->GetLayer());
 
-	HWND hWnd = GetMainFrame()->m_hWnd;
 	::SendMessage(hWnd, WMP_CLEAR, 0, 0);
 
 	SInfo Information;

@@ -33,6 +33,10 @@
 
 #include "WindowDropTarget.h"
 
+#define OCS_UPDATE	-1
+#define OCS_AUTO	0
+#define OCS_RENEW	1	
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CGEditorFrame;
@@ -100,7 +104,8 @@ public:
 	bool ZoomIn();
 	bool ZoomOut();
 	bool ToggleGrid();
-	bool TogleSnap();
+	bool ToggleSnap();
+	bool ToggleHold();
 
 	// Initialize drag and drop
 	bool InitDragDrop();
@@ -190,13 +195,17 @@ public:
 	virtual bool isMoving() = 0;
 	virtual bool isFloating() = 0;
 	virtual bool isSelecting() = 0;
+	virtual bool isHeld() = 0;
 
+	virtual void HoldSelection(bool bHold) = 0;
 	virtual void StartSelBox(const CPoint &_Point, CURSOR *_pCursor) = 0;
 	virtual void SizeSelBox(const CPoint &_Point, CURSOR *_pCursor) = 0;
 	virtual IPropertyEnabled* EndSelBoxRemove(const CPoint &_Point, LPARAM lParam) = 0;
 	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &_Point, LPARAM lParam) = 0;
 	virtual void CancelSelBox() = 0;
 	virtual IPropertyEnabled* SelectPoint(const CPoint &_Point, CURSOR *_pCursor) = 0;
+
+	virtual void GetSelectionBounds(CRect *_pRect) = 0;
 
 	virtual void StartMoving(const CPoint &_Point, CURSOR *_pCursor) = 0;
 	virtual void MoveTo(const CPoint &_Point, CURSOR *_pCursor) = 0;
@@ -213,7 +222,7 @@ public:
 	virtual void PasteSelection(LPVOID _pBuffer, const CPoint &_Point) = 0;
 	virtual BITMAP* CaptureSelection(float _fZoom) = 0;
 	virtual void CleanSelection() = 0;
-	virtual void DeleteSelection() = 0;
+	virtual int DeleteSelection() = 0;
 
 	virtual bool GetMouseStateAt(const CPoint &_Point, CURSOR *_pCursor) = 0;
 	virtual void CalculateLimits() = 0;
@@ -221,8 +230,7 @@ public:
 	virtual void Render() = 0;
 	virtual void UpdateView() = 0;
 
-	virtual void OnChange() = 0;
-	virtual void OnChangeSel(IPropertyEnabled *pPropObj = NULL) = 0;
+	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL) = 0;
 
 	virtual BOOL OnIdle();
 	virtual bool hasChanged() = 0;

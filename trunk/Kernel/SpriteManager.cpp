@@ -76,7 +76,7 @@ bool CBackground::NeedToDraw(const CDrawableContext &scontext)
 	}
 	return false; 
 }
-inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOLOR *rgbColorOverride, int nBuffer)
+inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, const ARGBCOLOR *rgbColorOverride, int nBuffer)
 {
 	CSpriteSheet *pSpriteSheet = GetSpriteSheet();
 	ASSERT(pSpriteSheet);
@@ -164,9 +164,13 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 	scontext->m_nFrame[nBuffer] = nFrame;
 
 	ARGBCOLOR rgbColor;
-	if(!rgbColorOverride) {
+	if(rgbColorOverride) {
+		rgbColor.rgbAlpha = (BYTE)(((int)rgbColorOverride->rgbAlpha + scontext->getAlpha()) / 2);
+		rgbColor.rgbRed = rgbColorOverride->rgbRed;
+		rgbColor.rgbGreen = rgbColorOverride->rgbGreen;
+		rgbColor.rgbBlue = rgbColorOverride->rgbBlue;
+	} else {
 		rgbColor = COLOR_ARGB(scontext->getAlpha(),255,255,255);
-		rgbColorOverride = &rgbColor;
 	}
 
 	CRect Rect;
@@ -176,7 +180,7 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 		Rect,											// rectDest
 		scontext->Rotation(),							// rotation
 		scontext->Transformation(),						// transform
-		*rgbColorOverride,								// rgbColor
+		rgbColor,										// rgbColor
 		&(context.m_pBuffer[nBuffer]),					// buffer
 		scontext->RelRotation(),						// relarive rotation
 		scontext->RelScale()							// relative scale
@@ -188,7 +192,7 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 
 	return true;
 }
-bool CBackground::Draw(const CDrawableContext &context) 
+bool CBackground::Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorOverride) 
 { 
 	if(!NeedToDraw(context)) return true;
 
@@ -198,22 +202,22 @@ bool CBackground::Draw(const CDrawableContext &context)
 			return false;
 		}
 	} else {
-		if(!CSprite::Draw(context, g_bBounds, NULL, 0)) {
+		if(!CSprite::Draw(context, g_bBounds, rgbColorOverride, 0)) {
 			return false;
 		}
 
 		if(g_bMasks) {
 			const SBackgroundData *pBackgroundData = static_cast<const SBackgroundData*>(m_pSpriteData);
 			if(pBackgroundData->pMaskMap)
-				pBackgroundData->pMaskMap->Draw(context);
+				pBackgroundData->pMaskMap->Draw(context, rgbColorOverride);
 		}
 	}
 	return true; 
 }
-bool CEntity::Draw(const CDrawableContext &context) 
+bool CEntity::Draw(const CDrawableContext &context, const ARGBCOLOR *rgbColorOverride) 
 { 
 	if(g_bEntities)
-		return CBackground::Draw(context); 
+		return CBackground::Draw(context, rgbColorOverride); 
 	return true;
 }
 
@@ -327,44 +331,96 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 }
 bool CSpriteContext::SetProperties(SPropertyList &PL) 
 {
+	bool bChanged = false;
+
 	SProperty* pP;
 
 	CRect Rect;
 	GetAbsFinalRect(Rect);
 
 	pP = PL.FindProperty("X", SProperty::ptValue);
-	if(pP) if(pP->bEnabled && pP->bChanged) Rect.OffsetRect(pP->nValue - Rect.left, 0);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(pP->nValue - Rect.left) {
+			Rect.OffsetRect(pP->nValue - Rect.left, 0);
+			bChanged = true;
+		}
+	}
 	
 	pP = PL.FindProperty("Y", SProperty::ptValue);
-	if(pP) if(pP->bEnabled && pP->bChanged) Rect.OffsetRect(0, pP->nValue - Rect.top);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(pP->nValue - Rect.top) {
+			Rect.OffsetRect(0, pP->nValue - Rect.top);
+			bChanged = true;
+		}
+	}
 
 	pP = PL.FindProperty("Width", SProperty::ptValue);
-	if(pP) if(pP->bEnabled && pP->bChanged) Rect.right = Rect.left + pP->nValue;
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(Rect.right - Rect.left != pP->nValue) {
+			Rect.right = Rect.left + pP->nValue;
+			bChanged = true;
+		}
+	}
 
 	pP = PL.FindProperty("Height", SProperty::ptValue);
-	if(pP) if(pP->bEnabled && pP->bChanged) Rect.bottom = Rect.top + pP->nValue;
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(Rect.bottom - Rect.top != pP->nValue) {
+			Rect.bottom = Rect.top + pP->nValue;
+			bChanged = true;
+		}
+	}
 
 	SetAbsFinalRect(Rect);
 
 	pP = PL.FindProperty("Alpha", SProperty::ptValue);
-	if(pP) if(pP->bEnabled && pP->bChanged) Alpha(pP->nValue);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(getAlpha() != pP->nValue) {
+			Alpha(pP->nValue);
+			bChanged = true;
+		}
+	}
 
 	pP = PL.FindProperty("IsMirrored", SProperty::ptBoolean);
-	if(pP) if(pP->bEnabled && pP->bChanged) Mirror(pP->bBoolean);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(isMirrored() != pP->bBoolean) {
+			Mirror(pP->bBoolean);
+			bChanged = true;
+		}
+	}
 
 	pP = PL.FindProperty("IsFlipped", SProperty::ptBoolean);
-	if(pP) if(pP->bEnabled && pP->bChanged) Flip(pP->bBoolean);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(isFlipped() != pP->bBoolean) {
+			Flip(pP->bBoolean);
+			bChanged = true;
+		}
+	}
 	
 	pP = PL.FindProperty("Rotation", SProperty::ptList);
-	if(pP) if(pP->bEnabled && pP->bChanged) Rotate(pP->nIndex);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(Rotation() != pP->nIndex) {
+			Rotate(pP->nIndex);
+			bChanged = true;
+		}
+	}
 
 	pP = PL.FindProperty("SubLayer", SProperty::ptList);
-	if(pP) if(pP->bEnabled && pP->bChanged) SetObjSubLayer(pP->nIndex);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(GetObjSubLayer() != pP->nIndex) {
+			SetObjSubLayer(pP->nIndex);
+			bChanged = true;
+		}
+	}
 
 	pP = PL.FindProperty("Layer", SProperty::ptList);
-	if(pP) if(pP->bEnabled && pP->bChanged) SetObjLayer(pP->nIndex);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(GetObjLayer() != pP->nIndex) {
+			SetObjLayer(pP->nIndex);
+			bChanged = true;
+		}
+	}
 
-	return true;
+	return bChanged;
 }
 
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
@@ -416,22 +472,30 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 		scontext->GetAbsFinalRect(RectTmp);
 		Rect.UnionRect(Rect, RectTmp);
 		if(nObjects>1) {
-			pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
+			if(Iterator->bSubselected && m_bHoldSelection) {
+				// if the object is subselected and the selection is held, draw in other color:
+				pGraphics_->FillRect(RectTmp, COLOR_ARGB(100,0,0,128));
+			} else {
+				// only fill the selection if it isn't held:
+				if(!m_bHoldSelection) pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
+			}
+			// draw a bounding rect over the selected object:
 			pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(80,255,255,225));
 
+			// Draw the horizontal chain of the object:
 			CRect rcSpecial, rcArrow;
 			rcSpecial = RectTmp;
 			if(Iterator->eXChain == left) {
-				rcSpecial.right = rcSpecial.left+1;
+				rcSpecial.right = rcSpecial.left+2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
 			} else if(Iterator->eXChain == right) {
-				rcSpecial.left = rcSpecial.right-1;
+				rcSpecial.left = rcSpecial.right-2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
 			} else if(Iterator->eXChain == fixed) {
-				rcSpecial.right = rcSpecial.left+1;
+				rcSpecial.right = rcSpecial.left+2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 				rcSpecial = RectTmp;
-				rcSpecial.left = rcSpecial.right-1;
+				rcSpecial.left = rcSpecial.right-2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 			} else if(Iterator->eXChain == stretch) {
 				rcSpecial.top = rcSpecial.top+rcSpecial.Height()/2;
@@ -453,18 +517,19 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 				pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
 			}
 
+			// Draw the vertical chain of the object:
 			rcSpecial = RectTmp;
 			if(Iterator->eYChain == up) {
-				rcSpecial.bottom = rcSpecial.top+1;
+				rcSpecial.bottom = rcSpecial.top+2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
 			} else if(Iterator->eYChain == down) {
-				rcSpecial.top = rcSpecial.bottom-1;
+				rcSpecial.top = rcSpecial.bottom-2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
 			} else if(Iterator->eYChain == fixed) {
-				rcSpecial.bottom = rcSpecial.top+1;
+				rcSpecial.bottom = rcSpecial.top+2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 				rcSpecial = RectTmp;
-				rcSpecial.top = rcSpecial.bottom-1;
+				rcSpecial.top = rcSpecial.bottom-2;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 			} else if(Iterator->eYChain == stretch) {
 				rcSpecial.left = rcSpecial.left+rcSpecial.Width()/2;
@@ -493,7 +558,8 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	m_bCanResize = true;
 
 	if(nObjects>1) {
-		pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
+		if(m_bHoldSelection) pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,160,160,160));
+		else pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
 	} else if(nObjects==1) {
 		if(scontext->isTiled()) {
 			pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,255,200));
@@ -634,6 +700,10 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	BITMAP *pBitmap = NULL;
 	if(ppBitmap) pBitmap = *ppBitmap;
 
+	// Now we are ready to copy the objects's information into the sprite set,
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+
 	if(m_Objects.size() == 0) {
 		if(bDeleteBitmap && ppBitmap) {
 			*ppBitmap = NULL;
@@ -644,48 +714,50 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 
 	int bmpsize = 0;
 	if(pBitmap) bmpsize = sizeof(BITMAP) + pBitmap->bmHeight * pBitmap->bmWidthBytes;
-	int size = (int)(sizeof(_SpriteSet::_SpriteSetInfo));
-
+	int datasize = sizeof(_SpriteSet::_SpriteSetInfo);
 	// Analize the selected objeects to find out the needed size for the sprite set:
 	CSprite *pOldSprite = NULL;
 	vectorObject::iterator Iterator = m_Objects.begin();
 	for(int i=0; Iterator != m_Objects.end(); i++) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		ASSERT(scontext);
 		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
 		CSprite *pSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
 		ASSERT(pSprite);
+		ASSERT(pObjProp);
 
-		size += sizeof(_SpriteSet::_SpriteSetData);
+		datasize += sizeof(_SpriteSet::_SpriteSetData);
 
 		// if it is not an entity, with and height it will need mask: SSD_WIDTHHEIGHT
 		if(pSprite->GetSpriteType() != tEntity) {
-			size += sizeof(_SpriteSet::_SpriteSetData01);
+			datasize += sizeof(_SpriteSet::_SpriteSetData01);
 		}
 
-		// if it has chains or transformations it will need mask: SSD_TRANSCHAIN
+		// if it has chains or transformations it will need mask: SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
 		if( pObjProp->eXChain != relative || pObjProp->eYChain != relative ||
 			scontext->isMirrored() || scontext->isFlipped() || scontext->Rotation() ) {
-			size += sizeof(_SpriteSet::_SpriteSetData02);
+			datasize += sizeof(_SpriteSet::_SpriteSetData02);
 		}
 
 		// if it has an alpha value set, it will need mask: SSD_ALPHA
 		if(scontext->getAlpha() != 255) {
-			size += sizeof(_SpriteSet::_SpriteSetData04);
+			datasize += sizeof(_SpriteSet::_SpriteSetData04);
 		}
 
 		if(pOldSprite != pSprite) {
-			pOldSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
+			pOldSprite = pSprite;
 			int nNameLen = 0;
 			nNameLen = strlen(scontext->GetObjName()) + 1;
 			ASSERT(nNameLen < 30);
-			size += nNameLen;
+			datasize += nNameLen;
 		}
 
 		Iterator++;
 	}
+	int asize = (datasize + sizeof(DWORD) - 1 / sizeof(DWORD)) * sizeof(DWORD); // align to 32 bits.
 
 	// Now that we know the exact space all the sprites will need, we allocate it:
-	HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, size + bmpsize); 
+	HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, asize + bmpsize); 
 	if(hglbCopy == NULL) {
 		if(bDeleteBitmap && ppBitmap) {
 			*ppBitmap = NULL;
@@ -699,13 +771,13 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	ASSERT(RawBuffer);
 
 	CRect rcBoundaries, RectTmp;
-	GetBoundingRect(rcBoundaries);
+	GetBoundingRect(&rcBoundaries);
 
 	_SpriteSet *CopyBoard = (_SpriteSet*)RawBuffer;
 	strcpy(CopyBoard->Info.ID, QUEST_SET_ID);
 	strcat(CopyBoard->Info.ID, "\nUnnamed Sprite Set\nDescription goes here.");
 	CopyBoard->Info.dwSignature = QUEST_SET_SIGNATURE;
-	CopyBoard->Info.dwSize = size + bmpsize;
+	CopyBoard->Info.dwSize = asize + bmpsize;
 	CopyBoard->Info.nObjects = (int)m_Objects.size();
 
 	CopyBoard->Info.rcBoundaries = rcBoundaries;
@@ -714,17 +786,15 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	
 	LPBYTE pData = (LPBYTE)(RawBuffer + sizeof(_SpriteSet::_SpriteSetInfo));
 
-	// Now we are ready to copy the objects's information into the sprite set,
-	// we start by sorting the selected objects (in the selection):
-	SortSelection();
-
 	pOldSprite = NULL;
 	Iterator = m_Objects.begin();
 	for(i=0; Iterator != m_Objects.end(); i++) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		ASSERT(scontext);
 		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
 		CSprite *pSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
 		ASSERT(pSprite);
+		ASSERT(pObjProp);
 
 		int Mask = 0;
 		LPSTR szName = NULL;
@@ -745,10 +815,12 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 			pData += sizeof(_SpriteSet::_SpriteSetData01);
 		}
 
-		// if it has chains or transformations it will need mask: SSD_TRANSCHAIN
+		// if it has chains or transformations it will need mask: SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
 		if( pObjProp->eXChain != relative || pObjProp->eYChain != relative ||
 			scontext->isMirrored() || scontext->isFlipped() || scontext->Rotation() ) {
-			Mask |= SSD_TRANSCHAIN;
+			Mask |= SSD_TRANS;
+			if(pObjProp->eXChain != relative) Mask |= SSD_CHAIN_X;
+			if(pObjProp->eYChain != relative) Mask |= SSD_CHAIN_Y;
 			pSpriteSetData02 = (_SpriteSet::_SpriteSetData02 *)pData;
 			pData += sizeof(_SpriteSet::_SpriteSetData02);
 		}
@@ -761,7 +833,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		}
 
 		if(pOldSprite != pSprite) {
-			pOldSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
+			pOldSprite = pSprite;
 			nNameLen = strlen(scontext->GetObjName()) + 1;
 			ASSERT(nNameLen < 30);
 			szName = (LPSTR)pData;
@@ -775,16 +847,15 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 
 		ASSERT(pSpriteSetData);
 
-		ASSERT(Mask < 0x0010);
+		ASSERT(Mask < 0x0020);
 		ASSERT(scontext->GetObjLayer() < 0x0008);
 		ASSERT(scontext->GetObjSubLayer() < 0x0008);
 		ASSERT(nNameLen < 0x0030);
 
-		pSpriteSetData->Mask = Mask & 0x000F;
-		pSpriteSetData->NameLen = nNameLen & 0x001F;
-		pSpriteSetData->Layer = scontext->GetObjLayer() & 0x0007;
-		pSpriteSetData->SubLayer = scontext->GetObjSubLayer() & 0x0007;
-		pSpriteSetData->tiled = scontext->isTiled();
+		pSpriteSetData->Mask = Mask;
+		pSpriteSetData->NameLen = nNameLen;
+		pSpriteSetData->Layer = scontext->GetObjLayer();
+		pSpriteSetData->SubLayer = scontext->GetObjSubLayer();
 		pSpriteSetData->X = (WORD)RectTmp.left;
 		pSpriteSetData->Y = (WORD)RectTmp.top;
 
@@ -792,17 +863,17 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 			ASSERT(RectTmp.Width() < 0x1000);
 			ASSERT(RectTmp.Height() < 0x1000);
 
-			pSpriteSetData01->Width = RectTmp.Width() & 0x0fff;
-			pSpriteSetData01->Height = RectTmp.Height() & 0x0fff;
+			pSpriteSetData01->Width = RectTmp.Width();
+			pSpriteSetData01->Height = RectTmp.Height();
 		}
-		if(pSpriteSetData02) { // SSD_TRANSCHAIN
+		if(pSpriteSetData02) { // SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
 			ASSERT(scontext->Rotation() < 0x0004);
 
-			pSpriteSetData02->rotation = scontext->Rotation() & 0x0003;
-			pSpriteSetData02->mirrored = (bool)scontext->isMirrored();
-			pSpriteSetData02->flipped = (bool)scontext->isFlipped();
-			pSpriteSetData02->XChain = pObjProp->eXChain;
-			pSpriteSetData02->YChain = pObjProp->eYChain;
+			pSpriteSetData02->rotation = scontext->Rotation();
+			pSpriteSetData02->mirrored = scontext->isMirrored();
+			pSpriteSetData02->flipped = scontext->isFlipped();
+			pSpriteSetData02->XChain = ((unsigned)pObjProp->eXChain - 1);
+			pSpriteSetData02->YChain = ((unsigned)pObjProp->eYChain - 1);
 		}
 		if(pSpriteSetData04) { // SSD_ALPHA
 			pSpriteSetData04->alpha = (BYTE)scontext->getAlpha();
@@ -812,14 +883,16 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		}
 
 		Iterator++;
+		ASSERT(pData <= RawBuffer + datasize);
 	}
 
-	ASSERT(RawBuffer + size == pData);
+	ASSERT(pData == RawBuffer + datasize);
+	CONSOLE_DEBUG("Sprite Set created, %d bytes: %d bytes used for data, and %d bytes for the thumbnail\n", asize + bmpsize, datasize, bmpsize);
 
 	if(pBitmap) {
-		CopyBoard->Info.dwBitmapOffset = (DWORD)size; // offset of the bitmap
-		memcpy(RawBuffer + size, pBitmap, sizeof(BITMAP));
-		memcpy(RawBuffer + size + sizeof(BITMAP), pBitmap->bmBits, bmpsize - sizeof(BITMAP));
+		CopyBoard->Info.dwBitmapOffset = (DWORD)asize; // offset of the bitmap
+		memcpy(RawBuffer + asize, pBitmap, sizeof(BITMAP));
+		memcpy(RawBuffer + asize + sizeof(BITMAP), pBitmap->bmBits, bmpsize - sizeof(BITMAP));
 	}
 
 	::GlobalUnlock(hglbCopy); 
@@ -859,7 +932,7 @@ bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite)
 	pSpriteContext->MoveTo(-Size.cx/2, -Size.cy/2);
 
 	m_Objects.clear();
-	m_Objects.push_back(SObjProp(pSpriteContext));
+	m_Objects.push_back(SObjProp(this, pSpriteContext));
 	return true;
 }
 bool CSpriteSelection::PasteObj(CLayer *pLayer, LPBYTE *ppData)
@@ -869,6 +942,10 @@ bool CSpriteSelection::PasteObj(CLayer *pLayer, LPBYTE *ppData)
 bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 {
 	ASSERT(pBuffer);
+	if(m_bHoldSelection) {
+		CONSOLE_PRINTF("Warning: Can not paste on held selection, release the selection first.\n");
+		return false;
+	}
 
 	// get the current selected layer:
 	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
@@ -906,7 +983,7 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 				pSpriteSetData01 = (_SpriteSet::_SpriteSetData01 *)pData;;
 				pData += sizeof(_SpriteSet::_SpriteSetData01);
 			}
-			if((pSpriteSetData->Mask & SSD_TRANSCHAIN) == SSD_TRANSCHAIN) {
+			if((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS) {
 				pSpriteSetData02 = (_SpriteSet::_SpriteSetData02 *)pData;;
 				pData += sizeof(_SpriteSet::_SpriteSetData02);
 			}
@@ -944,7 +1021,7 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 			CSpriteContext *pSpriteContext = new CSpriteContext(""); // New sprite context with no name.
 			pSpriteContext->SetDrawableObj(pSprite);
 
-			// Fill sprite data:
+			// Fill sprite context data:
 
 			int alpha = 255;
 			int rotation = 0;
@@ -955,20 +1032,25 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 			_Chain YChain = relative;
 			CRect RectTmp(pSpriteSetData->X, pSpriteSetData->Y, pSpriteSetData->X - 1, pSpriteSetData->Y - 1);
 			pSpriteContext->SetObjSubLayer(pSpriteSetData->SubLayer);
-			pSpriteContext->Tile(pSpriteSetData->tiled);
 
 			if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
+				ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
 				RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
 				RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
+				pSpriteContext->Tile();
 			}
-			if(pSpriteSetData02) { //SSD_TRANSCHAIN
+			if(pSpriteSetData02) { //SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
+				ASSERT((pSpriteSetData->Mask & SSD_TRANS) == SSD_TRANS);
 				rotation = pSpriteSetData02->rotation;
 				mirrored = pSpriteSetData02->mirrored;
 				flipped = pSpriteSetData02->flipped;
-				XChain = pSpriteSetData02->XChain;
-				YChain = pSpriteSetData02->YChain;
+				if((pSpriteSetData->Mask & SSD_CHAIN_X) == SSD_CHAIN_X)
+					XChain = (_Chain)(pSpriteSetData02->XChain + 1);
+				if((pSpriteSetData->Mask & SSD_CHAIN_Y) == SSD_CHAIN_Y)
+					YChain = (_Chain)(pSpriteSetData02->YChain + 1);
 			}
 			if(pSpriteSetData04) { //SSD_ALPHA
+				ASSERT((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA);
 				alpha = pSpriteSetData04->alpha;
 			}
 
@@ -978,7 +1060,7 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 			pSpriteContext->Alpha(alpha);
 
 			pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
-			m_Objects.push_back(SObjProp(pSpriteContext, RectTmp, XChain, YChain));
+			m_Objects.push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
 
 			// the sprite absolute postion must be set after inserting it in the layer.
 			pSpriteContext->SetAbsFinalRect(RectTmp);
@@ -998,7 +1080,7 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 void CSpriteSelection::FlipSelection()
 {
 	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(rcBoundaries);
+	GetBoundingRect(&rcBoundaries);
 
 	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
@@ -1034,7 +1116,7 @@ void CSpriteSelection::FlipSelection()
 	}
 
 	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(m_rcSelection);
+		GetBoundingRect(&m_rcSelection);
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
@@ -1043,7 +1125,7 @@ void CSpriteSelection::FlipSelection()
 void CSpriteSelection::MirrorSelection()
 {
 	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(rcBoundaries);
+	GetBoundingRect(&rcBoundaries);
 
 	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
@@ -1079,7 +1161,7 @@ void CSpriteSelection::MirrorSelection()
 	}
 
 	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(m_rcSelection);
+		GetBoundingRect(&m_rcSelection);
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
@@ -1088,7 +1170,7 @@ void CSpriteSelection::MirrorSelection()
 void CSpriteSelection::CWRotateSelection()
 {
 	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(rcBoundaries);
+	GetBoundingRect(&rcBoundaries);
 
 	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
@@ -1137,7 +1219,7 @@ void CSpriteSelection::CWRotateSelection()
 	}
 
 	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(m_rcSelection);
+		GetBoundingRect(&m_rcSelection);
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
@@ -1146,7 +1228,7 @@ void CSpriteSelection::CWRotateSelection()
 void CSpriteSelection::CCWRotateSelection()
 {
 	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(rcBoundaries);
+	GetBoundingRect(&rcBoundaries);
 
 	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
@@ -1195,7 +1277,7 @@ void CSpriteSelection::CCWRotateSelection()
 	}
 
 	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(m_rcSelection);
+		GetBoundingRect(&m_rcSelection);
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
