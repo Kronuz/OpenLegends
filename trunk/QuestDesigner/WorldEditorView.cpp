@@ -317,6 +317,8 @@ LRESULT CWorldEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 
 	UpdateMouse(Point);
 
+	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) SetFocus();
+
 	return 0;
 }
 

@@ -79,12 +79,17 @@ class CMainFrame :
 	public CIdleHandlerPump
 {
 	friend CChildFrame;
+
+	CProjectFactory *m_pProjectFactory;
+	IGame *m_pOZKernel;
 protected:
 	typedef CMainFrame thisClass;
 	typedef dockwins::CMDIDockingFrameImpl<CMainFrame> baseClass;
 
 public:
 	CTabbedMDIClient< CDotNetTabCtrl<CTabViewTabItem> > m_tabbedClient;
+	CMainFrame() : m_pProjectFactory(NULL), m_pOZKernel(NULL) {}
+
 protected:
 	sstate::CWindowStateMgr	m_stateMgr;
 	
@@ -116,6 +121,8 @@ protected:
 public:
 	BOOL m_bLayers;
 	CComboBox m_Layers;
+
+	bool m_bProjectLoaded;
 
 ////////////////////////////////////////////////////////
 
@@ -217,6 +224,7 @@ public:
 		COMMAND_ID_HANDLER(ID_APP_SPTSHTED, OnViewSpriteEditor)
 
 		COMMAND_ID_HANDLER(ID_APP_BUILD, OnBuildProject)
+		COMMAND_ID_HANDLER(ID_APP_STOPBUILD, OnStopBuild)
 		//MESSAGE_HANDLER(WMQD_BEGIN, ??)
 		MESSAGE_HANDLER(WMQD_MESSAGE, m_OutputBox.OnWriteMsg)
 
@@ -224,14 +232,23 @@ public:
 		SIMPLE_MESSAGE_HANDLER(WMQD_BUILDBEGIN, m_OutputBox.BeginBuildMsg)
 		SIMPLE_MESSAGE_HANDLER(WMQD_BUILDEND, m_OutputBox.EndBuildMsg)
 
-		SIMPLE_MESSAGE_HANDLER(WMQD_ADDTREE, m_GameProject.OnAddTree)
-		SIMPLE_MESSAGE_HANDLER(WMQD_DELTREE, m_GameProject.OnDelTree)
+		SIMPLE_MESSAGE_HANDLER(WMGP_ADDTREE, m_GameProject.OnAddTree)
+		SIMPLE_MESSAGE_HANDLER(WMGP_DELTREE, m_GameProject.OnDelTree)
+
+		SIMPLE_MESSAGE_HANDLER(WMQ_ADDTREE, m_Quest.OnAddTree)
+		SIMPLE_MESSAGE_HANDLER(WMQ_DELTREE, m_Quest.OnDelTree)
+
+		SIMPLE_MESSAGE_HANDLER(WMP_CLEAR, m_PropertiesView.OnClear)
+		SIMPLE_MESSAGE_HANDLER(WMP_ADDINFO, m_PropertiesView.OnAddInfo)
+		SIMPLE_MESSAGE_HANDLER(WMP_SETPROP, m_PropertiesView.OnSetProperties)
+		SIMPLE_MESSAGE_HANDLER(WMP_UPDATE, m_PropertiesView.OnUpdate)
 
 		if(uMsg == WM_COMMAND && (LOWORD(wParam) >= ID_VIEW_PANEFIRST && LOWORD(wParam) <= ID_VIEW_PANELAST)) {
 			ATLASSERT(m_PaneWindows.size() >= (ID_VIEW_PANELAST-ID_VIEW_PANEFIRST));
 			m_PaneWindows[LOWORD(wParam) - ID_VIEW_PANEFIRST]->Toggle();
 		}
 
+		COMMAND_ID_HANDLER(ID_APP_HELP, OnAppHelp)
 		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER(ID_APP_PREFERENCES, OnAppConfig)
 		COMMAND_ID_HANDLER(ID_WINDOW_CASCADE, OnWindowCascade)
@@ -276,6 +293,7 @@ public:
 	LRESULT OnViewInformationWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnViewPropertiesWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
+	LRESULT OnAppHelp(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnAppConfig(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWindowCascade(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -283,6 +301,7 @@ public:
 	LRESULT OnWindowArrangeIcons(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnStopBuild(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	HWND CreatePane(HWND hWndClient, LPCTSTR sName, HICON hIcon, CRect& rcDock, HWND hDockTo, dockwins::CDockingSide side);
 public:

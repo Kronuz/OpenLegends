@@ -40,6 +40,7 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
+interface ISound;
 class CWorld;
 
 #include "SpriteManager.h"
@@ -88,7 +89,7 @@ class CMapGroup :
 	const CWorld *m_pWorld;
 	BITMAP *m_pBitmap;
 	bool m_bLoaded;
-
+	ISound *m_pMusic;
 public:
 	CMapGroup();
 	~CMapGroup();
@@ -120,6 +121,9 @@ public:
 	}
 	virtual BITMAP* GetThumbnail(RECT *pRect) const;
 	virtual BITMAP* GetThumbnail(RECT *pRect, int x, int y) const;
+
+	virtual void SetMusic(ISound *pSound);
+	virtual ISound* GetMusic() const;
 };
 
 /////////////////////////////////////////////////////////////////////////////

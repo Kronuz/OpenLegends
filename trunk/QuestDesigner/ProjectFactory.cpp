@@ -34,7 +34,8 @@ CProjectFactory::CProjectFactory() :
 	m_pGameI(NULL),
 	m_hDLL(NULL),
 	m_hWnd(NULL),
-	m_iStep(0), m_iCnt1(0), m_iCnt2(0)
+	m_bBuilding(false),
+	m_iStep(-1), m_iCnt1(-1), m_iCnt2(-1)
 {
 }
 
@@ -54,7 +55,8 @@ CProjectFactory* CProjectFactory::Instance(HWND hWnd)
 	if(IsWindow(hWnd)) _instance->m_hWnd = hWnd;
 	if(_instance->m_pGameI == NULL) {
 		if(SUCCEEDED(New(&(_instance->m_pGameI), "Kernel.dll"))) {
-			ASSERT(IsWindow(_instance->m_hWnd)); // there should be a window to receive the messages:
+			ASSERT(IsWindow(_instance->m_hWnd));
+			_instance->m_pGameI->SetSoundCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
 			_instance->m_pGameI->SetScriptCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
 			_instance->m_pGameI->SetSpriteCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
 			_instance->m_pGameI->SetSpriteSheetCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
@@ -153,6 +155,7 @@ LRESULT CProjectFactory::StartBuild()
 	if(m_iCnt1 == 0) m_iStep++;
 	SendMessage(m_hWnd, WMQD_BUILDBEGIN, 0, (LPARAM)(LPCSTR)Interface()->GetProjectName());
 	SendMessage(m_hWnd, WMQD_STEPEND, 0, 0); /**/
+	m_bBuilding = true;
 	return TRUE;
 }
 
@@ -192,8 +195,10 @@ LRESULT CProjectFactory::BuildNextStep(WPARAM wParam, LPARAM lParam)
 				pScript->GetScriptFilePath(szScriptFile, MAX_PATH), 
 				pScript->GetCompiledFilePath(szCompiledFile, MAX_PATH) );
 		} else SendMessage(m_hWnd, WMQD_STEPEND, 0, 0);
-	} else
-		SendMessage(m_hWnd, WMQD_BUILDEND, 0, 0);
+	} else {
+		SendMessage(m_hWnd, WMQD_BUILDEND, m_iStep, 0);
+		m_bBuilding = false;
+	}
 	return TRUE;
 }
 
@@ -207,7 +212,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 			case itSpriteSheet: {
 				if(NewStatus->SpriteSheet.eInfoReason == irAdded) {
 					SendMessage(_this->m_hWnd, 
-						WMQD_ADDTREE, 
+						WMGP_ADDTREE, 
 						ICO_SPTSHT, 
 						(LPARAM)new CTreeInfo(NewStatus->SpriteSheet.lpszString, NULL)
 					);
@@ -215,7 +220,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 				}
 				if(NewStatus->SpriteSheet.eInfoReason == irDeleted) {
 					SendMessage(_this->m_hWnd, 
-						WMQD_DELTREE, 
+						WMGP_DELTREE, 
 						0, 
 						(LPARAM)new CTreeInfo(NewStatus->SpriteSheet.lpszString, NULL)
 					);
@@ -223,14 +228,17 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 				}
 				break;
 			}
-			case itSprite: {
+			case itSprite:
+			case itMask:
+			case itEntity:
+			case itBackground: {
 				if(NewStatus->Sprite.eInfoReason == irAdded) {
 					NewStatus->Sprite.pInterface->GetSpriteSheet()->GetFilePath(szFilePath, MAX_PATH);
 					char *tmp = new char[strlen(szFilePath)+2];
 					strcpy(tmp+1, szFilePath);
 					*tmp = 'S'; // sprite (sprite sheet)
 					SendMessage(_this->m_hWnd, 
-						WMQD_ADDTREE, 
+						WMGP_ADDTREE, 
 						ICO_SPRITE, 
 						(LPARAM)new CTreeInfo(NewStatus->Sprite.lpszString, (DWORD_PTR)(NewStatus->Sprite.pInterface))
 					);
@@ -238,9 +246,32 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 				}
 				if(NewStatus->Sprite.eInfoReason == irDeleted) {
 					SendMessage(_this->m_hWnd, 
-						WMQD_DELTREE, 
+						WMGP_DELTREE, 
 						0, 
 						(LPARAM)new CTreeInfo(NewStatus->Sprite.lpszString, NULL)
+					);
+					return 1;
+				}
+				break;
+			}
+			case itSound: {
+				if(NewStatus->Sound.eInfoReason == irAdded) {
+					NewStatus->Sound.pInterface->GetSoundFilePath(szFilePath, MAX_PATH);
+					char *tmp = new char[strlen(szFilePath)+2];
+					strcpy(tmp+1, szFilePath);
+					*tmp = 'N'; // sound
+					SendMessage(_this->m_hWnd, 
+						WMQ_ADDTREE, 
+						ICO_WAV, 
+						(LPARAM)new CTreeInfo(NewStatus->Sound.lpszString, (DWORD_PTR)tmp)
+					);
+					return 1;
+				}
+				if(NewStatus->Sound.eInfoReason == irDeleted) {
+					SendMessage(_this->m_hWnd, 
+						WMQ_DELTREE, 
+						0, 
+						(LPARAM)new CTreeInfo(NewStatus->Sound.lpszString, NULL)
 					);
 					return 1;
 				}
@@ -253,7 +284,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					strcpy(tmp+1, szFilePath);
 					*tmp = 'E'; // entity
 					SendMessage(_this->m_hWnd, 
-						WMQD_ADDTREE, 
+						WMGP_ADDTREE, 
 						ICO_SCRIPT, 
 						(LPARAM)new CTreeInfo(NewStatus->Script.lpszString, (DWORD_PTR)tmp)
 					);
@@ -261,7 +292,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 				}
 				if(NewStatus->Script.eInfoReason == irDeleted) {
 					SendMessage(_this->m_hWnd, 
-						WMQD_DELTREE, 
+						WMGP_DELTREE, 
 						0, 
 						(LPARAM)new CTreeInfo(NewStatus->Script.lpszString, NULL)
 					);

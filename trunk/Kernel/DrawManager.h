@@ -96,7 +96,8 @@ typedef struct __RUNACTION {
 	It is an abstract class that must be implemented in any derivated class.
 */
 class CDrawableContext :
-	public CNamedObj
+	public CNamedObj,
+	public IPropertyEnabled
 {
 protected:
 	const struct ContextSubLayerCompare : 
@@ -155,14 +156,14 @@ private:
 	vector<CDrawableContext *>::reverse_iterator m_LastChildIteratorUsed;
 	int m_nChildren;
 
-	CDrawableObject *m_pDrawableObj;
-
 	DRAWTYPE m_eDrawType[MAX_SUBLAYERS];	//!< Ordering type for child sprites.
 	DRAWTYPE m_eSorted[MAX_SUBLAYERS];		//!< The current sort of the children.
 	bool m_bValidMap;						//!< Indicates if the layers map is valid. (also if iterators are valid)
 	int m_nOrder;							//!< Number of siblings at the time of the creation.
 
 protected:
+	CDrawableObject *m_pDrawableObj;
+
 	int m_nSubLayer;						//!< Object's current sub layer (relative to the layer)
 	CPoint m_Position;						//!< Object's position.
 
@@ -268,11 +269,17 @@ public:
 	void SetDrawableObj(CDrawableObject *pDrawableObj);
 	CDrawableObject* GetDrawableObj() const;
 
+	// Interface:
+	virtual bool GetInfo(SInfo *pI) const { return false; }
+	virtual bool GetProperties(SPropertyList *pPL) const { return false; }
+	virtual bool SetProperties(SPropertyList &PL) { return false; }
+
 	virtual bool Draw(const IGraphics *pIGraphics=NULL);
 	virtual bool DrawSelected(const IGraphics *pIGraphics=NULL);
 
 	virtual bool Run(RUNACTION action);
 
+	// Operators:
 	bool operator==(const CDrawableContext &context) const {
 		if( m_pDrawableObj == context.m_pDrawableObj &&	m_nSubLayer == context.m_nSubLayer ) {
 			CRect thisRect, contextRect;
@@ -361,15 +368,20 @@ public:
 };
 enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
 
-struct SObjProp {
+struct SObjProp :
+	public IPropertyEnabled
+{
+	CDrawableContext *pContext;
 	CRect rcRect;
 	_Chain eXChain;
 	_Chain eYChain;
-	SObjProp(const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_) {}
-	SObjProp(CDrawableContext *pContext) : eXChain(relative), eYChain(relative) {
+	SObjProp(CDrawableContext *pContext_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pContext(pContext_), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_) {}
+	SObjProp(CDrawableContext *pContext_) : pContext(pContext_), eXChain(relative), eYChain(relative) {
 		pContext->GetAbsFinalRect(rcRect);
 	}
-
+	virtual bool GetInfo(SInfo *pI) const;
+	virtual bool GetProperties(SPropertyList *pPL) const;
+	virtual bool SetProperties(SPropertyList &PL);
 };
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	CDrawableSelection
@@ -387,7 +399,7 @@ struct SObjProp {
 */
 class CDrawableSelection
 {
-	void SelPointAdd(const CPoint &point_, int Chains);
+	IPropertyEnabled* SelPointAdd(const CPoint &point_, int Chains);
 	void SelPointRemove(const CPoint &point_);
 
 protected:
@@ -417,7 +429,8 @@ protected:
 	CDrawableContext **m_ppMainDrawable;
 
 	typedef pair<CDrawableContext*, SObjProp> pairObject;
-	map<CDrawableContext*, SObjProp> m_Objects; //!< Sprites in the selection.
+	typedef map<CDrawableContext*, SObjProp> mapObject;
+	mapObject m_Objects; //!< Sprites in the selection.
 	int GetBoundingRect(CRect &Rect_);
 
 	virtual void ResizeObject(CDrawableContext *Object, const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
@@ -456,7 +469,7 @@ public:
 	virtual void StartSelBox(const CPoint &point_);
 	virtual void CancelSelBox();
 	virtual void SizeSelBox(const CPoint &point_);
-	virtual void EndSelBoxAdd(const CPoint &point_, int Chains);
+	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains);
 	virtual void EndSelBoxRemove(const CPoint &point_);
 
 	virtual void DeleteSelection();

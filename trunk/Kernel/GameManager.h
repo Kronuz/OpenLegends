@@ -78,7 +78,7 @@ class CGameManager :
 {
 	static CGameManager *_instance;
 	CBString m_sProjectName;
-	CSoundManager *pSoundManager;
+	CSoundManager *m_pSoundManager;
 
 	static float ms_fDelta;
 	static DWORD ms_dwLastTick;
@@ -102,6 +102,7 @@ protected:
 	void DeleteScript(int nIndex);
 	void DeleteSpriteSheet(int nIndex);
 	void DeleteMap(int nIndex);
+	void DeleteSound(int nIndex);
 
 public:
 	static int CALLBACK LoadSheet(LPCTSTR szFile, LPARAM lParam);
@@ -119,6 +120,7 @@ public:
 	LPCSTR GetProjectName() const;
 	int CountScripts() const;
 	const IScript* GetScript(int idx) const;
+	ISoundManager* GetSoundManager() const;
 
 	// Object factory methods:
 	CSprite *ReferSprite(LPCSTR szName, _spt_type sptType, LPCSTR szFile_, int nLine_);  //!< Gets or makes a reference to a sprite.
@@ -126,7 +128,9 @@ public:
 
 	CSprite *MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet *pSpriteSheet);
 	CScript *MakeScript(LPCSTR szName);
+	CSound *MakeSound(LPCSTR szName);
 
+	void DeleteSound(LPCSTR szName);
 	void DeleteScript(LPCSTR szName); //!< Deletes a script using its name.
 	void DeleteSpriteSheet(LPCSTR szName); //!< Deletes a sprite sheet using its name.
 	void DeleteMap(LPCSTR szName); //!< Deletes a map using its name.

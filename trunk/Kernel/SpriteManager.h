@@ -378,8 +378,6 @@ public:
 		return szPath;
 	}
 
-	CGameManager* GetGameManager() { return m_pGameManager; }
-
 	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
 };
 
@@ -422,6 +420,12 @@ public:
 
 	float RelRotation() const;			//!< returns the relative roatation of the object in radians (definded during the game)
 	float RelScale() const;				//!< returns the relative scale of the object (defined during the game)
+
+	// Interface:
+	virtual bool GetInfo(SInfo *pI) const;
+	virtual bool GetProperties(SPropertyList *pPL) const;
+	virtual bool SetProperties(SPropertyList &PL);
+
 };
 
 #pragma pack(1)
@@ -449,13 +453,16 @@ struct _SpriteSet {
 class CSpriteSelection :
 	public CDrawableSelection
 {
+	mapObject::iterator m_CurrentSel;
+
 	void ResizeObject(CDrawableContext *Object, const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
 	void BuildRealSelectionBounds();
 
 	bool PasteObj(CLayer *pLayer, _SpriteSet::_SpriteSetData *pData);
 	bool PasteSprite(CLayer *pLayer, LPCSTR szSprite);
+
 public:
-	CSpriteSelection(CDrawableContext **ppDrawableContext_) : CDrawableSelection(ppDrawableContext_) {}
+	CSpriteSelection(CDrawableContext **ppDrawableContext_) : CDrawableSelection(ppDrawableContext_), m_CurrentSel(NULL) {}
 
 	// Interface Definition:
 	virtual void FlipSelection();
@@ -464,6 +471,9 @@ public:
 	virtual void CCWRotateSelection();
 
 	virtual bool Draw(const IGraphics *pGraphics_);
+
+	virtual SObjProp* GetFirstSelection();
+	virtual SObjProp* GetNextSelection();
 
 	virtual HGLOBAL Copy();
 	virtual bool Paste(LPVOID pBuffer, const CPoint &point_);

@@ -103,6 +103,8 @@ private:
 
 	bool Zoom(float zoom);
 	void ScrollTo(int x, int y);
+	void OnChange();
+	void OnChangeSel(IPropertyEnabled *pPropObj = NULL);
 public:
 
 	// Initialize drag and drop
@@ -124,7 +126,7 @@ public:
 	BEGIN_MSG_MAP(CWorldEditView)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
-		MESSAGE_HANDLER(WM_CREATE, OnDestroy)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
 		MESSAGE_HANDLER(WM_TIMER, OnTimer)
 

@@ -55,7 +55,7 @@ CGameManager::CGameManager() :
 {
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
-	pSoundManager = CSoundManager::Instance();
+	m_pSoundManager = CSoundManager::Instance();
 }
 
 CGameManager::~CGameManager()
@@ -119,6 +119,35 @@ CScript *CGameManager::FindScript(LPCSTR szName)
 	std::map<CBString, CScript*>::iterator Iterator = m_Scripts.find(szName);
 	if(Iterator != m_Scripts.end()) return Iterator->second;
 	return NULL;
+}
+
+CSound *CGameManager::MakeSound(LPCSTR szName)
+{
+	// create a new sound object and try to find its file
+	CSound *pSound = new CSound;
+	CBString sPath = CBString("Sounds\\") + szName; // relative by default
+	pSound->SetSource(sPath);
+	if(!pSound->SourceExists()) {
+		delete pSound;
+		return NULL; // couldn't find the sound file
+	}
+
+	// Now we find the sound file name in the map of sounds:
+	std::map<CBString, CSound*>::iterator Iterator = m_Sounds.find(pSound->GetTitle());
+	if(Iterator == m_Sounds.end()) { // there's no sound file in the map (first time sound):
+		m_Sounds.insert(pairSound(szName, pSound)); //add it to the map and ...
+		// ... make a call to the client, to notify the sound creation.
+		CallbackProc(
+			Sound, 
+			pSound, 
+			(LPCSTR)(m_sProjectName + "\\Sounds\\" + pSound->GetTitle()), 
+			Added);
+	} else { // otherwise, the sound already is in the map, so we don't need the newly created object.
+		delete pSound; 
+		pSound = Iterator->second;
+	}
+
+	return pSound; // return the located or created script object.
 }
 
 CScript *CGameManager::MakeScript(LPCSTR szName)
@@ -225,6 +254,25 @@ CSprite *CGameManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet
 	}
 
 	return pSprite;
+}
+
+void CGameManager::DeleteSound(int nIndex)
+{
+	std::map<CBString, CSound*>::iterator Iterator =  m_Sounds.begin();
+	for(int idx=0; idx!=nIndex && Iterator != m_Sounds.end(); idx++, Iterator++);
+
+	if(Iterator != m_Sounds.end()) {
+		CSound *pSound = Iterator->second;
+
+		CallbackProc(
+			Sound, 
+			NULL, 
+			m_sProjectName + "\\Sounds\\" + pSound->GetTitle(),
+			Deleted);
+
+		delete pSound;
+		m_Sounds.erase(Iterator);
+	}
 }
 
 void CGameManager::DeleteScript(int nIndex)
@@ -591,6 +639,11 @@ LPCSTR CGameManager::GetProjectName() const
 {
 	return m_sProjectName;
 }
+ISoundManager* CGameManager::GetSoundManager() const
+{
+	return (ISoundManager*)m_pSoundManager;
+}
+
 const IScript* CGameManager::GetScript(int idx) const
 {
 	ASSERT(idx < (int)m_Scripts.size());

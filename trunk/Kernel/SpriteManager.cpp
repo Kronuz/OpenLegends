@@ -104,7 +104,9 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 		if(fn.Open()) {
 			int filesize = fn.GetFileSize();
 			LPCVOID pData = fn.ReadFile();
-			pGraphics->CreateTextureFromFileInMemory(fn.GetFileName(), pData, filesize, &pTexture, scale);
+			if(!pData) {
+				CONSOLE_PRINTF("Kernel Fatal Error: Not enough memory to hold %d bytes!\n", fn.GetFileSize());
+			} else pGraphics->CreateTextureFromFileInMemory(fn.GetFileName(), pData, filesize, &pTexture, scale);
 			fn.Close();
 		}
 		if(!pTexture) {
@@ -124,8 +126,8 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 	}
 
 	if( m_pSpriteData->iAnimSpd && 
-		CGameManager::GetPauseLevel() == 0 /*&& 
-		pGraphics->GetCurrentZoom() >= 0.5f*/ ) { // fps
+		CGameManager::GetPauseLevel() == 0 && 
+		pGraphics->GetCurrentZoom() >= 0.5f ) { // fps
 
 		int TotalFrames = m_Boundaries.size();
 		if(m_pSpriteData->eAnimDir != _d_down) {
@@ -166,7 +168,7 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 	CRect Rect;
 	scontext->GetAbsFinalRect(Rect);
 	pGraphics->Render(pTexture,							// texture
-		m_Boundaries[scontext->m_nFrame[nBuffer]],	// rectSrc
+		m_Boundaries[scontext->m_nFrame[nBuffer]],		// rectSrc
 		Rect,											// rectDest
 		scontext->Rotation(),							// rotation
 		scontext->Transformation(),						// transform
@@ -252,6 +254,60 @@ int CSpriteSheet::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 	}
 	return cnt;
 }
+bool CSpriteContext::GetInfo(SInfo *pI) const 
+{
+	ASSERT(m_pDrawableObj);
+	_spt_type eType = static_cast<CSprite *>(m_pDrawableObj)->GetSpriteType();
+		 if(eType == tMask) pI->eType = itMask;
+	else if(eType == tBackground) pI->eType = itBackground;
+	else if(eType == tEntity) pI->eType = itEntity;
+
+	strncpy(pI->szName, GetName(), 29);
+	strncpy(pI->szScope, m_pDrawableObj->GetName(), 29);
+	pI->pPropObject = (IPropertyEnabled*)this;
+	return true;
+}
+bool CSpriteContext::GetProperties(SPropertyList *pPL) const 
+{
+	ASSERT(m_pDrawableObj);
+	ASSERT(pPL->nProperties == 0);
+	GetInfo(&pPL->Information);
+
+	CRect Rect;
+	pPL->AddCategory("Appearance");
+	if(pPL->Information.eType == itEntity) pPL->AddString("Name", GetName());
+	GetAbsRect(Rect);
+	pPL->AddValue("X", Rect.left);
+	pPL->AddValue("Y", Rect.top);
+	if(pPL->Information.eType == itEntity) {
+		pPL->AddValue("Width", Rect.Width(), false);
+		pPL->AddValue("Height", Rect.Height(), false);
+		pPL->AddBoolean("IsMirrored", isMirrored(), false);
+		pPL->AddBoolean("IsFlipped", isFlipped(), false);
+		pPL->AddList("Rotation", Rotation(), "0 degrees, 90 degrees, 180 degrees, 270 degrees", false);
+	} else {
+		pPL->AddValue("Width", Rect.Width());
+		pPL->AddValue("Height", Rect.Height());
+		pPL->AddBoolean("IsMirrored", isMirrored());
+		pPL->AddBoolean("IsFlipped", isFlipped());
+		pPL->AddList("Rotation", Rotation(), "0 degrees, 90 degrees, 180 degrees, 270 degrees");
+	}
+
+	pPL->AddCategory("Misc");
+	pPL->AddValue("Layer", GetObjLayer());
+	pPL->AddValue("SubLayer", GetObjSubLayer());
+	pPL->AddString("Sprite Sheet", static_cast<CSprite*>(m_pDrawableObj)->GetSpriteSheet()->GetName(), false);
+	
+	pPL->AddCategory("Behavior");
+	pPL->AddBoolean("IsVisible", isVisible(), false);
+
+	return true;
+}
+bool CSpriteContext::SetProperties(SPropertyList &PL) 
+{
+	return true;
+}
+
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
 	CDrawableContext(szName)
 {
@@ -268,7 +324,7 @@ void CSpriteSelection::BuildRealSelectionBounds()
 	m_rcSelection.SetRectEmpty();
 	// We need to keep the initial size and location of every selected object:
 
-	std::map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		CRect Rect;
 		Iterator->first->GetAbsFinalRect(Rect);
@@ -276,6 +332,18 @@ void CSpriteSelection::BuildRealSelectionBounds()
 		m_rcSelection.UnionRect(m_rcSelection, Rect);
 		Iterator++;
 	}
+}
+SObjProp* CSpriteSelection::GetFirstSelection()
+{
+	m_CurrentSel = m_Objects.begin();
+	if(m_CurrentSel == m_Objects.end()) return NULL;
+	return &(m_CurrentSel++)->second;
+}
+SObjProp* CSpriteSelection::GetNextSelection() 
+{
+	if(m_CurrentSel == NULL) return NULL;
+	if(m_CurrentSel == m_Objects.end()) return NULL;
+	return &(m_CurrentSel++)->second;
 }
 
 bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
@@ -285,7 +353,7 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	int nObjects = (int)m_Objects.size();
 	const CSpriteContext *scontext = NULL;
 
-	std::map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		scontext = static_cast<const CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
@@ -525,7 +593,7 @@ HGLOBAL CSpriteSelection::Copy()
 	
 	_SpriteSet::_SpriteSetData *pData = (_SpriteSet::_SpriteSetData *)((char*)CopyBoard + sizeof(_SpriteSet::_SpriteSetInfo));
 
-	std::map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	for(int i=0; Iterator != m_Objects.end(); i++) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		
@@ -603,7 +671,7 @@ bool CSpriteSelection::PasteObj(CLayer *pLayer, _SpriteSet::_SpriteSetData *pDat
 	pSpriteContext->SetObjSubLayer(pData->nSubLayer);
 
 	pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
-	m_Objects.insert(pairObject(pSpriteContext, SObjProp(pData->Rect, pData->XChain, pData->YChain)));
+	m_Objects.insert(pairObject(pSpriteContext, SObjProp(pSpriteContext, pData->Rect, pData->XChain, pData->YChain)));
 
 	// the sprite absolute postion must be set after inserting it in the layer.
 	pSpriteContext->SetAbsFinalRect(pData->Rect);
@@ -657,7 +725,7 @@ void CSpriteSelection::FlipSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	std::map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
@@ -692,7 +760,7 @@ void CSpriteSelection::MirrorSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	std::map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
@@ -727,7 +795,7 @@ void CSpriteSelection::CWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	std::map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
@@ -775,7 +843,7 @@ void CSpriteSelection::CCWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	std::map<CDrawableContext*, SObjProp>::iterator Iterator = m_Objects.begin();
+	mapObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);

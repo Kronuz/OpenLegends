@@ -47,30 +47,59 @@ class CSound :
 		FMUSIC_MODULE *m_pMusic;
 	};
 
+	bool m_bLoaded;
+	int m_nLoopBack;
+
+	bool LoadFile();
 public:
 	CSound();
 	~CSound();
 
-	bool LoadFile(CVFile &vFile);
+	void SetSource(CBString sPath);
+	bool SourceExists();
 	bool UnloadFile();
+	CBString GetTitle() { return m_vFile.GetFileName(); }
 
-	virtual void Play() const;
+	virtual DWORD Play(bool _bForever = false);
 	virtual void Loop(int _repeat = -1);
-	virtual void Stop() const;
-	virtual void FadeOut(bool _fade = true);
-	virtual void FadeIn(bool _fade = true);
+	virtual void Stop(DWORD ID);
+	virtual void Pause(DWORD ID);
 
-	virtual int SetFadeSpeed(int _speed);
-	virtual int SetVolume(int _volume);
+	virtual bool IsPlaying(DWORD ID);
 
-	virtual int GetFadeSpeed() const;
-	virtual int GetVolume() const;
+	virtual void SetVolume(DWORD ID, int _volume);
+	virtual int GetVolume(DWORD ID);
+
+	virtual int GetLoopBack() const { return m_nLoopBack; }
+	virtual void SetLoopBack(int _loop) { m_nLoopBack = _loop; }
+
+	virtual void SetCurrentPosition(DWORD ID, int _pos);
+
+	virtual LPCSTR GetSoundFilePath(LPSTR szPath, size_t buffsize);
 
 };
 
 // this is the singleton sound manager.
-class CSoundManager {
+class CSoundManager :
+	public ISoundManager
+{
 	static CSoundManager *_instance;
+
+	ISound *m_pCurrentMusic;
+	ISound *m_pCurrentMusicIn;
+	ISound *m_pNextMusic;
+	float m_fMusicFadeOut;
+	float m_fMusicFadeIn;
+	float m_fFadeSpeed;
+	float m_fMusicTimeOut;
+	int m_nMusicVolume;
+
+	DWORD m_dwMusicID;
+	DWORD m_dwMusicInID;
+
+	void FadeOutMusic();
+	void FadeInMusic();
+
 public:
 	static bool ms_bSound;
 
@@ -78,11 +107,12 @@ public:
 	~CSoundManager();
 	bool InitSound();
 
-	void DoMusic();
-	void SwitchMusic(ISound *pSound_);
-	void FadeSound();
-	int SetVolume(int _volume);
-	int GetVolume() const;
+	virtual void DoMusic();
+	virtual void SwitchMusic(ISound *_pSound, int _loopback, bool _fade = true);
+	virtual void SetMusicVolume(int _volume) { m_nMusicVolume = _volume; }
+	virtual int GetMusicVolume() const { return m_nMusicVolume; };
+	virtual void SetMusicFadeSpeed(int _speed) { m_fFadeSpeed = (float)_speed; }
+	int GetMusicFadeSpeed() const { return (int)m_fFadeSpeed; }
 
 	static CSoundManager* Instance() {
 		if(!_instance) {

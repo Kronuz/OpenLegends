@@ -50,7 +50,7 @@ interface IDrawableSelection :
 	virtual void StartSelBox(const CPoint &point_) = 0;
 	virtual void CancelSelBox() = 0;
 	virtual void SizeSelBox(const CPoint &point_) = 0;
-	virtual void EndSelBoxAdd(const CPoint &point_, int Chains) = 0;
+	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains) = 0;
 	virtual void EndSelBoxRemove(const CPoint &point_) = 0;
 
 	virtual void CleanSelection() = 0;

@@ -440,23 +440,7 @@ void CScriptEditorView::OnRegisteredCommand ( CM_REGISTEREDCMDDATA *prcd )
 			int len = GetWordLength(NULL);
 			if(len>0 && len<100) {
 				GetWord(word, NULL);
-
-				HH_AKLINK link;
-				link.cbStruct =     sizeof(HH_AKLINK) ;
-				link.fReserved =    FALSE;
-				link.pszKeywords =  word; 
-				link.pszUrl =       NULL; 
-				link.pszMsgText =   NULL; 
-				link.pszMsgTitle =  NULL; 
-				link.pszWindow =    NULL;
-				link.fIndexOnFail = TRUE;
-
-				static DWORD dwCookie = NULL;
-				if(dwCookie==NULL) HtmlHelp(NULL, NULL, HH_INITIALIZE, (DWORD)&dwCookie);
-
-				HtmlHelp(m_hWnd, "ozscript.chm", HH_DISPLAY_TOC, NULL);
-				HtmlHelp(GetDesktopWindow(), "ozscript.chm", HH_KEYWORD_LOOKUP, (DWORD)&link);
-				HtmlHelp(m_hWnd, "ozscript.chm", HH_SYNC, NULL);
+				ShowHelp(m_hWnd, word);
 			}
 		} break;
 	}
