@@ -87,6 +87,7 @@ bool CMapGroup::Save()
 {
 	return false;
 }
+
 LPCSTR CMapGroup::GetMapGroupID() const
 {
 	return m_sMapID;

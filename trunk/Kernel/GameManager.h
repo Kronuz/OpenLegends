@@ -79,6 +79,9 @@ class CGameManager :
 	static CGameManager *_instance;
 	CBString m_sProjectName;
 
+	static float ms_fDelta;
+	static DWORD ms_dwLastTick;
+
 protected:
 	CWorld m_World;
 	std::vector<CSpriteSheet*> m_SpriteSheets;
@@ -109,6 +112,10 @@ public:
 
 	void Clean(); //!< Frees all allocated memory and cleans the object.
 
+	inline static int GetPauseLevel() { return 0; } // ACA
+	inline static float GetFPSDelta() { return ms_fDelta; }
+	inline static DWORD GetLastTick() { return ms_dwLastTick; }
+
 	// Object factory methods:
 	CSprite *ReferSprite(LPCSTR szName, _spt_type sptType, LPCSTR szFile_, int nLine_);  //!< Gets or makes a reference to a sprite.
 	CScript *ReferScript(LPCSTR szName);  //!< Gets or makes a reference to a script
@@ -134,7 +141,9 @@ public:
 		}
 		return _instance;
 	}
-	// Module Interface:
+
+///////////////////////////////////////////////////////////////////////
+// Module Interface:
 protected:
 	struct Callbacks {
 		STATUSCHANGEDPROC *Callback;
@@ -148,6 +157,9 @@ protected:
 		MapGroup;
 
 public:
+
+	float UpdateFPS(float fpsLock = -1.0f);
+
 	// Loading/Saving methods:
 	bool Load(CVFile &vfFile); //!< Loads the project from a file
 	bool Save(CVFile &vfFile) { return false; } //!< Saves the project to a file

@@ -28,8 +28,12 @@
 
 #include "stdafx.h"
 #include "GameManager.h"
+#include "ScriptManager.h"
 
 #include "ArchiveText.h"
+
+float CGameManager::ms_fDelta = 0.0f;
+DWORD CGameManager::ms_dwLastTick = 0L;
 
 #define SetCallback(funct, callback, param) { ##funct.Callback = callback; ##funct.lParam = param; }
 
@@ -72,6 +76,7 @@ CSprite *CGameManager::CreateSprite(_spt_type sptType, LPCSTR szName)
 		}
 		case tMask: {
 			pSprite = new CMaskMap(szName);
+			pSprite->SetSpriteType(tMask);
 			break;
 		}
 	}
@@ -130,6 +135,7 @@ CScript *CGameManager::MakeScript(LPCSTR szName)
 			return NULL; // couldn't find the script file
 		}
 	}
+
 	// Now we find the script file name in the map of scripts:
 	std::map<CBString, CScript*>::iterator Iterator = m_Scripts.find(pScript->m_fnScriptFile.GetFileTitle());
 	if(Iterator == m_Scripts.end()) { // there's no script file in the map (first time script):
@@ -155,13 +161,18 @@ CScript *CGameManager::MakeScript(LPCSTR szName)
 CSprite *CGameManager::ReferSprite(LPCSTR szName, _spt_type sptType, LPCSTR szFile_, int nLine_)
 {
 	if(!*szName) return NULL;
-	if(sptType == tMask) { if(!isalnum(*szName) && *szName!='_') return NULL; }
-	else { if(!isalpha(*szName) && *szName!='_') return NULL; }
+	if(sptType == tEntity) { if(!isalpha(*szName) && *szName!='_') return NULL; }
+	else { if(!isalnum(*szName) && *szName!='_') return NULL; }
 
 	CSprite *pSprite = FindSprite(szName);
 	if(pSprite) {
-		if(pSprite->GetSpriteType() != sptType) 
+		if(sptType == tBackground && pSprite->GetSpriteType() == tMask) {
+			sptType = tMask;
+		} else if(sptType == tMask && pSprite->GetSpriteType() == tBackground) {
+			pSprite->SetSpriteType(tMask);
+		} else if(pSprite->GetSpriteType() != sptType) {
 			return NULL;
+		}
 	} else {
 		SUndefSprite UndefSprite;
 		pSprite = CreateSprite(sptType, szName);
@@ -186,8 +197,17 @@ CSprite *CGameManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet
 	std::map<CBString, SUndefSprite>::iterator Iterator = m_UndefSprites.find(szName);
 	if(Iterator != m_UndefSprites.end()) {
 		pSprite = (Iterator->second).pSprite;
+		ASSERT(pSprite);
 		if(pSprite->GetSpriteData() == NULL) return NULL;
-		if(pSprite->GetSpriteType() != sptType) return NULL;
+
+		if(sptType == tBackground && pSprite->GetSpriteType() == tMask) {
+			sptType = tMask;
+		} else if(sptType == tMask && pSprite->GetSpriteType() == tBackground) {
+			pSprite->SetSpriteType(tMask);
+		} else if(pSprite->GetSpriteType() != sptType) {
+			return NULL;
+		}
+
 		m_UndefSprites.erase(Iterator);
 	} 
 
@@ -199,7 +219,7 @@ CSprite *CGameManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet
 		CallbackProc(
 			Sprite, 
 			pSprite, 
-			m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName() + (LPCSTR)((sptType==tBackground)?"\\Backgrounds\\":(sptType==tEntity)?"\\Entities\\":"\\Mask maps\\") + szName,
+			m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName() + (LPCSTR)((sptType==tEntity)?"\\Entities\\":"\\Sprites\\") + szName,
 			Added);
 	}
 
@@ -262,7 +282,7 @@ void CGameManager::DeleteSprite(LPCSTR szName)
 		CallbackProc(
 			Sprite, 
 			NULL, 
-			m_sProjectName + "\\Sprite sheets\\" + pSprite->GetSpriteSheet()->GetName() + (LPCSTR)((pSprite->GetSpriteType()==tBackground)?"\\Backgrounds\\":(pSprite->GetSpriteType()==tEntity)?"\\Entities\\":"\\Mask maps\\") + szName,
+			m_sProjectName + "\\Sprite sheets\\" + pSprite->GetSpriteSheet()->GetName() + (LPCSTR)((pSprite->GetSpriteType()==tEntity)?"\\Entities\\":"\\Sprites\\") + szName,
 			Deleted);
 
 		//FIXME this method still has to really delete the sprite from the sprite sheet
@@ -312,8 +332,9 @@ int CALLBACK RemoveMask(LPVOID sprite, LPARAM lParam)
 }
 bool CGameManager::Load(CVFile &vfFile)
 {
-
+	// this is to print how long did it take to load
 	DWORD dwInitTicks = GetTickCount();
+
 	m_sProjectName = vfFile.GetFileDesc();
 	g_sHomeDir = vfFile.GetPath();
 	CONSOLE_OUTPUT("Loading project: '%s' at %s...\n", vfFile.GetFileName(), vfFile.GetPath());
@@ -347,6 +368,86 @@ bool CGameManager::Load(CVFile &vfFile)
 	CONSOLE_OUTPUT("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 
 	return true;
+}
+float CGameManager::UpdateFPS(float fpsLock)
+{
+	// Perform Timing calculations
+    static DWORD s_dwFrames = 0L;
+	static DWORD s_dwLastTime = 0L;
+	static DWORD s_dwLastTick = 0L;	// this is the real last tick
+	static float s_fFPS = 0.0f;
+	static int s_nAdjust = 0;
+
+	// Find out the wasted milliseconds and sleep
+	int msw = 0;
+	if(fpsLock != -1.0f) { // sleep only if we have a fixed frame rate
+		msw = (int)(1000.0f / fpsLock) - s_nAdjust;
+		// Is the adjustment too high or too low? recover:
+		if(msw > (int)(1000.0f / fpsLock)*2) {
+			msw = (int)(1000.0f / fpsLock)*2;
+			s_nAdjust = 0;
+		} else if(msw < 0) {
+			msw = 0;
+			s_nAdjust = 0;
+		}
+		// sleep for a while
+		int tosleep = (2*msw) / 3; // sleep 2/3 of the wasted time
+		if(tosleep > 5) Sleep(tosleep); // minimum milliseconds to sleep (no less than 5 ms)
+	}
+
+	// Calculate how much time has passed since the last time
+    DWORD dwCurrTick = GetTickCount();
+	DWORD dwDelta = dwCurrTick - s_dwLastTick;
+
+	if(fpsLock != -1.0f) {
+		if( dwDelta < (DWORD)msw ) {
+			return -1.0f; // nothing to do
+		}
+	}
+
+	// Count the number of rendered frames 
+	s_dwFrames++;
+
+	// Calculate the current frame rate
+	float fOldFPS = s_fFPS;
+	if( dwCurrTick - s_dwLastTime > 1000 || fpsLock != -1.0f )
+		s_fFPS = (float)s_dwFrames / ((float)((dwCurrTick - s_dwLastTime)) / 1000);
+
+	// Make time adjustments to stabilize the frame rate and the sleep time
+	if(fpsLock != -1.0f) {
+		if(s_fFPS < fpsLock-4.0f) {
+			s_nAdjust+=3;
+		} else if(s_fFPS < fpsLock) {
+			if(s_fFPS <= fOldFPS) s_nAdjust++;
+		} else if(s_fFPS > fpsLock+4.0f) {
+			s_nAdjust-=3;
+		} else if(s_fFPS > fpsLock) {
+			if(s_fFPS >= fOldFPS) s_nAdjust--;
+		}
+	}
+
+	if( dwCurrTick - s_dwLastTime > 1000 ) {
+		s_dwLastTime = dwCurrTick;
+		s_dwFrames   = 0;
+	}
+
+	// Limit the max Time Delta in case of very slow circumstances
+	// This will have the effect of slowing the game down rather than
+	// dropping frames making everything jumpy
+	if(dwDelta > 50) {
+		dwDelta = 50;
+	}
+
+	// Record the virtual last tick time
+	ms_dwLastTick += dwDelta;
+
+	// Record our Global Time Delta value
+	ms_fDelta = (float)dwDelta / 1000.0f;
+
+	// Record the real last tick time
+	s_dwLastTick = dwCurrTick;
+
+	return s_fFPS;
 }
 void CGameManager::DeleteSpriteSelection(CSpriteSelection *pSelection)
 {

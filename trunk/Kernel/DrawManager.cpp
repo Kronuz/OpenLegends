@@ -196,6 +196,27 @@ void CDrawableContext::Sort(int nSubLayer)
 	m_eSorted[nSubLayer] = m_eDrawType[nSubLayer];
 }
 
+inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawableContext, LPARAM lParam) const
+{
+	ASSERT(pDrawableContext);
+
+	// Start executing the scripts (or whatever)
+	for_each(
+		pDrawableContext->m_Children.begin(), pDrawableContext->m_Children.end(), 
+		bind2nd(RunContext(m_bVisible), lParam));
+
+	if(pDrawableContext->m_pDrawableObj) {
+		if( pDrawableContext->isVisible()&&m_bVisible )
+			return pDrawableContext->m_pDrawableObj->Run(*pDrawableContext, lParam);
+	}
+	return true;
+}
+bool CDrawableContext::Run(LPARAM lParam) 
+{
+	RunContext Run(true);
+	return Run(this, lParam);
+}
+
 inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawableContext, const IGraphics *pIGraphics) const
 {
 	ASSERT(pDrawableContext);
@@ -214,7 +235,7 @@ inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawabl
 		bind2nd(DrawContext(m_bVisible, m_bSelected), pIGraphics));
 
 	if(pDrawableContext->m_pDrawableObj) {
-		if( (pDrawableContext->m_pDrawableObj->NeedToDraw(*pDrawableContext)) && 
+		if( /*(pDrawableContext->m_pDrawableObj->NeedToDraw(*pDrawableContext)) && */
 			(pDrawableContext->isVisible()&&m_bVisible || pDrawableContext->isSelected()&&m_bSelected) )
 			return pDrawableContext->m_pDrawableObj->Draw(*pDrawableContext);
 	}
@@ -362,6 +383,7 @@ bool CDrawableContext::GetNextChildIn(const RECT &rect_, CDrawableContext **ppDr
 CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_CurrentCursor(eIDC_ARROW),
 	m_nSnapSize(1),
+	m_bShowGrid(false),
 	m_nLayer(0),
 	m_rcSelection(0,0,0,0),
 	m_ptInitialPoint(0,0),
@@ -819,21 +841,39 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 	return ret;
 }
 
-bool CDrawableSelection::Paint(IGraphics *pGraphicsI, WORD wFlags)
+inline bool CDrawableSelection::BeginPaint(IGraphics *pGraphicsI, WORD wFlags)
 {
 	ASSERT(m_ppMainDrawable);
 	if(!*m_ppMainDrawable) return false;
-
-	bool bRet = true;
 	CSprite::SetShowOptions(wFlags);
 	pGraphicsI->SetClearColor(COLOR_ARGB(255,0,0,0));
-	if(pGraphicsI->BeginPaint()) {
-		bRet &= (*m_ppMainDrawable)->Draw(pGraphicsI);
-		bRet &= pGraphicsI->DrawFrame();
-		if(m_bShowGrid) 
-			bRet &= pGraphicsI->DrawGrid(16, COLOR_ARGB(100,0,0,255));
-		bRet &= Draw(pGraphicsI);
-		bRet &= pGraphicsI->EndPaint();
+	if(pGraphicsI->BeginPaint()) return true;
+	return false;
+}
+inline bool CDrawableSelection::EndPaint(IGraphics *pGraphicsI)
+{
+	return pGraphicsI->EndPaint();
+}
+inline bool CDrawableSelection::DrawAll(IGraphics *pGraphicsI)
+{
+	bool bRet = true;
+
+	bRet &= (*m_ppMainDrawable)->Draw(pGraphicsI);
+	bRet &= pGraphicsI->DrawFrame();
+
+	if(m_bShowGrid) 
+		bRet &= pGraphicsI->DrawGrid(16, COLOR_ARGB(100,0,0,255));
+
+	bRet &= Draw(pGraphicsI);
+		
+	return bRet;
+}
+bool CDrawableSelection::Paint(IGraphics *pGraphicsI, WORD wFlags)
+{
+	bool bRet = true;
+	if(BeginPaint(pGraphicsI, wFlags)) {
+		bRet &= DrawAll(pGraphicsI);
+		bRet &= EndPaint(pGraphicsI);
 	} else return false;
 	return bRet;
 }
@@ -859,7 +899,7 @@ BITMAP* CDrawableSelection::Capture(IGraphics *pGraphicsI, float zoom)
 	pBitmap->bmWidthBytes = bmWidthBytes;
 	pBitmap->bmBitsPixel = sizeof(WORD)*8;
 
-	CSprite::SetShowOptions(0);
+	CSprite::SetShowOptions(SPRITE_ENTITIES); // show entities
 	pGraphicsI->SetClearColor(COLOR_ARGB(255,0,0,0));
 	// BeginCapture() and EndCapture() return 16 bits bitmaps in the RGB555 format.
 	if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
@@ -917,7 +957,7 @@ BITMAP* CDrawableSelection::CaptureSelection(IGraphics *pGraphicsI, float zoom)
 	pBitmap->bmWidthBytes = bmWidthBytes;
 	pBitmap->bmBitsPixel = sizeof(WORD)*8;
 
-	CSprite::SetShowOptions(0);
+	CSprite::SetShowOptions(SPRITE_ENTITIES); // show entities
 	pGraphicsI->SetClearColor(COLOR_ARGB(255,255,255,255));
 	// BeginCapture() and EndCapture() return 16 bits bitmaps in the RGB555 format.
 	if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
