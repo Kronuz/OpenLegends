@@ -956,7 +956,7 @@ void CDrawableSelection::LockLayer(int nLayer, bool bLock)
 
 		// reselect remaining items:
 		for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
-			Iterator->pContext->SelectContext(true);
+			Iterator->pContext->SelectContext();
 		}
 
 	}
@@ -1112,8 +1112,8 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_)
 void CDrawableSelection::CleanSelection() {
 	vectorObject::iterator Iterator;
 	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
-		if(m_bHoldSelection) Iterator->bSubselected = false;
-		else Iterator->pContext->SelectContext(false);
+		if(!m_bHoldSelection) Iterator->pContext->SelectContext(false);
+		else Iterator->bSubselected = false;
 	}
 	if(!m_bHoldSelection) m_Objects.clear();
 }

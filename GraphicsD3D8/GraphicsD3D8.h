@@ -67,15 +67,17 @@ struct SVertexBuffer {
 #ifdef _USE_HWVB
 	IDirect3DVertexBuffer8 *m_pD3DVB;
 #endif
+	ARGBCOLOR m_rgbColor; // rgb color used for the vertices
 	D3DCDTVERTEX *m_pVertices;
 	int m_nVertices;
 	int m_nPrimitives;
 	int m_texTop;
 	int m_texLeft;
-	SVertexBuffer(D3DCDTVERTEX *pVertices_, int nVertices_, int nPrmitives_, int texTop_, int texLeft_) : 
+	SVertexBuffer(ARGBCOLOR rgbColor_, D3DCDTVERTEX *pVertices_, int nVertices_, int nPrmitives_, int texTop_, int texLeft_) : 
 #ifdef _USE_HWVB
 		m_pD3DVB(NULL),
 #endif
+		m_rgbColor(rgbColor_),
 		m_pVertices(pVertices_), m_nVertices(nVertices_), m_nPrimitives(nPrmitives_),
 		m_texTop(texTop_), m_texLeft(texLeft_) {}
 	~SVertexBuffer() {

@@ -452,6 +452,7 @@ inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 	}
 	(*vbuffer)->m_texTop = rectSrc.top;
 	(*vbuffer)->m_texLeft = rectSrc.left;
+	(*vbuffer)->m_rgbColor = rgbColor;
 
 #ifdef _USE_HWVB
 	if(!(*vbuffer)->m_pD3DVB) {
@@ -539,7 +540,7 @@ inline void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 		}
 	}
 
-	*vbuffer = new SVertexBuffer(tile, (xVert)*(yVert)*6, xVert*yVert*2, rectSrc.top, rectSrc.left);
+	*vbuffer = new SVertexBuffer(rgbColor, tile, (xVert)*(yVert)*6, xVert*yVert*2, rectSrc.top, rectSrc.left);
 }
 
 inline bool CGraphicsD3D8::Recover()
@@ -1525,8 +1526,11 @@ void CGraphicsD3D8::Render(
 	}
 
 	// create or update the vertex buffers:
-	if(!VertexBuffer) CreateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
-	else if((static_cast<CBufferD3D8*>(*buffer))->isDirty()) UpdateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
+	if(!VertexBuffer) {
+		CreateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
+	} else if((static_cast<CBufferD3D8*>(*buffer))->isDirty() || VertexBuffer->m_rgbColor.dwColor != rgbColor.dwColor) {
+		UpdateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
+	}
 	/////////////////////////////////////////////////////////
 
 	float trX = (float)((cRenderTable[transform][rotate].startLeft)?rectDest.left:rectDest.left+destWidth);

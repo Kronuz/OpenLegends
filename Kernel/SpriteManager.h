@@ -534,7 +534,7 @@ inline void CSpriteContext::Alpha(int alpha)
 	if(newAlpha != (m_dwStatus&SPT_ALPHA)) {
 		m_dwStatus &= ~SPT_ALPHA;
 		m_dwStatus |= newAlpha;
-		Touch();
+//		Touch();
 	}
 }
 inline void CSpriteContext::Rotate(int rotate) 
