@@ -8,14 +8,15 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface Version Definition:
-const WORD IGame::Version = 0x0100;
+const WORD IGame::Version = 0x0200;
 
 //////////////////////////////////////////////////////////////////////////////
 // Exported functions:
 
 HRESULT QueryGameInterface(WORD Version, IGame **pInterface, IConsole *Output)
 {
-	if(Version > IGame::Version) return E_FAIL;
+	if( HIBYTE(Version) != HIBYTE(IGame::Version) ) return E_FAIL;
+	if(	LOBYTE(Version) > LOBYTE(IGame::Version) ) return E_FAIL;
 
 	if(!*pInterface) {
 		// Convert our interface pointer to a CGraphicsD3D8 object

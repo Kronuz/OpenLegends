@@ -90,6 +90,7 @@ struct ptr_equal_to : public binary_function<Type, Type, bool>
 class CDrawableContext :
 	public CNamedObj
 {
+protected:
 	const struct ContextSubLayerCompare : 
 	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
@@ -120,12 +121,21 @@ class CDrawableContext :
 		bool operator()(CDrawableContext *pDrawableContext, const IGraphics *pIGraphics) const;
 	};
 
+	const class RunContext :
+	public binary_function<CDrawableContext*, LPARAM, bool> {
+		bool m_bVisible;
+	public:
+		RunContext(bool bVisible) : m_bVisible(bVisible) {}
+		bool operator()(CDrawableContext *pDrawableContext, LPARAM lParam) const;
+	};
+	
 	friend ContextSubLayerCompare;
 	friend ContextYXCompare;
 	friend ContextYiXCompare;
 	friend ContextOrderCompare;
 	
 	friend DrawContext;
+	friend RunContext;
 
 private:
 	const IGraphics *m_pIGraphics;
@@ -247,10 +257,12 @@ public:
 	int Objects(int init=0); // How many not-null objects are under this context. 
 
 	void SetDrawableObj(CDrawableObject *pDrawableObj);
-	CDrawableObject* GetDrawableObj();
+	CDrawableObject* GetDrawableObj() const;
 
 	virtual bool Draw(const IGraphics *pIGraphics=NULL);
 	virtual bool DrawSelected(const IGraphics *pIGraphics=NULL);
+
+	virtual bool Run(LPARAM lParam);
 
 	bool operator==(const CDrawableContext &context) const {
 		if( m_pDrawableObj == context.m_pDrawableObj &&	m_nSubLayer == context.m_nSubLayer ) {
@@ -284,6 +296,14 @@ class CDrawableObject :
 {
 public:
 	CDrawableObject(LPCSTR szName="") : CNamedObj(szName) {};
+
+	/*! \brief Run anything about the object.
+	
+		Runs a command for the drawable object.
+	*/
+	virtual bool Run(const CDrawableContext &, LPARAM) {
+		return false;
+	}
 
 	/*! \brief Draw the object on the screen.
 	
@@ -392,6 +412,11 @@ protected:
 
 	virtual void ResizeObject(CDrawableContext *Object, const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
 	virtual void BuildRealSelectionBounds() = 0;
+
+	bool BeginPaint(IGraphics *pGraphicsI, WORD wFlags = 0);
+	bool DrawAll(IGraphics *pGraphicsI);
+	bool EndPaint(IGraphics *pGraphicsI);
+
 public:
 	CDrawableSelection(CDrawableContext **ppDrawableContext_);
 	virtual ~CDrawableSelection() {
@@ -673,7 +698,7 @@ inline void CDrawableContext::SetDrawableObj(CDrawableObject *pDrawableObj)
 { 
 	m_pDrawableObj = pDrawableObj; 
 }
-inline CDrawableObject* CDrawableContext::GetDrawableObj() 
+inline CDrawableObject* CDrawableContext::GetDrawableObj() const
 { 
 	return m_pDrawableObj; 
 }

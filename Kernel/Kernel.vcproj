@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding = "Windows-1252"?>
+<?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.00"
+	Version="7.10"
 	Name="Kernel"
 	ProjectGUID="{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}"
 	Keyword="Win32Proj">
@@ -54,7 +54,13 @@
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
 				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
@@ -108,9 +114,17 @@
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
 				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 	</Configurations>
+	<References>
+	</References>
 	<Files>
 		<Filter
 			Name="Source Files"
@@ -140,10 +154,10 @@
 				RelativePath="..\Misc.cpp">
 			</File>
 			<File
-				RelativePath="SpriteManager.cpp">
+				RelativePath=".\ScriptManager.cpp">
 			</File>
 			<File
-				RelativePath="WorldManager.cpp">
+				RelativePath="SpriteManager.cpp">
 			</File>
 			<File
 				RelativePath="stdafx.cpp">
@@ -159,6 +173,9 @@
 						Name="VCCLCompilerTool"
 						UsePrecompiledHeader="1"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="WorldManager.cpp">
 			</File>
 		</Filter>
 		<Filter
@@ -207,19 +224,22 @@
 				RelativePath="..\Misc.h">
 			</File>
 			<File
+				RelativePath="resource.h">
+			</File>
+			<File
+				RelativePath=".\ScriptManager.h">
+			</File>
+			<File
 				RelativePath="SoundManager.h">
 			</File>
 			<File
 				RelativePath="SpriteManager.h">
 			</File>
 			<File
-				RelativePath="WorldManager.h">
-			</File>
-			<File
-				RelativePath="resource.h">
-			</File>
-			<File
 				RelativePath="stdafx.h">
+			</File>
+			<File
+				RelativePath="WorldManager.h">
 			</File>
 		</Filter>
 		<Filter

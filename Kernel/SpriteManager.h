@@ -64,11 +64,13 @@
 
 #define QUEST_SET_SIGNATURE 0xae1d229e
 
-#define SPRITE_BOUNDS	1
-#define SPRITE_MASKS	2
+#define SPRITE_BOUNDS	1	// show sprite boundaries?
+#define SPRITE_MASKS	2	// show the sprite mask, if any?
+#define SPRITE_ENTITIES	4	// show entities?
 
 extern bool g_bBounds;
 extern bool g_bMasks;
+extern bool g_bEntities;
 
 /*! \brief Enumaration of all sprite types.
 
@@ -84,38 +86,27 @@ extern bool g_bMasks;
 	for the entities, and masks are most useful for background sprites.
 */
 enum _spt_type	{
-					tMask,			//!< Indicates a mask map sprite (or unknown)
-					tBackground,	//!< Indicates a background sprite
-					tEntity			//!< Indicates an entity sprite
-				};	
+		tMask,			//!< Indicates a mask map sprite (or unknown)
+		tBackground,	//!< Indicates a background sprite
+		tEntity			//!< Indicates an entity sprite
+	};	
+
+enum _Direction { 
+		_d_up=0,		_d_down=1,		_d_left=2,		_d_right=3,
+		_d_top=0,		_d_bottom=1,
+		_d_north=0,		_d_south=0,		_d_west=2,		_d_east=3
+	};
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CGameManager;
 class CSpriteSheet;
-class CAnimation;
 class CLayer;
-class CMaskMap;
+class CBackground;
+class CScript;
 
-/////////////////////////////////////////////////////////////////////////////
-/*! \class		CScript
-	\brief		The Scripts base class.
-	\author		Kronuz
-	\version	1.0
-	\date		April 16, 2003
+typedef CBackground CMaskMap;
 
-	\todo Write the implementation of this class.
-*/
-class CScript
-{
-public:
-	CVFile m_fnScriptFile;
-
-	bool NeedToCompile();
-	CBString GetScriptFile();
-	CBString GetAmxFile();
-};
- 
 /////////////////////////////////////////////////////////////////////////////
 /*! \struct		SSpriteData
 	\brief		Data structure of the sprites.
@@ -129,14 +120,10 @@ public:
 */
 struct SSpriteData {
 	// Sprite:
-	int iAnimSpd;		//!< Animation speed of the sprite
-};
-struct SMaskData : public SSpriteData
-{
-};
-struct SBackgroundData : public SSpriteData
-{
-	// Background:
+	_spt_type  SptType;		//!< Sprite data type
+	int iAnimSpd;			//!< Animation speed of the sprite
+	bool bAnimLoop;			//!< Animation in a loop, or play once only mode.
+	_Direction eAnimDir;	//!< Animation direction (must be up, or down)
 	UCHAR cAlphaValue; 	/*!< \brief Sets the intensity of the entire sprite.
 
 		Although sprites can have an alpha value attatched to each pixel, 
@@ -153,6 +140,12 @@ struct SBackgroundData : public SSpriteData
 		the use of layers, giving the default Z order of the objects within the 
 		current layer. (more on this latter)
 	*/
+};
+struct SBackgroundData : public SSpriteData
+{
+	SBackgroundData() { SptType = tBackground; }
+
+	// Background:
 	CMaskMap *pMaskMap;		/*!< \brief Pointer to the mask map fot the sprite.
 
 		The value can be NULL if no mask is associated with the sprite,
@@ -163,15 +156,19 @@ struct SBackgroundData : public SSpriteData
 };
 struct SEntityData : public SBackgroundData
 {
+	SEntityData() { SptType = tEntity; }
+
 	// Entity:
 	CScript *pScript; 	/*!< \brief Name of the entity's script.
 
 		Every entity should have a script to represent its behavior, 
 		this member keeps a pointer to the corresponfing script.\n
 		Note that neither background nor mask sprites can be associated 
-		with a script, thus this should be NULL for non-entity sprites.
+		with a script, thus this should be either NULL or not existent
+		for non-entity sprites.
 	*/
 };
+
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CSprite
 	\brief		The sprites base class.
@@ -207,6 +204,8 @@ public:
 		else g_bBounds = false;
 		if(wFlags&SPRITE_MASKS) g_bMasks = true;
 		else g_bMasks = false;
+		if(wFlags&SPRITE_ENTITIES) g_bEntities = true;
+		else g_bEntities = false;
 	}
 
 protected:
@@ -252,6 +251,7 @@ protected:
 
 public:
 	_spt_type GetSpriteType();
+	void SetSpriteType(_spt_type SptType);
 	CSpriteSheet* GetSpriteSheet();
 	bool IsDefined();
 
@@ -270,28 +270,6 @@ public:
 
 };
 
-/////////////////////////////////////////////////////////////////////////////
-/*! \class		CMaskMap
-	\brief		Mask maps class.
-	\author		Kronuz
-	\version	1.0
-	\date		April 15, 2003
-
-	This class manages the mask maps for the sprites that need a mask map to
-	detect collisions.
-	In general, mask maps are most useful for CBackground sprites,
-	leaving to the scripts the job to manage entities's collision detection.
-
-	\sa CBackground end CEntity
-	\todo Write the implementation of this class.
-*/
-class CMaskMap :
-	public CSprite
-{
-public:
-	CMaskMap(LPCSTR szName);
-	bool Draw(const CDrawableContext &context);
-};
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CBackground
@@ -352,7 +330,8 @@ public:
 protected:
 
 public:
-	bool Draw(const CDrawableContext &context) { return CBackground::Draw(context); }
+	bool Run(const CDrawableContext &context, LPARAM lParam);
+	bool Draw(const CDrawableContext &context);
 	bool NeedToDraw(const CDrawableContext &context) { return CBackground::NeedToDraw(context); }
 };
 
@@ -372,7 +351,7 @@ public:
 	each sprite shares a common state, but receives a context from the client 
 	that needs to use it.
 
-	\sa CAnimation and CSprite
+	\sa CSprite
 	\todo Write the implementation of this class.
 */
 class CSpriteSheet :
@@ -433,7 +412,10 @@ public:
 	int getAlpha() const;
 	int Transformation() const;
 	
-	int Rotation() const;				//!< returns the current roatation of the object in radians
+	int Rotation() const;				//!< returns the basic roatation of the object (defined in the map editor)
+
+	float RelRotation() const;			//!< returns the relative roatation of the object in radians (definded during the game)
+	float RelScale() const;				//!< returns the relative scale of the object (defined during the game)
 };
 
 #pragma pack(1)
@@ -542,18 +524,25 @@ inline int CSpriteContext::Rotation() const
 	return ((m_dwStatus&SPT_ROT)>>_SPT_ROT);
 }
 
-inline CBString CScript::GetScriptFile()
+inline float CSpriteContext::RelRotation() const
 {
-	return m_fnScriptFile.GetFilePath();
+	return 0.0f;
 }
-inline CBString CScript::GetAmxFile()
+inline float CSpriteContext::RelScale() const
 {
-	return m_fnScriptFile.GetPath() + "amx\\" + m_fnScriptFile.GetFileTitle() + ".amx";
+	return 1.0f;
 }
 
 inline _spt_type CSprite::GetSpriteType() 
 { 
 	return m_SptType; 
+}
+inline void CSprite::SetSpriteType(_spt_type SptType) 
+{ 
+	// only valid conversion between types is tMask <-> tBackground
+	ASSERT(m_SptType == tMask || m_SptType == tBackground);
+	ASSERT(SptType == tMask || SptType == tBackground);
+	m_SptType = SptType; 
 }
 inline CSpriteSheet* CSprite::GetSpriteSheet() 
 { 

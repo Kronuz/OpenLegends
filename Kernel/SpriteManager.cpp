@@ -30,21 +30,16 @@
 
 #include "SpriteManager.h"
 #include "GameManager.h"
+#include "ScriptManager.h"
 
 #include "ArchiveText.h"
 
 bool g_bBounds = false;
 bool g_bMasks = false;
-
-bool CScript::NeedToCompile()
-{
-	//m_fnScriptFile.GetFilePath()
-	return true;
-}
+bool g_bEntities = false;
 
 CSprite::CSprite(LPCSTR szName) :
 	m_bDefined(false),
-	m_SptType(tMask),
 	m_pSpriteSheet(NULL),
 	m_pSpriteData(NULL),
 	CDrawableObject(szName)
@@ -103,8 +98,37 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 		pSpriteSheet->m_pTexture = pTexture->AddRef();
 	}
 
-	if(m_pSpriteData->iAnimSpd && pGraphics->GetCurrentZoom() >= 0.5f) { // fps
-		int nFrame = ( (m_pSpriteData->iAnimSpd * GetTickCount())/1000 ) % m_Boundaries.size();
+	// Initialize the first frame
+	int nFrame = scontext->m_nFrame[nBuffer];
+	if(m_pSpriteData->eAnimDir != _d_down) {
+		if(nFrame == -1) nFrame = 0;
+	} else {
+		if(nFrame == -1) nFrame = m_Boundaries.size()-1;
+	}
+
+	if( m_pSpriteData->iAnimSpd && 
+		CGameManager::GetPauseLevel() == 0 /*&& 
+		pGraphics->GetCurrentZoom() >= 0.5f*/ ) { // fps
+
+		int TotalFrames = m_Boundaries.size();
+		if(m_pSpriteData->eAnimDir != _d_down) {
+			// How long would have taken to play all remaining frames since last render?
+			// Less than the time it took to get here?
+			float AnimTime = (float)(TotalFrames - nFrame) / (float)m_pSpriteData->iAnimSpd;
+			int nTmp = ((m_pSpriteData->iAnimSpd * CGameManager::GetLastTick()/1000) % TotalFrames);
+			if((nTmp < nFrame || AnimTime < CGameManager::GetFPSDelta()) && !m_pSpriteData->bAnimLoop) {
+				nTmp = TotalFrames-1;
+			} 
+			nFrame = nTmp;
+		} else {
+			float AnimTime = (float)(nFrame + 1) / (float)m_pSpriteData->iAnimSpd;
+			int nTmp = (TotalFrames-1) - ((m_pSpriteData->iAnimSpd * CGameManager::GetLastTick()/1000) % TotalFrames);
+			if((nTmp > nFrame || AnimTime < CGameManager::GetFPSDelta()) && !m_pSpriteData->bAnimLoop) {
+				nTmp = 0;
+			}
+			nFrame = nTmp;
+		}
+
 		if(context.m_pBuffer[nBuffer] && scontext->m_nFrame[nBuffer]!=nFrame) {
 			if( m_Boundaries[nFrame].Width() != m_Boundaries[scontext->m_nFrame[nBuffer]].Width() ||
 				m_Boundaries[nFrame].Height() != m_Boundaries[scontext->m_nFrame[nBuffer]].Height()) {
@@ -112,9 +136,9 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 			} else {
 				context.m_pBuffer[nBuffer]->Touch(); // same size, the same buffer can be used, just touch.
 			}
-			scontext->m_nFrame[nBuffer] = nFrame;
-		}
+		}/**/
 	}
+	scontext->m_nFrame[nBuffer] = nFrame;
 
 	ARGBCOLOR rgbColor;
 	if(!rgbColorOverride) {
@@ -124,47 +148,58 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 
 	CRect Rect;
 	scontext->GetAbsFinalRect(Rect);
-	pGraphics->Render(pTexture, 
-		m_Boundaries[scontext->m_nFrame[nBuffer]], 
-		Rect, 
-		scontext->Rotation(), 
-		scontext->Transformation(), 
-		*rgbColorOverride,
-		&(context.m_pBuffer[nBuffer]));
+	pGraphics->Render(pTexture,							// texture
+		m_Boundaries[scontext->m_nFrame[nBuffer]],	// rectSrc
+		Rect,											// rectDest
+		scontext->Rotation(),							// rotation
+		scontext->Transformation(),						// transform
+		*rgbColorOverride,								// rgbColor
+		&(context.m_pBuffer[nBuffer]),					// buffer
+		scontext->RelRotation(),						// relarive rotation
+		scontext->RelScale()							// relative scale
+		/*/(( (20 * GetTickCount())/1000 ) % 360) * 0.01745329252f, // just for testing
+		(float)(((10 * GetTickCount())/1000 ) % 50) / 10 /**/
+	);
 
 	if(bBounds) pGraphics->BoundingBox(Rect, COLOR_ARGB(255,0,0,0));
 
 	return true;
 }
-bool CMaskMap::Draw(const CDrawableContext &context)
-{
-	
-	ARGBCOLOR rgbColor = COLOR_ARGB(200,255,255,255);
-	if(!CSprite::Draw(context, false, &rgbColor, 1)) {
-		return false;
-	}
-
-	return true;
-}
 bool CBackground::Draw(const CDrawableContext &context) 
 { 
-	if(!CSprite::Draw(context, g_bBounds, NULL, 0)) {
-		return false;
-	}
+	if(!NeedToDraw(context)) return true;
 
-	if(g_bMasks) {
-		const SBackgroundData *pBackgroundData = static_cast<const SBackgroundData*>(m_pSpriteData);
-		if(pBackgroundData->pMaskMap)
-			pBackgroundData->pMaskMap->Draw(context);
-	}
+	if(m_SptType == tMask) {
+		ARGBCOLOR rgbColor = COLOR_ARGB(200,255,255,255);
+		if(!CSprite::Draw(context, false, &rgbColor, 1)) {
+			return false;
+		}
+	} else {
+		if(!CSprite::Draw(context, g_bBounds, NULL, 0)) {
+			return false;
+		}
 
+		if(g_bMasks) {
+			const SBackgroundData *pBackgroundData = static_cast<const SBackgroundData*>(m_pSpriteData);
+			if(pBackgroundData->pMaskMap)
+				pBackgroundData->pMaskMap->Draw(context);
+		}
+	}
 	return true; 
 }
+bool CEntity::Draw(const CDrawableContext &context) 
+{ 
+	if(g_bEntities)
+		return CBackground::Draw(context); 
+	return true;
+}
 
-CMaskMap::CMaskMap(LPCSTR szName) :
-	CSprite(szName)
+bool CEntity::Run(const CDrawableContext &context, LPARAM lParam)
 {
-	m_SptType = tMask;
+	const SEntityData *pEntityData = static_cast<const SEntityData*>(m_pSpriteData);
+	pEntityData->pScript->RunScript(lParam);
+	
+	return true;
 }
 
 // Srite Sheets
@@ -200,17 +235,15 @@ int CSpriteSheet::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 	}
 	return cnt;
 }
-
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
 	CDrawableContext(szName)
 {
-	memset(m_nFrame, 0, sizeof(m_nFrame));
+	memset(m_nFrame, -1, sizeof(m_nFrame));
 	Mirror(false);
 	Flip(false);
 	Alpha(255);
 	Rotate(SROTATE_0);
 	Tile(false);
-//	RegisterClipboardFormat("CF_SPRITESET");
 }
 
 void CSpriteSelection::BuildRealSelectionBounds()
@@ -612,22 +645,26 @@ void CSpriteSelection::FlipSelection()
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
 
+		if(Iterator->second.eYChain == up) Iterator->second.eYChain = down;
+		else if(Iterator->second.eYChain == down) Iterator->second.eYChain = up;
+
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
+			if(scontext->isMirrored() && !scontext->isFlipped()) {
+				scontext->Mirror(false);
+				scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				scontext->Flip();
+			}
+		}
 		Rect.top = rcBoundaries.top + (rcBoundaries.bottom - RectTmp.bottom);
 		Rect.bottom = rcBoundaries.bottom - (RectTmp.top - rcBoundaries.top);
 		Rect.left = RectTmp.left;
 		Rect.right = RectTmp.right;
-		
+
 		Rect.NormalizeRect();
 
-		if(Iterator->second.eYChain == up) Iterator->second.eYChain = down;
-		else if(Iterator->second.eYChain == down) Iterator->second.eYChain = up;
-
-		if(scontext->isMirrored() && !scontext->isFlipped()) {
-			scontext->Mirror(false);
-			scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-		} else {
-			scontext->Flip();
-		}
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}
@@ -643,6 +680,19 @@ void CSpriteSelection::MirrorSelection()
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
 
+		if(Iterator->second.eXChain == left) Iterator->second.eXChain = right;
+		else if(Iterator->second.eXChain == right) Iterator->second.eXChain = left;
+
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
+			if(!scontext->isMirrored() && scontext->isFlipped()) {
+				scontext->Flip(false);
+				scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				scontext->Mirror();
+			}
+		}
 		Rect.top = RectTmp.top;
 		Rect.bottom = RectTmp.bottom;
 		Rect.left = rcBoundaries.left + (rcBoundaries.right - RectTmp.right);
@@ -650,15 +700,6 @@ void CSpriteSelection::MirrorSelection()
 
 		Rect.NormalizeRect();
 
-		if(Iterator->second.eXChain == left) Iterator->second.eXChain = right;
-		else if(Iterator->second.eXChain == right) Iterator->second.eXChain = left;
-
-		if(!scontext->isMirrored() && scontext->isFlipped()) {
-			scontext->Flip(false);
-			scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-		} else {
-			scontext->Mirror();
-		}
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}
@@ -674,30 +715,39 @@ void CSpriteSelection::CWRotateSelection()
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
 
-		Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
-		Rect.bottom = rcBoundaries.top + (RectTmp.right - rcBoundaries.left);
-		Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
-		Rect.right = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.top);
-
-		Rect.NormalizeRect();
-
 		_Chain cTmp = Iterator->second.eXChain;
 		Iterator->second.eXChain = Iterator->second.eYChain;
 		if(cTmp == left) Iterator->second.eYChain = up;
 		else if(cTmp == right) Iterator->second.eYChain = down;
 		else Iterator->second.eYChain = cTmp;
 
-		if(scontext->isMirrored() && scontext->isFlipped()) {
-			scontext->Flip(false);
-			scontext->Mirror(false);
-			scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-		} else {
-			if(scontext->isMirrored() || scontext->isFlipped()) {
-				scontext->Flip();
-				scontext->Mirror();
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
+			if(scontext->isMirrored() && scontext->isFlipped()) {
+				scontext->Flip(false);
+				scontext->Mirror(false);
+				scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				if(scontext->isMirrored() || scontext->isFlipped()) {
+					scontext->Flip();
+					scontext->Mirror();
+				}
+				scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
 			}
-			scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
+			Rect.bottom = rcBoundaries.top + (RectTmp.right - rcBoundaries.left);
+			Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
+			Rect.right = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.top);
+		} else {
+			Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
+			Rect.bottom = Rect.top + RectTmp.Height();
+			Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
+			Rect.right = Rect.left + RectTmp.Width();
 		}
+
+		Rect.NormalizeRect();
+
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}
@@ -713,29 +763,39 @@ void CSpriteSelection::CCWRotateSelection()
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
 		scontext->GetAbsFinalRect(RectTmp);
 
-		Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
-		Rect.bottom = rcBoundaries.top + (rcBoundaries.right - RectTmp.left);
-		Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
-		Rect.right = rcBoundaries.left + (RectTmp.bottom - rcBoundaries.top);
-
 		_Chain cTmp = Iterator->second.eYChain;
 		Iterator->second.eYChain = Iterator->second.eXChain;
 		if(cTmp == up) Iterator->second.eXChain = left;
 		else if(cTmp == down) Iterator->second.eXChain = right;
 		else Iterator->second.eYChain = cTmp;
 
-		Rect.NormalizeRect();
-		if(scontext->isMirrored() && scontext->isFlipped()) {
-			scontext->Flip(false);
-			scontext->Mirror(false);
-			scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-		} else {
-			if(scontext->isMirrored() || scontext->isFlipped()) {
-				scontext->Flip();
-				scontext->Mirror();
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
+			if(scontext->isMirrored() && scontext->isFlipped()) {
+				scontext->Flip(false);
+				scontext->Mirror(false);
+				scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				if(scontext->isMirrored() || scontext->isFlipped()) {
+					scontext->Flip();
+					scontext->Mirror();
+				}
+				scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
 			}
-			scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
+			Rect.bottom = rcBoundaries.top + (rcBoundaries.right - RectTmp.left);
+			Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
+			Rect.right = rcBoundaries.left + (RectTmp.bottom - rcBoundaries.top);
+		} else {
+			Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
+			Rect.bottom = Rect.top + RectTmp.Height();
+			Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
+			Rect.right = Rect.left + RectTmp.Width();
 		}
+
+		Rect.NormalizeRect();
+
 		scontext->SetAbsFinalRect(Rect);
 		Iterator++;
 	}

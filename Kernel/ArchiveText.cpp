@@ -72,7 +72,7 @@ bool CSpriteSheetTxtArch::ReadObject(CVFile &vfFile)
 int CSpriteSheetTxtArch::ReadSprite(CVFile &vfFile)
 {
 	SSpriteData *pSpriteData = NULL;
-	SMaskData *pMaskData = NULL;
+	SBackgroundData *pMaskData = NULL;
 	SBackgroundData *pBackgroundData = NULL;
 	SEntityData *pEntityData = NULL;
 
@@ -110,10 +110,11 @@ retry:
 				sptType = tBackground;
 				state = eName;
 			} else {
-				pMaskData = new SMaskData;
-				memset(pMaskData, 0, sizeof(SMaskData));
+				pMaskData = new SBackgroundData;
+				memset(pMaskData, 0, sizeof(SBackgroundData));
+				pBackgroundData = pMaskData;
 				pSpriteData = pMaskData;
-				sptType = tMask;
+				sptType = tBackground;
 				state = eName;
 				goto retry;
 			}
@@ -121,16 +122,20 @@ retry:
 			pSprite = pGameManager->ReferSprite(sLine, sptType, fnSheetFile.GetFileName(), m_nLines);
 			if(!pSprite) {
 				state = eError;
-				CONSOLE_OUTPUT("Sprite error[1] in '%s'(%d): Expected a valid %s name instead of: '%s'\n", fnSheetFile.GetFileName(), m_nLines, (sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", sLine);
+				CONSOLE_OUTPUT("Sprite error[0] in '%s'(%d): Expected a valid %s name instead of: '%s'\n", fnSheetFile.GetFileName(), m_nLines, (sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", sLine);
 			}
 			else {
 				if(pSprite->IsDefined()) {
 					state = eError;
-					CONSOLE_OUTPUT("%s '%s' already defined in '%s'\n", (sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", pSprite->GetName(), pSprite->GetSpriteSheet()->GetName());
-					CONSOLE_OUTPUT("    '%s' redefinition attempt in '%s'\n", pSprite->GetName(), m_pSpriteSheet->GetName());
+					CONSOLE_OUTPUT("%s error[1]: '%s' already defined in '%s' (%s)\n    '%s' redefinition attempt in '%s' (%s)\n", 
+						(sptType==tMask)?"Mask":(sptType==tEntity)?"Entity":"Sprite", pSprite->GetName(), pSprite->GetSpriteSheet()->GetName(), pSprite->GetSpriteSheet()->GetFileName().GetFileName(),
+						pSprite->GetName(), m_pSpriteSheet->GetName(), fnSheetFile.GetFileName());
 				} else state = eAnim;
 			}
 		} else if(state == eAnim) {
+			// Check for the ANIMATED keyword. Sprites can either
+			// have just the one frame (which is normal), or they
+			// can have a few frames.
 			if(sLine=="ANIMATED") state = eAnimFrms;
 			else {
 				state = eRect;
@@ -140,6 +145,8 @@ retry:
 			iFrames = atoi(sLine);
 			state = eAnimSpd;
 		} else if(state == eAnimSpd) {
+			pSpriteData->eAnimDir = _d_up;
+			pSpriteData->bAnimLoop = true;
 			pSpriteData->iAnimSpd = atoi(sLine);
 			state = eRect;
 		} else if(state == eRect) {
@@ -192,29 +199,28 @@ retry:
 						CONSOLE_OUTPUT("Sprite error[3] in '%s'(%d)\n", fnSheetFile.GetFileName(), m_nLines);
 					}
 				}
-			} else goto retry;
+			} 
 		} else if(state == eLayer) {
 			state = eAlpha;
-			if(	sptType == tBackground ||
-				sptType == tEntity ) {
-					if(sLine == "TRUE") pBackgroundData->nSubLayer = 4;
-					else pBackgroundData->nSubLayer = 1;
-					if(sptType == tEntity) pBackgroundData->nSubLayer++;
-			} else goto retry;
+			if(sLine == "TRUE") pSpriteData->nSubLayer = 4;
+			else if(sLine == "FALSE") pSpriteData->nSubLayer = 1;
+			else {
+				state = eError;
+				CONSOLE_OUTPUT("Sprite error[4] in '%s'(%d): Invalid layer type.\n", fnSheetFile.GetFileName(), m_nLines);
+			}
+			if(sptType == tEntity) pSpriteData->nSubLayer++;
 		} else if(state == eAlpha) {
 			state = eDefine;
-			if(	sptType == tBackground ||
-				sptType == tEntity ) {
-					pBackgroundData->cAlphaValue = atoi(sLine);
-			} else goto retry;
+			pSpriteData->cAlphaValue = atoi(sLine);
 		} else if(state == eDefine) {
 			state = eEnd;
 			pSprite->SetSpriteData(pSpriteData);
+			pSpriteData = NULL;
 			if(sptType == tEntity ) {
 				pEntityData->pScript = pGameManager->MakeScript(pSprite->GetName());
 				if(!pEntityData->pScript) {
-					state = eError;
-					CONSOLE_OUTPUT("Sprite error[4] in '%s'(%d): Couldn't find the script file for the entity %s.\n", fnSheetFile.GetFileName(), m_nLines, pSprite->GetName());
+//					state = eError;
+					CONSOLE_OUTPUT("Sprite warning in '%s'(%d): Couldn't find the script file for the entity %s.\n", fnSheetFile.GetFileName(), m_nLines, pSprite->GetName());
 				}
 			}
 			if(state != eError) {
@@ -224,13 +230,14 @@ retry:
 		}
 		if(sLine=="[EE]") break;
 	}
+	delete pSpriteData;
+
 	return (int)state;
 }
 bool CSpriteSheetTxtArch::WriteObject(CVFile &vfFile)
 {
 	return false;
 }
-
 
 bool CProjectTxtArch::ReadObject(CVFile &vfFile)
 {
