@@ -35,6 +35,7 @@ enum _child_type { tAny=0, tScriptEditor, tSpriteEditor, tWorldEditor, tMapEdito
 class CChildFrame : public 
 	CTabbedMDIChildWindowImpl<CChildFrame>
 {
+public:
 	typedef CTabbedMDIChildWindowImpl<CChildFrame> baseClass;
 protected:
 

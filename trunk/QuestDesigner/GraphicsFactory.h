@@ -44,6 +44,9 @@ class CGraphicsFactory
 public:
 	static HRESULT Delete(IGraphics **pGraphics);
 	static HRESULT New(IGraphics **pGraphics, LPCSTR lpszIName = NULL);
+
+	CGraphicsFactory();
+	~CGraphicsFactory();
 };
 
 

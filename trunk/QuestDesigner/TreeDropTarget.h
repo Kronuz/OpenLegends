@@ -33,6 +33,8 @@ public:
 				memcpy(pData, pSpriteSet, size);
 			} else pData = NULL;
 
+			// TreeView_GetSelection(m_hTargetWnd)
+
 			TVINSERTSTRUCT tvins;
 			tvins.hParent = TVI_ROOT;
 			tvins.hInsertAfter = TVI_LAST;

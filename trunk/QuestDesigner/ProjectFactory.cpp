@@ -27,7 +27,7 @@
 
 #include "FoldersTreeBox.h"
 
-const WORD IGame::Version = 0x0100;
+const WORD IGame::Version = 0x0200;
 CProjectFactory *CProjectFactory::_instance = NULL;
 
 CProjectFactory::CProjectFactory() :
@@ -53,10 +53,15 @@ CProjectFactory* CProjectFactory::Instance(HWND hWnd)
 	}
 	if(hWnd) _instance->m_hWnd = hWnd;
 	if(_instance->m_pGameI == NULL) {
-		New(&(_instance->m_pGameI), "Kernel.dll");
-		_instance->m_pGameI->SetScriptCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
-		_instance->m_pGameI->SetSpriteCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
-		_instance->m_pGameI->SetSpriteSheetCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
+		if(SUCCEEDED(New(&(_instance->m_pGameI), "Kernel.dll"))) {
+			_instance->m_pGameI->SetScriptCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
+			_instance->m_pGameI->SetSpriteCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
+			_instance->m_pGameI->SetSpriteSheetCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
+		} else {
+			MessageBox(NULL, 
+				"Couldn't load kernel, check kernel version.", 
+				"Quest Designer - Fatal Error", MB_OK | MB_ICONERROR);
+		}
 	}
 	return _instance;
 }
@@ -98,7 +103,7 @@ HRESULT CProjectFactory::New(IGame **pGameI, LPCSTR lpszIName)
 			CString sMsg = "Error loading up " + _instance->sIName;
 			::MessageBox(NULL,
 				sMsg,
-				"Fatal Error",
+				"Quest Designer - Fatal Error",
 				MB_OK | MB_ICONERROR);
 			return E_FAIL;
 		}

@@ -43,7 +43,7 @@ LRESULT CBuildOutputBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 
 LRESULT CBuildOutputBox::OnWriteMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
 {
-	char buff[2000];
+	char buff[4000];
 	InfoStruct *pInfo = (InfoStruct *)lParam;
 	if(pInfo->type==t_printf) {
 		vsprintf(buff, pInfo->message, pInfo->argptr);
