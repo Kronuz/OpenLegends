@@ -190,17 +190,14 @@ IBuffer* CBufferD3D8::Release() {
 
 //////////////////////////////////////////////////////////////////////////////
 
-CTextureD3D8::CTextureD3D8(IDirect3DTexture8 *pTexture, D3DXIMAGE_INFO imageInfo) : 
+CTextureD3D8::CTextureD3D8(IDirect3DTexture8 *pTexture, D3DXIMAGE_INFO &imageInfo, D3DSURFACE_DESC &surfaceDesc) : 
 	m_pTexture(pTexture),
 	m_ImageInfo(imageInfo),
 	m_fScale(1.0f),
 	m_nCount(0)
 {
-	D3DSURFACE_DESC Desc;
-	m_pTexture->GetLevelDesc(0, &Desc);
-
-	m_Width = Desc.Width;
-	m_Height = Desc.Height;
+	m_Width = surfaceDesc.Width;
+	m_Height = surfaceDesc.Height;
 
 	CONSOLE_DEBUG4("DEBUG: ITexture created.\n");
 	AddRef();
@@ -275,7 +272,55 @@ inline void CGraphicsD3D8::Clear(const RECT *rect, ARGBCOLOR rgbColor) const
 	}
 }
 
-inline WORD CGraphicsD3D8::GetBitCount()
+inline LPCSTR CGraphicsD3D8::GetFormat(D3DFORMAT Format) const
+{
+	switch(Format) {
+		case D3DFMT_R8G8B8: return "D3DFMT_R8G8B8";
+		case D3DFMT_A8R8G8B8: return "D3DFMT_A8R8G8B8";
+		case D3DFMT_X8R8G8B8: return "D3DFMT_X8R8G8B8";
+		case D3DFMT_R5G6B5: return "D3DFMT_R5G6B5";
+		case D3DFMT_X1R5G5B5: return "D3DFMT_X1R5G5B5";
+		case D3DFMT_A1R5G5B5: return "D3DFMT_A1R5G5B5";
+		case D3DFMT_A4R4G4B4: return "D3DFMT_A4R4G4B4";
+		case D3DFMT_A8: return "D3DFMT_A8";
+		case D3DFMT_R3G3B2: return "D3DFMT_R3G3B2";
+		case D3DFMT_A8R3G3B2: return "D3DFMT_A8R3G3B2";
+		case D3DFMT_X4R4G4B4: return "D3DFMT_X4R4G4B4";
+		case D3DFMT_A2B10G10R10: return "D3DFMT_A2B10G10R10";
+		case D3DFMT_G16R16: return "D3DFMT_G16R16";
+		case D3DFMT_A8P8: return "D3DFMT_A8P8";
+		case D3DFMT_P8: return "D3DFMT_P8";
+		case D3DFMT_L8: return "D3DFMT_L8";
+		case D3DFMT_A8L8: return "D3DFMT_A8L8";
+		case D3DFMT_A4L4: return "D3DFMT_A4L4";
+		case D3DFMT_V8U8: return "D3DFMT_V8U8";
+		case D3DFMT_Q8W8V8U8: return "D3DFMT_Q8W8V8U8";
+		case D3DFMT_V16U16: return "D3DFMT_V16U16";
+		case D3DFMT_W11V11U10: return "D3DFMT_W11V11U10";
+		case D3DFMT_L6V5U5: return "D3DFMT_L6V5U5";
+		case D3DFMT_X8L8V8U8: return "D3DFMT_X8L8V8U8";
+		case D3DFMT_A2W10V10U10: return "D3DFMT_A2W10V10U10";
+		case D3DFMT_UYVY: return "D3DFMT_UYVY";
+		case D3DFMT_YUY2: return "D3DFMT_YUY2";
+		case D3DFMT_DXT1: return "D3DFMT_DXT1";
+		case D3DFMT_DXT2: return "D3DFMT_DXT2";
+		case D3DFMT_DXT3: return "D3DFMT_DXT3";
+		case D3DFMT_DXT4: return "D3DFMT_DXT4";
+		case D3DFMT_DXT5: return "D3DFMT_DXT5";
+		case D3DFMT_VERTEXDATA: return "D3DFMT_VERTEXDATA";
+		case D3DFMT_INDEX16: return "D3DFMT_INDEX16";
+		case D3DFMT_INDEX32: return "D3DFMT_INDEX32";
+		case D3DFMT_D16_LOCKABLE: return "D3DFMT_D16_LOCKABLE";
+		case D3DFMT_D32: return "D3DFMT_D32";
+		case D3DFMT_D15S1: return "D3DFMT_D15S1";
+		case D3DFMT_D24S8: return "D3DFMT_D24S8";
+		case D3DFMT_D16: return "D3DFMT_D16";
+		case D3DFMT_D24X8: return "D3DFMT_D24X8";
+		case D3DFMT_D24X4S4: return "D3DFMT_D24X4S4";
+	}
+	return "D3DFMT_UNKNOWN";
+}
+inline WORD CGraphicsD3D8::GetBitCount() const
 {
 	switch(ms_PreferredMode.Format) {
 		case D3DFMT_A8R8G8B8:				// 32 bit color with alpha
@@ -292,7 +337,7 @@ inline WORD CGraphicsD3D8::GetBitCount()
 
 // using the current format, get the equivalent 16 bits ARGB values from a buffer in the 
 // current format, and increment the pointer of the buffer to the next ARGB color.
-inline WORD CGraphicsD3D8::GetNext16ARGB(BYTE **Data)
+inline WORD CGraphicsD3D8::GetNext16ARGB(BYTE **Data) const
 {
 	WORD rgb555 = -1;
 	switch(ms_PreferredMode.Format) {
@@ -501,7 +546,6 @@ inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 		}
 	}
 #endif
-
 }
 
 inline void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITexture *texture, const RECT &rectSrc, const RECT &rectDest, int rotate, int transform, ARGBCOLOR rgbColor) const
@@ -752,6 +796,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 	}
 
 	ms_nCount++;
+	bool bStatus = true;
 	m_bInitialized = true;
 #ifndef _USE_SWAPCHAINS
 	PostInitialize(ms_nScreenWidth, ms_nScreenHeight);
@@ -768,30 +813,71 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 
 		// Output driver info
 		CONSOLE_PRINTF("Using Microsoft Direct3D Version 8.0 '%s'\n", D3DAdapterID.Driver);
-		CONSOLE_PRINTF(" | Description: %s\n", D3DAdapterID.Description);
-		CONSOLE_PRINTF(" | Version: %d.%d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart));
+		CONSOLE_PRINTF("Plugin version: %d.%d\n", HIBYTE(Version), LOBYTE(Version));
+		CONSOLE_PRINTF(" | Description: %s (%d)\n", D3DAdapterID.Description, HIWORD(D3DAdapterID.DriverVersion.HighPart));
+		CONSOLE_PRINTF(" | Version: %d.%d build %d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart), LOWORD(D3DAdapterID.DriverVersion.LowPart));
+		CONSOLE_LOG   (" | dwVendorId: %d\n", D3DAdapterID.VendorId);
+		CONSOLE_LOG   (" | dwDeviceId: %d\n", D3DAdapterID.DeviceId);
+		CONSOLE_LOG   (" | dwSubSysId: %d\n", D3DAdapterID.SubSysId);
+		CONSOLE_LOG   (" | dwRevision: %d\n", D3DAdapterID.VendorId);
+		CONSOLE_LOG   (" | Mode: %dx%d at %dHz (%s)\n", ms_PreferredMode.Width, ms_PreferredMode.Height, ms_PreferredMode.RefreshRate, GetFormat(ms_PreferredMode.Format));
 		CONSOLE_PRINTF(" | Acceleration: %s rasterization\n", (m_devType==D3DDEVTYPE_HAL)?"Hardware":"Software");
 		CONSOLE_PRINTF(" | Max Texture Size: %dx%d\n", D3DCaps.MaxTextureWidth, D3DCaps.MaxTextureHeight);
-		CONSOLE_DEBUG(" | Max Primitives & Vertices: %d/%d\n", D3DCaps.MaxVertexIndex, D3DCaps.MaxPrimitiveCount);
-		CONSOLE_DEBUG(" | Support for temporary register: %s\n", ((D3DCaps.PrimitiveMiscCaps & D3DPMISCCAPS_TSSARGTEMP) == D3DPMISCCAPS_TSSARGTEMP)?"Yes":"No");
+		CONSOLE_LOG   (" | Max Texture Blend Stages: %d\n", D3DCaps.MaxTextureBlendStages);
+		CONSOLE_LOG   (" | Max Primitive Count: %d\n", D3DCaps.MaxPrimitiveCount);
+		CONSOLE_LOG   (" | Max Vertex Index: %d\n", D3DCaps.MaxVertexIndex);
+		CONSOLE_LOG   (" | Max Simultaneous Textures: %d\n", D3DCaps.MaxSimultaneousTextures);
+		CONSOLE_LOG   (" | Max Streams: %d\n", D3DCaps.MaxStreams);
+		CONSOLE_LOG   (" | Max Stream Stride: %d\n", D3DCaps.MaxStreamStride);
+		CONSOLE_LOG   (" | Vertex Shader Version: %d.%d\n", HIBYTE(LOWORD(D3DCaps.VertexShaderVersion)), LOBYTE(LOWORD(D3DCaps.VertexShaderVersion)));
+		CONSOLE_LOG   (" | Max Vertex Shader Const: %d\n", D3DCaps.MaxVertexShaderConst);
+		CONSOLE_LOG   (" | Pixel Shader Version: %d.%d\n", HIBYTE(LOWORD(D3DCaps.PixelShaderVersion)), LOBYTE(LOWORD(D3DCaps.PixelShaderVersion)));
+
+		// Print caps (do not change order, add at the end if needed):
+		CONSOLE_LOG   (" | Device Caps: 0x%08X ", D3DCaps.DevCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.PrimitiveMiscCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.RasterCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.ZCmpCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.SrcBlendCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.DestBlendCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.AlphaCmpCaps);
+		CONSOLE_LOG   ("\n |              ");
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.ShadeCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureFilterCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureAddressCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.TextureOpCaps);
+		CONSOLE_LOG   ("0x%08X ", D3DCaps.LineCaps);
+		CONSOLE_LOG   ("\n");
+
+		CONSOLE_LOG   (" | Support for temporary register: %s\n", ((D3DCaps.PrimitiveMiscCaps & D3DPMISCCAPS_TSSARGTEMP) == D3DPMISCCAPS_TSSARGTEMP)?"Yes":"No");
 #ifdef _USE_HWVB
 		CONSOLE_PRINTF(" | Using Hardware Vertex Buffers!\n");
 #endif
 #ifdef _USE_SWAPCHAINS
 		CONSOLE_PRINTF(" | Using SwapChains!\n");
 #endif	
-
-		if((D3DCaps.RasterCaps&D3DPRASTERCAPS_ANTIALIASEDGES)) {
-			CONSOLE_PRINTF(" | Support for antialias on lines forming the convex outline of an object is available.\n");
+		if(!(D3DCaps.DevCaps & D3DPMISCCAPS_BLENDOP)) {
+			CONSOLE_PRINTF(" | Device does not support the alpha-blending operations.\n");
+			bStatus = false;
+		} 
+		if(!(D3DCaps.RasterCaps & D3DPRASTERCAPS_ANTIALIASEDGES)) {
+			CONSOLE_PRINTF(" | Device does not support antialiasing on lines.\n");
 		}
-		if((D3DCaps.RasterCaps&D3DPRASTERCAPS_PAT)) {
-			CONSOLE_PRINTF(" | Support for patterned drawing is available for this driver.\n");
+		if(!(D3DCaps.RasterCaps & D3DPRASTERCAPS_PAT)) {
+			CONSOLE_PRINTF(" | Device does not support patterned drawing.\n");
 		}
-
+		if(!(D3DCaps.TextureCaps & D3DPTEXTURECAPS_ALPHA)) {
+			CONSOLE_PRINTF(" | Device does not support alpha channel in texture pixels.\n");
+			bStatus = false;
+		}
 	}
-	CONSOLE_DEBUG("DEBUG: IGraphics initialized. (%d references)\n", ms_nCount);
 
-	return true;
+	if(!bStatus) {
+		CONSOLE_PRINTF("ERROR (D3D8): Video card not supported, sorry.\n");
+	}
+
+	return bStatus;
 }
 
 void CGraphicsD3D8::GetWorldRect(RECT *Rect_) const
@@ -987,8 +1073,13 @@ bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, f
 			CONSOLE_PRINTF("WARNING (D3D8): Couldn't create texture from '%s'.\n", filename);
 			return false;
 		}
+		D3DSURFACE_DESC surfaceDesc;
+		pTexture->GetLevelDesc(0, &surfaceDesc);
+		if(surfaceDesc.Format != D3DFMT_A8R8G8B8) {
+			CONSOLE_PRINTF("WARNING (D3D8): Texture created with an invalid format (%s)\n", GetFormat(surfaceDesc.Format));
+		}
 
-		CTextureD3D8 *pCTextureD3D8 = new CTextureD3D8(pTexture, imageInfo);
+		CTextureD3D8 *pCTextureD3D8 = new CTextureD3D8(pTexture, imageInfo, surfaceDesc);
 		pCTextureD3D8->SetScale(scale);
 		ms_Textures.insert( pairTexture(filename, pCTextureD3D8) );
 		*texture = pCTextureD3D8;
@@ -1013,8 +1104,13 @@ bool CGraphicsD3D8::CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcD
 			CONSOLE_PRINTF("WARNING (D3D8): Couldn't create texture from memory.\n");
 			return false;
 		}
+		D3DSURFACE_DESC surfaceDesc;
+		pTexture->GetLevelDesc(0, &surfaceDesc);
+		if(surfaceDesc.Format != D3DFMT_A8R8G8B8) {
+			CONSOLE_PRINTF("WARNING (D3D8): Texture created with an invalid format (%s)\n", GetFormat(surfaceDesc.Format));
+		}
 
-		CTextureD3D8 *pCTextureD3D8 = new CTextureD3D8(pTexture, imageInfo);
+		CTextureD3D8 *pCTextureD3D8 = new CTextureD3D8(pTexture, imageInfo, surfaceDesc);
 		pCTextureD3D8->SetScale(scale);
 		ms_Textures.insert( pairTexture(filename, pCTextureD3D8) );
 		*texture = pCTextureD3D8;

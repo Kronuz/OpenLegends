@@ -398,6 +398,7 @@ protected:
 	CSpriteSheet(CGameManager *pGameManager);
 	~CSpriteSheet();
 public:
+	DWORD m_dwLastTry;
 	ITexture *m_pTexture; //! cached texture (valid only if it was aquired with the same Device ID)
 
 	const CBString& GetName() const { return CNamedObj::GetName(); }

@@ -76,7 +76,6 @@ LRESULT COutputBox::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPara
 		SetSel(0,-1);
 		RedrawWindow();
 	}
-
 	return 0;
 }
 
