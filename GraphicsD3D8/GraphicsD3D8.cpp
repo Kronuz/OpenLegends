@@ -855,15 +855,16 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 
 	// Now we create a helper surface we'll be needing later for the some effects (pixelate and others)
 	// Keep which surface is the old Render Target.
-	ms_pD3DDevice->GetRenderTarget(&ms_pBackBufferSurface);
+	D3DVERIFY(ms_pD3DDevice->GetRenderTarget(&ms_pBackBufferSurface));
 
 	// Get the Description of the Primary Render Surface.
 	D3DSURFACE_DESC SurfaceDescription;
-	ms_pBackBufferSurface->GetDesc(&SurfaceDescription);
+	D3DVERIFY(ms_pBackBufferSurface->GetDesc(&SurfaceDescription));
 	
+	// CreateTexture Fails on some video cards with some screen depths (i.e. 16 bits)
 	// Create the Texture we will Render our scene to (for Filters in general), 
 	// which is essentialy a Back Buffer duplicate.
-	ms_pD3DDevice->CreateTexture(
+	D3DVERIFY(ms_pD3DDevice->CreateTexture(
 		SurfaceDescription.Width, 
 		SurfaceDescription.Height, 
 		1, 
@@ -871,14 +872,14 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 		SurfaceDescription.Format, 
 		SurfaceDescription.Pool, 
 		&ms_pHelperTexture
-	);
+	));
 
 	// Get the surface from this texture.
-	ms_pHelperTexture->GetSurfaceLevel(0, &ms_pHelperSurface);
+	D3DVERIFY(ms_pHelperTexture->GetSurfaceLevel(0, &ms_pHelperSurface));
 
 	// Create a second Texture we will Render our scene to (for Pixelate effect), 
 	// which is essentialy a Back Buffer duplicate.
-	ms_pD3DDevice->CreateTexture(
+	D3DVERIFY(ms_pD3DDevice->CreateTexture(
 		SurfaceDescription.Width, 
 		SurfaceDescription.Height, 
 		1, 
@@ -886,10 +887,10 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 		SurfaceDescription.Format, 
 		SurfaceDescription.Pool, 
 		&ms_pHelperTexture2
-	);
+	));
 
 	// Get the surface from this texture.
-	ms_pHelperTexture2->GetSurfaceLevel(0, &ms_pHelperSurface2);
+	D3DVERIFY(ms_pHelperTexture2->GetSurfaceLevel(0, &ms_pHelperSurface2));
 
 	ms_nHelperWidth = SurfaceDescription.Width;
 	ms_nHelperHeight = SurfaceDescription.Height;
@@ -1031,6 +1032,8 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 
 	if(!bStatus) {
 		CONSOLE_PRINTF("ERROR (D3D8): Video card not supported, sorry.\n");
+	} else {
+		CONSOLE_LOG("Supported video card.\n");
 	}
 
 	return bStatus;
@@ -1381,11 +1384,17 @@ bool CGraphicsD3D8::FlushFilters(bool bClear)
 
 	if(ms_bLastRendered == true) {
 		ms_bLastRendered = false;
+/*
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
+/*/
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+/**/
 	}
 	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
 
@@ -1594,7 +1603,6 @@ bool CGraphicsD3D8::EndPaint()
 		Rect.top = Rect.left = 0;
 		Rect.right = m_RectView.right-m_RectView.left;
 		Rect.bottom = m_RectView.bottom-m_RectView.top;
-		HRESULT hRes = ms_pD3DDevice->Present(&Rect, &Rect, m_hWnd, NULL);
 		if(FAILED(ms_pD3DDevice->Present(&Rect, &Rect, m_hWnd, NULL))) return false;
 #endif
 	} else {
@@ -1709,7 +1717,8 @@ bool CGraphicsD3D8::EndCapture(WORD *pData, RECT &rcPortion, RECT &rcFull)
 	m_RectClip = m_RectOldClip;
 	m_WorldMatrix = m_OldWorldMatrix;
 
-	//if(FAILED(ms_pD3DDevice->Present(NULL, NULL, m_hWnd, NULL))) return false;
+	// This simply shows what's been captured on the screen (for testing purposes):
+//	if(FAILED(ms_pD3DDevice->Present(NULL, NULL, m_hWnd, NULL))) return false;
 
 	return true;
 }

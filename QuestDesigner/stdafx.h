@@ -297,6 +297,9 @@ bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 	}
 */
 #endif
+#endif
+
+#if _ATL_VER <= 0x0750
 #ifndef __FOCUS_FIXUPDATE
 	#error WTL BUGFIX: MDI windows need a focus related bugfix to work (see here)
 /*
@@ -317,6 +320,7 @@ bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 	#error WTL BUGFIX: Vertical toolbars need a WTL bugfix to work (see here)
 /*	
 	// change in CFrameWindowImplBase class (WTL7.0, atlframe.h)
+	#define __TOOLBARS_FIXUPDATE
 	void UpdateBarsPosition(RECT& rect, BOOL bResizeBars = TRUE) {
 		// resize toolbar
 		DWORD dwStyles = (DWORD)::GetWindowLong(m_hWndToolBar, GWL_STYLE);

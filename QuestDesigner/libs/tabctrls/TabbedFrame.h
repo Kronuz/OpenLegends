@@ -249,7 +249,11 @@ public:
 		return m_ImageList.Add(hBitmap, crMask);
 	}
 
+#if (_WTL_VER <= 0x0700)
+	int AddBitmap(WTL::_U_STRINGorID bitmap, COLORREF crMask, HMODULE hModule = _Module.GetResourceInstance())
+#else
 	int AddBitmap(ATL::_U_STRINGorID bitmap, COLORREF crMask, HMODULE hModule = _Module.GetResourceInstance())
+#endif
 	{
 		HBITMAP hBitmap = (HBITMAP)::LoadImage(
 			hModule,
@@ -258,7 +262,11 @@ public:
 		return hBitmap ? m_ImageList.Add(hBitmap, crMask) : -1;
 	}
 
+#if (_WTL_VER <= 0x0700)
+	int AddBitmap(WTL::_U_STRINGorID bitmap, HBITMAP hBitmapMask = NULL, HMODULE hModule = _Module.GetResourceInstance())
+#else
 	int AddBitmap(ATL::_U_STRINGorID bitmap, HBITMAP hBitmapMask = NULL, HMODULE hModule = _Module.GetResourceInstance())
+#endif
 	{
 		HBITMAP hBitmap = (HBITMAP)::LoadImage(
 			hModule,
@@ -273,7 +281,11 @@ public:
 		return m_ImageList.AddIcon(hIcon);
 	}
 
+#if (_WTL_VER <= 0x0700)
+	int AddIcon(WTL::_U_STRINGorID icon, HMODULE hModule = _Module.GetResourceInstance())
+#else
 	int AddIcon(ATL::_U_STRINGorID icon, HMODULE hModule = _Module.GetResourceInstance())
+#endif
 	{
 		HICON hIcon = (HICON)::LoadImage(
 			hModule,
@@ -307,7 +319,11 @@ public:
 		return this->AddTab(hWnd, sTabText, nImageIndex);
 	}
 
+#if (_WTL_VER <= 0x0700)
+	int AddTabWithBitmap(HWND hWnd, LPCTSTR sTabText, WTL::_U_STRINGorID bitmap, HBITMAP hBitmapMask = NULL, HMODULE hModule = _Module.GetResourceInstance())
+#else
 	int AddTabWithBitmap(HWND hWnd, LPCTSTR sTabText, ATL::_U_STRINGorID bitmap, HBITMAP hBitmapMask = NULL, HMODULE hModule = _Module.GetResourceInstance())
+#endif
 	{
 		if(hWnd == NULL)
 		{
@@ -319,7 +335,11 @@ public:
 		return this->AddTab(hWnd, sTabText, nImageIndex);
 	}
 
+#if (_WTL_VER <= 0x0700)
+	int AddTabWithBitmap(HWND hWnd, LPCTSTR sTabText, WTL::_U_STRINGorID bitmap, COLORREF crMask, HMODULE hModule = _Module.GetResourceInstance())
+#else
 	int AddTabWithBitmap(HWND hWnd, LPCTSTR sTabText, ATL::_U_STRINGorID bitmap, COLORREF crMask, HMODULE hModule = _Module.GetResourceInstance())
+#endif
 	{
 		if(hWnd == NULL)
 		{
@@ -344,7 +364,11 @@ public:
 		return this->AddTab(hWnd, sTabText, nImageIndex);
 	}
 
+#if (_WTL_VER <= 0x0700)
+	int AddTabWithIcon(HWND hWnd, LPCTSTR sTabText, WTL::_U_STRINGorID icon, HMODULE hModule = _Module.GetResourceInstance())
+#else
 	int AddTabWithIcon(HWND hWnd, LPCTSTR sTabText, ATL::_U_STRINGorID icon, HMODULE hModule = _Module.GetResourceInstance())
+#endif
 	{
 		if(hWnd == NULL)
 		{
