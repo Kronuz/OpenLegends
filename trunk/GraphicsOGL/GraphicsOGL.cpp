@@ -37,7 +37,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface Version Definition:
-const WORD IGraphics::Version = 0x0011;//version 1.1, same for a while. hard to improve a good thing ;)
+const WORD IGraphics::Version = 0x0014;//version 1.4, same for a while. hard to improve a good thing ;)
 
 //////////////////////////////////////////////////////////////////////////////
 // Needed Libraries:
