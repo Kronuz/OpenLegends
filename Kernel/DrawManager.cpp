@@ -649,14 +649,25 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_ppMainDrawable = ppDrawableContext_;
 	ASSERT(m_ppMainDrawable);
 }
-int CDrawableSelection::GetBoundingRect(CRect *pRect_, int nPasteGroup_) 
+int CDrawableSelection::GetBoundingRect(CRect *pRect_, int nGroup_) 
 {
 	int nSelected = 0;
 	CRect RectTmp;
 	pRect_->SetRectEmpty();
+
+	// Get the bounding rect of the children:
+	for(int i=0; i<(int)m_Groups[nGroup_].C.size(); i++) {
+		int nChild = m_Groups[nGroup_].C[i];
+		if(nChild != 0) {
+			ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
+			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
+			GetBoundingRect(&RectTmp, nChild);
+			pRect_->UnionRect(pRect_, RectTmp);
+		}
+	}
+
 	vectorObject::iterator Iterator;
-	// NEED TO FIX ***
-	for(Iterator = m_Groups[nPasteGroup_].O.begin(); Iterator != m_Groups[nPasteGroup_].O.end(); Iterator++) {
+	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
 		Iterator->pContext->GetAbsFinalRect(RectTmp);
 		pRect_->UnionRect(pRect_, RectTmp);
 		nSelected++;
@@ -669,38 +680,100 @@ bool CDrawableSelection::isGroup()
 	return (
 		m_nCurrentGroup > 0 && 
 		m_Groups[0].O.size() > 1 &&
-		!m_Groups[m_nCurrentGroup].O.empty() );
+		// NEED TO FIX *** (since these are vectors, empty can throw non empty even when not used 
+		// positions have been allocated. Also group children can be 0 thus non-existent:)
+		(!m_Groups[m_nCurrentGroup].O.empty() || !m_Groups[m_nCurrentGroup].C.empty()) );
 }
-// this function copies every object in a group to the main selection 
+// this function copies every object in a group (and all its children) to the main selection 
+bool CDrawableSelection::SelectGroup(int nGroup_, bool bSelectContext) 
+{
+	ASSERT(nGroup_ >= 0 && nGroup_ <= (int)m_Groups.size());
+
+	// Select children (if any):
+	for(int i=0; i<(int)m_Groups[nGroup_].C.size(); i++) {
+		int nChild = m_Groups[nGroup_].C[i];
+		if(nChild != 0) {
+			ASSERT(nGroup_ >= 0 && nGroup_ <= (int)m_Groups.size());
+			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
+			// if the context is not directly selected (i.e. just its the group), 
+			// don't mark it as a selected context:
+			SelectGroup(nChild, false);
+		}
+	}
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
+		// NEED TO FIX *** (is this really needed:)
+		//if(bSelectContext) 
+			Iterator->pContext->SelectContext();
+		m_Groups[0].O.push_back(*Iterator);
+		m_Groups[0].O.back().pRef = (Iterator.operator ->());
+	}
+	return true;
+}
+// this function looks for a drawable context in all the groups and selects the group if found
 bool CDrawableSelection::SelectGroupWith(const CDrawableContext *pDrawableContext) 
 {
 	// m_Groups[0] is the current selection.
 	bool bEmpty = m_Groups[0].O.empty(); // are there any objects in the current selection?
 	for(int i=1; i<(int)m_Groups.size(); i++) {
+		// Iterate through every context in every group looking for the required context:
 		vectorObject::iterator Iterator = 
 			find_if(m_Groups[i].O.begin(), m_Groups[i].O.end(), bind2nd(m_equalContext, pDrawableContext));
 		if(Iterator != m_Groups[i].O.end()) {
-			CONSOLE_DEBUG("The group '%s' has been selected.\n", (LPCSTR)m_Groups[i].Name.c_str());
-			// If the group found has a different parent, from the currently selected group,
-			// select the parent group too:
-			// NEED TO FIX *** (add the above action here)
+			// If the group found has a parent select the parent group too:
+			// NEED TO FIX *** (select parents up to the current group only??)
+            int nGroup = i;
+			while(m_Groups[nGroup].P) {
+				nGroup = m_Groups[nGroup].P;
+				ASSERT(nGroup >= 0 && nGroup <= (int)m_Groups.size());
+			}
+			CONSOLE_DEBUG("The group '%s' has been selected.\n", (LPCSTR)m_Groups[nGroup].Name.c_str());
 
 			// Save the last current selected group (if there were no other selections):
-			if(bEmpty) m_nCurrentGroup = i;
+			if(bEmpty) m_nCurrentGroup = nGroup;
 			else m_nCurrentGroup = 0;
 
-			for(Iterator = m_Groups[i].O.begin(); Iterator != m_Groups[i].O.end(); Iterator++) {
-				// NEED TO FIX *** (if the context is not directly selected (i.e. just its the group), 
-				// don't mark it as a selected context)
-				Iterator->pContext->SelectContext();
-				m_Groups[0].O.push_back(*Iterator);
-				m_Groups[0].O.back().pRef = (Iterator.operator ->());
-			}
-			return true;
+			return SelectGroup(nGroup);
 		}
 	}
 	return false;
 }
+// this function looks for a drawable context in all the groups and selects the group if found
+bool CDrawableSelection::SelectGroupWithIn(const CRect &rect_, const CDrawableContext *pDrawableContext) 
+{
+	// m_Groups[0] is the current selection.
+	bool bEmpty = m_Groups[0].O.empty(); // are there any objects in the current selection?
+	for(int i=1; i<(int)m_Groups.size(); i++) {
+		// Iterate through every context in every group looking for the required context:
+		vectorObject::iterator Iterator = 
+			find_if(m_Groups[i].O.begin(), m_Groups[i].O.end(), bind2nd(m_equalContext, pDrawableContext));
+		if(Iterator != m_Groups[i].O.end()) {
+			// If the group found has a parent select the parent group too:
+			// NEED TO FIX *** (select parents up to the current group only??)
+            int nGroup = i;
+			while(m_Groups[nGroup].P) {
+				nGroup = m_Groups[nGroup].P;
+				ASSERT(nGroup >= 0 && nGroup <= (int)m_Groups.size());
+			}
+			// Check if the full group is within rect_ :
+			CRect rcBoundaries;
+			GetBoundingRect(&rcBoundaries, nGroup);
+			if(!rect_.PtInRect(rcBoundaries.TopLeft()) || !rect_.PtInRect(rcBoundaries.BottomRight())) 
+				return true;
+
+			CONSOLE_DEBUG("The group '%s' has been selected.\n", (LPCSTR)m_Groups[nGroup].Name.c_str());
+
+			// Save the last current selected group (if there were no other selections):
+			if(bEmpty) m_nCurrentGroup = nGroup;
+			else m_nCurrentGroup = 0;
+
+			return SelectGroup(nGroup);
+		}
+	}
+	return false;
+}
+
 // find and delete a context in all groups (a context must exist in only one group)
 void CDrawableSelection::DeleteInGroups(const CDrawableContext *pDrawableContext) 
 {
@@ -965,6 +1038,7 @@ int CDrawableSelection::DeleteSelection()
 		}
 
 		m_pLastSelected = NULL;
+		m_nCurrentGroup = 0;
 		m_Groups[0].O.clear();
 		if(m_bFloating) m_bFloating = false;
 		else m_bModified = m_bChanged = true;
@@ -987,8 +1061,8 @@ void CDrawableSelection::Cancel()
 			Iterator->pContext->SelectContext(false);
 		}
 		m_pLastSelected = NULL;
+		m_nCurrentGroup = 0;
 		m_Groups[0].O.clear();
-		// NEED TO FIX *** (update the chain changes for each context in the correct group, if any)
 	}
 }
 void CDrawableSelection::SetInitialMovingPoint(const CPoint &point_)
@@ -1235,14 +1309,16 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 			vectorObject::const_iterator Iterator =
 				find_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
 			if(Iterator==m_Groups[0].O.end()) {
-				CRect Rect;
-				pDrawableContext->GetRect(Rect);
-				pDrawableContext->SelectContext();
+				if(!SelectGroupWithIn(m_rcSelection, pDrawableContext)) {
+					CRect Rect;
+					pDrawableContext->GetRect(Rect);
+					pDrawableContext->SelectContext();
 
-				m_pLastSelected = pDrawableContext;
-
-				m_nCurrentGroup = 0;
-				m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, Rect, relative, relative));
+					m_pLastSelected = pDrawableContext;
+	
+					m_nCurrentGroup = 0;
+					m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, Rect, relative, relative));
+				}
 			}
 		}
 		pDrawableContext = NULL;
@@ -1292,12 +1368,14 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_)
 void CDrawableSelection::CleanSelection() {
 	vectorObject::iterator Iterator;
 	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		// NEED TO FIX *** (update chains?)
 		if(!m_bHoldSelection) Iterator->pContext->SelectContext(false);
 		else Iterator->bSubselected = false;
 	}
 	m_pLastSelected = NULL;
-	if(!m_bHoldSelection) m_Groups[0].O.clear();
+	if(!m_bHoldSelection) {
+		m_nCurrentGroup = 0;
+		m_Groups[0].O.clear();
+	}
 }
 bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor)
 {
@@ -1608,6 +1686,7 @@ BITMAP* CDrawableSelection::CaptureSelection(IGraphics *pGraphicsI, float zoom)
 void CDrawableSelection::CleanPasteGroups()
 {
 	for(int i=1; i<(int)m_Groups.size(); i++) {
+		m_nCurrentGroup = 0;
 		m_Groups[i].O.clear();
 	}
 }

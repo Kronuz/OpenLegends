@@ -606,14 +606,15 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	CRect RectTmp;
 
 	// Always draws what's in group 0 (the current selection group)
-	int nSelected = (int)m_Groups[0].O.size();
+	int nSelected = (int)m_Groups[m_nCurrentGroup].O.size();
+	nSelected += (int)m_Groups[m_nCurrentGroup].C.size();
 	const CSpriteContext *scontext = NULL;
 
-	vectorObject::iterator Iterator = m_Groups[0].O.begin();
-	while(Iterator != m_Groups[0].O.end()) {
+	vectorObject::iterator Iterator = m_Groups[m_nCurrentGroup].O.begin();
+	while(Iterator != m_Groups[m_nCurrentGroup].O.end()) {
 		scontext = static_cast<const CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
-		Rect.UnionRect(Rect, RectTmp);
+		Rect.UnionRect(Rect, RectTmp); // Add the boundaries to the final Rect
 		if(nSelected>1) {
 			if(!m_bHighlightOnly && !m_bFloating) {
 				if(Iterator->bSubselected || !m_bHoldSelection) {
@@ -705,6 +706,17 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	m_bCanMove = true;
 	m_bCanResize = true;
 
+	// Show subgroups as orange selections:
+	if(m_nCurrentGroup != 0) {
+		for(int i=0; i<m_Groups[m_nCurrentGroup].C.size(); i++) {
+			int nChild = m_Groups[m_nCurrentGroup].C[i];
+			GetBoundingRect(&RectTmp, nChild);
+			Rect.UnionRect(Rect, RectTmp); // Add the boundaries to the final Rect
+			pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(92,255,192,96));
+		}
+	}
+
+	// Show the final boundary box:
 	if(!m_bFloating) {
 		if(m_bHighlightOnly) {
 			if(nSelected>0) {
@@ -1528,19 +1540,36 @@ bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
 
 void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 {
+	// NEED TO FIX *** (if the group already exists, no new group is to be created??)
+	// if(m_nCurrentGroup) return; // <-- ^^^
+
 	if(m_bHoldSelection) return;
 	// no new groups can be created from an empty selection or a single sprite selection.
 	if(m_Groups[0].O.size() <= 1) return;
 
-	// get the next availible paste group:
+	// get the next availible free paste group to paste group into:
 	m_nCurrentGroup = SetNextPasteGroup(szGroupName);
 	CONSOLE_DEBUG("New group #%d created\n", m_nCurrentGroup);
 
 	ASSERT(m_nCurrentGroup > 0);
 
+	// go through all selected sprites adding the orphans 
+	// to the new group, and setting relationships:
 	vectorObject::iterator Iterator = m_Groups[0].O.begin();
 	while(Iterator != m_Groups[0].O.end()) {
-		m_Groups[m_nCurrentGroup].O.push_back(*Iterator);
+		if(Iterator->nGroup == 0) { // If the sprite still doesn't belong to any group:
+			m_Groups[m_nCurrentGroup].O.push_back(*Iterator);
+			m_Groups[m_nCurrentGroup].O.back().nGroup = m_nCurrentGroup;
+			Iterator->nGroup = m_nCurrentGroup;
+		} else { // else set parent/children:
+			if(find(m_Groups[m_nCurrentGroup].C.begin(), m_Groups[m_nCurrentGroup].C.end(), Iterator->nGroup) == m_Groups[m_nCurrentGroup].C.end()) {
+				if(m_Groups[Iterator->nGroup].P == 0) { // If the group still doesn't belong to any group:
+					CONSOLE_DEBUG("  Subgroup #%d inserted\n", Iterator->nGroup);
+					m_Groups[m_nCurrentGroup].C.push_back(Iterator->nGroup);
+					m_Groups[Iterator->nGroup].P = m_nCurrentGroup;
+				}
+			}
+		}
 		Iterator++;
 	}
 
@@ -1549,13 +1578,38 @@ void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 void CSpriteSelection::GroupToSelection()
 {
 	if(m_bHoldSelection) return;
-	// no new groups can be created from an empty selection or a single sprite selection.
-	if(m_Groups[0].O.size() <= 1) return;
 	if(m_nCurrentGroup < 1) return;
 
-	// NEED TO FIX *** (if there's a parent for the group, make the sprites part of the parent's group)
+	vectorObject::iterator Iterator;
+	int nParent = m_Groups[m_nCurrentGroup].P;
+
+	for(int i=0; i<(int)m_Groups[m_nCurrentGroup].C.size(); i++) {
+		int nChild = m_Groups[m_nCurrentGroup].C[i];
+		m_Groups[nChild].P = nParent; // unlink the child from its parent, and link it to its grandparent.
+	}
+
+	// Move the sprites from the current group to its parent:
+	if(nParent != 0) {
+		Iterator = m_Groups[m_nCurrentGroup].O.begin();
+		while(Iterator != m_Groups[m_nCurrentGroup].O.end()) {
+			ASSERT(Iterator->nGroup == m_nCurrentGroup);
+			Iterator->nGroup = nParent;
+			m_Groups[nParent].O.push_back(*Iterator);
+			Iterator++;
+		}
+	}
+
+	Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
+		if(Iterator->nGroup == m_nCurrentGroup) {
+			Iterator->nGroup = nParent; // unlink the sprite from its parent
+		}
+		Iterator++;
+	}
+
+	// Delete the group:
 	m_Groups[m_nCurrentGroup].O.clear();
-	m_nCurrentGroup = 0;
+	m_nCurrentGroup = nParent;
 }
 void CSpriteSelection::SelectionToTop()
 {

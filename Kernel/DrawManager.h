@@ -432,12 +432,13 @@ struct SObjProp :
 	SObjProp *pRef; // Objects can point to a reference of themselves (the real object, if for instance it's in a group)
 	CDrawableSelection *pSelection;
 	CDrawableContext *pContext;
+	int nGroup; // to what group does it belong? (0 = no group)
 	bool bSubselected;
 	CRect rcRect;
 	_Chain eXChain;
 	_Chain eYChain;
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), pRef(NULL) {}
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), pRef(NULL) {
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), pRef(NULL), nGroup(0) {}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), pRef(NULL), nGroup(0) {
 		pContext->GetAbsFinalRect(rcRect);
 	}
 	virtual bool isFlagged();
@@ -538,7 +539,7 @@ protected:
 	int m_nCurrentGroup;
 	vector<SGroup> m_Groups; //!< Contexts in the group.
 
-	int GetBoundingRect(CRect *pRect_, int nPasteGroup_ = 0);
+	int GetBoundingRect(CRect *pRect_, int nGroup_ = 0);
 
 	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
 	virtual void BuildRealSelectionBounds() = 0;
@@ -551,7 +552,9 @@ protected:
 
 	void SetInitialMovingPoint(const CPoint &point_);
 
+	bool SelectGroup(int nGroup_, bool bSelectContext = true);
 	bool SelectGroupWith(const CDrawableContext *pDrawableContext);
+	bool SelectGroupWithIn(const CRect &rect_, const CDrawableContext *pDrawableContext);
 	void DeleteInGroups(const CDrawableContext *pDrawableContext);
 
 public:
