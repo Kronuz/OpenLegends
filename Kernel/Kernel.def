@@ -1,0 +1,5 @@
+;DESCRIPTION	'Open Zelda core engine.'
+LIBRARY			Kernel.dll
+EXPORTS
+	QueryGameInterface
+	ReleaseGameInterface
