@@ -17,7 +17,7 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		GraphicsD3D8.cpp
+/*! \file		GraphicsD3D8.h
 	\brief		Interface for the DirectGraphics 2D Graphics plugin for Open Zelda.
 	\date		May 19, 2003
 				June 9, 2003
@@ -31,6 +31,7 @@
 //#define _USE_SWAPCHAINS 
 
 // Use hardware vertex buffers, it should be faster, but it isn't !?? (probably the animations)
+// Also, now it has a bug :S
 //#define _USE_HWVB
 
 #include <map>
@@ -144,6 +145,27 @@ class CGraphicsD3D8 :
 {
 	friend CTextureD3D8;
 
+	// Everything that's needed to Render the Scene to a Texture:
+	// The old rendering surface which must be set back then released after we're done with the new one.
+	static IDirect3DSurface8 *ms_pBackBufferSurface;
+	// The texture we will be Rendering our Scene to.
+	static IDirect3DTexture8 *ms_pHelperTexture;
+	// The surface that is part of the texture we actually render to.
+	static IDirect3DSurface8 *ms_pHelperSurface;
+	// The texture we will be Rendering our Scene to.
+	static IDirect3DTexture8 *ms_pHelperTexture2;
+	// The surface that is part of the texture we actually render to.
+	static IDirect3DSurface8 *ms_pHelperSurface2;
+
+	static int ms_nHelperWidth;
+	static int ms_nHelperHeight;
+
+	DWORD m_dwFilterColor;
+	int m_nFilterHorzMove;
+	int m_nFilterVertMove;
+	float m_fFilterPixelate;
+	D3DCDTVERTEX m_FiltersOverlay[4];
+
 	static HWND ms_hWnd;
 	static D3DPRESENT_PARAMETERS ms_d3dpp; // Used to explain to Direct3D how it will present things on the screen
 	static int ms_nCount;
@@ -160,11 +182,13 @@ class CGraphicsD3D8 :
 	float m_Zoom;
 	bool m_bInitialized;
 	ARGBCOLOR m_rgbClearColor;
+	ARGBCOLOR m_rgbFilterBkColor;
 
 	RECT m_RectView;
 	RECT m_RectClip;
 	RECT m_RectWorld;
 
+	bool m_bFilters;
 	bool m_bCapture;
 	RECT m_RectOldClip;
 
@@ -229,7 +253,7 @@ public:
 	bool SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, const RECT *pWorld);
 	void GetWorldRect(RECT *Rect_) const;
 	void GetWorldPosition(POINT *Point_) const;
-	void SetWorldPosition(POINT &Point_);
+	void SetWorldPosition(const POINT *Point_);
 
 	void ViewToWorld(POINT *Point_) const;
 	void ViewToWorld(RECT *Rect_) const;
@@ -243,7 +267,6 @@ public:
 	bool Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);
 	int  Finalize();
 	bool BeginPaint();
-	bool DrawFrame();
 	bool DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLOR rgbBoundaries);
 	bool EndPaint();
 	bool DrawGrid(int nGridSize, ARGBCOLOR rgbColor);
@@ -252,6 +275,7 @@ public:
 	bool EndCapture(WORD *pDest, RECT &rcPortion, RECT &rcFull);
 
 	void SetClearColor(ARGBCOLOR rgbColor);
+	void SetFilterBkColor(ARGBCOLOR rgbColor);
 
 	void SetFont(LPCSTR lpFont, int CharHeight, ARGBCOLOR rgbColor, LONG Weight);
 	void DrawText(const POINT &pointDest, LPCSTR lpString, ...) const;
@@ -277,6 +301,10 @@ public:
 
 	bool CreateTextureFromFile(LPCSTR filename, ITexture **texture, float scale) const;
 	bool CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcData, UINT SrcData, ITexture **texture, float scale) const;
+
+	bool SetFilter(GpxFilters eFilter, void *vParam);
+	bool FlushFilters(bool bClear);
+	void UpdateFilters();
 
 	void SetConsole(IConsole *pConsole) { g_pConsole = pConsole; }
 

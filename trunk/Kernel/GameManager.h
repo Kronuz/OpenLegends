@@ -140,7 +140,14 @@ public:
 		if(Point.y < 0) Point.y = 0;
 		else if(Point.y > rcWorld.bottom-rcVisible.Height()) Point.y = rcWorld.bottom-rcVisible.Height();
 
-		(*ms_ppGraphicsI)->SetWorldPosition(Point);
+		(*ms_ppGraphicsI)->SetWorldPosition(&Point);
+	}
+	inline static bool SetFilter(GpxFilters eFilter, void *vParam) {
+		ASSERT(ms_ppGraphicsI);
+		ASSERT(*ms_ppGraphicsI);
+		if(!(*ms_ppGraphicsI)) return false;
+
+		return (*ms_ppGraphicsI)->SetFilter(eFilter, vParam);
 	}
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);

@@ -137,6 +137,14 @@ IDirect3D8 *CGraphicsD3D8::ms_pD3D = NULL;
 IDirect3DDevice8 *CGraphicsD3D8::ms_pD3DDevice = NULL;
 std::map<std::string, CTextureD3D8*> CGraphicsD3D8::ms_Textures;
 
+IDirect3DSurface8 *CGraphicsD3D8::ms_pBackBufferSurface = NULL;
+IDirect3DTexture8 *CGraphicsD3D8::ms_pHelperTexture = NULL;
+IDirect3DSurface8 *CGraphicsD3D8::ms_pHelperSurface = NULL;
+IDirect3DTexture8 *CGraphicsD3D8::ms_pHelperTexture2 = NULL;
+IDirect3DSurface8 *CGraphicsD3D8::ms_pHelperSurface2 = NULL;
+int CGraphicsD3D8::ms_nHelperWidth;
+int CGraphicsD3D8::ms_nHelperHeight;
+
 #ifdef _USE_HWVB
 std::vector<CBufferD3D8*> CGraphicsD3D8::ms_Buffers;
 #endif
@@ -335,7 +343,7 @@ inline WORD CGraphicsD3D8::GetBitCount() const
 	}
 }
 
-// using the current format, get the equivalent 16 bits ARGB values from a buffer in the 
+// Using the current format, get the equivalent 16 bits ARGB values from a buffer in the 
 // current format, and increment the pointer of the buffer to the next ARGB color.
 inline WORD CGraphicsD3D8::GetNext16ARGB(BYTE **Data) const
 {
@@ -432,6 +440,7 @@ inline void CGraphicsD3D8::FigureOutDisplayMode(D3DFORMAT currentFormat, UINT wi
 	}
 	ms_PreferredMode = bestMode;
 }
+
 inline void CGraphicsD3D8::PostInitialize(UINT WindowWidth, UINT WindowHeight)
 {
 	D3DXMATRIX Ortho2D;	
@@ -440,7 +449,8 @@ inline void CGraphicsD3D8::PostInitialize(UINT WindowWidth, UINT WindowHeight)
 	D3DXMatrixIdentity(&m_IdentityMatrix);
 
 	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_LIGHTING, FALSE)); // Disable Lighting
-	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE)); // Disable Culling
+	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW)); // Turn on Culling (nice speed boost)
+	
 
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_PROJECTION, &Ortho2D));
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_IdentityMatrix));
@@ -453,11 +463,20 @@ inline void CGraphicsD3D8::PostInitialize(UINT WindowWidth, UINT WindowHeight)
 	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA));
 	D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA));
 	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE));
-/**/
+
+	ms_bLastRendered = false;
+	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
+	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
+	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
+	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE));
+	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+
 	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTEXF_POINT));
 	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTEXF_POINT));
 	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT3));
+
 }
+
 // Receives inclusive-exclusive coordinates
 inline void CGraphicsD3D8::RenderRect(const RECT &rectDest, ARGBCOLOR rgbColor) const
 {
@@ -478,7 +497,6 @@ inline void CGraphicsD3D8::RenderRect(const RECT &rectDest, ARGBCOLOR rgbColor) 
 	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE));
 	if(ms_bLastRendered == true) {
 		ms_bLastRendered = false;
-		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
@@ -508,7 +526,6 @@ inline void CGraphicsD3D8::RenderFill(const RECT &rectDest, ARGBCOLOR rgbColor) 
 	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE));
 	if(ms_bLastRendered == true) {
 		ms_bLastRendered = false;
-		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
@@ -636,6 +653,34 @@ inline bool CGraphicsD3D8::Recover()
 }
 inline void CGraphicsD3D8::Invalidate()
 {
+	// Release the helper textures: 
+
+	if(ms_pD3DDevice && ms_pBackBufferSurface) {
+		if(SUCCEEDED(ms_pD3DDevice->SetRenderTarget(ms_pBackBufferSurface, NULL))) {
+		}
+	}
+
+	if(ms_pHelperSurface) {
+		ms_pHelperSurface->Release();
+		ms_pHelperSurface = NULL;
+	}
+	if(ms_pHelperSurface2) {
+		ms_pHelperSurface2->Release();
+		ms_pHelperSurface2 = NULL;
+	}
+	if(ms_pHelperTexture) {
+		ms_pHelperTexture->Release();
+		ms_pHelperTexture = NULL;
+	}
+	if(ms_pHelperTexture2) {
+		ms_pHelperTexture2->Release();
+		ms_pHelperTexture2 = NULL;
+	}
+	if(ms_pBackBufferSurface) {
+		ms_pBackBufferSurface->Release();
+		ms_pBackBufferSurface = NULL;
+	}
+
 	// Invalidate and release all textures
 	ITexture *pTexture;
 	std::map<std::string, CTextureD3D8*>::const_iterator texIter = ms_Textures.begin();
@@ -682,18 +727,22 @@ inline void CGraphicsD3D8::Invalidate()
 CGraphicsD3D8::CGraphicsD3D8() :
 	m_bInitialized(false),
 	m_bCapture(false),
+	m_bFilters(false),
 #ifdef _USE_SWAPCHAINS
 	m_pSwapChain(NULL),
 #else
 	m_hWnd(NULL),
 #endif
 	m_Zoom(0.0f),
+	m_rgbFilterBkColor(0),
 	m_rgbClearColor(0),
 	m_rgbFontColor(0),
 	m_pD3DFont(NULL)
 {
 	m_pGrid[0] = NULL;
 	m_pGrid[1] = NULL;
+
+	SetFilter(ClearFilters, NULL);
 
 	::SetRect(&m_RectView, 0, 0, 0, 0);
 	::SetRect(&m_RectClip, 0, 0, 0, 0);
@@ -761,13 +810,58 @@ bool CGraphicsD3D8::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nSc
 	SetFont("Arial", 12, COLOR_ARGB(255,255,255,255), FW_BOLD); // initialize a default font.
 
 	ms_bWindowed = bWindowed;
+
 #ifndef _USE_SWAPCHAINS
 	ms_nScreenWidth = ms_PreferredMode.Width;
 	ms_nScreenHeight = ms_PreferredMode.Height;
+
+	// Now we create a helper surface we'll be needing later for the some effects (pixelate and others)
+	// Keep which surface is the old Render Target.
+	ms_pD3DDevice->GetRenderTarget(&ms_pBackBufferSurface);
+
+	// Get the Description of the Primary Render Surface.
+	D3DSURFACE_DESC SurfaceDescription;
+	ms_pBackBufferSurface->GetDesc(&SurfaceDescription);
+	
+	// Create the Texture we will Render our scene to (for Filters in general), 
+	// which is essentialy a Back Buffer duplicate.
+	ms_pD3DDevice->CreateTexture(
+		SurfaceDescription.Width, 
+		SurfaceDescription.Height, 
+		1, 
+		SurfaceDescription.Usage,
+		SurfaceDescription.Format, 
+		SurfaceDescription.Pool, 
+		&ms_pHelperTexture
+	);
+
+	// Get the surface from this texture.
+	ms_pHelperTexture->GetSurfaceLevel(0, &ms_pHelperSurface);
+
+	// Create a second Texture we will Render our scene to (for Pixelate effect), 
+	// which is essentialy a Back Buffer duplicate.
+	ms_pD3DDevice->CreateTexture(
+		SurfaceDescription.Width, 
+		SurfaceDescription.Height, 
+		1, 
+		SurfaceDescription.Usage,
+		SurfaceDescription.Format, 
+		SurfaceDescription.Pool, 
+		&ms_pHelperTexture2
+	);
+
+	// Get the surface from this texture.
+	ms_pHelperTexture2->GetSurfaceLevel(0, &ms_pHelperSurface2);
+
+	ms_nHelperWidth = SurfaceDescription.Width;
+	ms_nHelperHeight = SurfaceDescription.Height;
+/**/
 #else
 	ms_hWnd = hWnd;
 	ms_nScreenWidth = nScreenWidth;
 	ms_nScreenHeight = nScreenHeight;
+	// we need to create a new surface almost every frame for the effects here... 
+	// So we wont support effects with swap chains for now.
 #endif
 
 #ifndef _USE_SWAPCHAINS
@@ -889,26 +983,33 @@ void CGraphicsD3D8::GetWorldPosition(POINT *Point_) const
 	Point_->x = m_RectClip.left;
 	Point_->y = m_RectClip.top;
 }
-void CGraphicsD3D8::SetWorldPosition(POINT &Point_)
+void CGraphicsD3D8::SetWorldPosition(const POINT *Point_)
 {
 #ifdef _USE_SWAPCHAINS
 	HWND hWnd = m_d3dpp.hDeviceWindow;
 #else
 	HWND hWnd = m_hWnd;
 #endif
-	OffsetRect(&m_RectClip, -m_RectClip.left, -m_RectClip.top);
-	OffsetRect(&m_RectClip, Point_.x, Point_.y);
+	if(Point_) {
+		OffsetRect(&m_RectView, -m_RectView.left, -m_RectView.top);
+		OffsetRect(&m_RectView, (int)((float)Point_->x*m_Zoom + 0.5f), (int)((float)Point_->y*m_Zoom + 0.5f));
 
-	SetRect(&m_RectView,
-		(int)((float)m_RectClip.left * m_Zoom + 0.5f),
-		(int)((float)m_RectClip.top * m_Zoom + 0.5f),
-		(int)((float)m_RectClip.right * m_Zoom + 0.5f),
-		(int)((float)m_RectClip.bottom * m_Zoom + 0.5f)
-	);
+		RECT rcWorldView = {
+			(int)((float)m_RectView.left / m_Zoom + 0.5f), 
+			(int)((float)m_RectView.top / m_Zoom + 0.5f), 
+			(int)((float)m_RectView.right / m_Zoom + 0.5f), 
+			(int)((float)m_RectView.bottom / m_Zoom + 0.5f)
+		};
+		// We need the intersecting rectangle:
+		::IntersectRect(&m_RectClip, &m_RectWorld, &rcWorldView);
+	}
 
 	D3DXMATRIX matTmp;
-	D3DXMatrixTranslation(&m_WorldMatrix, -0.5f-(float)m_RectClip.left, -0.5f-(float)m_RectClip.top, 0.0);
-	D3DXMatrixScaling(&matTmp, m_Zoom, m_Zoom, 1.0);
+	D3DXMatrixScaling(&m_WorldMatrix, m_Zoom, m_Zoom, 1.0);
+	D3DXMatrixTranslation(&matTmp, 
+		-0.5f - (float)m_RectView.left + (float)(m_nFilterHorzMove<0?m_nFilterHorzMove:0) * m_Zoom, 
+		-0.5f - (float)m_RectView.top + (float)(m_nFilterVertMove<0?m_nFilterVertMove:0) * m_Zoom, 
+		0.0);
 	m_WorldMatrix *= matTmp;
 }
 
@@ -960,6 +1061,12 @@ void CGraphicsD3D8::WorldToView(RECT *Rect_) const
 void CGraphicsD3D8::GetVisibleRect(RECT *Rect_) const
 {
 	*Rect_ = m_RectClip;
+
+	Rect_->left -= m_nFilterHorzMove;
+	Rect_->right -= m_nFilterHorzMove;
+	Rect_->top -= m_nFilterVertMove;
+	Rect_->bottom -= m_nFilterVertMove;
+	::IntersectRect(Rect_, Rect_, &m_RectWorld);
 }
 float CGraphicsD3D8::GetCurrentZoom() const
 {
@@ -984,53 +1091,40 @@ bool CGraphicsD3D8::BuildSwapChain()
 bool CGraphicsD3D8::SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, const RECT *pWorld)
 {
 	if(!m_bInitialized) return true;
-	if(pClient)	if(pClient->right-pClient->left == 0 || pClient->bottom-pClient->top == 0) return true;
+
+	if(pClient) m_RectView = *pClient;
 
 	if(pWorld) {
-		if(!::EqualRect(&m_RectWorld, pWorld) || m_Zoom!=fZoom) {
-			m_Zoom = fZoom;
+		if(!::EqualRect(&m_RectWorld, pWorld)) {
 			m_RectWorld = *pWorld;
 			delete [](m_pGrid[0]); m_pGrid[0] = NULL;
 			delete [](m_pGrid[1]); m_pGrid[1] = NULL;
 		}
 	}
+	if(m_Zoom != fZoom) {
+		m_fFilterPixelate = m_fFilterPixelate * m_Zoom;
+		m_Zoom = fZoom;
+		m_fFilterPixelate = m_fFilterPixelate / m_Zoom;
+		UpdateFilters();
 
-	if(pClient) {
-		RECT rcWorldView = {
-			(int)((float)pClient->left / m_Zoom + 0.5f), 
-			(int)((float)pClient->top / m_Zoom + 0.5f), 
-			(int)((float)pClient->right / m_Zoom + 0.5f), 
-			(int)((float)pClient->bottom / m_Zoom + 0.5f)
-		};
-		/*/
-		RECT rcWorldView;
-		::SetRect(&rcWorldView, 
-			(int)((float)pClient->left / m_Zoom), 
-			(int)((float)pClient->top / m_Zoom), 
-			(int)(((float)pClient->right + m_Zoom) / m_Zoom), 
-			(int)(((float)pClient->bottom + m_Zoom) / m_Zoom));
-		/**/
-
-		// We need the intersecting rectangle:
-		::IntersectRect(&m_RectClip, pWorld, &rcWorldView);
+		delete [](m_pGrid[0]); m_pGrid[0] = NULL;
+		delete [](m_pGrid[1]); m_pGrid[1] = NULL;
 	}
 
-	D3DXMATRIX matTmp;
-	D3DXMatrixTranslation(&m_WorldMatrix, -0.5f-(float)m_RectClip.left, -0.5f-(float)m_RectClip.top, 0.0);
-	D3DXMatrixScaling(&matTmp, fZoom, fZoom, 1.0);
-	m_WorldMatrix *= matTmp;
+	SetWorldPosition(NULL);
 
-	if(pClient) {
-		if( ms_bWindowed==false ||
-			m_RectView.right-m_RectView.left == pClient->right-pClient->left &&
-			m_RectView.bottom-m_RectView.top == pClient->bottom-pClient->top ) {
-				m_RectView = *pClient;
-				return true;
-		}
-		m_RectView = *pClient;
-	}
+	RECT rcWorldView = {
+		(int)((float)m_RectView.left / m_Zoom + 0.5f), 
+		(int)((float)m_RectView.top / m_Zoom + 0.5f), 
+		(int)((float)m_RectView.right / m_Zoom + 0.5f), 
+		(int)((float)m_RectView.bottom / m_Zoom + 0.5f)
+	};
+	// We need the intersecting rectangle:
+	::IntersectRect(&m_RectClip, &m_RectWorld, &rcWorldView);
 
-#ifdef _USE_SWAPCHAINS
+#ifndef _USE_SWAPCHAINS
+	m_hWnd = hWnd;
+#else
 	if(pClient) {
 		if(m_pSwapChain) {
 			CONSOLE_DEBUG2("DEBUG: Invalidating a SwapChain for hWnd: %d.\n", m_d3dpp.hDeviceWindow);
@@ -1051,8 +1145,6 @@ bool CGraphicsD3D8::SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, c
 
 		return BuildSwapChain();
 	}
-#else
-	m_hWnd = hWnd;
 #endif
 	return true;
 }
@@ -1077,6 +1169,8 @@ bool CGraphicsD3D8::CreateTextureFromFile(LPCSTR filename, ITexture **texture, f
 		pTexture->GetLevelDesc(0, &surfaceDesc);
 		if(surfaceDesc.Format != D3DFMT_A8R8G8B8) {
 			CONSOLE_PRINTF("WARNING (D3D8): Texture created with an invalid format (%s)\n", GetFormat(surfaceDesc.Format));
+			CONSOLE_PRINTF("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
+			CONSOLE_PRINTF("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
 		}
 
 		CTextureD3D8 *pCTextureD3D8 = new CTextureD3D8(pTexture, imageInfo, surfaceDesc);
@@ -1108,7 +1202,11 @@ bool CGraphicsD3D8::CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcD
 		pTexture->GetLevelDesc(0, &surfaceDesc);
 		if(surfaceDesc.Format != D3DFMT_A8R8G8B8) {
 			CONSOLE_PRINTF("WARNING (D3D8): Texture created with an invalid format (%s)\n", GetFormat(surfaceDesc.Format));
+			CONSOLE_PRINTF("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
+			CONSOLE_PRINTF("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
 		}
+		CONSOLE_DEBUG("imageInfo: %d x %d (%s)\n", imageInfo.Width, imageInfo.Height, GetFormat(imageInfo.Format));
+		CONSOLE_DEBUG("surfaceDesc: %d x %d (%s)\n", surfaceDesc.Width, surfaceDesc.Height, GetFormat(surfaceDesc.Format));
 
 		CTextureD3D8 *pCTextureD3D8 = new CTextureD3D8(pTexture, imageInfo, surfaceDesc);
 		pCTextureD3D8->SetScale(scale);
@@ -1119,6 +1217,155 @@ bool CGraphicsD3D8::CreateTextureFromFileInMemory(LPCSTR filename, LPCVOID pSrcD
 	}
 	return true;
 }
+bool CGraphicsD3D8::SetFilter(GpxFilters eFilter, void *vParam)
+{
+	float fAux;
+	bool bRet = false;
+	switch(eFilter) {
+		case ClearFilters:
+			// Filters initialization:
+			m_fFilterPixelate = 1.0f / m_Zoom;
+			m_nFilterVertMove = 0;
+			m_nFilterHorzMove = 0;
+			m_dwFilterColor = COLOR_ARGB(255,128,128,128);
+		case EnableFilters:
+			bRet = m_bFilters;
+			m_bFilters = (vParam!=NULL);
+			return bRet;
+		case Pixelate:
+			fAux = *((float*)vParam);
+			if(fAux > ms_nHelperHeight) fAux = (float)ms_nHelperHeight;
+			else if(fAux<1) fAux = 1.0f;
+			m_fFilterPixelate = 1.0f / (fAux * m_Zoom);
+			if(m_fFilterPixelate <= 0.0f) m_fFilterPixelate = 0.0f;
+			else if(m_fFilterPixelate > 1.0f) m_fFilterPixelate = 1.0f;
+			bRet = true;
+			break;
+		case Colorize:
+		case Alpha:
+			m_dwFilterColor = *((ARGBCOLOR*)vParam);
+			bRet = true;
+			break;
+		case HorzMove:
+			m_nFilterHorzMove = *((int*)vParam);
+			bRet = true;
+			break;
+		case VertMove:
+			m_nFilterVertMove = *((int*)vParam);
+			bRet = true;
+			break;
+	}
+
+	UpdateFilters();
+
+	m_bFilters |= bRet;
+	return bRet;
+}
+
+void CGraphicsD3D8::UpdateFilters()
+{
+	SetWorldPosition(NULL);
+
+	RECT rcVisible;
+	GetVisibleRect(&rcVisible);
+
+	float x = (float)(rcVisible.right - rcVisible.left) * m_Zoom - 0.5f;
+	float y = (float)(rcVisible.bottom - rcVisible.top) * m_Zoom - 0.5f;
+	float u = m_fFilterPixelate * x / (float)(ms_nHelperWidth - 1);
+	float v = m_fFilterPixelate * y / (float)(ms_nHelperHeight - 1);
+
+	float fXDisp = ((float)(m_nFilterHorzMove>0?m_nFilterHorzMove:0) * m_Zoom);
+	float fYDisp = ((float)(m_nFilterVertMove>0?m_nFilterVertMove:0) * m_Zoom);
+
+	m_FiltersOverlay[0].x = fXDisp;
+	m_FiltersOverlay[0].y = fYDisp;
+	m_FiltersOverlay[0].z = 0.0f;
+	m_FiltersOverlay[0].dwColor = m_dwFilterColor;
+	m_FiltersOverlay[0].u = 0.0f;
+	m_FiltersOverlay[0].v = 0.0f;
+
+	m_FiltersOverlay[1].x = fXDisp;
+	m_FiltersOverlay[1].y = y + fYDisp;
+	m_FiltersOverlay[1].z = 0.0f;
+	m_FiltersOverlay[1].dwColor = m_dwFilterColor;
+	m_FiltersOverlay[1].u = 0.0f;
+	m_FiltersOverlay[1].v = v;
+
+	m_FiltersOverlay[2].x = x + fXDisp;
+	m_FiltersOverlay[2].y = fYDisp;
+	m_FiltersOverlay[2].z = 0.0f;
+	m_FiltersOverlay[2].dwColor = m_dwFilterColor;
+	m_FiltersOverlay[2].u = u;
+	m_FiltersOverlay[2].v = 0.0f;
+
+	m_FiltersOverlay[3].x = x + fXDisp;
+	m_FiltersOverlay[3].y = y + fYDisp;
+	m_FiltersOverlay[3].z = 0.0f;
+	m_FiltersOverlay[3].dwColor = m_dwFilterColor;
+	m_FiltersOverlay[3].u = u;
+	m_FiltersOverlay[3].v = v;
+}
+
+bool CGraphicsD3D8::FlushFilters(bool bClear)
+{
+	if(!m_bFilters) return false;
+
+	if(ms_bLastRendered == true) {
+		ms_bLastRendered = false;
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+	}
+	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
+
+	if(m_fFilterPixelate != 1.0f) {
+		D3DCDTVERTEX Pixelate[4] = {
+			{0.0f, 0.0f, 0.0f, COLOR_ARGB(255,255,255,255), 0.0f, 0.0f},
+			{0.0f, (float)(ms_nHelperHeight)*m_fFilterPixelate, 0.0f, COLOR_ARGB(255,255,255,255), 0.0f, 1.0f},
+			{(float)(ms_nHelperWidth)*m_fFilterPixelate, 0.0f, 0.0f, COLOR_ARGB(255,255,255,255), 1.0f, 0.0f},
+			{(float)(ms_nHelperWidth)*m_fFilterPixelate, (float)(ms_nHelperHeight)*m_fFilterPixelate, 0.0f, COLOR_ARGB(255,255,255,255), 1.0f, 1.0f}
+		};
+
+		// Set the Render Target back to the default one.
+		if(FAILED(ms_pD3DDevice->SetRenderTarget(ms_pHelperSurface2, NULL))) {
+			m_bFilters = false; // deactivate filters on error
+		}
+
+		D3DXMATRIX matTmp;
+		D3DXMatrixTranslation(&matTmp, -0.5f, -0.5f, 0.0);
+		D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &matTmp));
+		D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_TEXTURE0, &m_IdentityMatrix));
+
+		D3DVERIFY(ms_pD3DDevice->SetTexture(0, ms_pHelperTexture));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTEXF_LINEAR));
+		D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, (PVOID)Pixelate, sizeof(D3DCDTVERTEX)));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTEXF_POINT));
+
+		D3DVERIFY(ms_pD3DDevice->SetTexture(0, ms_pHelperTexture2));
+	} else {
+		D3DVERIFY(ms_pD3DDevice->SetTexture(0, ms_pHelperTexture));
+	}
+
+	// Set the Render Target back to the default one.
+	if(FAILED(ms_pD3DDevice->SetRenderTarget(ms_pBackBufferSurface, NULL))) {
+		m_bFilters = false; // deactivate filters on error
+	}
+
+	// Clear the current target surface with the Filter Background Clear Color set by a SetFilterBkColor() call.
+	if(bClear) Clear(NULL, m_rgbFilterBkColor);
+
+	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_IdentityMatrix));
+	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_TEXTURE0, &m_IdentityMatrix));
+
+	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
+	D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, (PVOID)m_FiltersOverlay, sizeof(D3DCDTVERTEX)));
+	D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
+
+	return true;
+}
+
 int CGraphicsD3D8::Finalize()
 {
 	if(m_bInitialized) {
@@ -1171,19 +1418,21 @@ bool CGraphicsD3D8::BeginPaint()
 		pBack->Release();
 	}
 #endif
+	// if there are any filters active:
+	if(m_bFilters) {
+		// Set the Render Target to the helper texture/surface.
+		if(FAILED(ms_pD3DDevice->SetRenderTarget(ms_pHelperSurface, NULL))) {
+			m_bFilters = false; // deactivate filters on error
+		}
+	}
+
+	// Clear the current target surface with the Clear Color set by a SetClearColor() call.
 	Clear(NULL, m_rgbClearColor);
 
+	// Begin the scene:
 	if(FAILED(ms_pD3DDevice->BeginScene())) return false;
 
 	return true;
-}
-bool CGraphicsD3D8::DrawFrame()
-{
-	// Now we hide what's not needed
-	DWORD color = ::GetSysColor(COLOR_APPWORKSPACE);
-	return DrawFrame( m_RectClip, 
-		COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)), 
-		COLOR_ARGB(0,0,0,0) );
 }
 
 bool CGraphicsD3D8::DrawFrame(const RECT &RectClip, ARGBCOLOR rgbColor, ARGBCOLOR rgbBoundaries)
@@ -1440,6 +1689,11 @@ void CGraphicsD3D8::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR 
 	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, rgbColor);
 }
 
+void CGraphicsD3D8::SetFilterBkColor(ARGBCOLOR rgbColor)
+{
+	m_rgbFilterBkColor = rgbColor;
+	m_rgbClearColor = rgbColor;
+}
 void CGraphicsD3D8::SetClearColor(ARGBCOLOR rgbColor)
 {
 	m_rgbClearColor = rgbColor;
@@ -1605,7 +1859,6 @@ bool CGraphicsD3D8::DrawGrid(int size, ARGBCOLOR rgbColor)
 
 	if(ms_bLastRendered == true) {
 		ms_bLastRendered = false;
-		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
 		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
@@ -1851,7 +2104,7 @@ void CGraphicsD3D8::Render(
 			lightnessValue, lightnessValue, lightnessValue );
 
 		D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_TEXTUREFACTOR, rgbLightness));
-		if(ms_bLastRendered == false || true) {
+		if(ms_bLastRendered == false) {
 			ms_bLastRendered = true;
 			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
 
@@ -1859,7 +2112,9 @@ void CGraphicsD3D8::Render(
 			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TFACTOR));
 			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
 		}
-	
+/*/
+			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
+/**/
 #ifdef _USE_HWVB
 		if(!VertexBuffer->m_pD3DVB) BuildHWVertexBuffer(VertexBuffer);
 		if(VertexBuffer->m_pD3DVB) {

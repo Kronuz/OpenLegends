@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,0,0,0
- PRODUCTVERSION 3,0,0,0
+ FILEVERSION 4,0,0,0
+ PRODUCTVERSION 4,0,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,14 +71,14 @@ BEGIN
         BEGIN
             VALUE "Comments", "2D graphics engine using DirectGraphics 8 designed for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "DirectX 8 2D Graphics Engine plugin v1.0"
-            VALUE "FileVersion", "3, 0, 0, 0"
+            VALUE "FileDescription", "DirectX 8 2D Graphics Engine plugin v1.4"
+            VALUE "FileVersion", "4, 0, 0, 0"
             VALUE "InternalName", "GraphicsD3D8"
             VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
             VALUE "LegalTrademarks", "All trademarks are property of their respective owners."
             VALUE "OriginalFilename", "GraphicsD3D8.dll"
             VALUE "ProductName", "Open Zelda library"
-            VALUE "ProductVersion", "3, 0, 0, 0"
+            VALUE "ProductVersion", "4, 0, 0, 0"
         END
     END
     BLOCK "VarFileInfo"
