@@ -205,7 +205,7 @@ public:
 	void DoPaint(CDCHandle dc);
 	CURSOR ToCursor(CURSOR _cursor);
 
-	virtual void GetWorldPosition(CPoint *_pPoint) = 0;
+	virtual void ViewToWorld(CPoint *_pPoint) = 0;
 
 	virtual void HoldOperation() = 0;
 	virtual void CancelOperation(bool bPropagate = true) = 0;

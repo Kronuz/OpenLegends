@@ -34,6 +34,7 @@
 
 float CGameManager::ms_fDelta = 0.0f;
 DWORD CGameManager::ms_dwLastTick = 0L;
+IGraphics **CGameManager::ms_ppGraphicsI = NULL;
 
 #define SetCallback(funct, callback, param) { ##funct.Callback = callback; ##funct.lParam = param; }
 

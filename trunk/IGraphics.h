@@ -338,7 +338,7 @@ interface IGraphics
 
 		\sa BeginPaint()
 	*/
-	virtual bool SetWindowView(HWND hWnd, const RECT &client, const RECT &clipping, float zoom=1.0) = 0;
+	virtual bool SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, const RECT *pWorld) = 0;
 
 	/*! \brief Returns the world position at a given point.
 
@@ -353,11 +353,14 @@ interface IGraphics
 
 		\sa SetWindowView()
 	*/
-	virtual void GetWorldPosition(POINT *Point_) const = 0;
 	virtual void GetWorldRect(RECT *Rect_) const = 0;
+	virtual void GetWorldPosition(POINT *Point_) const = 0;
+	virtual void SetWorldPosition(POINT &Point_) = 0;
 
-	virtual void GetViewPosition(POINT *Point_) const = 0;
-	virtual void GetViewRect(RECT *Rect_) const = 0;
+	virtual void WorldToView(POINT *Point_) const = 0;
+	virtual void WorldToView(RECT *Rect_) const = 0;
+	virtual void ViewToWorld(POINT *Point_) const = 0;
+	virtual void ViewToWorld(RECT *Rect_) const = 0;
 
 	/*! \brief Returns what zone of the world is visible at the time of the call.
 
@@ -369,7 +372,7 @@ interface IGraphics
 
 		\sa SetWindowView()
 	*/
-	virtual RECT GetVisibleRect() const = 0;
+	virtual void GetVisibleRect(RECT *Rect_) const = 0;
 
 	virtual float GetCurrentZoom() const = 0;
 

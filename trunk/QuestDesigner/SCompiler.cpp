@@ -44,6 +44,8 @@
 // Externals
 SCompiler* SCompiler::_instance = NULL;
 
+int SCompiler::ms_nDebug = 3; // full debug info by default
+
 ////////////////////////////////////////////////
 
 int sc_printf(const char *message,...)
@@ -250,7 +252,7 @@ SCompiler* SCompiler::Instance()
 
 SCompiler::SCompiler():
 m_bInUse(false),
-m_iTabSize(3)
+m_nTabSize(3)
 {
 	m_Mutex = CreateMutex( NULL, FALSE, NULL );
 }
@@ -328,9 +330,16 @@ int SCompiler::Compile(LPCSTR szInludeDir, LPCSTR szSrcFile, LPCSTR szDestFile)
 		strcpy(argv[argc++], buff);
 	}
 
-	if(m_iTabSize != 8) {
-		buff[1] = 't'; // Includes directory option
-		sprintf(&buff[2], "%d", m_iTabSize);
+	if(m_nTabSize != 8) {
+		buff[1] = 't'; // tabsize
+		sprintf(&buff[2], "%d", m_nTabSize);
+		argv[argc] = new char[strlen(buff)+1];
+		strcpy(argv[argc++], buff);
+	}
+
+	if(ms_nDebug != 1) {
+		buff[1] = 'd'; // tabsize
+		sprintf(&buff[2], "%d", ms_nDebug);
 		argv[argc] = new char[strlen(buff)+1];
 		strcpy(argv[argc++], buff);
 	}

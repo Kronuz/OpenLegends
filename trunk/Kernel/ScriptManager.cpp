@@ -19,13 +19,32 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		SpriteManager.cpp
 	\brief		Implementation of the classes that maintain and run scripts.
-	\date		August 04, 2003
+	\date		August 04, 2003:
+					* Initial addition to OZ.
+				November 01, 2003:
+					* Debugger added.
 */
 
 #include "stdafx.h"
 #include "ScriptManager.h"
 
 #include "Script.h"
+#include "Debugger.h"
+
+HSCRIPT__::HSCRIPT__() 
+{
+	m_pDebug = NULL;
+	m_pData = NULL;
+	nKilled = 0;
+	dwTooLong = 0;
+	memset(&amx, 0, sizeof(AMX));
+}
+
+HSCRIPT__::~HSCRIPT__() 
+{
+	delete []m_pData;
+	delete m_pDebug;
+}
 
 const char* AMXAPI amx_StrError(int error)
 {
@@ -48,7 +67,7 @@ const char* AMXAPI amx_StrError(int error)
 		"reserved",
 		"out of memory",
 		"invalid file format",
-		"file is for a newer version of the AMX",
+		"file is for an unsupported version of the AMX",
 		"function not found",
 		"invalid index parameter (bad entry point)",
 		"debugger cannot run",
@@ -88,6 +107,7 @@ int AMXAPI amx_ListUnresolved(AMX *amx, int number)
 // All thread resources should be initialized to be unavailible.
 HANDLE CScript::Resources = CreateSemaphore( NULL, 0, MAX_THREADS, NULL );
 CScriptThread CScript::Threads[MAX_THREADS];
+bool CScript::ms_bDebug  = true; // debug by default
 
 CScriptThread::CScriptThread() : 
 	m_bRun(false), 
@@ -107,6 +127,7 @@ CScriptThread::~CScriptThread()
 	CloseHandle(ScriptReady);
 }
 
+// Running thread of scripts
 DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter) 
 {
 	CScriptThread *THIS = reinterpret_cast<CScriptThread *>(lpParameter);
@@ -119,11 +140,12 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 
 	while(bRun) {
 		ReleaseSemaphore(CScript::Resources, 1, NULL);	// make this resource availible
-		WaitForSingleObject(THIS->ScriptReady, INFINITE); // wait for a script.
+		WaitForSingleObject(THIS->ScriptReady, INFINITE); // wait for a script to be ready to run.
 		
 		EnterCriticalSection(&THIS->XCritical);
 		THIS->m_bRunning = true;
 		THIS->m_dwStartTime = GetTickCount();
+		if(THIS->m_hScript->m_pDebug) THIS->m_hScript->m_pDebug->m_dwDebugTime = 0;
 		LeaveCriticalSection(&THIS->XCritical);
 		
 		CONSOLE_DEBUG("Running script '%s' (%x)...\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID);
@@ -131,9 +153,14 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 		// Run the script here.
 		cell ret = 0;
 		int err = amx_Exec(&THIS->m_hScript->amx, &ret, AMX_EXEC_MAIN, 0);
+		DWORD dwDelta = GetTickCount() - THIS->m_dwStartTime;
+		if(THIS->m_hScript->m_pDebug) {
+			dwDelta -= THIS->m_hScript->m_pDebug->m_dwDebugTime;
+		}
+
 		if(err == AMX_ERR_EXIT) {
 			THIS->m_hScript->nKilled++;
-			CONSOLE_PRINTF("Script error in '%s' (%x): Script took too long to finish and was forced to exit (%d ms)\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, GetTickCount()-THIS->m_dwStartTime);
+			CONSOLE_PRINTF("Script error in '%s' (%x): Script took too long to finish and was forced to exit (%d ms)\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, dwDelta);
 		} else if(err != AMX_ERR_NONE) {
 			if(err != THIS->m_hScript->error) 
 				CONSOLE_PRINTF("Script error in '%s' (%x): Run time error %d on line %ld: %s\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, err, THIS->m_hScript->amx.curline, amx_StrError(err));
@@ -145,9 +172,14 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 		}
 		THIS->m_hScript->error = ret; // save the termination error
 
-		//Sleep(rand()%800 + 50);  // simulate a buggy script. (just for testing)
-
-		CONSOLE_DEBUG("Script '%s' (%x) finished: took %d milliseconds to end\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, GetTickCount()-THIS->m_dwStartTime);
+		#ifdef _DEBUG
+			//Sleep(rand()%800 + 50);  // simulate a buggy script. (just for testing)
+			if(THIS->m_hScript->m_pDebug) {
+				CONSOLE_DEBUG("Script '%s' (%x) finished: took %d milliseconds to end (%d ms debugging)\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, dwDelta, THIS->m_hScript->m_pDebug->m_dwDebugTime);
+			} else {
+				CONSOLE_DEBUG("Script '%s' (%x) finished: took %d milliseconds to end\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, dwDelta);
+			}
+		#endif
 
 		EnterCriticalSection(&THIS->XCritical);
 		THIS->m_bRunning = false;
@@ -164,16 +196,26 @@ bool CScriptThread::Ready()
 	DWORD dwDelta = 0;
 	EnterCriticalSection(&XCritical);
 	bool bReady = (m_bThreadUp && !m_bRunning);
-	if(m_bThreadUp && m_bRunning) dwDelta = GetTickCount() - m_dwStartTime;
+	if(m_bThreadUp && m_bRunning) {
+		dwDelta = GetTickCount();
+		if(m_hScript && m_hScript->m_pDebug) {
+			if(m_hScript->m_pDebug->m_bDebugging) {
+				dwDelta = m_hScript->m_pDebug->m_dwStartDebug;
+			} 
+			dwDelta -= m_hScript->m_pDebug->m_dwDebugTime;
+		} 
+		dwDelta -= m_dwStartTime;
+	}
 	LeaveCriticalSection(&XCritical);
 
+	// dwDelta in milliseconds
 	if(dwDelta >= 500) { // the thread seems to be locked, kill the thread.
 		KillThread();
 		if(m_hScript) m_hScript->nKilled++;
 		CONSOLE_PRINTF("Script error in '%s' (%x): Script took too long to finish and thread was killed (%d ms)\n", m_hScript->amx.szFileName, m_hScript->ID, dwDelta);
 		CreateThread(); // Recover the thread for future uses
 	} else if(dwDelta >= 200) { // the script took too long to finish, try to abort.
-		m_hScript->amx.flags |= AMX_FLAG_ABORT;
+		m_hScript->amx.flags |= AMX_FLAG_ABORT; // set the abort flag of the scrip.
 	} else if(dwDelta >= 10) { // taking too long....
 		if(dwDelta > m_hScript->dwTooLong) {
 			CONSOLE_PRINTF("Script warning in '%s' (%x): Script still running (it's taking too long to finish: %d ms)\n", m_hScript->amx.szFileName, m_hScript->ID, dwDelta);
@@ -229,6 +271,7 @@ void CScriptThread::KillThread(DWORD dwMilliseconds)
 
 CScript::CScript() :
 	m_pProgram(NULL), 
+	m_pDebug(NULL),
 	m_bInitialized(false), 
 	m_bCompiledFilePath(false),
 	m_nErrorLevel(S_SCRIPT_OK),
@@ -243,20 +286,24 @@ CScript::~CScript()
 	}
 	m_Scripts.clear();
 	delete []m_pProgram;
+	delete m_pDebug;
 }
 
 bool CScript::InitScript()
 {
 	if(m_bInitialized) return true;
 	
-	ASSERT(m_pProgram == NULL); 
+	ASSERT(m_pProgram == NULL && m_pDebug == NULL); 
 
 	AMX_HEADER hdr;
 	memset(&hdr, 0, sizeof(AMX_HEADER));
 
 	MakeCompiledFile();
 
-	if(!m_fnCompiledFile.Open("r")) return false;
+	if(!m_fnCompiledFile.Open("r")) {
+		CONSOLE_PRINTF("Script error in '%s': File not found\n", (LPCSTR)m_fnCompiledFile.GetFileName());
+		return false;
+	}
 	m_fnCompiledFile.Read(&hdr, sizeof(AMX_HEADER));
 	m_fnCompiledFile.Seek(0, SEEK_SET);
 
@@ -268,9 +315,19 @@ bool CScript::InitScript()
 	m_fnCompiledFile.Read(m_pProgram, hdr.size);
 	m_fnCompiledFile.Close();
 	
+
+	int err = AMX_ERR_NONE;
 	memset(&amx, 0, sizeof(AMX));
-	if(amx_Init(&amx, m_pProgram) !=AMX_ERR_NONE) {
+	if(ms_bDebug) {
+		m_pDebug = new CDebugScript(NULL, NULL); // create a debug class if needed
+		err = amx_SetDebugHook(&amx, amx_InternalDebugProc, (cell)&m_pDebug);
+	}
+	if(err == AMX_ERR_NONE) err = amx_Init(&amx, m_pProgram);
+
+	if(err != AMX_ERR_NONE) {
+		CONSOLE_PRINTF("Script error in '%s': %s (%d)\n", (LPCSTR)m_fnCompiledFile.GetFileName(), amx_StrError(err), err);
 		delete []m_pProgram; m_pProgram = NULL;
+		delete m_pDebug; m_pDebug = NULL;
 		return false;
 	}
 	
@@ -281,6 +338,7 @@ bool CScript::InitScript()
 	// find out if there are any missing functions:
 	if(amx_ListUnresolved(&amx, -1)) {
 		delete []m_pProgram; m_pProgram = NULL;
+		delete m_pDebug; m_pDebug = NULL;
 		return false;
 	}/**/
 	m_bInitialized = true;
@@ -295,7 +353,7 @@ HSCRIPT CScript::CloneScript()
 	amx_MemInfo(&amx, NULL, &datasize, &stackheap);
 	hScript->m_pData = new BYTE[datasize + stackheap];
 	amx_Clone(&hScript->amx, &amx, hScript->m_pData);
-
+	hScript->amx.param = (cell)&(hScript->m_pDebug); // set the parent of the AMX
 	return hScript;
 }
 void CScript::DeleteScript(HSCRIPT hScript)
@@ -330,6 +388,18 @@ bool CScript::RunScript(const CDrawableContext &context, RUNACTION action)
 				hScript->ID = (DWORD)&context;
 				m_Scripts.insert(pairScripts(hScript->ID, hScript));
 				context.m_pPtr = (LPVOID)hScript;
+				if(ms_bDebug) {
+					hScript->m_pDebug = new CDebugScript(m_pDebug, action.hSemaphore);
+					LPCSTR szName = (LPCSTR)context.GetName();
+					char buff[20];
+					sprintf(buff, "0x%08X", hScript->ID);
+					hScript->m_pDebug->m_sName = buff;
+					if(*szName && *szName!='*') {
+						hScript->m_pDebug->m_sName += " ('";
+						hScript->m_pDebug->m_sName += szName;
+						hScript->m_pDebug->m_sName += "')";
+					}
+				}
 			}
 		} else {
 			hScript = Iterator->second;
@@ -371,13 +441,14 @@ void CScript::WaitScripts()
 	while(true) {
 		nReady = 0;
 		for(int i=0; i<MAX_THREADS; i++) {
-			if(Threads[i].Ready()) nReady++;
+			if(Threads[i].Ready()) nReady++; // wait the thread to be ready to run (not running anything)
 		}
 		if(nReady == MAX_THREADS) break;
 		Sleep(10);
 	}
 }
 
+// check if the script needs to be compiled (based on the modification date of the files)
 bool CScript::NeedToCompile() const
 {
 	MakeCompiledFile();
@@ -388,11 +459,13 @@ bool CScript::NeedToCompile() const
 	long comp = CompareFileTime(script, compiled);
 	return (comp>0);
 }
+
 LPCSTR CScript::GetScriptFilePath(LPSTR szPath, size_t buffsize) const
 {
 	strncpy(szPath, (LPCSTR)m_fnScriptFile.GetAbsFilePath(), buffsize);
 	return szPath;
 }
+
 LPCSTR CScript::GetCompiledFilePath(LPSTR szPath, size_t buffsize) const
 {
 	MakeCompiledFile();

@@ -143,7 +143,7 @@ public:
 
 	virtual HWND SetFocus() { return ::SetFocus(m_hWnd); }
 //////////////////////
-	virtual void GetWorldPosition(CPoint *_pPoint);
+	virtual void ViewToWorld(CPoint *_pPoint);
 
 	virtual void HoldOperation();
 	virtual void CancelOperation(bool bPropagate = true);

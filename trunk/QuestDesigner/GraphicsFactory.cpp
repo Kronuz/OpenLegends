@@ -29,7 +29,7 @@
 
 #include "../Console.h"
 
-const WORD IGraphics::Version = 0x0300;
+const WORD IGraphics::Version = 0x0400;
 CGraphicsFactory *CGraphicsFactory::_instance = NULL;
 
 CGraphicsFactory::CGraphicsFactory() :

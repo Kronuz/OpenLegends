@@ -167,6 +167,9 @@
 					RelativePath=".\amxcons.cpp">
 				</File>
 				<File
+					RelativePath=".\Debugger.cpp">
+				</File>
+				<File
 					RelativePath=".\Script.cpp">
 				</File>
 				<File
@@ -216,6 +219,13 @@
 					RelativePath=".\SoundManager.cpp">
 				</File>
 			</Filter>
+			<Filter
+				Name="Network"
+				Filter="">
+				<File
+					RelativePath=".\Net.cpp">
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -256,6 +266,9 @@
 			<Filter
 				Name="Scripting"
 				Filter="">
+				<File
+					RelativePath=".\Debugger.h">
+				</File>
 				<File
 					RelativePath=".\Script.h">
 				</File>
@@ -323,6 +336,13 @@
 				</File>
 				<File
 					RelativePath="..\IArchiver.h">
+				</File>
+			</Filter>
+			<Filter
+				Name="Network"
+				Filter="">
+				<File
+					RelativePath=".\Net.h">
 				</File>
 			</Filter>
 		</Filter>

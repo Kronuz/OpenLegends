@@ -290,7 +290,7 @@ bool CSptShtEditorView::hasChanged()
 	return false;
 }
 
-void CSptShtEditorView::GetWorldPosition(CPoint *_pPoint) 
+void CSptShtEditorView::ViewToWorld(CPoint *_pPoint) 
 { 
 	_pPoint->x += GetScrollPos(SB_HORZ);
 	_pPoint->y += GetScrollPos(SB_VERT);
@@ -577,7 +577,7 @@ LRESULT CSptShtEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 	CGEditorView::OnMouseMove(uMsg, wParam, lParam, bHandled);
 
 	CPoint Point(lParam);
-	GetWorldPosition(&Point);
+	ViewToWorld(&Point);
 
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();

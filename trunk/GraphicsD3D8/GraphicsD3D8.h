@@ -151,6 +151,8 @@ class CGraphicsD3D8 :
 	static IDirect3D8 *ms_pD3D;
 	static IDirect3DDevice8 *ms_pD3DDevice;
 	static D3DDISPLAYMODE ms_PreferredMode;
+	static D3DDISPLAYMODE ms_WindowedMode;
+	
 	static int ms_nScreenWidth;
 	static int ms_nScreenHeight;
 	static bool ms_bLastRendered;
@@ -223,13 +225,17 @@ public:
 	CGraphicsD3D8();
 	~CGraphicsD3D8();
 
-	bool SetWindowView(HWND hWnd, const RECT &client, const RECT &clipping, float zoom);
-	void GetWorldPosition(POINT *Point_) const;
+	bool SetWindowView(HWND hWnd, float fZoom, const RECT *pClient, const RECT *pWorld);
 	void GetWorldRect(RECT *Rect_) const;
-	void GetViewPosition(POINT *Point_) const;
-	void GetViewRect(RECT *Rect_) const;
+	void GetWorldPosition(POINT *Point_) const;
+	void SetWorldPosition(POINT &Point_);
 
-	RECT GetVisibleRect() const;
+	void ViewToWorld(POINT *Point_) const;
+	void ViewToWorld(RECT *Rect_) const;
+	void WorldToView(POINT *Point_) const;
+	void WorldToView(RECT *Rect_) const;
+
+	void GetVisibleRect(RECT *Rect_) const;
 	float GetCurrentZoom() const;
 
 	bool SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight);

@@ -76,8 +76,6 @@ extern "C" AMX_NATIVE_INFO float_Natives[];
 extern cell ConvertFloatToCell(float fValue);
 extern float fConvertCellToFloat(cell cellValue);
 
-
-
 #if defined OZDoc
 float GetTimeDelta(); /*!< 
 	\ingroup general
@@ -107,6 +105,12 @@ static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
 {
 	return ConvertFloatToCell(CGameManager::GetFPSDelta());
 }
+
+static cell AMX_NATIVE_CALL UpdateWorldCo(AMX *amx, cell *params)
+{
+	CGameManager::UpdateWorldCo(params[1], params[2]);
+	return 0;
+}
 //-----------------------------------------------------------------------------
 // Name: FirstRun()
 //-----------------------------------------------------------------------------
@@ -119,6 +123,7 @@ static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 
 // Define a List of native General functions (Open Zelda core natives)
 extern AMX_NATIVE_INFO general_Natives[] = {
+	{ "UpdateWorldCo",  UpdateWorldCo },
 	{ "GetTimeDelta",  GetTimeDelta },
 	{ "FirstRun",  FirstRun},
 	{ NULL, NULL }        /* terminator */
