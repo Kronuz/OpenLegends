@@ -39,7 +39,7 @@ BOOL CScriptEditorView::PreTranslateMessage(MSG *pMsg)
 	return FALSE;
 }
 // Called to do idle processing
-BOOL CScriptEditorView::OnIdle ()
+BOOL CScriptEditorView::OnIdle()
 {
 	// Update all the menu items
 	UIUpdateMenuItems();
@@ -74,13 +74,13 @@ void CScriptEditorView::OnFinalMessage(HWND /*hWnd*/)
 LRESULT CScriptEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	// Let the CodeMax control be created
-	LONG lRet = DefWindowProc();
+	LRESULT nResult = DefWindowProc();
 	// Set the current language and enable syntax highlighting
 	CME_VERIFY(SetLanguage(CMLANG_ZES));
 	CME_VERIFY(EnableColorSyntax());
 	CME_VERIFY(SetTabSize(3));
 
-	return lRet;
+	return nResult;
 }
 LRESULT CScriptEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
@@ -225,8 +225,6 @@ LRESULT CScriptEditorView::OnEditClearAllBookmarks(WORD /*wNotifyCode*/, WORD /*
 // Open a file
 BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T("Untitled")*/ ) 
 {
-	ATLTRACE(_T("Entering : CCodeMaxWTLSampleView::DoFileOpen(%s )\n" ), lpszPathName );
-	
 	// open the requested file
 	CME_CODE lRet = OpenFile(lpszPathName);
 
@@ -234,7 +232,7 @@ BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T
 		ATLTRACE(_T("Error: Failed to load file: %s\n" ), lpszPathName );
 
 		// show the error message
-		CString sMessage;
+		CBString sMessage;
 		sMessage.Format(_T("Failed to load: %s\n\n" ), lpszPathName );
 		//ShowLastError ( sMessage, ::GetLastError());
 		
@@ -254,7 +252,7 @@ BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T
 	return TRUE;
 }
 // Save a file
-BOOL CScriptEditorView::DoFileSave ( const CString & sPathName ) 
+BOOL CScriptEditorView::DoFileSave ( const CBString & sPathName ) 
 {
 	// open the requested file
 	CME_CODE lRet = SaveFile(sPathName, FALSE /*bClearUndo*/);
@@ -263,7 +261,7 @@ BOOL CScriptEditorView::DoFileSave ( const CString & sPathName )
 		ATLTRACE(_T("Error: Failed to save: %s\n"), sPathName);
 
 		// show the error message
-		CString sMessage;
+		CBString sMessage;
 		sMessage.Format(_T("Error: Failed to save: %s\n\n"), sPathName);
 //		MessageBox(sMessage, ::GetLastError());
 
@@ -318,7 +316,7 @@ void CScriptEditorView::UIUpdateStatusBar()
 	// display position in buffer on the status bar
 	CM_RANGE cmRange;
 	if(CME_SUCCEEDED(GetSel(&cmRange, FALSE))) {
-		CString sText;
+		CBString sText;
 		sText.Format(_T("Ln %d, Col %d"), cmRange.posEnd.nLine+1, cmRange.posEnd.nCol);
 		pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
 	} else {
@@ -346,20 +344,20 @@ void CScriptEditorView::UIUpdateStatusBar()
 void CScriptEditorView::UIUpdateMenuItems()
 {
 	// Get the main window's UI updater
-	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMainFrame *pMainFrm = GetMainFrame();
 	CUpdateUIBase *pUpdateUI = pMainFrm->GetUpdateUI();
 
 	pUpdateUI->UIEnable(ID_SCRIPTED_RELOAD, !m_sFilePath.IsEmpty());
 	pUpdateUI->UIEnable(ID_SCRIPTED_SAVE, IsModified());	
 	pUpdateUI->UIEnable(ID_SCRIPTED_SAVE_AS, TRUE );
 		
-	pUpdateUI->UIEnable(ID_SCRIPTED_UNDO, CanUndo());
-	pUpdateUI->UIEnable(ID_SCRIPTED_REDO, CanRedo());
+	pUpdateUI->UIEnable(ID_UNDO, CanUndo());
+	pUpdateUI->UIEnable(ID_REDO, CanRedo());
 
-	pUpdateUI->UIEnable(ID_SCRIPTED_CUT, CanCut());
-	pUpdateUI->UIEnable(ID_SCRIPTED_COPY, CanCopy());
-	pUpdateUI->UIEnable(ID_SCRIPTED_PASTE, CanPaste());
-	pUpdateUI->UIEnable(ID_SCRIPTED_ERASE, IsSelection());
+	pUpdateUI->UIEnable(ID_CUT, CanCut());
+	pUpdateUI->UIEnable(ID_COPY, CanCopy());
+	pUpdateUI->UIEnable(ID_PASTE, CanPaste());
+	pUpdateUI->UIEnable(ID_ERASE, IsSelection());
 
 	pUpdateUI->UIEnable(ID_SCRIPTED_READ_ONLY, TRUE);
 	pUpdateUI->UISetCheck(ID_SCRIPTED_READ_ONLY, (IsReadOnly()?1:0));

@@ -38,8 +38,6 @@ class CWorldEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDIWORLDED)
-
 	// The window's view (the child control)
 	CWorldEditorView *m_pWorldEditorView;
 
@@ -53,9 +51,8 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_FORWARDMSG, OnForwardMsg)
 		MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
-		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		
-		MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
+		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
 		CHAIN_MSG_MAP(CChildFrame)
 		// Pass all unhandled WM_COMMAND messages to the client window or 'view'
@@ -69,7 +66,6 @@ public:
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 	LRESULT OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	// Return the window's child control
 	CWorldEditorView* GetView() { return m_pWorldEditorView; }

@@ -17,30 +17,30 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		OutputView.h 
-	\brief		Interface of the COutputView class.
+/*! \file		OutputBox.h 
+	\brief		Interface of the COutputBox class.
 	\date		April 15, 2003
 */
 
 #pragma once
 
-class COutputView :	public CWindowImpl<COutputView, CRichEditCtrl>, 
-					public CRichEditCommands<COutputView>
+class COutputBox :	public CWindowImpl<COutputBox, CRichEditCtrl>, 
+					public CRichEditCommands<COutputBox>
 {
 protected:
-	typedef COutputView thisClass;
-	typedef CWindowImpl<COutputView, CRichEditCtrl> baseClass;
+	typedef COutputBox thisClass;
+	typedef CWindowImpl<COutputBox, CRichEditCtrl> baseClass;
 public:
 
 	DECLARE_WND_SUPERCLASS(NULL, CRichEditCtrl::GetWndClassName())
 
 	BOOL PreTranslateMessage(MSG* pMsg);
 
-	BEGIN_MSG_MAP(COutputView)
+	BEGIN_MSG_MAP(COutputBox)
     
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)  
 
-		CHAIN_MSG_MAP_ALT(CRichEditCommands<COutputView>, 1)
+		CHAIN_MSG_MAP_ALT(CRichEditCommands<COutputBox>, 1)
 		DEFAULT_REFLECTION_HANDLER()
 
 	END_MSG_MAP()

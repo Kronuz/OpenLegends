@@ -26,10 +26,11 @@
 
 #include "ChildView.h"
 
-#include "GraphicsD3D.h"
-#include "WorldManager.h"
+#include "../IGraphics.h"
+#include "../IGame.h"
+#include "../Core.h"
 
-#include "SpriteManager.h"
+#include "WindowDropTarget.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
@@ -39,22 +40,67 @@ class CMapEditorView :
 	public CChildView,
 	public CScrollWindowImpl<CMapEditorView>
 {
+	typedef CScrollWindowImpl<CMapEditorView> baseClass;
 private:
-	static CMapGroup *m_MapGroup;
-	CSpriteSelection m_Selection;
+	CMapGroup *m_pMapGroupI;
+	CSpriteSelection *m_SelectionI;
 
 	CSize m_szMap;
-	CGraphicsD3D8 m_CGraphicsD3D8;
-	IGraphics *m_pGraphics;
+	IGraphics *m_pGraphicsI;
 
+	DWORD m_dwTick;
 	float m_Zoom;
 	int m_nSnapSize;
+	bool m_bFloating;
+	bool m_bDragMode;
+	bool m_bIgnoreClick;
+
+	bool m_bMulSelection;
+	bool m_bSnapToGrid;
+	bool m_bShowMasks;
+	bool m_bShowBoundaries;
+	bool m_bShowGrid;
+
+	bool m_bAnimated;
 
 	UINT_PTR m_nTimer;
 	CURSOR m_CursorStatus;
 	CURSOR m_OldCursorStatus;
+
+	CIDropTarget* m_pDropTarget;
+	CIDropSource* m_pDropSource;
+
+	LRESULT BeginDrag();
+	CIDataObject* CreateOleObj(CIDropSource *pDropSource);
+
+	bool Paste(CPoint &Point);
+
+	bool Cut();
+	bool Copy();
+	bool Paste();
+	bool Delete();
+	bool Flip();
+	bool Mirror();
+	bool CWRotate();
+	bool CCWRotate();
+
+	bool InsertPlayer();
+	bool SingleSel();
+	bool MultipleSel();
+	bool SelectAll();
+	bool SelectNone();
+	bool NoZoom();
+	bool ZoomIn();
+	bool ZoomOut();
+	bool ToggleMask();
+	bool ToggleBounds();
+	bool ToggleGrid();
+	bool TogleSnap();
+
 public:
-	CLayer *layer;
+
+	// Initialize drag and drop
+	bool InitDragDrop();
 
 	// Construction/Destruction
 	CMapEditorView(CMapEditorFrame *pParentFrame);
@@ -64,12 +110,15 @@ public:
 	// Called to translate window messages before they are dispatched 
 	BOOL PreTranslateMessage(MSG *pMsg);
 
+	// Called to do idle processing
+	virtual BOOL OnIdle();
 	// Called to clean up after window is destroyed
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
 	BEGIN_MSG_MAP(CWorldEditView)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
+		MESSAGE_HANDLER(WM_CREATE, OnDestroy)
 
 		MESSAGE_HANDLER(WM_TIMER, OnTimer)
 
@@ -79,6 +128,10 @@ public:
 
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
+		
+		MESSAGE_HANDLER(WM_MOUSELEAVE, OnMouseLeave)
+		MESSAGE_HANDLER(WMQD_DRAGLEAVE, OnDragLeave)
+		MESSAGE_HANDLER(WMQD_DRAGOVER, OnDragOver)
 
 		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
 		MESSAGE_HANDLER(WM_MOUSEWHEEL, OnMouseWheel)
@@ -89,26 +142,50 @@ public:
 		MESSAGE_HANDLER(WM_RBUTTONUP,	OnRButtonUp)
 		MESSAGE_HANDLER(WM_MBUTTONDOWN, OnMButtonDown)
 		MESSAGE_HANDLER(WM_MBUTTONUP,	OnMButtonUp)
+
+		MESSAGE_HANDLER(WMQD_DROPOBJ,	OnDropObject)
+		MESSAGE_HANDLER(WM_CONTEXTMENU, OnContextMenu)
 		
 		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
 		MESSAGE_HANDLER(WM_KEYUP, OnKeyUp)
 
-		COMMAND_ID_HANDLER(ID_MAPED_FLIP, OnFlipObject);
-		COMMAND_ID_HANDLER(ID_MAPED_MIRROR, OnMirrorObject);
-		COMMAND_ID_HANDLER(ID_MAPED_C90, OnCWRotateObject);
-		COMMAND_ID_HANDLER(ID_MAPED_CC90, OnCCWRotateObject);
+		MENU_COMMAND_HANDLER(ID_MAPED_FLIP,			Flip)
+		MENU_COMMAND_HANDLER(ID_MAPED_MIRROR,		Mirror)
+		MENU_COMMAND_HANDLER(ID_MAPED_C90,			CWRotate)
+		MENU_COMMAND_HANDLER(ID_MAPED_CC90,			CCWRotate)
+		MENU_COMMAND_HANDLER(ID_COPY,				Copy)
+		MENU_COMMAND_HANDLER(ID_PASTE,				Paste)
+		MENU_COMMAND_HANDLER(ID_CUT,				Cut)
 
-		CHAIN_MSG_MAP(CScrollWindowImpl<CMapEditorView>);
+		MENU_COMMAND_HANDLER(ID_MAPED_PLAYER,		InsertPlayer)
+		MENU_COMMAND_HANDLER(ID_MAPED_ARROW,		SingleSel)
+		MENU_COMMAND_HANDLER(ID_MAPED_SELECT,		MultipleSel)
+		MENU_COMMAND_HANDLER(ID_MAPED_SELECT_ALL,	SelectAll)
+		MENU_COMMAND_HANDLER(ID_MAPED_SELECT_NONE,	SelectNone)
+		MENU_COMMAND_HANDLER(ID_MAPED_NOZOOM,		NoZoom)
+		MENU_COMMAND_HANDLER(ID_MAPED_ZOOMIN,		ZoomIn)
+		MENU_COMMAND_HANDLER(ID_MAPED_ZOOMOUT,		ZoomOut)
+		MENU_COMMAND_HANDLER(ID_MAPED_MASK,			ToggleMask)
+		MENU_COMMAND_HANDLER(ID_MAPED_BOUNDS,		ToggleBounds)
+		MENU_COMMAND_HANDLER(ID_MAPED_GRID,			ToggleGrid)
+		MENU_COMMAND_HANDLER(ID_MAPED_GRIDSNAP,		TogleSnap)
+
+		CHAIN_MSG_MAP(baseClass);
 	END_MSG_MAP()
 
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
 
-	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
 	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+
+	LRESULT OnMouseLeave(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+	LRESULT OnDragLeave(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+	LRESULT OnDragOver(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
 	
 	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
 	LRESULT OnVScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
@@ -124,17 +201,20 @@ public:
 	LRESULT OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 
+	LRESULT OnDropObject(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
-	LRESULT OnFlipObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnMirrorObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnCWRotateObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnCCWRotateObject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-
 	void DoPaint(CDCHandle dc);
+	bool DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle = _T("Untitled"));
 
 	void Render();
 	void UpdateView();
 	void ToCursor(CURSOR cursor_);
+
+	void UIUpdateMenuItems();
+	void UIUpdateStatusBar();
+
 };

@@ -270,10 +270,10 @@ DWORD WINAPI ThreadProc( LPVOID lpParameter )
 
 	WaitForSingleObject(pCompiler->m_Mutex, INFINITE);
 	pCompiler->m_bInUse = true;
-	SendMessage(pCompiler->m_shWnd, WMQD_STEPBEGIN, 0, 0);
+	SendMessage(SCompiler::ms_hWnd, WMQD_STEPBEGIN, 0, 0);
 	sc_compile(pTPT->argc, pTPT->argv);
 	pCompiler->m_bInUse = false;
-	SendMessage(pCompiler->m_shWnd, WMQD_STEPEND, 0, 0);
+	SendMessage(SCompiler::ms_hWnd, WMQD_STEPEND, 0, 0);
 	ReleaseMutex(pCompiler->m_Mutex);
 
 	for(int i=0; i<pTPT->argc; i++) 

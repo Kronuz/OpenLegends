@@ -42,7 +42,6 @@ class CScriptEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDISCRIPTED)
 	virtual BOOL OnIdle();
 
 	// The window's view (the child control)
@@ -64,7 +63,7 @@ public:
 		
 		MESSAGE_HANDLER(WMQD_SELECT, OnSelectLine)
 
-		MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
+		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
 		CHAIN_MSG_MAP(CChildFrame)
 		// Pass all unhandled WM_COMMAND messages to the client window or 'view'

@@ -48,7 +48,6 @@ void CHtmlView::OnFinalMessage(HWND /*hWnd*/)
 
 LRESULT CHtmlView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
-	// "base::OnCreate"
 	LRESULT nResult = DefWindowProc();
 
 	//CAxWindow::QueryControl(&m_pBrowser);
@@ -57,7 +56,6 @@ LRESULT CHtmlView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 	//	DispEventAdvise(m_pBrowser, &DIID_DWebBrowserEvents2);
 	//}
 
-	bHandled = TRUE;
 	return nResult;
 }
 

@@ -36,8 +36,7 @@ void CHtmlFrame::OnFinalMessage(HWND /*hWnd*/)
 }
 LRESULT CHtmlFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
-	LRESULT lRet = DefWindowProc();
-	bHandled = TRUE;
+	LRESULT nResult = DefWindowProc();
 
 	m_pHtmlView = new CHtmlView(this);
 
@@ -58,7 +57,7 @@ LRESULT CHtmlFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 
 	CChildFrame::Register(tHtmlView);
 
-	return TRUE;
+	return nResult;
 }
 LRESULT CHtmlFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
@@ -84,60 +83,6 @@ LRESULT CHtmlFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 	// to all the child windows so they can update themselves as appropriate.
 	SendMessageToDescendants(uMsg, wParam, lParam, TRUE);
 	
-	return 0;
-}
-LRESULT CHtmlFrame::OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
-{
-	bHandled = TRUE;
-
-	CPoint ptPopup(lParam);
-
-	// Build up the menu to show
-	CMenu mnuContext;
-
-	// Load from resource
-	//mnuContext.LoadMenu(IDR_CONTEXT);
-
-	// or build dynamically
-	// (being sure to enable/disable menu items as appropriate,
-	// and giving the appropriate IDs)
-	if(mnuContext.CreatePopupMenu()) {
-		int cchWindowText = GetWindowTextLength();
-		CString sWindowText;
-		GetWindowText(sWindowText.GetBuffer(cchWindowText+1), cchWindowText+1);
-		sWindowText.ReleaseBuffer();
-
-		CString sSave(_T("&Save '"));
-		sSave += sWindowText;
-		sSave += _T("'");
-
-		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_APP_SAVE, sSave);
-		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_APP_CLOSE, _T("&Close\tCtrl+F4"));
-		mnuContext.AppendMenu(MF_SEPARATOR);
-
-		if(m_pCmdBar != NULL) {
-			// NOTE: The CommandBarCtrl in our case is the mainframe's, so the commands
-			//  would actually go to the main frame if we don't specify TPM_RETURNCMD.
-			//  In the main frame's message map, if we don't specify
-			//  CHAIN_MDI_CHILD_COMMANDS, we are not going to see those command
-			//  messages. We have 2 choices here - either specify TPM_RETURNCMD,
-			//  then send/post the message to our window, or don't specify
-			//  TPM_RETURNCMD, and be sure to have CHAIN_MDI_CHILD_COMMANDS
-			//  in the main frame's message map.
-
-			//m_pCmdBar->TrackPopupMenu(mnuContext, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_TOPALIGN | TPM_VERTICAL,
-			//	ptPopup.x, ptPopup.y);
-
-			DWORD nSelection = m_pCmdBar->TrackPopupMenu(mnuContext, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_TOPALIGN | TPM_VERTICAL | TPM_RETURNCMD,
-				ptPopup.x, ptPopup.y);
-			if(nSelection != 0)
-				PostMessage(WM_COMMAND, MAKEWPARAM(nSelection, 0));
-		} else {
-			mnuContext.TrackPopupMenuEx(TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_TOPALIGN | TPM_VERTICAL,
-				ptPopup.x, ptPopup.y, m_hWnd, NULL);
-		}
-	}
-
 	return 0;
 }
 LRESULT CHtmlFrame::OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)

@@ -5,16 +5,28 @@
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
 #define IDR_MDICHILD                    129
+#define IDI_BEGIN                       130
 #define IDR_MDISCRIPTED                 130
+#define IDI_DOC_SCRIPT                  130
 #define IDR_MDIMAPED                    131
+#define IDI_DOC_MAP                     131
 #define IDR_MDIWORLDED                  132
+#define IDI_DOC_WORLD                   132
 #define IDR_MDISPTSHTED                 133
-#define ID_POSITION_PANE                134
-#define ID_OVERTYPE_PANE                135
-#define ID_READONLY_PANE                136
-#define ID_ICON_PANE                    137
+#define IDI_DOC_SPRITE                  133
+#define IDI_DOC_SPTSHT                  134
+#define IDI_DOC_WAV                     135
+#define IDI_DOC_MIDI                    136
+#define IDI_FOLDER_PROJECT              137
+#define IDI_FOLDER_CLOSED               138
+#define IDI_FOLDER_OPEN                 139
+#define IDI_FOLDER_LIB                  140
+#define IDI_END                         140
+#define ID_POSITION_PANE                150
+#define ID_OVERTYPE_PANE                151
+#define ID_READONLY_PANE                152
+#define ID_ICON_PANE                    153
 #define IDB_MSDEV_TAB_ICONS             207
-#define IDB_FOLDERS                     208
 #define IDI_ICO_WARNING                 209
 #define IDI_ICO_QUESTION                210
 #define IDI_ICO_ERROR                   211
@@ -28,6 +40,12 @@
 #define IDC_ARROWSELECT                 226
 #define IDR_TB_MAPED_MAIN               227
 #define IDR_TB_MAPED_BASIC              228
+#define IDD_PROPERTIES                  230
+#define IDD_PROPERTIES_NOTIMPLEMENTED   231
+#define ID_FILE_PREFERENCES             232
+#define ID_CLOSE                        240
+#define ID_CLOSE_ACA                    241
+#define IDB_DRAGIMG                     243
 #define ID_APP_BUILD                    32770
 #define ID_APP_CLOSE                    32771
 #define ID_APP_HELP                     32772
@@ -52,13 +70,9 @@
 #define ID_MAPED_BOUNDS                 32791
 #define ID_MAPED_C90                    32792
 #define ID_MAPED_CC90                   32793
-#define ID_MAPED_COPY                   32794
-#define ID_MAPED_CUT                    32795
-#define ID_MAPED_DELETE                 32796
 #define ID_MAPED_EQSIZE                 32797
 #define ID_MAPED_EQXSIZE                32798
 #define ID_MAPED_EQYSIZE                32799
-#define ID_MAPED_ERASE                  32800
 #define ID_MAPED_FLIP                   32801
 #define ID_MAPED_GRID                   32802
 #define ID_MAPED_GRIDSNAP               32803
@@ -66,22 +80,19 @@
 #define ID_MAPED_NOZOOM                 32805
 #define ID_MAPED_OBJDWN                 32806
 #define ID_MAPED_OBJUP                  32807
-#define ID_MAPED_PASTE                  32808
-#define ID_MAPED_REDO                   32809
 #define ID_MAPED_RULE                   32810
 #define ID_MAPED_SELECT                 32811
 #define ID_MAPED_SELECT_ALL             32812
 #define ID_MAPED_SELECT_NONE            32813
 #define ID_MAPED_TOBOTTOM               32814
 #define ID_MAPED_TOTOP                  32815
-#define ID_MAPED_UNDO                   32816
 #define ID_MAPED_ZOOMIN                 32817
 #define ID_MAPED_ZOOMOUT                32818
 #define ID_SCRIPTED_CLEAR_ALL_BOOKMARKS 32819
 #define ID_SCRIPTED_CLOSE               32820
-#define ID_SCRIPTED_COPY                32821
-#define ID_SCRIPTED_CUT                 32822
-#define ID_SCRIPTED_ERASE               32823
+#define ID_COPY                         32821
+#define ID_CUT                          32822
+#define ID_ERASE                        32823
 #define ID_SCRIPTED_FIND_NEXT           32824
 #define ID_SCRIPTED_FIND_PREV           32825
 #define ID_SCRIPTED_FIND_SELECTION      32826
@@ -93,12 +104,12 @@
 #define ID_SCRIPTED_NEW                 32832
 #define ID_SCRIPTED_OPEN                32833
 #define ID_SCRIPTED_PAGE_SETUP          32834
-#define ID_SCRIPTED_PASTE               32835
+#define ID_PASTE                        32835
 #define ID_SCRIPTED_PRINT               32836
 #define ID_SCRIPTED_PRINT_PREVIEW       32837
 #define ID_SCRIPTED_PRINT_SETUP         32838
 #define ID_SCRIPTED_READ_ONLY           32839
-#define ID_SCRIPTED_REDO                32840
+#define ID_REDO                         32840
 #define ID_SCRIPTED_RELOAD              32841
 #define ID_SCRIPTED_SAVE                32842
 #define ID_SCRIPTED_SAVE_ALL            32843
@@ -107,7 +118,7 @@
 #define ID_SCRIPTED_TAB                 32846
 #define ID_SCRIPTED_TABIFY              32847
 #define ID_SCRIPTED_TOGGLE_BOOKMARK     32848
-#define ID_SCRIPTED_UNDO                32849
+#define ID_UNDO                         32849
 #define ID_SCRIPTED_UNTAB               32850
 #define ID_SCRIPTED_UNTABIFY            32851
 #define ID_SCRIPTED_UPPERCASE           32852
@@ -136,6 +147,14 @@
 #define ID_MAPED_NEW                    32875
 #define ID_BUTTON32877                  32877
 #define ID_MAPED_PLAYER                 32879
+#define IDC_STATIC_CONFIGURE            32880
+#define IDC_STATIC_OPTION               32881
+#define IDC_STATIC_INFO                 32882
+#define IDC_PROPERTIES_PLACEHOLDER      32883
+#define IDC_PROPERTIES_TREE             32884
+#define ID_APP_CONFIG                   32885
+#define ID_MAPEDMASK                    32888
+#define ID_MAPED_MASK                   32888
 #define IDS_MESSAGE_PASSED_N_OF_FILE    60001
 #define IDS_WARNING_RELOAD              60002
 
@@ -143,8 +162,8 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        230
-#define _APS_NEXT_COMMAND_VALUE         32880
+#define _APS_NEXT_RESOURCE_VALUE        244
+#define _APS_NEXT_COMMAND_VALUE         32889
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

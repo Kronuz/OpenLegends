@@ -7,8 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "atlres.h"
-
+#include <atlres.h>
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -34,8 +33,7 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include ""atlres.h""\r\n"
-    "\0"
+    "#include <atlres.h>\0"
 END
 
 3 TEXTINCLUDE 
@@ -61,13 +59,13 @@ BEGIN
     SEPARATOR
     BUTTON      ID_SCRIPTED_PRINT
     SEPARATOR
-    BUTTON      ID_SCRIPTED_UNDO
-    BUTTON      ID_SCRIPTED_REDO
+    BUTTON      ID_UNDO
+    BUTTON      ID_REDO
     SEPARATOR
-    BUTTON      ID_SCRIPTED_CUT
-    BUTTON      ID_SCRIPTED_COPY
-    BUTTON      ID_SCRIPTED_PASTE
-    BUTTON      ID_SCRIPTED_ERASE
+    BUTTON      ID_CUT
+    BUTTON      ID_COPY
+    BUTTON      ID_PASTE
+    BUTTON      ID_ERASE
     SEPARATOR
     BUTTON      ID_SCRIPTED_TAB
     BUTTON      ID_SCRIPTED_UNTAB
@@ -84,6 +82,8 @@ BEGIN
     SEPARATOR
     BUTTON      ID_APP_BUILD
     BUTTON      ID_APP_STOPBUILD
+    SEPARATOR
+    BUTTON      ID_APP_CONFIG
     SEPARATOR
     BUTTON      ID_APP_HELP
     BUTTON      ID_APP_ABOUT
@@ -113,13 +113,13 @@ IDR_TB_MAPED_MAIN TOOLBAR  18, 18
 BEGIN
     BUTTON      ID_MAPED_NEW
     SEPARATOR
-    BUTTON      ID_MAPED_UNDO
-    BUTTON      ID_MAPED_REDO
+    BUTTON      ID_UNDO
+    BUTTON      ID_REDO
     SEPARATOR
-    BUTTON      ID_MAPED_CUT
-    BUTTON      ID_MAPED_COPY
-    BUTTON      ID_MAPED_PASTE
-    BUTTON      ID_MAPED_ERASE
+    BUTTON      ID_CUT
+    BUTTON      ID_COPY
+    BUTTON      ID_PASTE
+    BUTTON      ID_ERASE
 END
 
 IDR_TB_MAPED_BASIC TOOLBAR  18, 18
@@ -136,9 +136,10 @@ BEGIN
     BUTTON      ID_MAPED_ZOOMIN
     BUTTON      ID_MAPED_ZOOMOUT
     SEPARATOR
-    BUTTON      ID_MAPED_RULE
+    BUTTON      ID_MAPED_MASK
     BUTTON      ID_MAPED_BOUNDS
     BUTTON      ID_MAPED_GRID
+    SEPARATOR
     BUTTON      ID_MAPED_GRIDSNAP
 END
 
@@ -151,10 +152,10 @@ END
 IDR_TB_SCRIPTED         BITMAP                  "res\\ScriptsToolbar.bmp"
 IDR_TB_PROJECT          BITMAP                  "res\\ProjectToolbar.bmp"
 IDB_MSDEV_TAB_ICONS     BITMAP                  "res\\msdev_tab_icons.bmp"
-IDB_FOLDERS             BITMAP                  "res\\folders.bmp"
 IDR_TB_MAPED_MAIN       BITMAP                  "res\\MapEdToolbarMain.bmp"
 IDR_TB_MAPED_BASIC      BITMAP                  "res\\MapEdToolbarBasic.bmp"
 IDR_TB_MAPED_OBJECT     BITMAP                  "res\\MapEdToolbarObject.bmp"
+IDB_DRAGIMG             BITMAP                  "res\\DragImg.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -168,6 +169,8 @@ BEGIN
         MENUITEM "&New\tCtrl+N",                ID_APP_NEW
         MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
         MENUITEM "&Close",                      ID_APP_CLOSE
+        MENUITEM SEPARATOR
+        MENUITEM "Preferences...",              32885
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -207,13 +210,13 @@ BEGIN
     END
     POPUP "&Edit"
     BEGIN
-        MENUITEM "&Undo\tCtrl+Z",               ID_SCRIPTED_UNDO
-        MENUITEM "&Redo\tCtrl+Y",               ID_SCRIPTED_REDO
+        MENUITEM "&Undo\tCtrl+Z",               ID_UNDO
+        MENUITEM "&Redo\tCtrl+Y",               ID_REDO
         MENUITEM SEPARATOR
-        MENUITEM "Cu&t\tCtrl+X",                ID_SCRIPTED_CUT
-        MENUITEM "&Copy\tCtrl+C",               ID_SCRIPTED_COPY
-        MENUITEM "&Paste\tCtrl+V",              ID_SCRIPTED_PASTE
-        MENUITEM "&Delete\tDel",                ID_SCRIPTED_ERASE
+        MENUITEM "Cu&t\tCtrl+X",                ID_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_PASTE
+        MENUITEM "&Delete\tDel",                ID_ERASE
         MENUITEM "Select &All\tCtrl+A",         ID_SCRIPTED_SELECT_ALL
         MENUITEM SEPARATOR
         MENUITEM "&Find...\tCtrl+F",            ID_SCRIPTED_FIND
@@ -280,14 +283,21 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\QuestDesigner.ico"
-IDR_MDISCRIPTED         ICON                    "res\\QuestDesignerScript.ico"
-IDR_MDIMAPED            ICON                    "res\\QuestDesignerMap.ico"
-IDR_MDIWORLDED          ICON                    "res\\QuestDesignerWorld.ico"
-IDR_MDISPTSHTED         ICON                    "res\\QuestDesignerSpriteSheet.ico"
+IDI_DOC_SCRIPT          ICON                    "res\\QuestDesignerScript.ico"
+IDI_DOC_MAP             ICON                    "res\\QuestDesignerMap.ico"
+IDI_DOC_WORLD           ICON                    "res\\QuestDesignerWorld.ico"
+IDI_DOC_SPRITE          ICON                    "res\\QuestDesignerSprite.ico"
+IDI_DOC_SPTSHT          ICON                    "res\\QuestDesignerSpriteSheet.ico"
 IDI_ICO_ERROR           ICON                    "res\\Error.ico"
 IDI_ICO_WARNING         ICON                    "res\\Warning.ico"
 IDI_ICO_QUESTION        ICON                    "res\\Question.ico"
 IDI_ICO_OK              ICON                    "res\\Okay.ico"
+IDI_FOLDER_OPEN         ICON                    "res\\FolderO.ico"
+IDI_FOLDER_CLOSED       ICON                    "res\\FolderC.ico"
+IDI_DOC_MIDI            ICON                    "res\\QuestDesignerMidi.ico"
+IDI_FOLDER_LIB          ICON                    "res\\QuestDesignerLib.ico"
+IDI_FOLDER_PROJECT      ICON                    "res\\QuestDesignerProject.ico"
+IDI_DOC_WAV             ICON                    "res\\QuestDesignerWav.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -306,6 +316,33 @@ BEGIN
     GROUPBOX        "",IDC_STATIC,7,7,230,110
     LTEXT           "Portions of this software use:\n    CodeMax, Copyright 1997-2000 by Barry Allyn\n    and Small Compiler, Copyright (c) 1997-2002 by ITB CompuPhase",
                     IDC_STATIC,13,77,219,26
+END
+
+IDD_PROPERTIES DIALOGEX 0, 0, 360, 207
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Options"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,247,189,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,303,189,50,14
+    CONTROL         "",IDC_PROPERTIES_TREE,"SysTreeView32",TVS_HASBUTTONS | 
+                    TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | 
+                    TVS_NOSCROLL | WS_BORDER | WS_TABSTOP,7,16,89,170
+    LTEXT           "Placeholder",IDC_PROPERTIES_PLACEHOLDER,103,16,250,169
+    CTEXT           "Configure",IDC_STATIC_CONFIGURE,7,0,89,16,
+                    SS_CENTERIMAGE
+    CONTROL         "Option",IDC_STATIC_OPTION,"Static",SS_LEFTNOWORDWRAP | 
+                    SS_CENTERIMAGE | WS_GROUP,103,0,125,16
+    RTEXT           "Information",IDC_STATIC_INFO,228,0,125,16,
+                    SS_CENTERIMAGE
+END
+
+IDD_PROPERTIES_NOTIMPLEMENTED DIALOGEX 0, 0, 250, 170
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    CTEXT           "Properties sheet under construction.",IDC_STATIC_INFO,0,
+                    76,250,8
 END
 
 
@@ -335,20 +372,20 @@ END
 
 IDR_MAINFRAME ACCELERATORS 
 BEGIN
-    "N",            ID_APP_NEW,             VIRTKEY, CONTROL
-    "O",            ID_APP_OPEN,            VIRTKEY, CONTROL
-    "S",            ID_APP_SAVE,            VIRTKEY, CONTROL
-    "P",            ID_SCRIPTED_PRINT,      VIRTKEY, CONTROL
-    "Z",            ID_SCRIPTED_UNDO,       VIRTKEY, CONTROL
-    "X",            ID_SCRIPTED_CUT,        VIRTKEY, CONTROL
-    "C",            ID_SCRIPTED_COPY,       VIRTKEY, CONTROL
-    "V",            ID_SCRIPTED_PASTE,      VIRTKEY, CONTROL
-    VK_BACK,        ID_SCRIPTED_UNDO,       VIRTKEY, ALT
-    VK_DELETE,      ID_SCRIPTED_CUT,        VIRTKEY, SHIFT
-    VK_INSERT,      ID_SCRIPTED_COPY,       VIRTKEY, CONTROL
-    VK_INSERT,      ID_SCRIPTED_PASTE,      VIRTKEY, SHIFT
-    VK_F6,          ID_NEXT_PANE,           VIRTKEY 
-    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT
+    "N",            ID_APP_NEW,             VIRTKEY, CONTROL, NOINVERT
+    "O",            ID_APP_OPEN,            VIRTKEY, CONTROL, NOINVERT
+    "S",            ID_APP_SAVE,            VIRTKEY, CONTROL, NOINVERT
+    VK_F6,          ID_NEXT_PANE,           VIRTKEY, NOINVERT
+    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT, NOINVERT
+    "C",            ID_COPY,                VIRTKEY, CONTROL, NOINVERT
+    VK_INSERT,      ID_COPY,                VIRTKEY, CONTROL, NOINVERT
+    VK_DELETE,      ID_CUT,                 VIRTKEY, SHIFT, NOINVERT
+    "X",            ID_CUT,                 VIRTKEY, CONTROL, NOINVERT
+    "V",            ID_PASTE,               VIRTKEY, CONTROL, NOINVERT
+    VK_INSERT,      ID_PASTE,               VIRTKEY, SHIFT, NOINVERT
+    "P",            ID_SCRIPTED_PRINT,      VIRTKEY, CONTROL, NOINVERT
+    VK_BACK,        ID_UNDO,                VIRTKEY, ALT, NOINVERT
+    "Z",            ID_UNDO,                VIRTKEY, CONTROL, NOINVERT
 END
 
 
@@ -367,20 +404,20 @@ VS_VERSION_INFO VERSIONINFO
  FILEFLAGS 0x0L
 #endif
  FILEOS 0x4L
- FILETYPE 0x2L
+ FILETYPE 0x1L
  FILESUBTYPE 0x0L
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://openzelda.sourceforge.net/"
+            VALUE "Comments", "Quest Designer is a tool to create quests for Open Zelda. http://www.openzelda.com/"
             VALUE "CompanyName", "by Kronuz"
             VALUE "FileDescription", "Quest Designer v0.1.0 alpha"
             VALUE "FileVersion", "1, 0, 0, 1"
             VALUE "InternalName", "QuestDesigner"
-            VALUE "LegalCopyright", "Copyright 2002-2003 by Kronuz. All rights reserved"
-            VALUE "LegalTrademarks", "CodeMax, Copyright(c) 1997-2000 by Barry Allyn. Small Compiler, Copyright(c) 1997-2002 by ITB CompuPhase.  Legend Of Zelda is Trademark owned by Nintendo of America.\r\n"
+            VALUE "LegalCopyright", "Copyright © 2002-2003 by Kronuz. All rights reserved."
+            VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Zelda\r\n"
             VALUE "OriginalFilename", "QuestDesigner.exe"
             VALUE "ProductName", "Quest Designer for Open Zelda"
             VALUE "ProductVersion", "1, 0, 0, 1"
@@ -415,6 +452,10 @@ BEGIN
     IDR_MDIMAPED            "Open Zelda Map"
     IDR_MDIWORLDED          "Open Zelda World"
     IDR_MDISPTSHTED         "Open Zelda Sprite Sheet"
+END
+
+STRINGTABLE 
+BEGIN
     ID_POSITION_PANE        "Ln: 9999, Col: 9999"
     ID_OVERTYPE_PANE        "9999%"
     ID_READONLY_PANE        "READ"
@@ -442,12 +483,12 @@ BEGIN
     ID_SCRIPTED_NEW         "Create a new script file.\nNew Script"
     ID_SCRIPTED_OPEN        "Open an existing document.\nOpen"
     ID_SCRIPTED_PAGE_SETUP  "Change the printing options.\nPage Setup"
-    ID_SCRIPTED_PASTE       "Insert Clipboard contents.\nPaste"
+    ID_PASTE                "Insert Clipboard contents.\nPaste"
     ID_SCRIPTED_PRINT       "Print current script.\nPrint"
     ID_SCRIPTED_PRINT_PREVIEW "Display full pages.\nPrint Preview"
     ID_SCRIPTED_PRINT_SETUP "Change the printer and printing options.\nPrint Setup"
     ID_SCRIPTED_READ_ONLY   "Sets the current documment as read-only.\nRead Only"
-    ID_SCRIPTED_REDO        "Redo the previously undone action.\nRedo"
+    ID_REDO                 "Redo the previously undone action.\nRedo"
     ID_SCRIPTED_SAVE        "Save the active document.\nSave"
     ID_SCRIPTED_SAVE_ALL    "Save all open scripts.\nSave All"
     ID_SCRIPTED_SAVE_AS     "Save the active document with a new name.\nSave As"
@@ -483,7 +524,7 @@ STRINGTABLE
 BEGIN
     ID_SCRIPTED_TOGGLE_BOOKMARK 
                             "Toggle a bookmark on the current line.\nToggle Bookmark"
-    ID_SCRIPTED_UNDO        "Undo the last action\nUndo"
+    ID_UNDO                 "Undo the last action\nUndo"
     ID_SCRIPTED_UNTAB       "Unindents the selected text one tab stop.\nUnindent Selection"
     ID_SCRIPTED_UNTABIFY    "Replaces tabs with spaces in the selection.\nUntabify Selection"
     ID_SCRIPTED_UPPERCASE   "Change selection to upper case.\nMake Upper"
@@ -536,14 +577,13 @@ END
 
 STRINGTABLE 
 BEGIN
-    ID_MAPED_UNDO           "Undo the last action.\nUndo"
     ID_MAPED_ZOOMIN         "Zoom in.\nZoom In"
     ID_MAPED_ZOOMOUT        "Zoom out.\nZoom Out"
     ID_SCRIPTED_CLEAR_ALL_BOOKMARKS 
                             "Clear all bookmark in the active document.\nClear All Bookmarks"
-    ID_SCRIPTED_COPY        "Copy the selection and put it on the Clipboard.\nCopy"
-    ID_SCRIPTED_CUT         "Cut the selection and put it on the Clipboard.\nCut"
-    ID_SCRIPTED_ERASE       "Erase the selection.\nErase"
+    ID_COPY                 "Copy the selection and put it on the Clipboard.\nCopy"
+    ID_CUT                  "Cut the selection and put it on the Clipboard.\nCut"
+    ID_ERASE                "Erase the selection.\nErase"
     ID_SCRIPTED_FIND_NEXT   "Finds the next occurance of the specified text.\nFind Next"
     ID_SCRIPTED_FIND_PREV   "Finds the previous occurance of the specified text.\nFind Previous"
     ID_SCRIPTED_FIND_SELECTION 
@@ -566,11 +606,9 @@ BEGIN
     ID_MAPED_ALRIGHT        "Align all selected objects to the right of the first selected one.\nAlign Right"
     ID_MAPED_ALTOP          "Align all selected objects to the top of the first selected one.\nAlign Top"
     ID_MAPED_ARROW          "Togle single object selection mode.\nSingle Selection Mode"
-    ID_MAPED_BOUNDS         "Show or hide every object's boundaries and type.\nToggle Boundaries"
+    ID_MAPED_BOUNDS         "Show or hide every object's boundaries.\nToggle Boundaries"
     ID_MAPED_C90            "Rotate selected objects 90º in clockwise direction.\nRotate Clockwise 90º"
     ID_MAPED_CC90           "Rotate selected objects 90º in counter-clockwise direction.\nRotate Counter-clockwise 90º"
-    ID_MAPED_COPY           "Copy the selection.\nCopy"
-    ID_MAPED_CUT            "Cut the selection.\nCut"
     ID_MAPED_EQSIZE         "Resize all selected objects to the size of the first one selected.\nMatch Size"
     ID_MAPED_EQXSIZE        "Horizontally resize all selected objects to the size of the first one selected.\nMatch Horizontal Size"
     ID_MAPED_EQYSIZE        "Vertically resize all selected objects to the size of the first one selected.\nMatch Vertical Size"
@@ -578,7 +616,6 @@ END
 
 STRINGTABLE 
 BEGIN
-    ID_MAPED_ERASE          "Erase the selection.\nErase"
     ID_MAPED_FLIP           "Flip selected objects.\nFlip"
     ID_MAPED_GRID           "Show or hide the map grid.\nToggle Grid"
     ID_MAPED_GRIDSNAP       "Snap to grid.\nSnap to Grid"
@@ -586,14 +623,18 @@ BEGIN
     ID_MAPED_NOZOOM         "Zoom back to 100%.\nNo Zoom"
     ID_MAPED_OBJDWN         "Move selected objects down in their sub-layer.\nMove Down"
     ID_MAPED_OBJUP          "Move selected objects up in their sub-layer.\nMove To Top"
-    ID_MAPED_PASTE          "Insert Cut or Copied selections.\nPaste"
-    ID_MAPED_REDO           "Redo the previously undone action.\nRedo"
     ID_MAPED_RULE           "Togle top and left rules.\nRules"
     ID_MAPED_SELECT         "Togle multiple object selection mode.\nMultiple Selection Mode"
     ID_MAPED_SELECT_ALL     "Select all objects in the map.\nSelect All"
     ID_MAPED_SELECT_NONE    "Deselect all selections.\nSelect None"
     ID_MAPED_TOBOTTOM       "Send selected objects to the bottom of their sub-layer.\nSend To Bottom"
     ID_MAPED_TOTOP          "Bring selected objects to the top of their sub-layer.\nBring To Top"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_APP_CONFIG           "Open Zelda and Quest Designer Preferences.\nPreferences"
+    ID_MAPED_MASK           "Show or hide every object's mask.\nToggle Mask"
 END
 
 #endif    // English (U.S.) resources

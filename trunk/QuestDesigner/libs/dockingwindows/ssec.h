@@ -84,8 +84,8 @@ public:
 	typedef traits::distance						distance;
 	typedef bounds_type<position,distance>			bounds_t;
 	typedef separators_t::size_type					size_type;
-	typedef separators_t::iterator			iterator;
-	typedef separators_t::reverse_iterator	reverse_iterator;
+	typedef separators_t::iterator					iterator;
+	typedef separators_t::reverse_iterator			reverse_iterator;
 	typedef separators_t::const_iterator			const_iterator;
 	typedef separators_t::const_reverse_iterator	const_reverse_iterator;
 protected:

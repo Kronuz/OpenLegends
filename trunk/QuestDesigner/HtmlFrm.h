@@ -49,7 +49,7 @@ class CHtmlFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDICHILD)
+//	DECLARE_FRAME_CHILD_CLASS(NULL, IDR_MDICHILD)
 
 	// The windows view (the child control)
 	CHtmlView *m_pHtmlView;
@@ -66,7 +66,7 @@ public:
 		MESSAGE_HANDLER(WM_FORWARDMSG, OnForwardMsg)
 		MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
 
-		MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
+		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
 		COMMAND_ID_HANDLER(ID_APP_SAVE, OnFileSave)
 		COMMAND_ID_HANDLER(ID_APP_CLOSE, OnFileClose)
@@ -92,7 +92,6 @@ public:
 	// Return the window's child control
 	CHtmlView* GetView() { return m_pHtmlView; }
 
-	LRESULT OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnFileSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFileClose(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 

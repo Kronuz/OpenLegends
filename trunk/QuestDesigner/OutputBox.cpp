@@ -18,14 +18,14 @@
 */
 
 /////////////////////////////////////////////////////////////////////////////
-// OutputView.cpp : implementation of the COutputView class
+// OutputBox.cpp : implementation of the COutputBox class
 //
 
 #include "stdafx.h"
 
-#include "OutputView.h"
+#include "OutputBox.h"
 
-LRESULT COutputView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+LRESULT COutputBox::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
   PARAFORMAT2 pf;
   pf.cbSize = sizeof(pf);
@@ -42,13 +42,13 @@ LRESULT COutputView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 
   return 0;
 }
-BOOL COutputView::PreTranslateMessage(MSG* pMsg)
+BOOL COutputBox::PreTranslateMessage(MSG* pMsg)
 {
 	pMsg;
 	return FALSE;
 }
 
-void COutputView::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
+void COutputBox::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
 {
 	SetRedraw(FALSE);
 	SetSel(-1,-1);
@@ -60,7 +60,7 @@ void COutputView::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
 	RedrawWindow();
 }
 
-void COutputView::Empty()
+void COutputBox::Empty()
 {
 	SetRedraw(FALSE);
 	SetSel(0,-1);
