@@ -260,8 +260,8 @@ bool CTreeInfo::LoadThumbnail()
 
 	if(m_vFile.Open("r")) {
 		m_eType = titFile;
-		_OpenZeldaFile OZFile;
-		if(m_vFile.Read(&OZFile, sizeof(_OpenZeldaFile)) != sizeof(_OpenZeldaFile)) {
+		_OpenLegendsFile OZFile;
+		if(m_vFile.Read(&OZFile, sizeof(_OpenLegendsFile)) != sizeof(_OpenLegendsFile)) {
 			m_vFile.Close();
 			return false;
 		}
@@ -306,8 +306,8 @@ bool CTreeInfo::Update()
 	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
 	if(m_vFile.Open("wb")) {
 		m_eType = titFile;
-		_OpenZeldaFile OZFile;
-		m_vFile.Read(&OZFile, sizeof(_OpenZeldaFile));
+		_OpenLegendsFile OZFile;
+		m_vFile.Read(&OZFile, sizeof(_OpenLegendsFile));
 
 		LPCOZFILE pOZFile = &OZFile;
 		VerifyOZFile(&pOZFile);
@@ -320,7 +320,7 @@ bool CTreeInfo::Update()
 				strncpy(aux, sTmp.c_str(), sizeof(OZFile.ID) - (aux - OZFile.ID) - 1);
 
 				m_vFile.Seek(0, SEEK_SET);
-				if(m_vFile.Write(&OZFile, sizeof(_OpenZeldaFile)) == sizeof(_OpenZeldaFile)) ret = true;
+				if(m_vFile.Write(&OZFile, sizeof(_OpenLegendsFile)) == sizeof(_OpenLegendsFile)) ret = true;
 			}
 		}
 		m_vFile.Close();
