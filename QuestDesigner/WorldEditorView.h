@@ -36,9 +36,10 @@ class CWorldEditorView :
 {
 private:
 
-	CSize m_WorldSize;
-	HPEN  m_hPenGrid;
+	CSize m_WorldFullSize;
+	HPEN m_hPenGrid;
 	HPEN m_hPenMapGroupSelected;
+	HPEN m_hPenMapGroupHover;
 	HPEN m_hPenMapGroup;
 	HFONT m_hFont12; 
 	HFONT m_hFont10;
@@ -48,8 +49,10 @@ private:
 	bool m_bClean;
 	CMapGroup *m_pSelMapGroup;
 	CPoint m_MousePoint;
-	CSize m_szMap;	// Map dimensions
-	int m_Zoom;		// Current zoom
+	CPoint m_MapPoint;
+	CSize m_szMap;		// Map dimensions (default is 640x480)
+	CSize m_szWorld;	// World dimensions (default is 256x256)
+	int m_Zoom;			// Current zoom
 
 protected:
 	CMapGroup* DrawThumbnail(CDC &dc, int x, int y, CSize &szMap);
@@ -68,15 +71,21 @@ public:
 	BEGIN_MSG_MAP(CWorldEditView)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
-		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
-		MESSAGE_HANDLER(WM_MOUSEWHEEL, OnMouseWheel)
+		MESSAGE_HANDLER(WM_MOUSEMOVE,		OnMouseMove)
+		MESSAGE_HANDLER(WM_MOUSEWHEEL,		OnMouseWheel)
+
+		MESSAGE_HANDLER(WM_LBUTTONDBLCLK,	OnLButtonDblClk)
+		MESSAGE_HANDLER(WM_LBUTTONDOWN,		OnLButtonDown)
+		MESSAGE_HANDLER(WM_LBUTTONUP,		OnLButtonUp)
+		MESSAGE_HANDLER(WM_RBUTTONDOWN,		OnRButtonDown)
+		MESSAGE_HANDLER(WM_RBUTTONUP,		OnRButtonUp)
+		MESSAGE_HANDLER(WM_MBUTTONDOWN,		OnMButtonDown)
+		MESSAGE_HANDLER(WM_MBUTTONUP,		OnMButtonUp)
 
 		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
-
-		MESSAGE_HANDLER(WM_LBUTTONUP,		OnLButtonUp)
-		MESSAGE_HANDLER(WM_LBUTTONDBLCLK,	OnLButtonDblClk)
 
 		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
 
@@ -84,6 +93,7 @@ public:
 	END_MSG_MAP()
 
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
+	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
@@ -93,7 +103,6 @@ public:
 	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
 
 	LRESULT OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
-
 	LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 	LRESULT OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
@@ -105,6 +114,7 @@ public:
 
 	void DoPaint(CDCHandle dc);
 
-	void UpdateMouse(CPoint point);
+	void UpdateSelections();
+	void UpdateMouse(const CPoint &point);
 	bool ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap);
 };

@@ -28,16 +28,22 @@
 #include "WorldEditorView.h"
 #include "WorldEditorFrm.h"
 
-#define MAXMAPSX 256
-#define MAXMAPSY 256
-
 CWorldEditorView::CWorldEditorView(CWorldEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
 	m_bClean(true),
 	m_szMap(0, 0),
 	m_Zoom(4),
 	m_MousePoint(0,0),
-	m_pSelMapGroup(NULL)
+	m_MapPoint(0,0),
+	m_pSelMapGroup(NULL),
+	m_hPenGrid(NULL),
+	m_hPenMapGroupSelected(NULL),
+	m_hPenMapGroupHover(NULL),
+	m_hPenMapGroup(NULL),
+	m_hFont12(NULL),
+	m_hFont10(NULL),
+	m_hFont8(NULL),
+	m_hFont6(NULL)
 {
 }
 
@@ -63,21 +69,36 @@ LRESULT CWorldEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lP
 
 	m_hPenGrid = CreatePen(PS_SOLID, 1, RGB(127, 180, 127));
 	m_hPenMapGroup = CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
-	m_hPenMapGroupSelected = CreatePen(PS_SOLID, 2, RGB(255, 255, 0));
+	m_hPenMapGroupHover = CreatePen(PS_SOLID, 2, RGB(255, 255, 0));
+	m_hPenMapGroupSelected = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
 
 	m_hFont12 =  CreateFont(12, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 0, 0, "Tahoma");
 	m_hFont10 =  CreateFont(10, 0, 0, 0, FW_BOLD, 0, 0, 0, 0, 0, 0, 0, 0, "Tahoma");
 	m_hFont8 =   CreateFont(8, 0, 0, 0, FW_NORMAL, 0, 0, 0, 0, 0, 0, 0, 0, "Tahoma");
 	m_hFont6 =   CreateFont(6, 0, 0, 0, FW_NORMAL, 0, 0, 0, 0, 0, 0, 0, 0, "Tahoma");
 
+	CProjectFactory::Interface()->GetWorldSize(m_szWorld);
 	CProjectFactory::Interface()->GetMapSize(m_szMap);
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
-	m_WorldSize.cx = szMap.cx*MAXMAPSX;
-	m_WorldSize.cy = szMap.cy*MAXMAPSY;
-	SetScrollSize(m_WorldSize);
+	m_WorldFullSize.cx = szMap.cx*m_szWorld.cx;
+	m_WorldFullSize.cy = szMap.cy*m_szWorld.cy;
+	SetScrollSize(m_WorldFullSize);
 
 	return nResult;
 }
+LRESULT CWorldEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
+{
+	if(m_hPenGrid) DeleteObject(m_hPenGrid);
+	if(m_hPenMapGroupSelected) DeleteObject(m_hPenMapGroupSelected);
+	if(m_hPenMapGroupHover) DeleteObject(m_hPenMapGroupHover);
+	if(m_hPenMapGroup) DeleteObject(m_hPenMapGroup);
+	if(m_hFont12) DeleteObject(m_hFont12); 
+	if(m_hFont10) DeleteObject(m_hFont10);
+	if(m_hFont8) DeleteObject(m_hFont8);
+	if(m_hFont6) DeleteObject(m_hFont6);
+	return 0;
+}
+
 //-----------------------------------------------------------------------------
 // Name: DrawRect()
 // Desc: 
@@ -96,89 +117,90 @@ void DrawRect(CDC &dc, CRect rcRect)
 
 void CWorldEditorView::DoPaint(CDCHandle dc)
 {
-	// First we need to get the current client window,
-	// and relocate ourselves to use the scrolling position
+	{ // scope for dcMem, needed for the UpdateMouse() below to really update
+		// create memory DC
+		CMemDC dcMem(dc, NULL);
 
-	// create memory DC
-	CMemDC dcMem(dc, NULL);
+		CRect rcClient;
+		GetClientRect(&rcClient);
+		rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 
-	CRect rcClient;
-	GetClientRect(&rcClient);
-	rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
+		dcMem.FillRect(rcClient, -1);
 
-	dcMem.FillRect(rcClient, -1);
+		CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
 
-	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
+		// Draw Grid in the Background
+		HPEN oldPen = dcMem.SelectPen(m_hPenGrid);
+		
+		for(int x = (rcClient.left / szMap.cx) * szMap.cx; x <= rcClient.right; x += szMap.cx) {	// Vertical
+			dcMem.MoveTo(x, rcClient.top);
+			dcMem.LineTo(x, rcClient.bottom);
+		}
+		
+		for(int y = (rcClient.top/szMap.cy)*szMap.cy; y <= rcClient.bottom; y += szMap.cy) {	// Horizontal
+			dcMem.MoveTo(rcClient.left,  y);
+			dcMem.LineTo(rcClient.right, y);
+		}
 
-	// Draw Grid in the Background
-	HPEN oldPen = dcMem.SelectPen(m_hPenGrid);
-	
-	for(int x = (rcClient.left / szMap.cx) * szMap.cx; x <= rcClient.right; x += szMap.cx) {	// Vertical
-		dcMem.MoveTo(x, rcClient.top);
-		dcMem.LineTo(x, rcClient.bottom);
-	}
-	
-	for(int y = (rcClient.top/szMap.cy)*szMap.cy; y <= rcClient.bottom; y += szMap.cy) {	// Horizontal
-		dcMem.MoveTo(rcClient.left,  y);
-		dcMem.LineTo(rcClient.right, y);
-	}
+		HFONT oldFont;
+		if(m_Zoom>8) {
+			oldFont = dcMem.SelectFont(m_hFont6);
+		} else if(m_Zoom>6) {
+			oldFont = dcMem.SelectFont(m_hFont8);
+		} else if(m_Zoom>4) {
+			oldFont = dcMem.SelectFont(m_hFont10);
+		} else {
+			oldFont = dcMem.SelectFont(m_hFont12);
+		}
 
-	HFONT oldFont;
-	if(m_Zoom>8) {
-		oldFont = dcMem.SelectFont(m_hFont6);
-	} else if(m_Zoom>6) {
-		oldFont = dcMem.SelectFont(m_hFont8);
-	} else if(m_Zoom>4) {
-		oldFont = dcMem.SelectFont(m_hFont10);
-	} else {
-		oldFont = dcMem.SelectFont(m_hFont12);
-	}
+		CString strOut;
+		CMapGroup *pMapGroup;
+		dcMem.SetTextColor(RGB(0, 0, 0));	// Text settings
+		dcMem.SetBkMode(TRANSPARENT);
+		for(x=rcClient.left/szMap.cx; x<=rcClient.right/szMap.cx; x++) {
+			for(y=rcClient.top/szMap.cy; y<=rcClient.bottom/szMap.cy; y++) {
+				if((pMapGroup = DrawThumbnail(dcMem, x, y, szMap)) == NULL) {
+					strOut.Format(_T("%d,%d"), x, y);
+					dcMem.TextOut(x*szMap.cx+2,y*szMap.cy+2, strOut);
+				} else {
+					if(pMapGroup->isMapGroupHead(x,y)) {
+						dcMem.SetTextColor(RGB(255, 255, 225));
+						strOut.Format(_T("%d,%d: %s"), x, y, pMapGroup->GetMapGroupID());
+						dcMem.TextOut(x*szMap.cx+5,y*szMap.cy+5, strOut);
+						dcMem.SetTextColor(RGB(0, 0, 0));
+					}
 
-	dcMem.SelectPen(m_hPenMapGroup);
+					if(pMapGroup == m_pSelMapGroup) dcMem.SelectPen(m_hPenMapGroupSelected);
+					else dcMem.SelectPen(m_hPenMapGroup);
 
-	CBString strOut;
-	CMapGroup *MapGroup;
-	dcMem.SetTextColor(RGB(0, 0, 0));	// Text settings
-	dcMem.SetBkMode(TRANSPARENT);
-	for(x=rcClient.left/szMap.cx; x<=rcClient.right/szMap.cx; x++) {
-		for(y=rcClient.top/szMap.cy; y<=rcClient.bottom/szMap.cy; y++) {
-			if((MapGroup = DrawThumbnail(dcMem, x, y, szMap)) == NULL) {
-				strOut.Format(_T("%d,%d"), x, y);
-				dcMem.TextOut(x*szMap.cx+2,y*szMap.cy+2, strOut);
-			} else {
-				if(MapGroup->isMapGroupHead(x,y)) {
-					dcMem.SetTextColor(RGB(255, 255, 225));
-					strOut.Format(_T("%d,%d: %s"), x, y, MapGroup->GetMapGroupID());
-					dcMem.TextOut(x*szMap.cx+5,y*szMap.cy+5, strOut);
-					dcMem.SetTextColor(RGB(0, 0, 0));
+					CRect Rect;
+					pMapGroup->GetMapGroupRect(Rect);
+					Rect.top *= szMap.cy;
+					Rect.left *= szMap.cx;
+					Rect.bottom *= szMap.cy;
+					Rect.right *= szMap.cx;
+					Rect.DeflateRect(4,4);
+					DrawRect(dcMem, Rect);
 				}
-				CRect Rect;
-				MapGroup->GetMapGroupRect(Rect);
-				Rect.top *= szMap.cy;
-				Rect.left *= szMap.cx;
-				Rect.bottom *= szMap.cy;
-				Rect.right *= szMap.cx;
-				Rect.DeflateRect(4,4);
-				DrawRect(dcMem, Rect);
 			}
 		}
+
+		// Reselect GDI objects
+		dcMem.SelectPen(oldPen);
+		dcMem.SelectFont(oldFont);
 	}
 
-	// Reselect GDI objects
-	dcMem.SelectPen(oldPen);
-	dcMem.SelectFont(oldFont);
-	
 	m_bClean = true;
-	UpdateMouse(m_MousePoint);
+	UpdateSelections(); // updates the selections (after bliting the memDC)
 }
 
 CMapGroup* CWorldEditorView::DrawThumbnail(CDC &dc, int x, int y, CSize &szMap)
 {
-	CMapGroup *MapGroup = CProjectFactory::Interface()->FindMapGroup(x,y);
-	if(!MapGroup) return NULL;
+	CMapGroup *pMapGroup = CProjectFactory::Interface()->FindMapGroup(x,y);
+	if(!pMapGroup) return NULL;
 
 	CRect Rect;
-	BITMAP *pBitmap = MapGroup->GetThumbnail(&Rect, x, y);
+	BITMAP *pBitmap = pMapGroup->GetThumbnail(&Rect, x, y);
 	if(pBitmap) {
 		// fill BITMAPINFO struct
 		BITMAPINFO bmpInfo;
@@ -196,9 +218,9 @@ CMapGroup* CWorldEditorView::DrawThumbnail(CDC &dc, int x, int y, CSize &szMap)
 		pInfo->biClrImportant = 0;
 
 		CSize szMapGroupSize;
-		MapGroup->GetMapGroupSize(szMapGroupSize);
+		pMapGroup->GetMapGroupSize(szMapGroupSize);
 
-		DWORD dwRop = (m_pSelMapGroup==MapGroup)?NOTSRCCOPY:SRCCOPY;
+		DWORD dwRop = (m_pSelMapGroup==pMapGroup)?NOTSRCCOPY:SRCCOPY;
 
 		dc.StretchDIBits(
 			x * szMap.cx,			// x-coordinate of upper-left corner of dest. rectangle
@@ -216,7 +238,7 @@ CMapGroup* CWorldEditorView::DrawThumbnail(CDC &dc, int x, int y, CSize &szMap)
 		);
 	} else {
 	}
-	return MapGroup;
+	return pMapGroup;
 }
 
 LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
@@ -241,23 +263,22 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 	WorldPoint.y *= oldZoom;
 
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
-	m_WorldSize.cx = szMap.cx*MAXMAPSX;
-	m_WorldSize.cy = szMap.cy*MAXMAPSY;
+	m_WorldFullSize.cx = szMap.cx*m_szWorld.cx;
+	m_WorldFullSize.cy = szMap.cy*m_szWorld.cy;
 	
 	// Now we validate the new scrolling position:
 	CRect rcClient;
 	GetClientRect(&rcClient);
 	CPoint ScrollPoint(WorldPoint.x/m_Zoom-MousePoint.x, WorldPoint.y/m_Zoom-MousePoint.y);
-	SetScrollSize(m_WorldSize, FALSE);
+	SetScrollSize(m_WorldFullSize, FALSE);
 
 	if(ScrollPoint.x < 0) ScrollPoint.x = 0;
 	if(ScrollPoint.y < 0) ScrollPoint.y = 0;
-	if(ScrollPoint.x > m_WorldSize.cx-rcClient.right) ScrollPoint.x = m_WorldSize.cx-rcClient.right;
-	if(ScrollPoint.y > m_WorldSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldSize.cy-rcClient.bottom;
+	if(ScrollPoint.x > m_WorldFullSize.cx-rcClient.right) ScrollPoint.x = m_WorldFullSize.cx-rcClient.right;
+	if(ScrollPoint.y > m_WorldFullSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldFullSize.cy-rcClient.bottom;
 	SetScrollOffset(ScrollPoint);
 
 	Invalidate();   
-	UpdateWindow();
 
 	return 0;
 }
@@ -265,8 +286,7 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 LRESULT CWorldEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	CPoint point(lParam);
-	point.x += GetScrollPos(SB_HORZ);
-	point.y += GetScrollPos(SB_VERT);
+	point.Offset(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 
 	point.x *= m_Zoom;
 	point.y *= m_Zoom;
@@ -282,8 +302,8 @@ bool CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 	rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 	CPoint ScrollPoint(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 
-	int xPos = ((point.x/m_Zoom)/szMap.cx)*szMap.cx;
-	int yPos = ((point.y/m_Zoom)/szMap.cy)*szMap.cy;
+	int xPos = point.x/m_Zoom;
+	int yPos = point.y/m_Zoom;
 	if(xPos < rcClient.left) {
 		int delta = ((rcClient.left - xPos + szMap.cx - 1)/szMap.cx)*szMap.cx;
 		ScrollPoint.x -= delta;
@@ -312,18 +332,15 @@ bool CWorldEditorView::ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap)
 
 	if(ScrollPoint.x < 0) ScrollPoint.x = 0;
 	if(ScrollPoint.y < 0) ScrollPoint.y = 0;
-	if(ScrollPoint.x > m_WorldSize.cx-rcClient.right) ScrollPoint.x = m_WorldSize.cx-rcClient.right;
-	if(ScrollPoint.y > m_WorldSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldSize.cy-rcClient.bottom;
+	if(ScrollPoint.x > m_WorldFullSize.cx-rcClient.right) ScrollPoint.x = m_WorldFullSize.cx-rcClient.right;
+	if(ScrollPoint.y > m_WorldFullSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldFullSize.cy-rcClient.bottom;
 	SetScrollOffset(ScrollPoint);
-
-	UpdateWindow();
 
 	return true;
 }
 LRESULT CWorldEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
 	Invalidate();
-	UpdateWindow();
 	return 0;
 }
 LRESULT CWorldEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
@@ -338,16 +355,60 @@ LRESULT CWorldEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPara
 
 	CPoint point(m_MousePoint);
 	if(wParam == VK_RETURN) {
+		if(m_pSelMapGroup == NULL) {
+			GetMainFrame()->MapFileOpen(m_MapPoint);
+		}
+		m_pSelMapGroup = NULL;
+		Invalidate();
+	} else if(wParam == VK_ESCAPE) {
+		m_pSelMapGroup = NULL;
+		Invalidate();
 	} else if(wParam == VK_LEFT) {
+		if(m_pSelMapGroup) {
+			CRect Rect;
+			m_pSelMapGroup->GetMapGroupRect(Rect);
+			point.x = Rect.left * m_szMap.cx + m_szMap.cx/2;
+			point.y = Rect.top * m_szMap.cy + m_szMap.cy/2;
+
+			m_pSelMapGroup->OffsetMapGroup(-1,0);
+			Invalidate();
+		}
 		point.x -= m_szMap.cx;
 		ScrollTo(point, rcClient, szMap);
 	} else if(wParam == VK_RIGHT) {
+		if(m_pSelMapGroup) {
+			CRect Rect;
+			m_pSelMapGroup->GetMapGroupRect(Rect);
+			point.x = Rect.left * m_szMap.cx + m_szMap.cx/2;
+			point.y = Rect.top * m_szMap.cy + m_szMap.cy/2;
+
+			m_pSelMapGroup->OffsetMapGroup(1,0);
+			Invalidate();
+		}
 		point.x += m_szMap.cx;
 		ScrollTo(point, rcClient, szMap);
 	} else if(wParam == VK_UP) {
+		if(m_pSelMapGroup) {
+			CRect Rect;
+			m_pSelMapGroup->GetMapGroupRect(Rect);
+			point.x = Rect.left * m_szMap.cx + m_szMap.cx/2;
+			point.y = Rect.top * m_szMap.cy + m_szMap.cy/2;
+
+			m_pSelMapGroup->OffsetMapGroup(0,-1);
+			Invalidate();
+		}
 		point.y -= m_szMap.cy;
 		ScrollTo(point, rcClient, szMap);
 	} else if(wParam == VK_DOWN) {
+		if(m_pSelMapGroup) {
+			CRect Rect;
+			m_pSelMapGroup->GetMapGroupRect(Rect);
+			point.x = Rect.left * m_szMap.cx + m_szMap.cx/2;
+			point.y = Rect.top * m_szMap.cy + m_szMap.cy/2;
+
+			m_pSelMapGroup->OffsetMapGroup(0,1);
+			Invalidate();
+		}
 		point.y += m_szMap.cy;
 		ScrollTo(point, rcClient, szMap);
 	} else if(wParam == VK_NEXT) {
@@ -356,33 +417,25 @@ LRESULT CWorldEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPara
 	} else if(wParam == VK_PRIOR) {
 		point.y -= (rcClient.bottom/szMap.cy)*szMap.cy*m_Zoom;
 		ScrollTo(point, rcClient, szMap);
+	} else if(wParam == VK_SPACE) {
+		CMapGroup *pMapGroup = CProjectFactory::Interface()->FindMapGroup(m_MapPoint.x, m_MapPoint.y);
+		if(m_pSelMapGroup == pMapGroup) {
+			m_pSelMapGroup = NULL;
+		} else m_pSelMapGroup = pMapGroup;
+		Invalidate();
 	} else {
 		bHandled = FALSE;
 	}
 	return 0;
 }
 
-void CWorldEditorView::UpdateMouse(CPoint point)
+// point contains the x,y coordinates of the map, in world map coordinates. 
+// i.e. 1,0 is the second map to the right.
+void CWorldEditorView::UpdateSelections()
 {
-	if( point.x<0 || point.x>m_WorldSize.cx*m_Zoom ||
-		point.y<0 || point.y>m_WorldSize.cy*m_Zoom ) return;
-
-	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
-	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
-
-	CBString sText;
-	sText.Format(_T("X: %3d, Y: %3d"), point.x, point.y);
-	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
-
 	////////////////////////
-	m_MousePoint = point;
-
-	point.x /= m_Zoom;
-	point.y /= m_Zoom;
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
-
-	point.x = (point.x/szMap.cx)*(szMap.cx) + (szMap.cx)/2;
-	point.y = (point.y/szMap.cy)*(szMap.cy) + (szMap.cy)/2;
+	CPoint Point( (m_MapPoint.x)*(szMap.cx) + (szMap.cx)/2, (m_MapPoint.y)*(szMap.cy) + (szMap.cy)/2 );
 
 	static CPoint sMap;
 
@@ -390,6 +443,7 @@ void CWorldEditorView::UpdateMouse(CPoint point)
 	CDCHandle dc = GetDC();
 	
 	int iBox;
+	// find out the size of the little selection box:
 	if(m_Zoom == 1) {
 		iBox = 5;
 	} else if(m_Zoom == 2) {
@@ -402,7 +456,7 @@ void CWorldEditorView::UpdateMouse(CPoint point)
 		iBox = 16/m_Zoom;
 	}
 
-	if(point != sMap && !m_bClean) {
+	if(Point != sMap && !m_bClean) {
 		rcSelect.top = sMap.y-iBox;
 		rcSelect.bottom = sMap.y+iBox;
 		rcSelect.left = sMap.x-iBox;
@@ -418,19 +472,83 @@ void CWorldEditorView::UpdateMouse(CPoint point)
 		}
 	}
 
-	sMap = point;
+	sMap = Point;
 	m_bClean = false;
 
-
-	rcSelect.top = point.y-iBox;
-	rcSelect.bottom = point.y+iBox;
-	rcSelect.left = point.x-iBox;
-	rcSelect.right = point.x+iBox;
+	rcSelect.top = Point.y-iBox;
+	rcSelect.bottom = Point.y+iBox;
+	rcSelect.left = Point.x-iBox;
+	rcSelect.right = Point.x+iBox;
 
 	rcSelect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
 
 	dc.FillRect(rcSelect, 1);
+
+/////////////////////
+
+	static CMapGroup *pOldMapGroup = NULL;
+
+	CMapGroup *pMapGroup = NULL;
+	if(m_pSelMapGroup) {
+		if(m_pSelMapGroup->isMapGroupAt(m_MapPoint.x, m_MapPoint.y)) {
+			pMapGroup = m_pSelMapGroup;
+		} 
+	}
+	if(pMapGroup == NULL) pMapGroup = CProjectFactory::Interface()->FindMapGroup(m_MapPoint.x, m_MapPoint.y);
+
+	CRect Rect;
+	HPEN oldPen = dc.SelectPen(m_hPenMapGroup);
+
+	if(pOldMapGroup != pMapGroup && pOldMapGroup) {
+		if(pOldMapGroup == m_pSelMapGroup) dc.SelectPen(m_hPenMapGroupSelected);
+		pOldMapGroup->GetMapGroupRect(Rect);
+		Rect.top *= szMap.cy;
+		Rect.left *= szMap.cx;
+		Rect.bottom *= szMap.cy;
+		Rect.right *= szMap.cx;
+		Rect.DeflateRect(4,4);
+		Rect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
+		DrawRect((CDC)dc, Rect);
+	}
+	if(pMapGroup) {
+		if(pMapGroup == m_pSelMapGroup) dc.SelectPen(m_hPenMapGroupSelected);
+		else dc.SelectPen(m_hPenMapGroupHover);
+		pMapGroup->GetMapGroupRect(Rect);
+		Rect.top *= szMap.cy;
+		Rect.left *= szMap.cx;
+		Rect.bottom *= szMap.cy;
+		Rect.right *= szMap.cx;
+		Rect.DeflateRect(4,4);
+		Rect.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
+		DrawRect((CDC)dc, Rect);
+	}
+	pOldMapGroup = pMapGroup;
+
+	dc.SelectPen(oldPen);
+
 	ReleaseDC(dc);
+}
+void CWorldEditorView::UpdateMouse(const CPoint &point)
+{
+	if( point.x<0 || point.x>m_WorldFullSize.cx*m_Zoom ||
+		point.y<0 || point.y>m_WorldFullSize.cy*m_Zoom ) return;
+
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("X: %3d, Y: %3d"), point.x, point.y);
+	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
+
+	////////////////////////
+	m_MousePoint = point;
+
+	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
+
+	m_MapPoint.x = point.x/(m_Zoom*szMap.cx);
+	m_MapPoint.y = point.y/(m_Zoom*szMap.cy);
+
+	UpdateSelections();
 }
 LRESULT CWorldEditorView::OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
@@ -439,6 +557,8 @@ LRESULT CWorldEditorView::OnLButtonDblClk(UINT /*uMsg*/, WPARAM wParam, LPARAM l
 	Point.x /= (m_szMap.cx/m_Zoom);
 	Point.y /= (m_szMap.cy/m_Zoom);
 	GetMainFrame()->MapFileOpen(Point);
+	m_pSelMapGroup = NULL;
+	Invalidate();
 	return 0;
 }
 LRESULT CWorldEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
@@ -451,7 +571,10 @@ LRESULT CWorldEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	Point.Offset(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 	Point.x /= (m_szMap.cx/m_Zoom);
 	Point.y /= (m_szMap.cy/m_Zoom);
-	m_pSelMapGroup = CProjectFactory::Interface()->FindMapGroup(Point.x, Point.y);
+	CMapGroup *pMapGroup = CProjectFactory::Interface()->FindMapGroup(Point.x, Point.y);
+	if(m_pSelMapGroup == pMapGroup) {
+		m_pSelMapGroup = NULL;
+	} else m_pSelMapGroup = pMapGroup;
 	Invalidate();
 	return 0;
 }
@@ -461,6 +584,15 @@ LRESULT CWorldEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPa
 }
 LRESULT CWorldEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	CPoint Point(lParam);
+	Point.Offset(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
+	Point.x /= (m_szMap.cx/m_Zoom);
+	Point.y /= (m_szMap.cy/m_Zoom);
+	CMapGroup *pMapGroup = CProjectFactory::Interface()->FindMapGroup(Point.x, Point.y);
+	if(m_pSelMapGroup != pMapGroup) {
+		m_pSelMapGroup = NULL;
+		Invalidate();
+	}
 	return 0;
 }
 LRESULT CWorldEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)

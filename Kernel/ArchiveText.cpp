@@ -93,6 +93,7 @@ int CSpriteSheetTxtArch::ReadSprite(CVFile &vfFile)
 		if(state == eEOF) state = eType;
 		sLine = buff;
 		sLine.Trim();
+
 retry:
 		if(state == eType) {
 			if(sLine=="[ENTITY]") {

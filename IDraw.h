@@ -38,7 +38,7 @@ interface IDrawableContext
 interface IDrawableSelection :
 	public IDrawableContext
 {
-	virtual CURSOR GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_) = 0;
+	virtual bool GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor) = 0;
 	virtual void StartResizing(const CPoint &point_) = 0;
 	virtual void ResizeTo(const CPoint &point_) = 0;
 	virtual void EndResizing(const CPoint &point_) = 0;

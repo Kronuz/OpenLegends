@@ -34,6 +34,8 @@
 #define IDR_TB_PROJECT                  213
 #define IDR_TB_SCRIPTED                 214
 #define IDR_TB_MAPED_OBJECT             215
+#define IDR_TB_FOLDERS                  216
+#define IDR_TB_PROPVIEW                 217
 #define IDC_ARROWADD                    224
 #define IDC_ARROWDEL                    225
 #define IDC_ARROWADD1                   226
@@ -42,10 +44,17 @@
 #define IDR_TB_MAPED_BASIC              228
 #define IDD_PROPERTIES                  230
 #define IDD_PROPERTIES_NOTIMPLEMENTED   231
+#define IDD_PROPERTIESVIEW              231
 #define ID_FILE_PREFERENCES             232
 #define ID_CLOSE                        240
 #define ID_CLOSE_ACA                    241
 #define IDB_DRAGIMG                     243
+#define IDD_PROPERTYVIEW                244
+#define IDC_COMBO                       1000
+#define IDC_LIST                        1001
+#define IDC_TITLE                       1002
+#define IDC_FRAME                       1003
+#define IDC_DESCRIPTION                 1004
 #define ID_APP_BUILD                    32770
 #define ID_APP_CLOSE                    32771
 #define ID_APP_HELP                     32772
@@ -127,25 +136,7 @@
 #define ID_SCRIPTED_REPLACE             32855
 #define ID_SCRIPTED_CLEAR_ALL           32856
 #define ID_SCRIPTED_REPEAT              32857
-#define ID_BUTTON32858                  32858
-#define ID_BUTTON32859                  32859
-#define ID_BUTTON32860                  32860
-#define ID_BUTTON32861                  32861
-#define ID_BUTTON32862                  32862
-#define ID_BUTTON32863                  32863
-#define ID_BUTTON32864                  32864
-#define ID_BUTTON32865                  32865
-#define ID_BUTTON32866                  32866
-#define ID_BUTTON32867                  32867
-#define ID_BUTTON32868                  32868
-#define ID_BUTTON32869                  32869
-#define ID_BUTTON32870                  32870
-#define ID_BUTTON32871                  32871
-#define ID_BUTTON32872                  32872
-#define ID_BUTTON32873                  32873
-#define ID_BUTTON32874                  32874
 #define ID_MAPED_NEW                    32875
-#define ID_BUTTON32877                  32877
 #define ID_MAPED_PLAYER                 32879
 #define IDC_STATIC_CONFIGURE            32880
 #define IDC_STATIC_OPTION               32881
@@ -153,8 +144,12 @@
 #define IDC_PROPERTIES_PLACEHOLDER      32883
 #define IDC_PROPERTIES_TREE             32884
 #define ID_APP_CONFIG                   32885
-#define ID_MAPEDMASK                    32888
 #define ID_MAPED_MASK                   32888
+#define ID_FOLDERS_PROPERTIES           33000
+#define ID_PROP_CAT                     33001
+#define ID_PROP_SORT                    33002
+#define ID_PROP_PROPERTIES              33003
+#define ID_PROP_PAGES                   33004
 #define IDS_MESSAGE_PASSED_N_OF_FILE    60001
 #define IDS_WARNING_RELOAD              60002
 
@@ -162,9 +157,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        244
+#define _APS_NEXT_RESOURCE_VALUE        245
 #define _APS_NEXT_COMMAND_VALUE         32889
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

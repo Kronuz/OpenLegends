@@ -7,7 +7,10 @@
 // CPropertyList - A Property List control
 //
 // Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2001-2002 Bjarke Viksoe.
+// Copyright (c) 2001-2003 Bjarke Viksoe.
+//   Thanks to Pascal Binggeli for fixing the disabled items.
+//   Column resize supplied by Remco Verhoef, thanks.
+//   Also thanks to Daniel Bowen, Alex Kamenev and others for fixes.
 //
 // Add the following macro to the parent's message map:
 //   REFLECT_NOTIFICATIONS()
@@ -38,9 +41,12 @@
 
 
 // Extended List styles
-#define PLS_EX_CATEGORIZED  0x00000001
-#define PLS_EX_SORTED       0x00000002
-#define PLS_EX_XPLOOK       0x00000004
+#define PLS_EX_CATEGORIZED     0x00000001
+#define PLS_EX_SORTED          0x00000002
+#define PLS_EX_XPLOOK          0x00000004
+#define PLS_EX_SHOWSELALWAYS   0x00000008
+#define PLS_EX_SINGLECLICKEDIT 0x00000010
+#define PLS_EX_NOCOLUMNRESIZE  0x00000020
 
 // Include property base class
 #include "PropertyItem.h"
@@ -66,51 +72,9 @@ public:
    virtual ~CCategoryProperty()
    {
       // Need to delete hidden items too
-      for( int i=0; i<m_arrItems.GetSize(); i++ ) {
-         delete m_arrItems[i];
-      }
+      for( int i = 0; i < m_arrItems.GetSize(); i++ ) delete m_arrItems[i];
    }
-   BOOL IsExpanded() const
-   {
-      return m_fExpanded==true;
-   }
-   BOOL Expand(int idx)
-   {
-      ATLASSERT(::IsWindow(m_hWndOwner));
-      CListBox ctrl(m_hWndOwner);
-      ctrl.SetRedraw(FALSE);
-      idx++;
-      while( m_arrItems.GetSize()>0 ) {
-         IProperty* prop = m_arrItems[0];
-         ATLASSERT(prop);
-         m_arrItems.RemoveAt(0);
-         int item = ctrl.InsertString(idx++, prop->GetName());
-         ctrl.SetItemData(item, (DWORD)prop);
-      }
-      m_fExpanded = true;
-      ctrl.SetRedraw(TRUE);
-      ctrl.Invalidate();
-      return TRUE;
-   }
-   BOOL Collapse(int idx)
-   {
-      ATLASSERT(::IsWindow(m_hWndOwner));
-      CListBox ctrl(m_hWndOwner);
-      ctrl.SetRedraw(FALSE);
-      idx++;
-      while( idx < ctrl.GetCount() ) {
-         IProperty* prop = reinterpret_cast<IProperty*>(ctrl.GetItemData(idx));
-         ATLASSERT(prop);
-         if( prop->GetKind()==PROPKIND_CATEGORY ) break;
-         ctrl.SetItemData(idx, 0); // Clear data so WM_DELETEITEM doesn't delete memory
-         ctrl.DeleteString(idx);
-         m_arrItems.Add(prop);
-      }
-      m_fExpanded = false;
-      ctrl.SetRedraw(TRUE);
-      ctrl.Invalidate();
-      return TRUE;
-   }
+
    BYTE GetKind() const 
    { 
       return PROPKIND_CATEGORY; 
@@ -149,12 +113,60 @@ public:
    {
       switch( action ) {
       case PACT_SPACE:
-      case PACT_DBLCLICK:
       case PACT_EXPAND:
+      case PACT_DBLCLICK:
          ::SendMessage(m_hWndOwner, IsExpanded() ? WM_USER_PROP_COLLAPSE : WM_USER_PROP_EXPAND, 0, (LPARAM)this );
          break;
       }
       return TRUE;
+   }
+
+   BOOL IsExpanded() const
+   {
+      return m_fExpanded == true;
+   }
+   BOOL Expand(int idx)
+   {
+      ATLASSERT(::IsWindow(m_hWndOwner));
+      CListBox ctrl(m_hWndOwner);
+      ctrl.SetRedraw(FALSE);
+      idx++;
+      while( m_arrItems.GetSize() > 0 ) {
+         IProperty* prop = m_arrItems[0];
+         ATLASSERT(prop);
+         m_arrItems.RemoveAt(0);
+         int item = ctrl.InsertString(idx++, prop->GetName());
+         ctrl.SetItemData(item, (DWORD) prop);
+      }
+      m_fExpanded = true;
+      ctrl.SetRedraw(TRUE);
+      ctrl.Invalidate();
+      return TRUE;
+   }
+   BOOL Collapse(int idx)
+   {
+      ATLASSERT(::IsWindow(m_hWndOwner));
+      CListBox ctrl(m_hWndOwner);
+      ctrl.SetRedraw(FALSE);
+      idx++;
+      while( idx < ctrl.GetCount() ) {
+         IProperty* prop = reinterpret_cast<IProperty*>(ctrl.GetItemData(idx));
+         ATLASSERT(prop);
+         if( prop->GetKind() == PROPKIND_CATEGORY ) break;
+         ctrl.SetItemData(idx, 0); // Clear data now, so WM_DELETEITEM doesn't delete
+                                   // the IProperty in the DeleteString() call below
+         ctrl.DeleteString(idx);
+         m_arrItems.Add(prop);
+      }
+      m_fExpanded = false;
+      ctrl.SetRedraw(TRUE);
+      ctrl.Invalidate();
+      return TRUE;
+   }
+   IProperty* GetProperty(int iIndex) const
+   {
+      if( iIndex < 0 || iIndex >= m_arrItems.GetSize() ) return NULL;
+      return m_arrItems[iIndex];
    }
 };
 
@@ -167,12 +179,16 @@ inline HPROPERTY PropCreateCategory(LPCTSTR pstrName, LPARAM lParam=0)
 /////////////////////////////////////////////////////////////////////////////
 // CPropertyList control
 
-template <class T, class TBase = CListBox, class TWinTraits = CControlWinTraits>
+template< class T, class TBase = CListBox, class TWinTraits = CWinTraitsOR<LBS_OWNERDRAWVARIABLE|LBS_NOTIFY> >
 class ATL_NO_VTABLE CPropertyListImpl : 
    public CWindowImpl< T, TBase, TWinTraits >,
    public COwnerDraw< CPropertyListImpl >
 {
 public:
+   DECLARE_WND_SUPERCLASS(NULL, TBase::GetWndClassName())
+
+   enum { CATEGORY_INDENT = 16 };
+
    PROPERTYDRAWINFO m_di;
    HWND m_hwndInplace;
    int  m_iInplaceIndex;
@@ -180,10 +196,19 @@ public:
    CFont m_TextFont;
    CFont m_CategoryFont;
    CPen m_BorderPen;
+   int m_iPrevious;
+   int m_iPrevXGhostBar;
+   int m_iMiddle;
+   bool m_bColumnFixed;
 
-   enum { CATEGORY_INDENT = 16 };
-
-   CPropertyListImpl() : m_hwndInplace(NULL), m_iInplaceIndex(-1), m_dwExtStyle(0UL)
+   CPropertyListImpl() : 
+      m_hwndInplace(NULL), 
+      m_iInplaceIndex(-1), 
+      m_dwExtStyle(0UL),
+      m_iMiddle(0),
+      m_bColumnFixed(false),
+      m_iPrevious(0),
+      m_iPrevXGhostBar(0)
    {
    }
 
@@ -191,19 +216,21 @@ public:
 
    BOOL SubclassWindow(HWND hWnd)
    {
-      ATLASSERT(m_hWnd == NULL);
+      ATLASSERT(m_hWnd==NULL);
       ATLASSERT(::IsWindow(hWnd));
       BOOL bRet = CWindowImpl< T, TBase, TWinTraits >::SubclassWindow(hWnd);
-      if(bRet) _Init();
+      if( bRet ) _Init();
       return bRet;
    }
 
    void SetExtendedListStyle(DWORD dwExtStyle)
    {
+      ATLASSERT(::IsWindow(m_hWnd));
       // Assign styles
       if( dwExtStyle & PLS_EX_SORTED ) {
          ATLASSERT((dwExtStyle & PLS_EX_CATEGORIZED)==0); // We don't support sorted categories!
-         ATLASSERT((GetStyle() & (LBS_SORT|LBS_HASSTRINGS))==(LBS_SORT|LBS_HASSTRINGS) );
+         ATLASSERT(GetStyle() & LBS_SORT);
+         ATLASSERT(GetStyle() & LBS_HASSTRINGS);
       }
       m_dwExtStyle = dwExtStyle;
       // Recalc colours and fonts
@@ -224,47 +251,97 @@ public:
    {
       ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return NULL;
+      if( prop == NULL ) return NULL;
       prop->SetOwner(m_hWnd, NULL);
       int nItem = TBase::AddString(prop->GetName());
-      if( nItem==-1 ) return NULL;
-      TBase::SetItemData(nItem, (DWORD_PTR)prop);
+      if( nItem == LB_ERR ) return NULL;
+      TBase::SetItemData(nItem, (DWORD_PTR) prop);
+      return prop;
+   }
+   BOOL DeleteItem(HPROPERTY prop)
+   {
+      ATLASSERT(::IsWindow(m_hWnd));
+      ATLASSERT(prop);
+      ATLASSERT(prop->GetKind()!=PROPKIND_CATEGORY);
+      // Delete *visible* property!
+      int iIndex = FindProperty(prop);
+      if( iIndex == -1 ) return FALSE;
+      return TBase::DeleteString((UINT) iIndex) != LB_ERR;
+   }
+   HPROPERTY GetProperty(int index) const 
+   {
+      ATLASSERT(::IsWindow(m_hWnd));
+      ATLASSERT(index!=-1);
+      IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(index));
+      if( prop == (IProperty*) -1 ) prop = NULL;
       return prop;
    }
    HPROPERTY FindProperty(LPCTSTR pstrName) const
    {
+      ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(pstrName);
-      if( pstrName==NULL ) return NULL;
+      if( pstrName == NULL ) return NULL;
       // Find property from title
-      // BUG: Doesn't find it if it's collapsed. Hmm, what to do?
-      for( int i=0; i<GetCount(); i++ ) {
+      for( int i = 0; i < GetCount(); i++ ) {
          IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(i));
          ATLASSERT(prop);
-         if( ::lstrcmp(prop->GetName(), pstrName)==0 ) return prop;
+         if( ::lstrcmp(prop->GetName(), pstrName) == 0 ) return prop;
+         // Search properties in collapsed category items
+         if( prop->GetKind() == PROPKIND_CATEGORY ) {
+            const CCategoryProperty* category = static_cast<CCategoryProperty*>(prop);            
+            int j = 0;
+            for( IProperty* prop = NULL; (prop = category->GetProperty(j)) != NULL; j++ ) {
+               if( ::lstrcmp(prop->GetName(), pstrName) == 0 ) return prop;
+            }
+         }
+      }
+      return NULL;
+   }
+   HPROPERTY FindProperty(LPARAM lParam) const
+   {
+      ATLASSERT(::IsWindow(m_hWnd));
+      // Find property from item-data
+      // Method mostly supplied by DJ (thanks to this masked site reader)
+      for( int i = 0; i < GetCount(); i++ ) {
+         IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(i));
+         ATLASSERT(prop);
+         if( prop->GetItemData() == lParam ) return prop;
+         // Search properties in collapsed category items
+         if( prop->GetKind() == PROPKIND_CATEGORY ) {
+            CCategoryProperty* pCategory = static_cast<CCategoryProperty*>(prop);
+            IProperty* prop = NULL;
+            int j = 0;
+            while( (prop = pCategory->GetProperty(j++)) != NULL ) {
+               if( prop->GetItemData() == lParam ) return prop;
+            }
+         }
       }
       return NULL;
    }
    int FindProperty(HPROPERTY prop) const
    {
+      // Find *visible* property!
+      ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return 0;
-      // Find (visible) property index
-      for( int i=0; i<GetCount(); i++ ) {
-         if( TBase::GetItemData(i)==(DWORD_PTR) prop ) return i;
+      if( prop == NULL ) return 0;
+      for( int i = 0; i < GetCount(); i++ ) {
+         if( TBase::GetItemData(i) == (DWORD_PTR) prop ) return i;
       }
       return -1;
    }
    void GetItemName(HPROPERTY prop, LPTSTR pstr, UINT cchMax) const
    {
+      ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return;
+      if( prop == NULL ) return;
       ::lstrcpyn(pstr, prop->GetName(), cchMax);
    }
    BOOL GetItemValue(HPROPERTY prop, VARIANT* pValue) const
    {
+      ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
       ATLASSERT(pValue);
-      if( prop==NULL || pValue==NULL ) return FALSE;
+      if( prop == NULL || pValue == NULL ) return FALSE;
       return prop->GetValue(pValue);
    }
    BOOL SetItemValue(HPROPERTY prop, VARIANT* pValue)
@@ -272,45 +349,51 @@ public:
       ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
       ATLASSERT(pValue);
-      if( prop==NULL || pValue==NULL ) return FALSE;
+      if( prop == NULL || pValue == NULL ) return FALSE;
       // Assign value and repaint
       BOOL bRes = prop->SetValue(*pValue);
-      _InvalidateItem(FindProperty(prop));
-      // If changing selected item then recreate in-place editor
-      if( GetCurSel()==m_iInplaceIndex ) _SpawnInplaceWindow(prop, m_iInplaceIndex);
+      // Thanks to Daniel Bowen for fixing the recreation of inplace editor here.
+      int idx = FindProperty(prop);
+      if( idx >= 0 ) {
+         InvalidateItem(idx);
+         if( idx == m_iInplaceIndex ) _SpawnInplaceWindow(prop, m_iInplaceIndex);
+      }
       return bRes;
    }
    LPARAM GetItemData(HPROPERTY prop) const
    {
+      ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return 0;
+      if( prop == NULL ) return 0;
       return prop->GetItemData();
    }
    void SetItemData(HPROPERTY prop, LPARAM dwData)
    {
+      ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return;
+      if( prop == NULL ) return;
       prop->SetItemData(dwData);
    }
    BOOL GetItemEnabled(HPROPERTY prop) const
    {
+      ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return FALSE;
+      if( prop == NULL ) return FALSE;
       return prop->IsEnabled();
    }
    void SetItemEnabled(HPROPERTY prop, BOOL bEnable)
    {
       ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return;
+      if( prop == NULL ) return;
       prop->SetEnabled(bEnable);
-      _InvalidateItem(FindProperty(prop));
+      InvalidateItem(FindProperty(prop));
    }
    BOOL ExpandItem(HPROPERTY prop)
    {
       ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return FALSE;
+      if( prop == NULL ) return FALSE;
       if( prop->GetKind() != PROPKIND_CATEGORY ) return FALSE;
       CCategoryProperty* pCategory = static_cast<CCategoryProperty*>(prop);
       if( pCategory->Expand(FindProperty(prop)) ) {
@@ -324,8 +407,11 @@ public:
    {
       ATLASSERT(::IsWindow(m_hWnd));
       ATLASSERT(prop);
-      if( prop==NULL ) return FALSE;
+      if( prop == NULL ) return FALSE;
       if( prop->GetKind() != PROPKIND_CATEGORY ) return FALSE;
+      // Destroy in-place window
+      _DestroyInplaceWindow(); 
+      // Let property do actual collapse
       CCategoryProperty* pCategory = static_cast<CCategoryProperty*>(prop);
       if( pCategory->Collapse(FindProperty(prop)) ) {
          // Let owner know
@@ -334,18 +420,42 @@ public:
       }
       return TRUE;
    }
+   int GetColumnWidth() const
+   {
+      return m_iMiddle;
+   }
+   void SetColumnWidth(int iWidth)
+   {
+      ATLASSERT(::IsWindow(m_hWnd));
+      m_iMiddle = iWidth;
+      m_bColumnFixed = true;
+      Invalidate();
+   }
+   void InvalidateItem(int idx)
+   {
+      ATLASSERT(::IsWindow(m_hWnd));
+      if( idx == -1 ) return;
+      RECT rc;
+      GetItemRect(idx, &rc);
+      InvalidateRect(&rc);
+   }
 
    // Unsupported methods
 
    int AddString(LPCTSTR /*lpszItem*/)
    {
       ATLASSERT(false);
-      return 0;
+      return LB_ERR;
    }
    int InsertString(int /*nIndex*/, LPCTSTR /*lpszItem*/)
    {
       ATLASSERT(false);
-      return 0;
+      return LB_ERR;
+   }
+   int DeleteString(UINT /*nIndex*/)
+   {
+      ATLASSERT(false);
+      return LB_ERR;
    }
 
    // Implementation
@@ -353,26 +463,28 @@ public:
    void _Init()
    {
       ATLASSERT(::IsWindow(m_hWnd));
-      // Need LBS_OWNERDRAWVARIABLE and LBS_NOTIFY flags
-      ATLASSERT((GetStyle() & (LBS_OWNERDRAWVARIABLE|LBS_NOTIFY))==(LBS_OWNERDRAWVARIABLE|LBS_NOTIFY));
-      // But don't want multiselect or multicolumn flags
+      // Needs LBS_OWNERDRAWVARIABLE and LBS_NOTIFY flags,
+      // but don't want multiselect or multicolumn flags.
+      ATLASSERT(GetStyle() & LBS_OWNERDRAWVARIABLE);
+      ATLASSERT(GetStyle() & LBS_NOTIFY);
       ATLASSERT((GetStyle() & (LBS_MULTIPLESEL|LBS_NODATA|LBS_MULTICOLUMN))==0);
+      SendMessage(WM_SIZE);
       SendMessage(WM_SETTINGCHANGE);
    }
    void _GetInPlaceRect(int idx, RECT& rc) const
    {
       GetItemRect(idx, &rc);
       if( m_dwExtStyle & PLS_EX_CATEGORIZED ) rc.left += CATEGORY_INDENT;
-      rc.left += ((rc.right-rc.left)/2) + 1;
+      rc.left += m_iMiddle + 1;
    }
-   void _SpawnInplaceWindow(IProperty* prop, int idx)
+   BOOL _SpawnInplaceWindow(IProperty* prop, int idx)
    {
       ATLASSERT(prop);
       // Destroy old editor
       _DestroyInplaceWindow();
       // Do we need an editor here?
-      if( idx==-1 || idx!=GetCurSel() ) return;
-      if( !prop->IsEnabled() ) return;
+      if( idx == -1 || idx != GetCurSel() ) return FALSE;
+      if( !prop->IsEnabled() ) return FALSE;
       // Create a new editor window
       RECT rcValue;
       _GetInPlaceRect(idx, rcValue);
@@ -381,42 +493,67 @@ public:
       if( m_hwndInplace != NULL ) {
          // Activate the new editor window
          ATLASSERT(::IsWindow(m_hwndInplace));
-         ::SetWindowPos(m_hwndInplace, HWND_TOP, 0,0,0,0, SWP_SHOWWINDOW|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
-         // The similar VB control doesn't immediately set focus to the new editor window.
+         // The similar VB6 IDE control doesn't immediately set focus to the new editor window.
          // One must click on the item again. So we added the SWP_NOACTIVATE flag to 
          // simulate this behaviour.
+         ::SetWindowPos(m_hwndInplace, HWND_TOP, 0,0,0,0, SWP_SHOWWINDOW | SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE);
          m_iInplaceIndex = idx;
       }
+      return m_hwndInplace != NULL;
    }
    void _DestroyInplaceWindow()
    {
       if( m_hwndInplace && ::IsWindow(m_hwndInplace) ) {
+         IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(m_iInplaceIndex));
+         ATLASSERT(prop);
+         BYTE bKind = prop->GetKind();
          // Set focus back to our control
-         bool bChildHasFocus = false;
-         HWND hWnd = ::GetFocus();
-         while( hWnd ) {
-            if( hWnd == m_hWnd ) {
-               bChildHasFocus = true;
-               break;
-            }
-            hWnd = ::GetParent(hWnd);
+         if( GetFocus() != m_hWnd && IsChild(GetFocus()) ) SetFocus();
+         // Destroy control
+         switch( bKind ) {
+         case PROPKIND_CONTROL:
+            ::DestroyWindow(m_hwndInplace);
+            break;
+         default:
+            ::PostMessage(m_hwndInplace, WM_CLOSE, 0,0);
          }
-         if( bChildHasFocus ) SetFocus();
-         // NOTE: Calling DestroyWindow() seems to cause problems for the in-place control.
-         //       However most control react on lost focus events, so we use that to
-         //       make it update itself...
-         //::DestroyWindow(m_hwndInplace);
-         ::PostMessage(m_hwndInplace, WM_CLOSE, 0,0);
       }
       m_hwndInplace = NULL;
       m_iInplaceIndex = -1;
    }
-   void _InvalidateItem(int idx)
+   void _DrawGhostBar(int x)
    {
-      if( idx==-1 ) return;
-      RECT rc;
-      GetItemRect(idx, &rc);
-      InvalidateRect(&rc);
+      if( m_iPrevious == 0 ) return;
+      // PatBlt without clip children on
+      CWindow wndParent = GetParent();
+      DWORD dwOldStyle = wndParent.GetWindowLong(GWL_STYLE);
+      wndParent.SetWindowLong(GWL_STYLE, dwOldStyle & ~WS_CLIPCHILDREN);
+      
+      RECT rcClient = { 0 };
+      GetClientRect(&rcClient);
+      rcClient.left = x;
+      rcClient.right = x + 1;     
+      MapWindowPoints(wndParent, &rcClient);
+
+      // Invert the brush pattern (looks just like frame window sizing)
+      CClientDC dc = wndParent;
+      CBrush hbrHalfTone = CDCHandle::GetHalftoneBrush();
+      HBRUSH hOldBrush = NULL;
+      if( hbrHalfTone != NULL ) hOldBrush = dc.SelectBrush(hbrHalfTone);
+
+      dc.PatBlt(rcClient.left, rcClient.top, 2, rcClient.bottom - rcClient.top, PATINVERT);
+
+      dc.SelectBrush(hOldBrush);
+      wndParent.SetWindowLong(GWL_STYLE, dwOldStyle);
+   }
+   long _GetDragPos(int x) const
+   {
+      RECT rcClient;
+      GetClientRect(&rcClient);
+      ::InflateRect(&rcClient, -10, 0);
+      if( x > rcClient.right ) x = rcClient.right;
+      if( x < rcClient.left ) x = rcClient.left;
+      return x;
    }
 
    // Message map and handlers
@@ -424,13 +561,17 @@ public:
    BEGIN_MSG_MAP(CPropertyListImpl)
       MESSAGE_HANDLER(WM_CREATE, OnCreate)
       MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-      MESSAGE_HANDLER(WM_SIZE, OnScroll)
+      MESSAGE_HANDLER(WM_SIZE, OnSize)
       MESSAGE_HANDLER(WM_VSCROLL, OnScroll)
       MESSAGE_HANDLER(WM_HSCROLL, OnScroll)
-      MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
       MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
-      MESSAGE_HANDLER(WM_LBUTTONDOWN, OnClick)
+      MESSAGE_HANDLER(WM_CHAR, OnChar)
+      MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
+      MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
+      MESSAGE_HANDLER(WM_LBUTTONUP, OnLButtonUp)
       MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnDblClick)
+      MESSAGE_HANDLER(WM_SETTINGCHANGE, OnSettingChange)
+      MESSAGE_HANDLER(WM_SETCURSOR, OnSetCursor);
       MESSAGE_HANDLER(WM_USER_PROP_NAVIGATE, OnNavigate);
       MESSAGE_HANDLER(WM_USER_PROP_UPDATEPROPERTY, OnUpdateProperty);
       MESSAGE_HANDLER(WM_USER_PROP_CANCELPROPERTY, OnCancelProperty);
@@ -453,6 +594,21 @@ public:
       ResetContent(); // Make sure to delete editor and item-data memory
       return 0;
    }
+   LRESULT OnSize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+   {      
+      // Size handler supplied by DJ (thank to this masked site reader)
+      _DestroyInplaceWindow();
+      // Calculate drag
+      RECT rc;
+      GetClientRect(&rc);
+      if( !m_bColumnFixed ) m_iMiddle = (rc.right - rc.left) / 2;
+      m_iPrevious = 0;
+      BOOL bDummy;
+      OnSelChange(0, 0, 0, bDummy);
+      //
+      bHandled = FALSE;
+      return 0;
+   }
    LRESULT OnScroll(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
    {      
       _DestroyInplaceWindow();
@@ -462,22 +618,24 @@ public:
    LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
    {
       switch( LOWORD(wParam) ) {
-      case VK_F2:
       case VK_TAB:
          {
             int idx = GetCurSel();
-            if( idx!=-1 ) {
+            if( idx != -1 ) {
                IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(idx));
+               ATLASSERT(prop);
                prop->Activate(PACT_TAB, 0);
             }
          }
          break;
+      case VK_F2:
       case VK_SPACE:
          {
             int idx = GetCurSel();
-            if( idx!=-1 ) {
+            if( idx != -1 ) {
                IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(idx));
-               prop->Activate(PACT_SPACE, 0);
+               ATLASSERT(prop);
+               if( prop->IsEnabled() ) prop->Activate(PACT_SPACE, 0);
             }
          }
          break;
@@ -485,42 +643,120 @@ public:
       bHandled = FALSE;
       return 0;
    }
-   LRESULT OnClick(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
+   LRESULT OnChar(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled)
+   {      
+      // If the user is typing stuff, we should spawn an editor right away
+      // and simulate the keypress in the editor-window...
+      if( wParam > _T(' ') ) {
+         int idx = GetCurSel();
+         if( idx != -1 ) {
+            IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(idx));
+            ATLASSERT(prop);
+            if( prop->IsEnabled() ) {
+               if( _SpawnInplaceWindow(prop, idx) ) {
+                  prop->Activate(PACT_SPACE, 0);
+                  // Simulate typing in the inplace editor...
+                  ::SendMessage(m_hwndInplace, WM_CHAR, wParam, 1L);
+               }
+            }
+         }
+         return 0;
+      }
+      // Kill the nasty BEEP sound!
+      if( wParam == _T(' ') ) return 0;
+      bHandled = FALSE;
+      return 0;
+   }
+   LRESULT OnLButtonDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
    {
+      if( ::GetFocus() != m_hWnd ) SetFocus();
+
       LRESULT lRes = DefWindowProc(uMsg, wParam, lParam);
+        
+      // Should we do some column resize?
+      // NOTE: ListBox control will internally to SetCapture() to
+      //       capture all mouse-movements.
+      m_iPrevious = 0;
+      int iIndent = m_dwExtStyle & PLS_EX_CATEGORIZED ? CATEGORY_INDENT : 0;
+      if( (m_dwExtStyle & PLS_EX_NOCOLUMNRESIZE) == 0 &&
+          GET_X_LPARAM(lParam) == m_iMiddle + iIndent ) 
+      {
+         m_iPrevious = GET_X_LPARAM(lParam);
+      }
+
       int idx = GetCurSel();
-      if( idx!=-1 ) {
+      if( idx != -1 ) {
          IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(idx));
          ATLASSERT(prop);
          // Ask owner first
          NMPROPERTYITEM nmh = { m_hWnd, GetDlgCtrlID(), PIN_CLICK, prop };
-         if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh)==0 ) {
+         if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh) == 0 ) {
             // Translate into action
-            if( (m_dwExtStyle & PLS_EX_CATEGORIZED) && (GET_X_LPARAM(lParam)<CATEGORY_INDENT) ) {
+            if( (m_dwExtStyle & PLS_EX_CATEGORIZED) && GET_X_LPARAM(lParam) < CATEGORY_INDENT ) {
                prop->Activate(PACT_EXPAND, 0);
             }
             else {
-               prop->Activate(PACT_CLICK, lParam);
+               if( prop->IsEnabled() ) prop->Activate(PACT_CLICK, lParam);
             }
          }
       }
       return lRes;
    }
+   LRESULT OnLButtonUp(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
+   {
+      int x = _GetDragPos(GET_X_LPARAM(lParam));
+      if( m_iPrevious > 0 ) {
+         m_iMiddle += x - m_iPrevious;
+         Invalidate();
+      }
+      m_iPrevious = 0;
+      m_iPrevXGhostBar = 0;
+      bHandled = FALSE;
+      return 0;
+   }
    LRESULT OnDblClick(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
    {
       LRESULT lRes = DefWindowProc(uMsg, wParam, lParam);
       int idx = GetCurSel();
-      if( idx!=-1 ) {
+      if( idx != -1 ) {
          IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(idx));
          ATLASSERT(prop);
          // Ask owner first
          NMPROPERTYITEM nmh = { m_hWnd, GetDlgCtrlID(), PIN_DBLCLICK, prop };
-         if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh)==0 ) {
+         if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh) == 0 ) {
             // Send DblClick action
-            prop->Activate(PACT_DBLCLICK, lParam);
+            if( prop->IsEnabled() ) prop->Activate(PACT_DBLCLICK, lParam);
          }
       }
       return lRes;
+   }
+   LRESULT OnMouseMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL &bHandled)
+   {
+      // Column resize code added by Remco Verhoef, thanks.
+      if( m_iPrevious > 0 ) {
+         int x = _GetDragPos(GET_X_LPARAM(lParam));
+         if( m_iPrevXGhostBar != x ) {
+            if( m_iPrevXGhostBar ) _DrawGhostBar(m_iPrevXGhostBar);
+            m_iPrevXGhostBar = x;
+            _DrawGhostBar(m_iPrevXGhostBar);
+         }
+         return 0;
+      }
+      bHandled = FALSE;
+      return 0;
+   }
+   LRESULT OnSetCursor(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
+   {
+      POINT pt = { 0 };
+      ::GetCursorPos(&pt);
+      ScreenToClient(&pt);
+      int iIndent = m_dwExtStyle & PLS_EX_CATEGORIZED ? CATEGORY_INDENT : 0;
+      if( pt.x == m_iMiddle + iIndent ) {
+         ::SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_SIZEWE)));
+         return FALSE;
+      } 
+      bHandled = FALSE;
+      return 0;
    }
    LRESULT OnSettingChange(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
    {
@@ -541,13 +777,11 @@ public:
       if( !m_CategoryFont.IsNull() ) m_CategoryFont.DeleteObject();
       LOGFONT lf;
       HFONT hFont = (HFONT)::SendMessage(GetParent(), WM_GETFONT, 0, 0);
-      if( hFont==NULL ) hFont = AtlGetDefaultGuiFont();
+      if( hFont == NULL ) hFont = AtlGetDefaultGuiFont();
       ::GetObject(hFont, sizeof(lf), &lf);
       m_di.TextFont = m_TextFont.CreateFontIndirect(&lf);
       SetFont(m_di.TextFont);
-      if( (m_dwExtStyle & PLS_EX_XPLOOK)==0 ) {
-         lf.lfWeight += FW_BOLD;
-      }
+      if( (m_dwExtStyle & PLS_EX_XPLOOK) == 0 ) lf.lfWeight += FW_BOLD;
       m_di.CategoryFont = m_CategoryFont.CreateFontIndirect(&lf);
       // Text metrics
       CClientDC dc(m_hWnd);
@@ -561,12 +795,14 @@ public:
 
    LRESULT OnNavigate(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
    {
-      switch( wParam) {
+      switch( wParam ) {
       case VK_UP:
       case VK_DOWN:
          {
             _DestroyInplaceWindow();
-            SetCurSel(GetCurSel() + (wParam==VK_UP ? -1 : 1));
+            SetCurSel(GetCurSel() + (wParam == VK_UP ? -1 : 1));
+            BOOL bDummy;
+            OnSelChange(0, 0, NULL, bDummy);
          }
          break;
       }
@@ -578,25 +814,25 @@ public:
       // The editor window uses this message to update the attached property class.
       HWND hWnd = reinterpret_cast<HWND>(lParam);
       ATLASSERT(hWnd);
-      if( !::IsWindow(hWnd) || m_iInplaceIndex==-1 ) return 0;
+      if( !::IsWindow(hWnd) || m_iInplaceIndex == -1 ) return 0;
       ATLASSERT(hWnd==m_hwndInplace);
       IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(m_iInplaceIndex));
       ATLASSERT(prop);
-      if( prop==NULL ) return 0;
+      if( prop == NULL ) return 0;
       // Ask owner about change
       NMPROPERTYITEM nmh = { m_hWnd, GetDlgCtrlID(), PIN_ITEMCHANGING, prop };
-      if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh)==0 ) {
+      if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh) == 0 ) {
          // Set new value
-         prop->SetValue(hWnd);
+         if( !prop->SetValue(hWnd) ) ::MessageBeep((UINT)-1);
          // Let owner know
          nmh.hdr.code = PIN_ITEMCHANGED;
          ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh);
          // Repaint item
-         _InvalidateItem(m_iInplaceIndex);
+         InvalidateItem(m_iInplaceIndex);
          // Recycle in-place control so it displays the new value
          // NOTE: Traps condition where the SetValue() fails!
          int idx = FindProperty(prop);
-         if( (idx>=0) && (idx==m_iInplaceIndex) ) _SpawnInplaceWindow(prop, idx);
+         if( idx >= 0 && idx == m_iInplaceIndex ) _SpawnInplaceWindow(prop, idx);
       }
       return 0;
    }
@@ -606,16 +842,16 @@ public:
       // The editor window uses this message to update the attached property class.
       HWND hWnd = reinterpret_cast<HWND>(lParam);
       ATLASSERT(hWnd);
-      if( !::IsWindow(hWnd) || m_iInplaceIndex==-1 ) return 0;
+      if( !::IsWindow(hWnd) || m_iInplaceIndex == -1 ) return 0;
       ATLASSERT(hWnd==m_hwndInplace);
       IProperty* prop = reinterpret_cast<IProperty*>(TBase::GetItemData(m_iInplaceIndex));
       ATLASSERT(prop);
-      if( prop==NULL ) return 0;
+      if( prop == NULL ) return 0;
       // Repaint item
-      _InvalidateItem(m_iInplaceIndex);
+      InvalidateItem(m_iInplaceIndex);
       // Recycle in-place control so it displays the (old) value
       int idx = FindProperty(prop);
-      if( (idx>=0) && (idx==m_iInplaceIndex) ) _SpawnInplaceWindow(prop, idx);
+      if( idx >= 0 && idx == m_iInplaceIndex ) _SpawnInplaceWindow(prop, idx);
       return 0;
    }
    LRESULT OnChangedProperty(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
@@ -626,13 +862,13 @@ public:
       IProperty* prop = reinterpret_cast<IProperty*>(lParam);
       VARIANT* pVariant = reinterpret_cast<VARIANT*>(wParam);
       ATLASSERT(prop && pVariant);
-      if( prop==NULL || pVariant==NULL ) return 0;
+      if( prop == NULL || pVariant == NULL ) return 0;
       // Ask owner about change
       NMPROPERTYITEM nmh = { m_hWnd, GetDlgCtrlID(), PIN_ITEMCHANGING, prop };
-      if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh)==0 ) {
+      if( ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh) == 0 ) {
          // Set new value
          // NOTE: Do not call this from IProperty::SetValue(VARIANT*) = endless loop
-         prop->SetValue(*pVariant);
+         if( !prop->SetValue(*pVariant) ) ::MessageBeep((UINT)-1);
          // Let owner know
          nmh.hdr.code = PIN_ITEMCHANGED;
          ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh);
@@ -640,9 +876,9 @@ public:
       // Locate the updated property index
       int idx = FindProperty(prop);
       // Repaint item
-      _InvalidateItem(idx);
+      InvalidateItem(idx);
       // Recycle in-place control so it displays the new value
-      if( (idx>=0) && (idx==m_iInplaceIndex) ) _SpawnInplaceWindow(prop, idx);
+      if( idx >= 0 && idx == m_iInplaceIndex ) _SpawnInplaceWindow(prop, idx);
       return 0;
    }
    LRESULT OnExpand(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
@@ -660,19 +896,29 @@ public:
 
    LRESULT OnSelChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
    {
+      if( m_iPrevXGhostBar > 0 ) _DrawGhostBar(m_iPrevXGhostBar);
+
       IProperty* prop = NULL;
       int idx = GetCurSel();
-      if( idx!=-1 ) {
+      if( idx != -1 ) {
          prop = reinterpret_cast<IProperty*>(TBase::GetItemData(idx));
          ATLASSERT(prop);
-         if( prop->IsEnabled() ) {
-            prop->Activate(PACT_ACTIVATE, 0);
+         if( prop->GetKind() != PROPKIND_CATEGORY && prop->IsEnabled() ) {
             _SpawnInplaceWindow(prop, idx);
+            prop->Activate(PACT_ACTIVATE, 0);
+            if( m_dwExtStyle & PLS_EX_SINGLECLICKEDIT ) {
+               if( prop->GetKind() == PROPKIND_EDIT ) prop->Activate(PACT_DBLCLICK, 0);
+            }
+         }
+         else {
+            _DestroyInplaceWindow();
          }
       }
       // Let owner know
       NMPROPERTYITEM nmh = { m_hWnd, GetDlgCtrlID(), PIN_SELCHANGED, prop };
       ::SendMessage(GetParent(), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh);
+
+      if( m_iPrevXGhostBar > 0 ) _DrawGhostBar(m_iPrevXGhostBar);
       return 0;
    }
 
@@ -683,25 +929,31 @@ public:
       _DestroyInplaceWindow();
       if( lpDIS->itemData ) delete reinterpret_cast<IProperty*>(lpDIS->itemData);
    }
-   void MeasureItem(LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+   void MeasureItem(LPMEASUREITEMSTRUCT lpMIS)
    {
-      lpMeasureItemStruct->itemHeight = m_di.tmText.tmHeight + 3;
+      lpMIS->itemHeight = m_di.tmText.tmHeight + 3;
    }
    void DrawItem(LPDRAWITEMSTRUCT lpDIS)
    {
-      if( lpDIS->itemID==-1 ) return; // If there are no list box items, skip this message. 
+      if( lpDIS->itemID == -1 ) return; // If there are no list box items, skip this message. 
 
       CDCHandle dc(lpDIS->hDC);
+      RECT rc = lpDIS->rcItem;
+
       IProperty* prop = reinterpret_cast<IProperty*>(lpDIS->itemData);
       ATLASSERT(prop);
       BYTE kind = prop->GetKind();
-      RECT rc = lpDIS->rcItem;
 
       // Customize item
       PROPERTYDRAWINFO di = m_di;
       di.hDC = dc;
       di.state = lpDIS->itemState & ~ODS_DISABLED;
       if( lpDIS->itemID == (UINT) m_iInplaceIndex ) di.state |= ODS_COMBOBOXEDIT;
+
+      // Special style for removing selection when control hasn't focus
+      if( (di.dwExtStyle & PLS_EX_SHOWSELALWAYS) == 0 && (::GetFocus() != m_hWnd) ) {
+         di.state &= ~ODS_SELECTED;
+      }
 
       // Prepare drawing
       HFONT hOldFont = dc.SelectFont(di.TextFont);
@@ -717,59 +969,69 @@ public:
             dc.FillRect(&rcIndent, ::GetSysColorBrush(COLOR_3DFACE));
          }
          // Paint plus/minus sign if it's actually a category item
-         if( kind==PROPKIND_CATEGORY ) {
+         if( kind == PROPKIND_CATEGORY ) {
             dc.SelectFont(di.CategoryFont);
             CCategoryProperty* pCategory = static_cast<CCategoryProperty*>(prop);
-            POINT ptMiddle = { rc.left + (CATEGORY_INDENT/2), rc.top + ((rc.bottom-rc.top)/2) };
+            POINT ptMiddle = { rc.left + (CATEGORY_INDENT / 2), rc.top + ((rc.bottom - rc.top) / 2) };
             RECT rcSymbol = { ptMiddle.x - 4, ptMiddle.y - 4, ptMiddle.x + 5, ptMiddle.y + 5 };
             dc.SelectStockPen(BLACK_PEN);
             HBRUSH hOldBrush = dc.SelectStockBrush(NULL_BRUSH);
             dc.Rectangle(&rcSymbol);
             dc.SelectBrush(hOldBrush);
             if( !pCategory->IsExpanded() ) {
-               dc.MoveTo(ptMiddle.x, ptMiddle.y-2);
-               dc.LineTo(ptMiddle.x, ptMiddle.y+3);
+               dc.MoveTo(ptMiddle.x, ptMiddle.y - 2);
+               dc.LineTo(ptMiddle.x, ptMiddle.y + 3);
             }
-            dc.MoveTo(ptMiddle.x-2, ptMiddle.y);
-            dc.LineTo(ptMiddle.x+3, ptMiddle.y);
+            dc.MoveTo(ptMiddle.x - 2, ptMiddle.y);
+            dc.LineTo(ptMiddle.x + 3, ptMiddle.y);
          }
          dc.SelectPen(hOldPen);
          rc.left += CATEGORY_INDENT;
       }
-
+     
       // Calculate rectangles for the two sides
-      int iMiddle = (rc.right-rc.left)/2;
       RECT rcName = rc;
       RECT rcValue = rc;
-      rcName.right = rc.left + iMiddle;
-      rcValue.left = rc.left + iMiddle + 1;
-      
+      rcName.right = rc.left + m_iMiddle;
+      rcValue.left = rc.left + m_iMiddle + 1;
+
+      // Special handling of XP-like categories
+      if( kind == PROPKIND_CATEGORY && (m_dwExtStyle & PLS_EX_XPLOOK) != 0 ) {
+         rcName.right = rcValue.left = rc.right;
+      }
+
       // Draw name
       di.rcItem = rcName;
       prop->DrawName(di);
-      
+           
       // Draw value
-      di.rcItem = rcValue;
-      if( !prop->IsEnabled() ) di.state |= ODS_DISABLED;
-      prop->DrawValue(di);
+      // Thanks to Pascal Binggeli who suggested the Inplace-editor
+      // check below...
+      if( (int) lpDIS->itemID != m_iInplaceIndex ) {
+         di.rcItem = rcValue;
+         dc.FillSolidRect(&rcValue, di.clrBack);
+
+         if( !prop->IsEnabled() ) di.state |= ODS_DISABLED;
+         prop->DrawValue(di);
+      }
 
       // Paint borders
       HPEN hOldPen = dc.SelectPen(di.Border);
-      dc.MoveTo(rc.left, rc.bottom-1);
-      dc.LineTo(rc.right, rc.bottom-1);     
-      dc.MoveTo(rc.left + iMiddle, rc.top);
-      dc.LineTo(rc.left + iMiddle, rc.bottom-1);
+      dc.MoveTo(rc.left, rc.bottom - 1);
+      dc.LineTo(rc.right, rc.bottom - 1);     
+      dc.MoveTo(rc.left + m_iMiddle, rc.top);
+      dc.LineTo(rc.left + m_iMiddle, rc.bottom - 1);
       dc.SelectPen(hOldPen);
 
       dc.SelectFont(hOldFont);
    }
-
 };
+
 
 class CPropertyListCtrl : public CPropertyListImpl<CPropertyListCtrl>
 {
 public:
-   DECLARE_WND_CLASS(_T("WTL_PropertyList"))
+   DECLARE_WND_SUPERCLASS(_T("WTL_PropertyList"), GetWndClassName())
 };
 
 

@@ -209,11 +209,11 @@ interface IGraphics
 
 		\sa SetWindowView()
 	*/
-	virtual void GetWorldPosition(POINT &Point_) const = 0;
-	virtual void GetWorldRect(RECT &Rect_) const = 0;
+	virtual void GetWorldPosition(POINT *Point_) const = 0;
+	virtual void GetWorldRect(RECT *Rect_) const = 0;
 
-	virtual void GetViewPosition(POINT &Point_) const = 0;
-	virtual void GetViewRect(RECT &Rect_) const = 0;
+	virtual void GetViewPosition(POINT *Point_) const = 0;
+	virtual void GetViewRect(RECT *Rect_) const = 0;
 
 	/*! \brief Returns what zone of the world is visible at the time of the call.
 

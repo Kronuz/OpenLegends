@@ -73,10 +73,16 @@ public:
 	BEGIN_MSG_MAP(CTreeBox)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		REFLECTED_NOTIFY_CODE_HANDLER(TVN_BEGINDRAG, OnBegindrag)
+		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
 		DEFAULT_REFLECTION_HANDLER()
 	END_MSG_MAP()
 	
 	CTreeBox():m_pDropTarget(NULL){}
+
+	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		return 0;
+	}
 	
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{

@@ -29,7 +29,7 @@
 class CMainFrame;
 class CChildView;
 
-enum _child_type { tAny=0, tScriptEditor, tHtmlView, tWorldEditor, tMapEditor };
+enum _child_type { tAny=0, tScriptEditor, tSpriteEditor, tWorldEditor, tMapEditor };
 /////////////////////////////////////////////////////////////////////////////
 // This is the common childs class
 class CChildFrame : public 
@@ -50,7 +50,7 @@ public:
 	// Type of the child window
 	_child_type m_ChildType;
 	// Name given to the child window
-	CBString m_sChildName;
+	CString m_sChildName;
 
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
 

@@ -67,7 +67,7 @@ LRESULT CBuildOutputBox::OnWriteMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPa
 LRESULT CBuildOutputBox::OnLButtonDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 
-	CBString strLineText;
+	CString strLineText;
 	int nLineIndex = LineFromChar(LineIndex(-1));
 	int nLineLength = LineLength(LineIndex(nLineIndex));
 	int nRead = GetLine(nLineIndex, strLineText.GetBuffer(nLineLength + 3), 
@@ -86,9 +86,9 @@ LRESULT CBuildOutputBox::OnLButtonDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/, 
 			long lSelEnd	= lSelStart + strLineText.GetLength();
 			SetSel(lSelStart, lSelEnd);
 /////////////////////
-			CBString sFile = strLineText.Mid(0,show);
+			CString sFile = strLineText.Mid(0,show);
 			int line = sFile.ReverseFind('(');
-			CBString sLine= sFile.Mid(line+1);
+			CString sLine= sFile.Mid(line+1);
 			m_pMainFrame->FileOpen(sFile.Mid(0,line),atol(sLine));
 /////////////////////
 		}
@@ -151,13 +151,13 @@ void CBuildOutputBox::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
 	if(strstr(lpszNewText, "Done.")) return;
 	if(strstr(lpszNewText, "Compilation aborted.")) return;
 
-	if(strstr(lpszNewText, ") : Warning")) { color=0x005500; m_Warnings++; }
-	if(strstr(lpszNewText, ") : Error")) { color=0x000055; m_Errors++; }
-	if(strstr(lpszNewText, ") : Fatal")) { color=0x0000ff; m_Errors++; }
+	if(stristr(lpszNewText, ") : warning")) { color=0x008000; m_Warnings++; }
+	if(stristr(lpszNewText, ") : error")) { color=0x000080; m_Errors++; }
+	if(stristr(lpszNewText, ") : fatal")) { color=0x0000ff; m_Errors++; }
 
-	if(strstr(lpszNewText, "warning")) { color=0x005500;}
-	if(strstr(lpszNewText, "error")) { color=0x000055;}
-	if(strstr(lpszNewText, "fatal")) { color=0x0000ff;}
+	if(stristr(lpszNewText, "warning")) { color=0x008000;}
+	if(stristr(lpszNewText, "error")) { color=0x000080;}
+	if(stristr(lpszNewText, "fatal")) { color=0x0000ff;}
 
 	CHARFORMAT2 fmt;
 	if(!pcFmt) {

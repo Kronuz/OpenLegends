@@ -33,11 +33,15 @@ int ForEachFile(LPCSTR lpFileName, FILESPROC ForEach, LPARAM lParam, int flags)
 				if(*aux=='\\') aux = CharNext(aux);
 			} else aux = filename;
 			if(*aux != '\0') {
-				files++;
 				if((flags & FEF_LOWERCASE) == FEF_LOWERCASE) CharLower(aux);
 				else if((flags & FEF_UPPERCASE) == FEF_UPPERCASE) CharUpper(aux);
 				if((flags & FEF_BEAUTIFY) == FEF_BEAUTIFY) *aux = toupper(*aux);
-				if(!ForEach(aux, lParam)) break;
+				int cnt = ForEach(aux, lParam);
+				if(cnt < 0) {
+					files = cnt-files;
+					break;
+				}
+				files += cnt;
 			}
 		} while(FindNextFile(FindHandle, &FindData));
 		FindClose(FindHandle);

@@ -296,11 +296,20 @@ void CGameManager::Clean()
 		m_UndefSprites.erase(m_UndefSprites.begin());
 	}
 }
-bool CGameManager::LoadWorld(CVFile &vfFile)
+int CALLBACK RemoveMask(LPVOID sprite, LPARAM lParam)
 {
-	return m_World.Load(vfFile);
+	CSprite *pSprite = static_cast<CSprite*>(sprite);
+	if(pSprite->GetSpriteType() == tEntity || pSprite->GetSpriteType()== tBackground) {
+		CBackground *pBackground = static_cast<CBackground*>(sprite);
+		SBackgroundData *pBackgroundData =
+			static_cast<SBackgroundData*>(pBackground->GetSpriteData());
+		if(pBackgroundData->pMaskMap == static_cast<CMaskMap*>((LPVOID)lParam)) {
+			pBackgroundData->pMaskMap = NULL;
+			return 1;
+		}
+	}
+	return 0;
 }
-
 bool CGameManager::Load(CVFile &vfFile)
 {
 
@@ -318,7 +327,17 @@ bool CGameManager::Load(CVFile &vfFile)
 	std::map<CBString, SUndefSprite>::iterator Iterator = m_UndefSprites.begin();
 	while(Iterator != m_UndefSprites.end()) {
 		SUndefSprite &UndefSprite = Iterator->second;
-		CONSOLE_OUTPUT("  Undefined sprite: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
+		// If the referenced, but not defined sprite is a Mask, we need to look for it on every object in every
+		// sprite sheet and clear its mask reference if needed.
+		if(UndefSprite.pSprite->GetSpriteType() == tMask) {
+			if(ForEachSprite(RemoveMask, (LPARAM)UndefSprite.pSprite)) {
+				CONSOLE_OUTPUT("  Error: Undefined mask: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
+			} else {
+				CONSOLE_OUTPUT("  Warning: Undefined mask: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
+			}
+		} else {
+			CONSOLE_OUTPUT("  Warning: Undefined sprite: '%s', first referred at: '%s' (%d)\n", Iterator->first, (LPCSTR)UndefSprite.sFile, UndefSprite.nLine);
+		}
 		delete UndefSprite.pSprite;
 		Iterator++;
 	}
@@ -343,6 +362,15 @@ void CGameManager::GetMapSize(CSize &mapSize) const
 void CGameManager::SetMapSize(const CSize &mapSize)
 {
 	m_World.m_szMapSize = mapSize;
+}
+
+void CGameManager::GetWorldSize(CSize &worldSize) const
+{
+	worldSize = m_World.m_szWorldSize;
+}
+void CGameManager::SetWorldSize(const CSize &worldSize)
+{
+	m_World.m_szWorldSize = worldSize;
 }
 
 CMapGroup* CGameManager::BuildMapGroup(int x, int y, int width, int height)
@@ -384,8 +412,9 @@ int CGameManager::ForEachSound(FOREACHPROC ForEach, LPARAM lParam)
 	std::map<CBString, CSound*>::iterator Iterator = m_Sounds.begin();
 	while(Iterator != m_Sounds.end()) {
 		ASSERT(Iterator->second);
-		cnt++;
-		if(!ForEach((LPVOID)(Iterator->second), lParam)) return -1;
+		int aux = ForEach((LPVOID)(Iterator->second), lParam);
+		if(aux < 0) return aux-cnt;
+		cnt += aux;
 		Iterator++;
 	}
 	return cnt;
@@ -396,8 +425,9 @@ int CGameManager::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 	std::vector<CSpriteSheet*>::iterator Iterator = m_SpriteSheets.begin();
 	while(Iterator != m_SpriteSheets.end()) {
 		ASSERT(*Iterator);
-		cnt++;
-		if((*Iterator)->ForEachSprite(ForEach, lParam) < 0) return -1;
+		int aux = (*Iterator)->ForEachSprite(ForEach, lParam);
+		if(aux < 0) return aux-cnt;
+		cnt += aux;
 		Iterator++;
 	}
 	return cnt;
@@ -408,8 +438,9 @@ int CGameManager::ForEachScript(FOREACHPROC ForEach, LPARAM lParam)
 	std::map<CBString, CScript*>::iterator Iterator = m_Scripts.begin();
 	while(Iterator != m_Scripts.end()) {
 		ASSERT(Iterator->second);
-		cnt++;
-		if(!ForEach((LPVOID)(Iterator->second), lParam)) return -1;
+		int aux = ForEach((LPVOID)(Iterator->second), lParam);
+		if(aux < 0) return aux-cnt;
+		cnt += aux;
 		Iterator++;
 	}
 	return cnt;
@@ -420,8 +451,9 @@ int CGameManager::ForEachSpriteSheet(FOREACHPROC ForEach, LPARAM lParam)
 	std::vector<CSpriteSheet*>::iterator Iterator = m_SpriteSheets.begin();
 	while(Iterator != m_SpriteSheets.end()) {
 		ASSERT(*Iterator);
-		cnt++;
-		if(!ForEach((LPVOID)(*Iterator), lParam)) return -1;
+		int aux = ForEach((LPVOID)(*Iterator), lParam);
+		if(aux < 0) return aux-cnt;
+		cnt += aux;
 		Iterator++;
 	}
 	return cnt;

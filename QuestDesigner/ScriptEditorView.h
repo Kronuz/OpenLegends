@@ -148,7 +148,7 @@ public:
 	BOOL DoFileOpen(LPCTSTR , LPCTSTR=_T("Untitled"));
 
 	// Save the file
-	BOOL DoFileSave(const CBString &);
+	BOOL DoFileSave(const CString &);
 	BOOL DoFileSaveAs();
 
 	// Reload a file

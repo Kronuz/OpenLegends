@@ -164,12 +164,24 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	PostMessage(CWM_INITIALIZE);
 
 	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
-	CVFile vfFile("Kronuz Project");
 
 	ShowWindow(true);
 	Invalidate();
 	UpdateWindow();
-	CProjectFactory::Instance(m_hWnd)->Interface()->Load(vfFile);
+
+	if(!CProjectFactory::Instance(m_hWnd)->Interface()->Close()) {
+		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
+		if(nChoice == IDYES) {
+			if(!CProjectFactory::Instance(m_hWnd)->Interface()->Save()) {
+				MessageBox("Couldn't save!");
+				return 0;
+			}
+		} else if(nChoice == IDCANCEL) {
+			return 0;
+		}
+		CProjectFactory::Instance(m_hWnd)->Interface()->Close(true);
+	} 
+	CProjectFactory::Instance(m_hWnd)->Interface()->Load("Kronuz Project");
 
 	return 0;
 }
@@ -189,28 +201,12 @@ void CMainFrame::InitializeDefaultPanes()
 	m_InfoFrame.Create(m_hWnd, rcFloat, _T("Information Window"), dwStyle);
 	m_ListFrame.Create(m_hWnd, rcFloat, _T("World List Window"), dwStyle);
 
-	m_PropFrame.Create(m_hWnd, rcFloat, _T("Properties Window"), dwStyle,	WS_EX_CLIENTEDGE);
+	m_PropFrame.Create(m_hWnd, rcFloat, _T("Properties Window"), dwStyle);
 
 	// Add bitmaps to the docking window's tabs
 	int nFirstIndex = m_InfoFrame.AddBitmap(IDB_MSDEV_TAB_ICONS, RGB(0,255,0));
 
 	// Dock the windows.
-	DockWindow (
-		m_PropFrame,
-		dockwins::CDockingSide(dockwins::CDockingSide::sRight),
-		0,				// nBar
-		float(0.0),		// fPctPos
-		rcDock.Width(),	// nWidth
-		rcDock.Height()	// nHeight
-	);
-	DockWindow (
-		m_ListFrame,
-		dockwins::CDockingSide(dockwins::CDockingSide::sRight),
-		0,				// nBar
-		float(0.0),		// fPctPos
-		rcDock.Width(),	// nWidth
-		rcDock.Height()*2	// nHeight
-	);
 	DockWindow (
 		m_InfoFrame,
 		dockwins::CDockingSide(dockwins::CDockingSide::sBottom),
@@ -219,7 +215,22 @@ void CMainFrame::InitializeDefaultPanes()
 		rcDock.Width(),	// nWidth
 		rcDock.Height()	// nHeight
 	);
-
+	DockWindow (
+		m_PropFrame,
+		dockwins::CDockingSide(dockwins::CDockingSide::sRight),
+		0,				// nBar
+		float(0.0),		// fPctPos
+		rcDock.Height(),// nWidth
+		rcDock.Width()	// nHeight
+	);
+	DockWindow (
+		m_ListFrame,
+		dockwins::CDockingSide(dockwins::CDockingSide::sRight),
+		0,				// nBar
+		float(0.0),		// fPctPos
+		rcDock.Height(),// nWidth
+		rcDock.Width()	// nHeight
+	);
 	////////////////////////////////////////////////////////////////////
 	// Create the content for the docking windows:
 	dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL;
@@ -228,9 +239,8 @@ void CMainFrame::InitializeDefaultPanes()
 	m_OutputBox.Create(m_InfoFrame,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
 	m_OutputBox.m_pMainFrame = this;
 
-	dwStyle = WS_CHILD | WS_VISIBLE | TVS_LINESATROOT | TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS;
-	m_GameProject.Create(m_ListFrame,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
-	m_Quest.Create(m_ListFrame,				rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+	m_GameProject.Create(m_ListFrame);
+	m_Quest.Create(m_ListFrame);
 
 	// Add the created windows to the docking frame:
 	m_InfoFrame.AddTab(m_DescriptionView,	_T("Project Description"),	1 + nFirstIndex);
@@ -272,10 +282,6 @@ LRESULT CMainFrame::OnScriptFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*h
 {
 	// create a new MDI child window
 //	CreateNewChildWnd();
-
-	CHtmlFrame *pChild = new CHtmlFrame(this);
-	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
-	ATLASSERT(hChildWnd);
 
 	// TODO: add code to initialize document
 
@@ -476,8 +482,20 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
-	CVFile vfFile(szFilename);
-	CProjectFactory::Interface()->LoadWorld(vfFile);
+	if(!CProjectFactory::Instance(m_hWnd)->Interface()->CloseWorld()) {
+		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
+		if(nChoice == IDYES) {
+			if(!CProjectFactory::Instance(m_hWnd)->Interface()->SaveWorld()) {
+				MessageBox("Couldn't save!");
+				return 0;
+			}
+		} else if(nChoice == IDCANCEL) {
+			return 0;
+		}
+		CProjectFactory::Instance(m_hWnd)->Interface()->CloseWorld(true);
+	} 
+	CProjectFactory::Interface()->LoadWorld(szFilename);
+
 	return 1;
 }
 

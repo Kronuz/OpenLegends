@@ -246,7 +246,7 @@ protected:
 			no obstacle thus this areas do not slow down nor stop the entity from passing.
 		*/
 
-	bool Draw(const CDrawableContext &context, bool bBounds, ARGBCOLOR *rgbColorOverride, IBuffer **ppBuffer);
+	bool Draw(const CDrawableContext &context, bool bBounds, ARGBCOLOR *rgbColorOverride, int nBuffer);
 
 public:
 	_spt_type GetSpriteType();
@@ -390,11 +390,10 @@ protected:
 public:
 	ITexture *m_pTexture; //! cached texture (valid only if it was aquired with the same Device ID)
 
-	CVFile& GetFileName() { return m_fnFileLoad; }
+	CVFile& GetFileName() { return m_fnFile; }
 	CGameManager* GetGameManager() { return m_pGameManager; }
 
 	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
-
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -414,7 +413,7 @@ class CSpriteContext :
 	public CDrawableContext
 {
 public:
-	mutable int m_nFrame;
+	mutable int m_nFrame[CONTEXT_BUFFERS];
 
 	CSpriteContext(LPCSTR szName);
 

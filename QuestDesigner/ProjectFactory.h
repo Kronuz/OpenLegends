@@ -40,7 +40,7 @@
 class CProjectFactory
 {
 	static CProjectFactory *_instance;
-	CBString sIName;
+	CString sIName;
    	HMODULE m_hDLL;
 	HWND m_hWnd;
 

@@ -151,17 +151,30 @@ public:
 	// Loading/Saving methods:
 	bool Load(CVFile &vfFile); //!< Loads the project from a file
 	bool Save(CVFile &vfFile) { return false; } //!< Saves the project to a file
-	bool Close() { return false; } //!< Closes the project
+	bool Save() { return false; }
+	bool Close(bool bForce) { return(m_sProjectName==""); } //!< Closes the project
 
-	bool LoadWorld(CVFile &vfFile);
-	bool SaveWorld(CVFile &vfFile) { return false; }
-	bool CloseWorld() { return false; }
+	bool Load(LPCSTR szFile) { return Load(CVFile(szFile)); }
+	bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
+
+
+	bool LoadWorld(CVFile &vfFile) { return m_World.Load(vfFile); }
+	bool SaveWorld(CVFile &vfFile) { return m_World.Save(vfFile); }
+	bool SaveWorld() { return false; }
+	bool CloseWorld(bool bForce) { return m_World.Close(bForce); }
+
+	bool LoadWorld(LPCSTR szFile) { return LoadWorld(CVFile(szFile)); }
+	bool SaveWorld(LPCSTR szFile) { return SaveWorld(CVFile(szFile)); }
 
 	CSpriteSelection* CreateSpriteSelection(CDrawableContext **ppDrawableContext_);
 	void DeleteSpriteSelection(CSpriteSelection *pSelection);
 
 	void GetMapSize(CSize &mapSize) const;
 	void SetMapSize(const CSize &mapSize);
+
+	void GetWorldSize(CSize &worldSize) const;
+	void SetWorldSize(const CSize &worldSize);
+
 	CMapGroup *FindMapGroup(int x, int y) const; //!< Get the map group at location (x,y)
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
 

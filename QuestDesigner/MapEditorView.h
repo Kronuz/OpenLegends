@@ -52,7 +52,7 @@ private:
 	float m_Zoom;
 	int m_nSnapSize;
 	bool m_bFloating;
-	bool m_bDragMode;
+	enum { tNone, tToDrag, tWaiting, tDragging } m_DragState;
 	bool m_bIgnoreClick;
 
 	bool m_bMulSelection;
@@ -63,7 +63,6 @@ private:
 
 	bool m_bAnimated;
 
-	UINT_PTR m_nTimer;
 	CURSOR m_CursorStatus;
 	CURSOR m_OldCursorStatus;
 
