@@ -23,7 +23,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="5"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
 				DebugInformationFormat="4"/>
@@ -68,10 +68,11 @@
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..\libs\zlib;..\libs"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
-				RuntimeLibrary="4"
+				StringPooling="TRUE"
+				RuntimeLibrary="0"
 				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				DebugInformationFormat="3"/>
+				DebugInformationFormat="0"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool

@@ -39,7 +39,7 @@
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/Kernel.pdb"
 				SubSystem="2"
-				ImportLibrary="$(OutDir)/Kernel.lib"
+				ImportLibrary="$(OutDir)/$(ProjectName).lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -72,13 +72,6 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="3"
-				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="1"
-				OmitFramePointers="TRUE"
-				OptimizeForWindowsApplication="TRUE"
 				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS"
 				StringPooling="TRUE"
@@ -95,10 +88,11 @@
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
 				ModuleDefinitionFile="Kernel.def"
+				GenerateDebugInformation="FALSE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				ImportLibrary="$(OutDir)/Kernel.lib"
+				ImportLibrary="$(OutDir)/$(ProjectName).lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
