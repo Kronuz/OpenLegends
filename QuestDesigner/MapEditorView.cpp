@@ -137,7 +137,10 @@ LRESULT CMapEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 {
 	LRESULT nResult = DefWindowProc();
 
-	CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D8.dll");
+	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D8.dll"))) {
+		MessageBox("Couldn't load graphics plugin, check plugin version.", "Quest Designer");
+	}
+
 	m_pGraphicsI->Initialize(GetMainFrame()->m_hWnd);
 
 	InitDragDrop();
@@ -147,7 +150,8 @@ LRESULT CMapEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle) 
 {
 	m_pMapGroupI = pMapGroupI;
-	CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pMapGroupI));
+	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pMapGroupI))))
+		MessageBox("Couldn't load kernel, check kernel version.", "Quest Designer");
 
 	m_pMapGroupI->GetSize(m_szMap);
 
@@ -230,7 +234,12 @@ void CMapEditorView::UpdateView()
 void CMapEditorView::Render()
 {
 	ASSERT(m_pMapGroupI);
-	WORD wFlags = (m_bShowBoundaries?SPRITE_BOUNDS:0) | (m_bShowMasks?SPRITE_MASKS:0);
+
+	// Update timings and stuff for the animations
+	CProjectFactory::Interface(m_hWnd)->UpdateFPS();
+
+	// show entities, and if set, also sprite boundaries and masks
+	WORD wFlags = SPRITE_ENTITIES | (m_bShowBoundaries?SPRITE_BOUNDS:0) | (m_bShowMasks?SPRITE_MASKS:0);
 	m_SelectionI->Paint(m_pGraphicsI, wFlags);
 }
 

@@ -12,7 +12,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// Inglés (Estados Unidos) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -50,30 +50,9 @@ END
 // Toolbar
 //
 
-IDR_TB_SCRIPTED TOOLBAR  18, 18
-BEGIN
-    BUTTON      ID_SCRIPTED_TAB
-    BUTTON      ID_SCRIPTED_UNTAB
-END
-
 IDR_MAINFRAME TOOLBAR  18, 18
 BEGIN
     BUTTON      ID_PROJECT_OPEN
-    SEPARATOR
-    BUTTON      ID_APP_NEW
-    BUTTON      ID_APP_OPEN
-    BUTTON      ID_APP_SAVE
-    BUTTON      ID_APP_SAVEALL
-    SEPARATOR
-    BUTTON      ID_APP_PRINT
-    SEPARATOR
-    BUTTON      ID_CUT
-    BUTTON      ID_COPY
-    BUTTON      ID_PASTE
-    BUTTON      ID_ERASE
-    SEPARATOR
-    BUTTON      ID_UNDO
-    BUTTON      ID_REDO
     SEPARATOR
     BUTTON      ID_APP_WORLDED
     BUTTON      ID_APP_MAPED
@@ -107,9 +86,27 @@ BEGIN
     BUTTON      ID_MAPED_ALCX
 END
 
-IDR_TB_MAPED_MAIN TOOLBAR  18, 18
+IDR_TB_MAIN TOOLBAR  18, 18
 BEGIN
+    BUTTON      ID_APP_NEW
+    BUTTON      ID_APP_OPEN
+    BUTTON      ID_APP_SAVE
+    BUTTON      ID_APP_SAVEALL
+    SEPARATOR
+    BUTTON      ID_APP_PRINT
+    SEPARATOR
+    BUTTON      ID_CUT
+    BUTTON      ID_COPY
+    BUTTON      ID_PASTE
+    BUTTON      ID_ERASE
+    SEPARATOR
+    BUTTON      ID_UNDO
+    BUTTON      ID_REDO
+    SEPARATOR
     BUTTON      ID_MAPED_LAYER
+    SEPARATOR
+    BUTTON      ID_SCRIPTED_TAB
+    BUTTON      ID_SCRIPTED_UNTAB
 END
 
 IDR_TB_MAPED_BASIC TOOLBAR  18, 18
@@ -154,10 +151,9 @@ END
 // Bitmap
 //
 
-IDR_TB_SCRIPTED         BITMAP                  "res\\ScriptsToolbar.bmp"
 IDR_MAINFRAME           BITMAP                  "res\\ProjectToolbar.bmp"
 IDB_TAB_ICONS           BITMAP                  "res\\tab_icons.bmp"
-IDR_TB_MAPED_MAIN       BITMAP                  "res\\MapEdToolbarMain.bmp"
+IDR_TB_MAIN             BITMAP                  "res\\MapEdToolbarMain.bmp"
 IDR_TB_MAPED_BASIC      BITMAP                  "res\\MapEdToolbarBasic.bmp"
 IDR_TB_MAPED_OBJECT     BITMAP                  "res\\MapEdToolbarObject.bmp"
 IDR_TB_FOLDERS          BITMAP                  "res\\FoldersToolbar.bmp"
@@ -807,7 +803,7 @@ BEGIN
     ID_PROJECT_OPEN         "Open a Game Project.\nOpen Game"
 END
 
-#endif    // English (U.S.) resources
+#endif    // Inglés (Estados Unidos) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

@@ -29,7 +29,7 @@
 
 #include "../Console.h"
 
-const WORD IGraphics::Version = 0x0100;
+const WORD IGraphics::Version = 0x0200;
 CGraphicsFactory *CGraphicsFactory::_instance = NULL;
 
 CGraphicsFactory::CGraphicsFactory() :
@@ -84,7 +84,7 @@ HRESULT CGraphicsFactory::New(IGraphics **pGraphics, LPCSTR lpszIName) {
 			CString sMsg = "Error loading up " + _instance->sIName;
 			::MessageBox(NULL,
 				sMsg,
-				"Fatal Error",
+				"Quest Designer - Fatal Error",
 				MB_OK | MB_ICONERROR);
 			return E_FAIL;
 		}

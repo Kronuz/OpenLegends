@@ -92,17 +92,12 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	SetMenu(NULL);
 
 	// create a toolbar
-	HWND hScriptToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_SCRIPTED, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_ADJUSTABLE);
-	// add the toolbar to the UI update map
-	UIAddToolBar(hScriptToolBar);
-
-	// create a toolbar
 	HWND hProjectToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_MAINFRAME, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_ADJUSTABLE);
 	// add the toolbar to the UI update map
 	UIAddToolBar(hProjectToolBar);
 
 	// create a toolbar
-	HWND hMapEdToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPED_MAIN, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_ADJUSTABLE);
+	HWND hMapEdToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAIN, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_ADJUSTABLE);
 	// add the toolbar to the UI update map
 	UIAddToolBar(hMapEdToolBar);
 
@@ -150,8 +145,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	}	
 	AddSimpleReBarBand(hWndCmdBar);
 	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 0, TRUE);
-	AddSimpleReBarBand(hMapEdToolBar, "Map Editor", TRUE, 0, TRUE);
-	AddSimpleReBarBand(hScriptToolBar, "Script Editor", FALSE, 0, TRUE);
+	AddSimpleReBarBand(hMapEdToolBar, NULL, TRUE, 0, TRUE);
 
 	// create a status bar
 	if(!CreateSimpleStatusBar(_T("Ready")) ||
@@ -379,22 +373,22 @@ LRESULT CMainFrame::OnFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 
 LRESULT CMainFrame::OnProjectOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	if(!CProjectFactory::Instance(m_hWnd)->Interface()->Close()) {
+	if(!CProjectFactory::Interface(m_hWnd)->Close()) {
 		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
 		if(nChoice == IDYES) {
-			if(!CProjectFactory::Instance(m_hWnd)->Interface()->Save()) {
+			if(!CProjectFactory::Interface(m_hWnd)->Save()) {
 				MessageBox("Couldn't save!");
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		CProjectFactory::Instance(m_hWnd)->Interface()->Close(true);
+		CProjectFactory::Interface(m_hWnd)->Close(true);
 	} 
 
 	::SendMessage(m_GameProject, WM_SETREDRAW, FALSE, 0);
-	g_sHomeDir = "C:\\qd\\qQuest Designer 2.1.4\\";
-	CProjectFactory::Instance(m_hWnd)->Interface()->Load(g_sHomeDir);
+	g_sHomeDir = "C:\\qd\\Quest Designer 2.1.4\\";
+	CProjectFactory::Interface(m_hWnd)->Load(g_sHomeDir);
 	::SendMessage(m_GameProject, WM_SETREDRAW, TRUE, 0);
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 	m_SpriteSets.PopulateTree(g_sHomeDir + "Sprite Sets");
@@ -576,17 +570,17 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
-	if(!CProjectFactory::Instance(m_hWnd)->Interface()->CloseWorld()) {
+	if(!CProjectFactory::Interface(m_hWnd)->CloseWorld()) {
 		int nChoice = MessageBox("Changes Done, save?", "Quest Designer", MB_YESNOCANCEL);
 		if(nChoice == IDYES) {
-			if(!CProjectFactory::Instance(m_hWnd)->Interface()->SaveWorld()) {
+			if(!CProjectFactory::Interface(m_hWnd)->SaveWorld()) {
 				MessageBox("Couldn't save!");
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		CProjectFactory::Instance(m_hWnd)->Interface()->CloseWorld(true);
+		CProjectFactory::Interface(m_hWnd)->CloseWorld(true);
 	} 
 	CProjectFactory::Interface()->LoadWorld(szFilename);
 

@@ -117,7 +117,7 @@ LRESULT CFoldersTreeBox::OnAddTree(WPARAM wParam, LPARAM lParam)
 	}
 
 	if(FindLeaf(hItem, szAux) == NULL) {
-		hItem = m_ctrlTree.InsertItem(szAux, (wParam>>8), (wParam&0xff), hItem, TVI_LAST);
+		hItem = m_ctrlTree.InsertItem(szAux, (wParam>>8), (wParam&0xff), hItem, TVI_SORT);
 		m_ctrlTree.SetItemData(hItem, pTI->m_dwData);
 	}
 

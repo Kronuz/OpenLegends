@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding = "Windows-1252"?>
+<?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.00"
+	Version="7.10"
 	Name="QuestDesigner"
 	ProjectGUID="{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}">
 	<Platforms>
@@ -62,7 +62,13 @@
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
 				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
@@ -126,9 +132,17 @@
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
 				Name="VCWebDeploymentTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 	</Configurations>
+	<References>
+	</References>
 	<Files>
 		<Filter
 			Name="Source Files"
@@ -270,10 +284,10 @@
 				RelativePath="QuestDesigner.h">
 			</File>
 			<File
-				RelativePath="SCompiler.h">
+				RelativePath="resource.h">
 			</File>
 			<File
-				RelativePath="resource.h">
+				RelativePath="SCompiler.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">
@@ -406,13 +420,10 @@
 					Name="dockingwindows"
 					Filter="">
 					<File
+						RelativePath="libs\dockingwindows\dbstate.h">
+					</File>
+					<File
 						RelativePath="libs\dockingwindows\DDTracker.h">
-					</File>
-					<File
-						RelativePath="libs\dockingwindows\DWAutoHide.h">
-					</File>
-					<File
-						RelativePath="libs\dockingwindows\DockMisc.h">
 					</File>
 					<File
 						RelativePath="libs\dockingwindows\DockingBox.h">
@@ -427,6 +438,15 @@
 						RelativePath="libs\dockingwindows\DockingWindow.h">
 					</File>
 					<File
+						RelativePath="libs\dockingwindows\DockMisc.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\DWAutoHide.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\dwstate.h">
+					</File>
+					<File
 						RelativePath="libs\dockingwindows\ExtDockingWindow.h">
 					</File>
 					<File
@@ -439,27 +459,24 @@
 						RelativePath="libs\dockingwindows\SimpleSplitterBar.h">
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\TabDockingBox.h">
-					</File>
-					<File
-						RelativePath="libs\dockingwindows\WndFrmPkg.h">
-					</File>
-					<File
-						RelativePath="libs\dockingwindows\dbstate.h">
-					</File>
-					<File
-						RelativePath="libs\dockingwindows\dwstate.h">
-					</File>
-					<File
 						RelativePath="libs\dockingwindows\ssec.h">
 					</File>
 					<File
 						RelativePath="libs\dockingwindows\sstate.h">
 					</File>
+					<File
+						RelativePath="libs\dockingwindows\TabDockingBox.h">
+					</File>
+					<File
+						RelativePath="libs\dockingwindows\WndFrmPkg.h">
+					</File>
 				</Filter>
 				<Filter
 					Name="tabctrls"
 					Filter="">
+					<File
+						RelativePath="libs\tabctrls\atlgdix.h">
+					</File>
 					<File
 						RelativePath="libs\tabctrls\CustomTabCtrl.h">
 					</File>
@@ -484,15 +501,21 @@
 					<File
 						RelativePath="libs\tabctrls\TabbedMDI.h">
 					</File>
-					<File
-						RelativePath="libs\tabctrls\atlgdix.h">
-					</File>
 				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest">
+			<File
+				RelativePath="res\arrowadd.cur">
+			</File>
+			<File
+				RelativePath="res\arrowdel.cur">
+			</File>
+			<File
+				RelativePath="res\arrowselect.cur">
+			</File>
 			<File
 				RelativePath="res\DragImg.bmp">
 			</File>
@@ -504,6 +527,9 @@
 			</File>
 			<File
 				RelativePath="res\FolderO.ico">
+			</File>
+			<File
+				RelativePath="res\folders.bmp">
 			</File>
 			<File
 				RelativePath="res\FoldersToolbar.bmp">
@@ -572,22 +598,10 @@
 				RelativePath="res\ScriptsToolbar.bmp">
 			</File>
 			<File
-				RelativePath="res\Warning.ico">
-			</File>
-			<File
-				RelativePath="res\arrowadd.cur">
-			</File>
-			<File
-				RelativePath="res\arrowdel.cur">
-			</File>
-			<File
-				RelativePath="res\arrowselect.cur">
-			</File>
-			<File
-				RelativePath="res\folders.bmp">
-			</File>
-			<File
 				RelativePath="res\tab_icons.bmp">
+			</File>
+			<File
+				RelativePath="res\Warning.ico">
 			</File>
 		</Filter>
 	</Files>

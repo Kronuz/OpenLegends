@@ -31,7 +31,6 @@
 #define IDI_ICO_QUESTION                210
 #define IDI_ICO_ERROR                   211
 #define IDI_ICO_OK                      212
-#define IDR_TB_SCRIPTED                 214
 #define IDR_TB_MAPED_OBJECT             215
 #define IDR_TB_FOLDERS                  216
 #define IDR_TB_PROPVIEW                 217
@@ -39,7 +38,7 @@
 #define IDC_ARROWDEL                    225
 #define IDC_ARROWADD1                   226
 #define IDC_ARROWSELECT                 226
-#define IDR_TB_MAPED_MAIN               227
+#define IDR_TB_MAIN                     227
 #define IDR_TB_MAPED_BASIC              228
 #define IDD_PROPERTIES                  230
 #define IDD_PROPERTIES_NOTIMPLEMENTED   231
@@ -169,7 +168,6 @@
 #define ID_MAPED_LAYER                  32889
 #define ID_APP_SAVEALL                  32896
 #define ID_APP_PRINT                    32897
-#define ID_BUTTON32898                  32898
 #define ID_PROJECT_OPEN                 32898
 #define ID_FOLDERS_PROPERTIES           33000
 #define ID_PROP_CAT                     33001
@@ -184,7 +182,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        253
-#define _APS_NEXT_COMMAND_VALUE         32899
+#define _APS_NEXT_COMMAND_VALUE         32912
 #define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
