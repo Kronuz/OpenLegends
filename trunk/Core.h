@@ -28,6 +28,7 @@
 #define DROTATE				((SROTATE_90<<_SPT_ROT))
 
 enum CURSOR {
+	eIDC_HAND,
 	eIDC_ARROW,
 	eIDC_CROSS,
 	eIDC_NO,

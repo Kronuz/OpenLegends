@@ -58,9 +58,11 @@
 #define IDC_ARROWSELECT                 1002
 #define IDC_COMBO                       1003
 #define IDC_LIST                        1004
+#define IDC_MHAND                       1004
 #define IDC_TITLE                       1005
 #define IDC_FRAME                       1006
 #define IDC_DESCRIPTION                 1007
+#define IDC_HAND                        1007
 #define IDC_PROPERTIES_PLACEHOLDER      1008
 #define IDC_PROPERTIES_TREE             1009
 #define IDC_STATIC_CONFIGURE            1010
@@ -169,7 +171,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        258
+#define _APS_NEXT_RESOURCE_VALUE        259
 #define _APS_NEXT_COMMAND_VALUE         32407
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           105

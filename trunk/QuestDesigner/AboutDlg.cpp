@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -88,6 +88,34 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 	m_wndHyperLinkEmail1.SubclassWindow ( GetDlgItem ( IDC_EMAIL1_STATIC ) );
 	m_wndHyperLinkEmail1.SetHyperLink ( _T ("mailto:kronuz@users.sourceforge.net") );		
 
+	LPSTR szLicense;
+	FILE *arch = fopen("License.txt", "rb");
+	if(arch) {
+		szLicense = new char[20*1024];
+		memset(szLicense, 0, 20*1024);
+		fread(szLicense, 1, 20*1024-1, arch);
+		fclose(arch);
+	} else szLicense = _T("\
+Open Zelda Project\r\n\
+Copyright (C) 2001-2003\r\n\
+\r\n\
+This program is free software; you can redistribute it and/or modify it \
+under the terms of the GNU General Public License as published by the Free \
+Software Foundation; either version 2 of the License, or (at your option) \
+any later version.\r\n\
+\r\n\
+This program is distributed in the hope that it will be useful, \
+but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY \
+or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more \
+details.\r\n\
+\r\n\
+You should have received a copy of the GNU General Public License along with this \
+program; if not, write to the Free Software Foundation, Inc., 59 Temple Place, \
+Suite 330, Boston, MA 02111-1307 USA");
+
+	SetDlgItemText(IDC_GPL_EDIT, szLicense);
+	if(arch) delete []szLicense;
+
 	return TRUE;
 }
 
@@ -106,6 +134,28 @@ LRESULT CAboutDlg::OnAcknowlegments(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 LRESULT CAckDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	CenterWindow(GetParent());
+	SetDlgItemText(IDC_THANKS_EDIT, _T("\
+I want to thank all people who helped me and collaborated in one way or the other and helped OpenZelda to become what it is today:\r\n\r\n\
+      + GD for his magnificent idea and original design,\r\n\
+      + Fenris (a.k.a. Sk8erHacker) for testing and \r\n\
+          excellent support,\r\n\
+      + Hylian for his support and the Open Zelda \r\n\
+          domain name,\r\n\
+      + Lukex for maintaining the official website and \r\n\
+          starting a very useful help file,\r\n\
+      + Menne for his great Z3C editor and its nice \r\n\
+          source code,\r\n\
+      + LittleBuddy for his support as a consultant and \r\n\
+          his scripting expertise,\r\n\
+      + Strider for his support,\r\n\
+      + Alias Jargon,\r\n\
+      + Raichu19192,\r\n\
+      + HocusPocus,\r\n\
+      + GodGinrai,\r\n\
+      + and finally the guys at GU that hold that great \r\n\
+          website and their support.\r\n\r\n\
+If you feel I'm missing sombody, please tell me so I can add her/him/you to the list. "));
+	
 
 	return TRUE;
 }

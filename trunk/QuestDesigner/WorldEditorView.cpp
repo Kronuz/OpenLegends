@@ -1,6 +1,6 @@
 /* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
+   Copyright (C) 2003. Kronuz (Germán Méndez Bravo)
+   Copyright (C) 2001-2003. Open Zelda's Project
  
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
@@ -31,6 +31,8 @@
 CWorldEditorView::CWorldEditorView(CWorldEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
 	m_bClean(true),
+	m_bPanning(false),
+	m_CursorStatus(eIDC_ARROW),
 	m_szMap(0, 0),
 	m_Zoom(4),
 	m_MousePoint(0,0),
@@ -285,13 +287,35 @@ LRESULT CWorldEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 
 LRESULT CWorldEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
-	CPoint point(lParam);
-	point.Offset(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
+	CPoint Point(lParam);
+	if(m_bPanning) {
+		if((wParam&MK_MBUTTON)!=MK_MBUTTON) {
+			m_bPanning = false;
+			ReleaseCapture();
+		} else {
+			CPoint ScrollPoint(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
+			ScrollPoint += (m_PanningPoint - Point);
 
-	point.x *= m_Zoom;
-	point.y *= m_Zoom;
+			CRect rcClient;
+			GetClientRect(&rcClient);
+			if(ScrollPoint.x < 0) ScrollPoint.x = 0;
+			if(ScrollPoint.y < 0) ScrollPoint.y = 0;
+			if(ScrollPoint.x > m_WorldFullSize.cx-rcClient.right) ScrollPoint.x = m_WorldFullSize.cx-rcClient.right;
+			if(ScrollPoint.y > m_WorldFullSize.cy-rcClient.bottom) ScrollPoint.y = m_WorldFullSize.cy-rcClient.bottom;
 
-	UpdateMouse(point);
+			SetScrollOffset(ScrollPoint);
+			m_PanningPoint = Point;
+			Invalidate();
+			return 0;
+		}
+	}
+
+	Point.Offset(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
+
+	Point.x *= m_Zoom;
+	Point.y *= m_Zoom;
+
+	UpdateMouse(Point);
 
 	return 0;
 }
@@ -433,6 +457,7 @@ LRESULT CWorldEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPara
 // i.e. 1,0 is the second map to the right.
 void CWorldEditorView::UpdateSelections()
 {
+	if(m_bPanning) return;
 	////////////////////////
 	CSize szMap(((m_szMap.cx+m_Zoom-1)/m_Zoom), (m_szMap.cy+m_Zoom-1)/m_Zoom);
 	CPoint Point( (m_MapPoint.x)*(szMap.cx) + (szMap.cx)/2, (m_MapPoint.y)*(szMap.cy) + (szMap.cy)/2 );
@@ -528,6 +553,34 @@ void CWorldEditorView::UpdateSelections()
 
 	ReleaseDC(dc);
 }
+
+void CWorldEditorView::ToCursor(CURSOR cursor_)
+{
+	HCURSOR hCursor;
+
+	m_CursorStatus = cursor_;
+	
+	if(m_bPanning) {
+		cursor_ = eIDC_HAND;
+	}
+
+	switch(cursor_) {
+		case eIDC_ARROW:	hCursor = LoadCursor(NULL, IDC_ARROW); break;
+		case eIDC_CROSS:	hCursor = LoadCursor(NULL, IDC_CROSS); break;
+		case eIDC_NO:		hCursor = LoadCursor(NULL, IDC_NO); break;
+		case eIDC_SIZEALL:	hCursor = LoadCursor(NULL, IDC_SIZEALL); break;
+		case eIDC_SIZENESW: hCursor = LoadCursor(NULL, IDC_SIZENESW); break;
+		case eIDC_SIZENS:	hCursor = LoadCursor(NULL, IDC_SIZENS); break;
+		case eIDC_SIZENWSE: hCursor = LoadCursor(NULL, IDC_SIZENWSE); break;
+		case eIDC_SIZEWE:	hCursor = LoadCursor(NULL, IDC_SIZEWE); break;
+		case eIDC_ARROWADD: hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_ARROWADD)); break;
+		case eIDC_ARROWDEL: hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_ARROWDEL)); break;
+		case eIDC_HAND:		hCursor = LoadCursor(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDC_MHAND)); break;
+	}
+
+	SetCursor(hCursor);
+}
+
 void CWorldEditorView::UpdateMouse(const CPoint &point)
 {
 	if( point.x<0 || point.x>m_WorldFullSize.cx*m_Zoom ||
@@ -595,12 +648,23 @@ LRESULT CWorldEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	}
 	return 0;
 }
+
 LRESULT CWorldEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	m_PanningPoint.SetPoint(LOWORD(lParam), HIWORD(lParam));
+
+	m_bPanning = true;
+	ToCursor(m_CursorStatus);
+	SetCapture();
+
 	return 0;
 }
 LRESULT CWorldEditorView::OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	m_bPanning = false;
+	ToCursor(m_CursorStatus);
+	ReleaseCapture();
+	Invalidate();
 	return 0;
 }
 

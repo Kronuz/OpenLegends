@@ -31,10 +31,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib amxexec.obj"
+				AdditionalDependencies="fmodvc.lib zlib.lib amxexec.obj"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\libs\zlib"
+				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
 				ModuleDefinitionFile="Kernel.def"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/Kernel.pdb"
@@ -92,10 +92,10 @@
 "/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib amxexec.obj"
+				AdditionalDependencies="fmodvc.lib zlib.lib amxexec.obj"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\libs\zlib"
+				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
 				ModuleDefinitionFile="Kernel.def"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -220,6 +220,9 @@
 			<Filter
 				Name="Sound"
 				Filter="">
+				<File
+					RelativePath=".\SoundManager.cpp">
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -297,6 +300,22 @@
 				<File
 					RelativePath="SoundManager.h">
 				</File>
+				<Filter
+					Name="fmod"
+					Filter="">
+					<File
+						RelativePath=".\libs\fmod\fmod.h">
+					</File>
+					<File
+						RelativePath=".\libs\fmod\fmod_errors.h">
+					</File>
+					<File
+						RelativePath=".\libs\fmod\fmoddyn.h">
+					</File>
+					<File
+						RelativePath=".\libs\fmod\wincompat.h">
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="File system"

@@ -74,7 +74,7 @@ BEGIN
             VALUE "FileDescription", "DirectX 8 2D Graphics Engine plugin v1.0"
             VALUE "FileVersion", "2, 0, 0, 1"
             VALUE "InternalName", "GraphicsD3D8"
-            VALUE "LegalCopyright", "Copyright © 2002-2003 by Kronuz. All rights reserved."
+            VALUE "LegalCopyright", "Copyright © 2003 by Kronuz. All rights reserved."
             VALUE "OriginalFilename", "GraphicsD3D8.dll"
             VALUE "ProductName", "Open Zelda library"
             VALUE "ProductVersion", "2, 0, 0, 1"
