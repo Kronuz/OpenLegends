@@ -955,7 +955,7 @@ bool CGraphicsD3D9::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		D3DVERIFY(ms_pD3D->GetAdapterIdentifier(D3DADAPTER_DEFAULT, NULL, &D3DAdapterID));
 
 		// Output driver info
-		CONSOLE_PRINTF("Using plugin for Microsoft Direct3D Version 9.0 '%s' (v%d.%d)\n", D3DAdapterID.Driver, HIBYTE(Version), LOBYTE(Version));
+		CONSOLE_PRINTF("Using plugin for Microsoft Direct3D Version 9.0c '%s' (v%d.%d)\n", D3DAdapterID.Driver, HIBYTE(Version), LOBYTE(Version));
 		CONSOLE_PRINTF(" | Description: %s (%d)\n", D3DAdapterID.Description, HIWORD(D3DAdapterID.DriverVersion.HighPart));
 		CONSOLE_PRINTF(" | Version: %d.%d build %d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart), LOWORD(D3DAdapterID.DriverVersion.LowPart));
 		CONSOLE_LOG   (" | dwVendorId: 0x%08X\n", D3DAdapterID.VendorId);
@@ -1699,19 +1699,19 @@ bool CGraphicsD3D9::EndCapture(WORD *pData, RECT &rcPortion, RECT &rcFull)
 void CGraphicsD3D9::SetFont(LPCSTR lpFont, int CharHeight, ARGBCOLOR rgbColor, LONG Weight)
 {
 	ASSERT(ms_pD3DDevice);
-	LOGFONT lf;
+	D3DXFONT_DESC font;
 
 	if(m_pD3DFont) {
 		m_pD3DFont->Release();
 		m_pD3DFont = NULL;
 	}
+	ZeroMemory(&font, sizeof(D3DXFONT_DESC));
+	strcpy(font.FaceName, lpFont);
+	font.Height = -CharHeight;
+	font.Weight = Weight;
 
-	ZeroMemory(&lf, sizeof(LOGFONT));
-	strcpy(lf.lfFaceName, lpFont);
-	lf.lfHeight = -CharHeight;
-	lf.lfWeight = Weight;
 
-	D3DXCreateFontIndirect(ms_pD3DDevice, &lf, &m_pD3DFont);
+	D3DXCreateFontIndirect(ms_pD3DDevice, &font, &m_pD3DFont);
 	m_rgbFontColor = rgbColor;
 }
 void CGraphicsD3D9::DrawText(const POINT &pointDest, LPCSTR lpString, ...) const
@@ -1725,7 +1725,7 @@ void CGraphicsD3D9::DrawText(const POINT &pointDest, LPCSTR lpString, ...) const
 	va_end(argptr);
 
 	RECT rect = { pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300 };
-	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, m_rgbFontColor);
+	m_pD3DFont->DrawTextA(NULL, lpBuffer, -1, &rect, 0, m_rgbFontColor);
 }
 void CGraphicsD3D9::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR lpString, ...) const
 {
@@ -1738,7 +1738,7 @@ void CGraphicsD3D9::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR 
 	va_end(argptr);
 
 	RECT rect = { pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300 };
-	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, rgbColor);
+	m_pD3DFont->DrawTextA(NULL, lpBuffer, -1, &rect, 0, rgbColor);
 }
 
 void CGraphicsD3D9::SetFilterBkColor(ARGBCOLOR rgbColor)
