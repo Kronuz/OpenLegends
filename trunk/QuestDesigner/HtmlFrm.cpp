@@ -111,8 +111,8 @@ LRESULT CHtmlFrame::OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARA
 		sSave += sWindowText;
 		sSave += _T("'");
 
-		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_FILE_SAVE, sSave);
-		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_FILE_CLOSE, _T("&Close\tCtrl+F4"));
+		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_APP_SAVE, sSave);
+		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_APP_CLOSE, _T("&Close\tCtrl+F4"));
 		mnuContext.AppendMenu(MF_SEPARATOR);
 
 		if(m_pCmdBar != NULL) {

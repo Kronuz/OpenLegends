@@ -68,12 +68,12 @@ public:
 	bool WriteObject(LPCSTR szFile);
 };
 
-class CLayerBinArch :
+class CMapBinArch :
 	public CConsole,
 	public IArchive
 {
 public:
-	CLayerBinArch(CLayer *pLayer) : m_pLayer(pLayer) {}
+	CMapBinArch(CLayer *pLayer) : m_pLayer(pLayer) {}
 private:
 	CLayer *m_pLayer;
 public:

@@ -55,9 +55,10 @@
 /*! \class		CProjectManager
 	\brief		CProjectManager class.
 	\author		Kronuz
-	\version	1.1
+	\version	1.3
 	\date		April 15, 2003
 				April 28, 2003
+				June 3, 2003
 
 	This class Is the one that manages everything in the project,
 	from the sprite sheets list and the sounds list, to the world and
@@ -109,11 +110,9 @@ public:
 	// Object factory methods:
 	CSprite *ReferSprite(LPCSTR szName, _spt_type sptType);  //!< Gets or makes a reference to a sprite.
 	CScript *ReferScript(LPCSTR szName);  //!< Gets or makes a reference to a script
-	CMap	*ReferMap(int xPos, int yPos);  //!< Gets or makes a reference to a map
 
 	CSprite *MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSheet *pSpriteSheet);
 	CScript *MakeScript(LPCSTR szName);
-	CMap	*MakeMap(int xPos, int yPos);
 
 	void DeleteScript(LPCSTR szName); //!< Deletes a script via its name.
 	void DeleteSpriteSheet(LPCSTR szName); //!< Deletes a sprite sheet via its name.
@@ -125,7 +124,6 @@ public:
 	CSound *FindSound(LPCSTR szName); //!< Finds a sound using its name.
 	CScript *FindScript(LPCSTR szName); //!< Finds a script using its name.
 
-	CMap *FindMap(POINT WorldPoint); //!< Finds the map at a specific location.
 	CSprite *FindSprite(POINT MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
 	
 	static CProjectManager* Instance() {

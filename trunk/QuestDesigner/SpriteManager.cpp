@@ -193,3 +193,81 @@ bool CScript::NeedToCompile()
 	//m_fnScriptFile.GetFilePath()
 	return true;
 }
+
+CSpriteContext::CSpriteContext(LPCSTR szName) : CNamedObj(szName), CDrawableContext(), m_nFrame(0) {
+	Mirror(false);
+	Flip(false);
+	Alpha(255);
+	Rotate(SROTATE_0);
+	Tile(false);
+}
+inline void CSpriteContext::Mirror() 
+{
+	if(isMirrored()) Mirror(false);
+	else Mirror(true);
+}
+inline void CSpriteContext::Flip() 
+{
+	if(isFlipped()) Flip(false);
+	else Flip(true);
+}
+inline void CSpriteContext::Mirror(bool bMirror) 
+{
+	if(bMirror) m_dwStatus |= (SMIRRORED<<_SPT_TRANSFORM);
+	else		m_dwStatus &= ~(SMIRRORED<<_SPT_TRANSFORM);
+}
+inline void CSpriteContext::Flip(bool bFlip) 
+{
+	if(bFlip)	m_dwStatus |= (SFLIPPED<<_SPT_TRANSFORM);
+	else		m_dwStatus &= ~(SFLIPPED<<_SPT_TRANSFORM);
+}
+inline void CSpriteContext::Alpha(int alpha) 
+{
+	m_dwStatus &= ~SPT_ALPHA;
+	m_dwStatus |= ((alpha<<_SPT_ALPHA)&SPT_ALPHA);
+}
+inline void CSpriteContext::Rotate(int rotate) 
+{
+	m_dwStatus &= ~SPT_ROT;
+	m_dwStatus |= ((rotate<<_SPT_ROT)&SPT_ROT);
+}
+inline void CSpriteContext::Tile(bool bTile) 
+{
+	if(!bTile)	m_dwStatus |= (SNTILED<<_SPT_INFO);
+	else		m_dwStatus &= ~(SNTILED<<_SPT_INFO);
+}
+inline bool CSpriteContext::isTiled() 
+{
+	return !((m_dwStatus&(SNTILED<<_SPT_INFO))==(SNTILED<<_SPT_INFO));
+}
+inline bool CSpriteContext::isMirrored() 
+{
+	return ((m_dwStatus&(SMIRRORED<<_SPT_TRANSFORM))==(SMIRRORED<<_SPT_TRANSFORM));
+}
+inline bool CSpriteContext::isFlipped() 
+{
+	return ((m_dwStatus&(SFLIPPED<<_SPT_TRANSFORM))==(SFLIPPED<<_SPT_TRANSFORM));
+}
+inline int CSpriteContext::getAlpha() 
+{
+	return ((m_dwStatus&SPT_ALPHA)>>_SPT_ALPHA);
+}
+inline int CSpriteContext::Transformation() 
+{
+	return ((m_dwStatus&SPT_TRANSFORM)>>_SPT_TRANSFORM);
+}
+inline int CSpriteContext::Rotation() 
+{
+	return ((m_dwStatus&SPT_ROT)>>_SPT_ROT);
+}
+
+void CSpriteSelection::ResizeContext(CDrawableContext *context, const POINT &point_)
+{
+	CSpriteContext *scontext = static_cast<CSpriteContext*>(context);
+	if(scontext->isTiled()) CDrawableSelection::ResizeContext(context, point_);
+}
+void CSpriteSelection::MoveContext(CDrawableContext *context, const POINT &point_)
+{
+	CDrawableSelection::MoveContext(context, point_);
+}
+

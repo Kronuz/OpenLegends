@@ -31,95 +31,54 @@
 #include "WorldManager.h"
 #include "ProjectManager.h"
 
-CLayer::CLayer(LPCSTR szName) :
-	CNamedObj(szName)
+CLayer::CLayer() :
+	m_ptLoadPoint(0,0)
 {
-	m_ArchiveIn = new CLayerTxtArch(this);
+	m_ArchiveIn = new CMapTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 
-/*
-	CSpriteContext *sc;
-
-	sc = new CSpriteContext("");
-	sc->SetDrawableObj(CProjectManager::Instance()->FindSprite("_guardb"));
-	sc->Alpha(255);
-	sc->MoveTo(100,70);
-	AddChild(sc);
-
-	sc = new CSpriteContext("");
-	sc->SetDrawableObj(CProjectManager::Instance()->FindSprite("_crabenemy"));
-	sc->Alpha(255);
-	sc->MoveTo(100,50); // OK
-	sc->Rotate(SROTATE_0);
-	AddChild(sc);
-
-	sc = new CSpriteContext("");
-	sc->SetDrawableObj(CProjectManager::Instance()->FindSprite("_crabenemy"));
-	sc->Alpha(255);
-	sc->MoveTo(78,70);
-	sc->Rotate(SROTATE_90);
-	AddChild(sc);
-
-	sc = new CSpriteContext("");
-	sc->SetDrawableObj(CProjectManager::Instance()->FindSprite("_crabenemy"));
-	sc->Alpha(255);
-	sc->MoveTo(100,100);
-	sc->Rotate(SROTATE_180);
-	AddChild(sc);
-
-	sc = new CSpriteContext("");
-	sc->SetDrawableObj(CProjectManager::Instance()->FindSprite("_crabenemy"));
-	sc->Alpha(255);
-	sc->MoveTo(130,70);
-	sc->Rotate(SROTATE_270);
-	AddChild(sc);
-/**/
-/*
-
-	sc = new CSpriteContext("");
-	sc->SetDrawableObj(CProjectManager::Instance()->FindSprite("_townfill2"));
-	sc->Alpha(255);
-	sc->MoveTo(20,20);
-	sc->SetSize(250,250);
-	sc->Tile();
-	AddChild(sc);
-/* _townfill2 */
 }
 CLayer::~CLayer()
 {
+	delete m_ArchiveIn;
 }
-void CLayer::AddSpriteContext(CSpriteContext *sprite)
+inline void CLayer::SetLoadPoint(int x, int y)
 {
-	AddChild(sprite);
+	m_ptLoadPoint.SetPoint(x,y);
 }
-
-CMap::CMap()
+inline void CLayer::SetLoadPoint(const POINT &point_)
 {
+	m_ptLoadPoint = point_;
 }
-CMap::~CMap()
+bool CLayer::AddSpriteContext(CSpriteContext *sprite)
 {
+	CPoint Point;
+	sprite->GetPosition(Point);
+	Point += m_ptLoadPoint;
+	sprite->MoveTo(Point);
+	return AddChild(sprite);
 }
 
 CMapGroup::CMapGroup()
 {
-	CLayer *l;
+
+	CLayer *layer = new CLayer;
+
+/*	char file[] = "C:\\qd\\Quest Designer 2.0.4\\questdata\\kakariko\\screens\\0-0.lnd";
+	layer->Load(file); /**/
+
 	char file[] = "C:\\qd\\Quest Designer 2.0.4\\questdata\\kakariko\\screens\\3-2.lnd";
-	int i=0;
 	for(int i=0;i<4;i++) {
 		file[54]=i+1+'0';
 		file[56]='2';
-		l = new CLayer("TOP");
-		l->Load(file);
-		l->MoveTo(320*i,0);
-		AddChild(l);
+		layer->SetLoadPoint(320*i, 0);
+		layer->Load(file);
 
 		file[56]='3';
-		l = new CLayer("TOP");
-		l->Load(file);
-		l->MoveTo(320*i,240);
-		AddChild(l);
-	}
-/**/
+		layer->SetLoadPoint(320*i, 240);
+		layer->Load(file);
+	}/**/
+	AddChild(layer);
 
 }
 CMapGroup::~CMapGroup()

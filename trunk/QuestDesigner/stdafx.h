@@ -27,6 +27,7 @@
 #pragma once
 
 #pragma warning ( disable : 4530 )
+#pragma warning ( disable : 4244 )
 
 // Change these values to use different versions
 #define WINVER			0x0400

@@ -87,9 +87,14 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	UIAddToolBar(hScriptToolBar);
 
 	// create a toolbar
-	HWND hViewsToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_PROJECT, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	HWND hProjectToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_PROJECT, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
 	// add the toolbar to the UI update map
-	UIAddToolBar(hViewsToolBar);
+	UIAddToolBar(hProjectToolBar);
+
+	// create a toolbar
+	HWND hMapEdToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPEDITOR, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE);
+	// add the toolbar to the UI update map
+	UIAddToolBar(hMapEdToolBar);
 
 	// create a rebat to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE)) {
@@ -98,8 +103,9 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	}	
 
 	AddSimpleReBarBand(hWndCmdBar);
-	AddSimpleReBarBand(hScriptToolBar, NULL, TRUE, 385);
-	AddSimpleReBarBand(hViewsToolBar, NULL, FALSE);
+	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 144);
+	AddSimpleReBarBand(hScriptToolBar, "Scripts", FALSE);
+	AddSimpleReBarBand(hMapEdToolBar, "Map Editor", TRUE);
 
 	// create a status bar
 	if(!CreateSimpleStatusBar(_T("Ready")) ||
@@ -125,15 +131,15 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	m_CmdBar.UseMaxChildDocIconAndFrameCaptionButtons(false);
 	m_CmdBar.SetMDIClient(m_hWndMDIClient);
 
-	UISetCheck(ID_VIEW_TOOLBAR, TRUE);
-	UISetCheck(ID_VIEW_STATUS_BAR, TRUE);
+	UISetCheck(ID_APP_TOOLBAR, TRUE);
+	UISetCheck(ID_APP_STATUS_BAR, TRUE);
 
-	UISetCheck(ID_VIEW_WORLDEDITOR, FALSE);
-	UISetCheck(ID_VIEW_MAPEDITOR, FALSE);
-	UISetCheck(ID_VIEW_SPRITEEDITOR, FALSE);
+	UISetCheck(ID_APP_WORLDED, FALSE);
+	UISetCheck(ID_APP_MAPED, FALSE);
+	UISetCheck(ID_APP_SPTSHTED, FALSE);
 
-	UISetCheck(ID_VIEW_INFORMATION, TRUE);
-	UISetCheck(ID_VIEW_PROPERTIES, FALSE);
+	UISetCheck(ID_APP_INFORMATION, TRUE);
+	UISetCheck(ID_APP_PROPERTIES, FALSE);
 
 	// Update all the menu items
 	UIUpdateMenuItems();
@@ -258,7 +264,7 @@ LRESULT CMainFrame::OnViewToolBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWn
 	CReBarCtrl rebar = m_hWndToolBar;
 	int nBandIndex = rebar.IdToIndex(ATL_IDW_BAND_FIRST + 1);	// toolbar is 2nd added band
 	rebar.ShowBand(nBandIndex, bVisible);
-	UISetCheck(ID_VIEW_TOOLBAR, bVisible);
+	UISetCheck(ID_APP_TOOLBAR, bVisible);
 	UpdateLayout();
 	return 0;
 }
@@ -266,7 +272,7 @@ LRESULT CMainFrame::OnViewStatusBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*h
 {
 	BOOL bVisible = !::IsWindowVisible(m_hWndStatusBar);
 	::ShowWindow(m_hWndStatusBar, bVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
-	UISetCheck(ID_VIEW_STATUS_BAR, bVisible);
+	UISetCheck(ID_APP_STATUS_BAR, bVisible);
 	UpdateLayout();
 	return 0;
 }
@@ -404,49 +410,49 @@ void CMainFrame::UIUpdateMenuItems ()
 	
 	int nChildWindows = m_ChildList.GetSize();
 
-	UISetCheck(ID_VIEW_INFORMATION, m_InfoFrame.IsWindow() && m_InfoFrame.IsWindowVisible());
-	UISetCheck(ID_VIEW_WORLDEDITOR, CountChilds(tWorldEditor));
+	UISetCheck(ID_APP_INFORMATION, m_InfoFrame.IsWindow() && m_InfoFrame.IsWindowVisible());
+	UISetCheck(ID_APP_WORLDED, CountChilds(tWorldEditor));
 
 	if( ActiveChildType!=tScriptEditor ) {
-		UIEnable(ID_FILE_RELOAD, FALSE);
-		UIEnable(ID_FILE_SAVE, FALSE);
-		UIEnable(ID_FILE_SAVE_ALL, FALSE);
-		UIEnable(ID_FILE_SAVE_AS, FALSE);
-		UIEnable(ID_FILE_PRINT, FALSE);
-		UIEnable(ID_FILE_PRINT_SETUP, FALSE);
+		UIEnable(ID_SCRIPTED_RELOAD, FALSE);
+		UIEnable(ID_SCRIPTED_SAVE, FALSE);
+		UIEnable(ID_SCRIPTED_SAVE_ALL, FALSE);
+		UIEnable(ID_SCRIPTED_SAVE_AS, FALSE);
+		UIEnable(ID_SCRIPTED_PRINT, FALSE);
+		UIEnable(ID_SCRIPTED_PRINT_SETUP, FALSE);
 
-		UIEnable(ID_EDIT_UNDO, FALSE);
-		UIEnable(ID_EDIT_REDO, FALSE);	
-		UIEnable(ID_EDIT_CUT, FALSE);
-		UIEnable(ID_EDIT_COPY, FALSE);
-		UIEnable(ID_EDIT_PASTE, FALSE);
-		UIEnable(ID_EDIT_CLEAR, FALSE);
+		UIEnable(ID_SCRIPTED_UNDO, FALSE);
+		UIEnable(ID_SCRIPTED_REDO, FALSE);	
+		UIEnable(ID_SCRIPTED_CUT, FALSE);
+		UIEnable(ID_SCRIPTED_COPY, FALSE);
+		UIEnable(ID_SCRIPTED_PASTE, FALSE);
+		UIEnable(ID_SCRIPTED_ERASE, FALSE);
 
-		UIEnable(ID_EDIT_TAB, FALSE);
-		UIEnable(ID_EDIT_UNTAB, FALSE);
+		UIEnable(ID_SCRIPTED_TAB, FALSE);
+		UIEnable(ID_SCRIPTED_UNTAB, FALSE);
 		
-		UIEnable(ID_EDIT_FIND_SELECTION, FALSE);
+		UIEnable(ID_SCRIPTED_FIND_SELECTION, FALSE);
 		
-		UIEnable(ID_EDIT_READ_ONLY, FALSE);
-		UISetCheck(ID_EDIT_READ_ONLY, 0);
+		UIEnable(ID_SCRIPTED_READ_ONLY, FALSE);
+		UISetCheck(ID_SCRIPTED_READ_ONLY, 0);
 		
-		UIEnable(ID_EDIT_UPPERCASE, FALSE);
-		UIEnable(ID_EDIT_LOWERCASE, FALSE);
-		UIEnable(ID_EDIT_TABIFY, FALSE);
-		UIEnable(ID_EDIT_UNTABIFY, FALSE);
+		UIEnable(ID_SCRIPTED_UPPERCASE, FALSE);
+		UIEnable(ID_SCRIPTED_LOWERCASE, FALSE);
+		UIEnable(ID_SCRIPTED_TABIFY, FALSE);
+		UIEnable(ID_SCRIPTED_UNTABIFY, FALSE);
 		
-		UIEnable(ID_EDIT_SHOW_WHITE_SPACE, FALSE);
-		UISetCheck(ID_EDIT_SHOW_WHITE_SPACE, 0);
+		UIEnable(ID_SCRIPTED_SHOW_WHITE_SPACE, FALSE);
+		UISetCheck(ID_SCRIPTED_SHOW_WHITE_SPACE, 0);
 		
-		UIEnable(ID_EDIT_GOTO_NEXT_BOOKMARK, FALSE);
-		UIEnable(ID_EDIT_GOTO_PREV_BOOKMARK, FALSE);
-		UIEnable(ID_EDIT_CLEAR_ALL_BOOKMARKS, FALSE);
+		UIEnable(ID_SCRIPTED_GOTO_NEXT_BOOKMARK, FALSE);
+		UIEnable(ID_SCRIPTED_GOTO_PREV_BOOKMARK, FALSE);
+		UIEnable(ID_SCRIPTED_CLEAR_ALL_BOOKMARKS, FALSE);
 	} 
 	else {
 		if(OpenScripts > 1) {
-			UIEnable(ID_FILE_SAVE_ALL, TRUE);
+			UIEnable(ID_SCRIPTED_SAVE_ALL, TRUE);
 		} else {
-			UIEnable(ID_FILE_SAVE_ALL, FALSE);
+			UIEnable(ID_SCRIPTED_SAVE_ALL, FALSE);
 		}
 	}
 

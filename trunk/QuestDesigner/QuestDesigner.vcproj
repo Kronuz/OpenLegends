@@ -414,7 +414,13 @@
 				RelativePath="res\Error.ico">
 			</File>
 			<File
+				RelativePath="res\MapEdToolbar.bmp">
+			</File>
+			<File
 				RelativePath="res\Okay.ico">
+			</File>
+			<File
+				RelativePath="res\ProjectToolbar.bmp">
 			</File>
 			<File
 				RelativePath="res\QuestDesigner.exe.manifest">
@@ -426,10 +432,22 @@
 				RelativePath="QuestDesigner.rc">
 			</File>
 			<File
-				RelativePath="res\QuestDesignerDoc.ico">
+				RelativePath="res\QuestDesignerMap.ico">
+			</File>
+			<File
+				RelativePath="res\QuestDesignerScript.ico">
+			</File>
+			<File
+				RelativePath="res\QuestDesignerSpriteSheet.ico">
+			</File>
+			<File
+				RelativePath="res\QuestDesignerWorld.ico">
 			</File>
 			<File
 				RelativePath="res\Question.ico">
+			</File>
+			<File
+				RelativePath="res\ScriptsToolbar.bmp">
 			</File>
 			<File
 				RelativePath="res\Warning.ico">
@@ -438,19 +456,13 @@
 				RelativePath="res\arrowadd.cur">
 			</File>
 			<File
-				RelativePath="res\cursor1.cur">
+				RelativePath="res\arrowdel.cur">
 			</File>
 			<File
 				RelativePath="res\folders.bmp">
 			</File>
 			<File
 				RelativePath="res\msdev_tab_icons.bmp">
-			</File>
-			<File
-				RelativePath="res\toolbar.bmp">
-			</File>
-			<File
-				RelativePath="res\toolbar1.bmp">
 			</File>
 		</Filter>
 	</Files>

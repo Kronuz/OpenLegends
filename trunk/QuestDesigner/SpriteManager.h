@@ -336,85 +336,6 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////////
-/*! \class	CSpriteContext
-	\brief		Flyweight sprites context class.
-	\author		Kronuz
-	\version	1.0
-	\date		April 28, 2003
-
-	This class maintains the extrinsic status of the CSprite's flyweight objects.
-	It is a concrete class based on the interface for flyweight drawable
-	objects.
-
-	\sa CDrawableObject
-*/
-class CSpriteContext :
-	public CNamedObj,
-	public CDrawableContext
-{
-public:
-	int m_nFrame;
-
-	CSpriteContext(LPCSTR szName) : CNamedObj(szName), CDrawableContext(), m_nFrame(0) {
-		Mirror(false);
-		Flip(false);
-		Alpha(255);
-		Rotate(SROTATE_0);
-		Tile(false);
-	}
-
-	void Mirror() {
-		if(isMirrored()) Mirror(false);
-		else Mirror(true);
-	}
-	void Flip() {
-		if(isFlipped()) Flip(false);
-		else Flip(true);
-	}
-	void Mirror(bool bMirror) {			//!< Mirrors the object.
-		if(bMirror) m_dwStatus |= (SMIRRORED<<_SPT_TRANSFORM);
-		else		m_dwStatus &= ~(SMIRRORED<<_SPT_TRANSFORM);
-	}
-	void Flip(bool bFlip) {						//!< Flips the object.
-		if(bFlip)	m_dwStatus |= (SFLIPPED<<_SPT_TRANSFORM);
-		else		m_dwStatus &= ~(SFLIPPED<<_SPT_TRANSFORM);
-	}
-	void Alpha(int alpha) {
-		m_dwStatus &= ~SPT_ALPHA;
-		m_dwStatus |= ((alpha<<_SPT_ALPHA)&SPT_ALPHA);
-	}
-	void Rotate(int rotate) {					//!< Rotates the object (the angle is given in degrees)
-		m_dwStatus &= ~SPT_ROT;
-		m_dwStatus |= ((rotate<<_SPT_ROT)&SPT_ROT);
-	}
-	void Tile(bool bTile = true) {
-		if(!bTile)	m_dwStatus |= (SNTILED<<_SPT_INFO);
-		else		m_dwStatus &= ~(SNTILED<<_SPT_INFO);
-	}
-
-	bool isTiled() {
-		return !((m_dwStatus&(SNTILED<<_SPT_INFO))==(SNTILED<<_SPT_INFO));
-	}
-	bool isMirrored() {
-		return ((m_dwStatus&(SMIRRORED<<_SPT_TRANSFORM))==(SMIRRORED<<_SPT_TRANSFORM));
-	}
-	bool isFlipped() {
-		return ((m_dwStatus&(SFLIPPED<<_SPT_TRANSFORM))==(SFLIPPED<<_SPT_TRANSFORM));
-	}
-	int getAlpha() {
-		return ((m_dwStatus&SPT_ALPHA)>>_SPT_ALPHA);
-	}
-	int Transformation() {
-		return ((m_dwStatus&SPT_TRANSFORM)>>_SPT_TRANSFORM);
-	}
-	//! returns the current roatation of the object in radians
-	int Rotation() {
-		return ((m_dwStatus&SPT_ROT)>>_SPT_ROT);
-	}
-
-};
-
-/////////////////////////////////////////////////////////////////////////////
 /*! \class		CSpriteSheet
 	\brief		CSpriteSheet class.
 	\author		Kronuz
@@ -453,4 +374,52 @@ public:
 
 	CFileName& GetFileName() { return m_fnSheetFile; }
 	CProjectManager* GetProjectManager() { return m_pProjectManager; }
+};
+
+/////////////////////////////////////////////////////////////////////////////
+/*! \class	CSpriteContext
+	\brief		Flyweight sprites context class.
+	\author		Kronuz
+	\version	1.0
+	\date		April 28, 2003
+
+	This class maintains the extrinsic status of the CSprite's flyweight objects.
+	It is a concrete class based on the interface for flyweight drawable
+	objects.
+
+	\sa CDrawableObject
+*/
+class CSpriteContext :
+	public CNamedObj,
+	public CDrawableContext
+{
+public:
+	int m_nFrame;
+
+	CSpriteContext(LPCSTR szName);
+
+	void Mirror();
+	void Flip();
+	void Mirror(bool bMirror);	//!< Mirrors the object.
+	void Flip(bool bFlip);		//!< Flips the object.
+	void Alpha(int alpha);
+	void Rotate(int rotate);	//!< Rotates the object (the angle is given in degrees)
+	void Tile(bool bTile = true);
+
+	bool isTiled();
+	bool isMirrored();
+	bool isFlipped();
+	int getAlpha();
+	int Transformation();
+	
+	int Rotation();				//!< returns the current roatation of the object in radians
+};
+
+class CSpriteSelection :
+	public CDrawableSelection
+{
+	void ResizeContext(CDrawableContext *context, const POINT &point_);
+	void MoveContext(CDrawableContext *context, const POINT &point_);
+public:
+	CSpriteSelection(CDrawableContext **ppDrawableContext_) : CDrawableSelection(ppDrawableContext_) {}
 };

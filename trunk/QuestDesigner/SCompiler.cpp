@@ -25,7 +25,7 @@
 #define NO_MAIN
 #define SC_FUNC    static
 #define SC_VDEFINE static
-#define SC_SKIP_VDECL   /* skip variable "forward declaration" */
+#define SC_SKIP_VDECL   // skip variable "forward declaration"
 #define SC_LIGHT
 #include "sc.h"
 

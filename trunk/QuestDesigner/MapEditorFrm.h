@@ -38,7 +38,7 @@ class CMapEditorFrame :
 {
 protected:
 public:
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
+	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDIMAPED)
 
 	// The window's view (the child control)
 	CMapEditorView *m_pMapEditorView;

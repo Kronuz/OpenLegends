@@ -53,7 +53,7 @@ public:
 	// Name given to the child window
 	CString m_sChildName;
 
-	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
+	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDIMAPED)
 
 	BEGIN_MSG_MAP(CScriptEditorFrame)
 		CHAIN_MSG_MAP(baseClass)
