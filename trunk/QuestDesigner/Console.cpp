@@ -28,7 +28,7 @@
 #include "stdafx.h"
 #include "Console.h"
 
-HWND CConsole::m_hWnd = NULL;
+HWND CConsole::m_shWnd = NULL;
 
 /*!
 	\param format Format specification.
@@ -37,7 +37,7 @@ HWND CConsole::m_hWnd = NULL;
 		not including the terminating null character, 
 		or a negative value if an output error occurs
 	\remarks This function takes a pointer to an argument list, and then 
-		formats and sends the given data to the window m_hWnd
+		formats and sends the given data to the window m_shWnd
 		associated with the compiler class in the form of a 
 		WMQD_MESSAGE message.
 
@@ -51,9 +51,9 @@ int CConsole::print(const char *format, va_list argptr)
 	info.type = t_printf;
 	info.message = format;
 	info.argptr = argptr;
-		if(!::IsWindow(m_hWnd)) return -1;
+		if(!::IsWindow(m_shWnd)) return -1;
 
-	SendMessage(m_hWnd, WMQD_MESSAGE, 0, (LPARAM)&info);
+	SendMessage(m_shWnd, WMQD_MESSAGE, 0, (LPARAM)&info);
 	return 1;
 }
 
@@ -90,8 +90,8 @@ int CConsole::error(int number, char *message, char *filename, int firstline, in
 	info.lastline = lastline;
 	info.argptr = argptr;
 
-	if(!::IsWindow(m_hWnd)) return -1;
-	SendMessage(m_hWnd, WMQD_MESSAGE, 0, (LPARAM)&info);
+	if(!::IsWindow(m_shWnd)) return -1;
+	SendMessage(m_shWnd, WMQD_MESSAGE, 0, (LPARAM)&info);
 
 	return 0;
 }

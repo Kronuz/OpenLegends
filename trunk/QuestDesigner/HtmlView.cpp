@@ -23,11 +23,12 @@
 
 #include "stdafx.h"
 
+#include "MainFrm.h"
 #include "HtmlView.h"
 #include "HtmlFrm.h"
 
 CHtmlView::CHtmlView(CHtmlFrame *pParentFrame) :
-m_pParentFrame(pParentFrame)
+	CChildView(pParentFrame)
 {
 }
 

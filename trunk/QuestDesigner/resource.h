@@ -1,38 +1,27 @@
-/* QuestDesigner - Open Zelda's Project
-   Copyright (C) 2003 Kronuz
-   Copyright (C) 2001/2003 Open Zelda's Project
- 
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
-#include <atlres.h>
-
-/////////////////////////////////////////////////////////////////////////////
+//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by QuestDesigner.rc
 //
-
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
 #define IDR_MDICHILD                    129
 #define ID_POSITION_PANE                130
 #define ID_OVERTYPE_PANE                131
-#define IDS_STRING132                   132
 #define ID_READONLY_PANE                132
+#define ID_ICON_PANE                    133
 #define IDB_MSDEV_TAB_ICONS             207
 #define IDB_FOLDERS                     209
+#define IDI_ICO_WARNING                 210
+#define IDI_ICO_QUESTION                211
+#define IDI_ICO_ERROR                   212
+#define IDI_ICO_OK                      213
+#define IDR_TB_VIEWS                    214
+#define IDR_TB_SCRIPTS                  215
+#define ID_VIEW_INFORMATION             216
+#define ID_VIEW_PROPERTIES              217
+#define ID_VIEW_WORLDEDITOR             218
+#define ID_VIEW_MAPEDITOR               219
+#define ID_VIEW_SPRITEEDITOR            220
 #define ID_BUILD                        32773
 #define ID_EDIT_TAB                     32774
 #define ID_EDIT_UNTAB                   32775
@@ -53,17 +42,19 @@
 #define ID_EDIT_GOTO_NEXT_BOOKMARK      32804
 #define ID_EDIT_GOTO_PREV_BOOKMARK      32805
 #define ID_EDIT_CLEAR_ALL_BOOKMARKS     32806
+#define ID_WORLDVIEW                    32808
+#define ID_BUTTON32810                  32810
 #define ID_VIEW_PANEFIRST               33001
-#define ID_VIEW_INFO                    33003
-#define ID_VIEW_PROP                    33004
 #define ID_VIEW_PANELAST                33005
+#define IDS_MESSAGE_PASSED_N_OF_FILE    60001
+#define IDS_WARNING_RELOAD              60002
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        210
-#define _APS_NEXT_COMMAND_VALUE         32808
+#define _APS_NEXT_RESOURCE_VALUE        224
+#define _APS_NEXT_COMMAND_VALUE         32811
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

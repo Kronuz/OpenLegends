@@ -26,6 +26,17 @@
 #include "MainFrm.h"
 #include "ChildFrm.h"
 
+CChildFrame::CChildFrame(CMainFrame *pMainFrame, _child_type ChildType) :
+	m_pMainFrame(pMainFrame),
+	m_ChildType(ChildType),
+	m_pCmdBar(NULL)
+{
+}
+void CChildFrame::SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar)
+{
+	m_pCmdBar = pCmdBar;
+}
+
 LRESULT CChildFrame::Register(_child_type ChildType)
 {
 	ATLASSERT(m_pMainFrame);

@@ -17,36 +17,33 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		Console.h 
-	\brief		Interface of the Console class.
-	\date		April 23, 2003
+/*! \file		ChildView.h 
+	\brief		Interface of the CChildView class.
+	\date		April 26, 2003
 */
 
 #pragma once
 
-enum _ftype { t_printf, t_error };
-struct InfoStruct {
-	_ftype type;
-	const char *message;
-	va_list argptr;
-	int number;
-	char *filename;
-	int firstline;
-	int lastline;
-};
+#include "Console.h"
 
-/*! 
-	\class		CConsole
-	\brief		Inormation window interface for output.
-	\author		Kronuz
-	\version	1.0
-	\date		April 23, 2003
-*/
-class CConsole {
+/////////////////////////////////////////////////////////////////////////////
+// Forward declarations
+class CChildFrame;
+
+class CChildView :
+	public CConsole
+{
+protected:
+	// Pointer to parent frame
+	CChildFrame *m_pParentFrame;
+	// The view's file name
+	CString m_sFileName;
+	// The view's title
+	CString m_sTitle;
+
+	// Construction/Destruction
+	CChildView(CChildFrame *pParentFrame);
 public:
-	static HWND m_shWnd; //! Window handler to send the information
-
-	int print(const char *format, va_list argptr);
-	int printf(const char *format, ...);
-	int error(int number, char *message, char *filename, int firstline, int lastline, va_list argptr);
+	CString& GetFileName() { return m_sFileName; }
+	CString& GetTitle() { return m_sTitle; }
 };

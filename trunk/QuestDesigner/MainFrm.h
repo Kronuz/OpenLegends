@@ -106,7 +106,9 @@ protected:
 	CPlainTextView m_TaskListView;
 	CPlainTextView m_DescriptionView;
 	CBuildOutputView m_OutputView;
+
 ////////////////////////////////////////////////////////
+
 	CProjectManager m_ProjectManager;
 public:
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MAINFRAME)
@@ -150,8 +152,12 @@ public:
 		UPDATE_ELEMENT(ID_VIEW_TOOLBAR, UPDUI_MENUPOPUP)
 		UPDATE_ELEMENT(ID_VIEW_STATUS_BAR, UPDUI_MENUPOPUP)
 
-		UPDATE_ELEMENT(ID_VIEW_INFO, UPDUI_MENUPOPUP)
-		UPDATE_ELEMENT(ID_VIEW_PROP, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_VIEW_WORLDEDITOR, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_VIEW_MAPEDITOR, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		UPDATE_ELEMENT(ID_VIEW_SPRITEEDITOR, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+
+		UPDATE_ELEMENT(ID_VIEW_INFORMATION, UPDUI_MENUPOPUP)
+		UPDATE_ELEMENT(ID_VIEW_PROPERTIES, UPDUI_MENUPOPUP)
 
 	END_UPDATE_UI_MAP()
 
@@ -165,7 +171,10 @@ public:
 		COMMAND_ID_HANDLER(ID_FILE_OPEN, OnFileOpen)
 		COMMAND_ID_HANDLER(ID_VIEW_TOOLBAR, OnViewToolBar)
 		COMMAND_ID_HANDLER(ID_VIEW_STATUS_BAR, OnViewStatusBar)
-		COMMAND_ID_HANDLER(ID_VIEW_INFO, OnViewInfoWindow)
+
+		COMMAND_ID_HANDLER(ID_VIEW_WORLDEDITOR, OnViewWorldEditor)
+		COMMAND_ID_HANDLER(ID_VIEW_MAPEDITOR, OnViewMapEditor)
+		COMMAND_ID_HANDLER(ID_VIEW_SPRITEEDITOR, OnViewSpriteEditor)
 
 		COMMAND_ID_HANDLER(ID_BUILD, OnBuildProject)
 		//MESSAGE_HANDLER(WMQD_BEGIN, ??)
@@ -177,7 +186,7 @@ public:
 
 		SIMPLE_MESSAGE_HANDLER(WMQD_ADDTREE, m_FoldersView.AddTree)
 
-		COMMAND_TOGGLE_MEMBER_HANDLER(ID_VIEW_INFO, m_InfoFrame)
+		COMMAND_TOGGLE_MEMBER_HANDLER(ID_VIEW_INFORMATION, m_InfoFrame)
 
 		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER(ID_WINDOW_CASCADE, OnWindowCascade)
@@ -204,9 +213,17 @@ public:
 	LRESULT OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
 	LRESULT OnViewToolBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnViewStatusBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnViewInfoWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+	LRESULT OnViewWorldEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnViewMapEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnViewSpriteEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
+	LRESULT OnViewInformationWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnViewPropertiesWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+
 	LRESULT OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWindowCascade(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnWindowTile(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -215,9 +232,22 @@ public:
 	LRESULT OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 public:
+	int CountChilds(_child_type ChildType);
+	CChildFrame* FindChild(LPCSTR lpszName);
+
 	int Select(LPCTSTR szFilename, LPARAM lParam);
 	int FileOpen(LPCTSTR szFilename, LPARAM lParam=0, BOOL bReadOnly=FALSE);
 
 	void UIUpdateMenuItems();
+
+	// Return a the window's UI updater
+	CUpdateUIBase* GetUpdateUI() {
+		return static_cast<CUpdateUIBase *>(this);
+	}
+
+	// The windows status bar
+	CMultiPaneStatusBarCtrl* GetMultiPaneStatusBarCtrl() {
+		return &m_wndStatusBar;
+	}
 
 };

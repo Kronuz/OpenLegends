@@ -77,8 +77,8 @@ LRESULT CBuildOutputView::OnLButtonDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/,
 
 	// Don't do anything on an empty line:
 	if(strLineText.GetLength() > 0)	{
-		int show = strLineText.Find(") : Warning");
-		if(show==-1) show = strLineText.Find(") : Error");
+		int show = strLineText.Find(_T(") : Warning"));
+		if(show==-1) show = strLineText.Find(_T(") : Error"));
 
 		if(show >= 0) {
 			// The selected line is a warning or a error:

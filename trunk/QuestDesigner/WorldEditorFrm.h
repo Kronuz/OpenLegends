@@ -73,6 +73,4 @@ public:
 
 	// Return the window's child control
 	CWorldEditorView* GetView() { return m_pWorldEditorView; }
-	// Return the main frame
-	CMainFrame* GetMainFrame() { return m_pMainFrame; }
 };

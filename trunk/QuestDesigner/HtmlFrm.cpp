@@ -25,21 +25,15 @@
 #include "HtmlFrm.h"
 
 CHtmlFrame::CHtmlFrame(CMainFrame *pMainFrame) :
+	CChildFrame(pMainFrame, tHtmlView),
 	m_pHtmlView(NULL)
 {
-	m_pMainFrame = pMainFrame;
-	m_pCmdBar = NULL;
 }
 
 void CHtmlFrame::OnFinalMessage(HWND /*hWnd*/)
 {
 	delete this;
 }
-void CHtmlFrame::SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar)
-{
-	m_pCmdBar = pCmdBar;
-}
-
 LRESULT CHtmlFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
 	LRESULT lRet = DefWindowProc();
@@ -62,10 +56,14 @@ LRESULT CHtmlFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	if(m_punkBrowser)
 		DispEventAdvise(m_punkBrowser, &DIID_DWebBrowserEvents2);
 
+	CChildFrame::Register(tHtmlView);
+
 	return TRUE;
 }
 LRESULT CHtmlFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
+	CChildFrame::Unregister();
+
 	if(m_punkBrowser)
 		DispEventUnadvise(m_punkBrowser, &DIID_DWebBrowserEvents2);
 	bHandled = FALSE;

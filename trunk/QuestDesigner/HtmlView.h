@@ -24,19 +24,16 @@
 
 #pragma once
 
+#include "ChildView.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CHtmlFrame;
 
 class CHtmlView:
+	public CChildView,
 	public CWindowImpl<CHtmlView, CAxWindow>
 {
-private:
-	// Pointer to parent frame
-	CHtmlFrame *m_pParentFrame;
-	// The view's title
-	CString m_sTitle;
-
 public:
 	// Construction/Destruction
 	CHtmlView(CHtmlFrame *pParentFrame);
