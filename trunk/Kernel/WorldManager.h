@@ -33,6 +33,11 @@
 
 #include <vector>
 
+#define DEF_MAXMAPSX 256
+#define DEF_MAXMAPSY 256
+#define DEF_MAPSIZEX 640
+#define DEF_MAPSIZEY 480
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CWorld;
@@ -109,6 +114,8 @@ public:
 	virtual void SetMapGroupSize(const CSize &MapGroupSize);
 
 	virtual void MoveMapGroupTo(int x, int y);
+	virtual void OffsetMapGroup(int x, int y);
+
 	virtual void SetThumbnail(BITMAP *pBitmap) { 
 		delete []m_pBitmap;
 		m_pBitmap = pBitmap; 
@@ -139,6 +146,7 @@ class CWorld :
 	std::vector<CMapGroup*> m_MapGroups;
 
 public:
+	CSize m_szWorldSize;
 	CSize m_szMapSize;
 
 	CWorld(LPCSTR szName);

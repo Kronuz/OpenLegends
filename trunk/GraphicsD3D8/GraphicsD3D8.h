@@ -194,10 +194,10 @@ public:
 	~CGraphicsD3D8();
 
 	bool SetWindowView(HWND hWnd, const RECT &client, const RECT &clipping, float zoom);
-	void GetWorldPosition(POINT &Point_) const;
-	void GetWorldRect(RECT &Rect_) const;
-	void GetViewPosition(POINT &Point_) const;
-	void GetViewRect(RECT &Rect_) const;
+	void GetWorldPosition(POINT *Point_) const;
+	void GetWorldRect(RECT *Rect_) const;
+	void GetViewPosition(POINT *Point_) const;
+	void GetViewRect(RECT *Rect_) const;
 
 	RECT GetVisibleRect() const;
 	float GetCurrentZoom() const;

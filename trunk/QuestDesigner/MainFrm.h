@@ -84,7 +84,7 @@ protected:
 	typedef dockwins::CMDIDockingFrameImpl<CMainFrame> baseClass;
 
 public:
-	CTabbedMDIClient<CDotNetTabCtrl<CTabViewTabItem> > m_tabbedClient;
+	CTabbedMDIClient< CDotNetTabCtrl<CTabViewTabItem> > m_tabbedClient;
 protected:
 	sstate::CWindowStateMgr	m_stateMgr;
 	
@@ -102,7 +102,6 @@ protected:
 
 	// Properties docking window:
 	CPropertiesDockingView m_PropFrame;
-
 
 ////////////////////////////////////////////////////////
 	CFoldersTreeBox m_GameProject;

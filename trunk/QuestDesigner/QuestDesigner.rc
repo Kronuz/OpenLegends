@@ -143,6 +143,21 @@ BEGIN
     BUTTON      ID_MAPED_GRIDSNAP
 END
 
+IDR_TB_FOLDERS TOOLBAR  16, 15
+BEGIN
+    BUTTON      ID_FOLDERS_PROPERTIES
+END
+
+IDR_TB_PROPVIEW TOOLBAR  16, 15
+BEGIN
+    BUTTON      ID_PROP_CAT
+    BUTTON      ID_PROP_SORT
+    SEPARATOR
+    BUTTON      ID_PROP_PROPERTIES
+    SEPARATOR
+    BUTTON      ID_PROP_PAGES
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -155,6 +170,8 @@ IDB_MSDEV_TAB_ICONS     BITMAP                  "res\\msdev_tab_icons.bmp"
 IDR_TB_MAPED_MAIN       BITMAP                  "res\\MapEdToolbarMain.bmp"
 IDR_TB_MAPED_BASIC      BITMAP                  "res\\MapEdToolbarBasic.bmp"
 IDR_TB_MAPED_OBJECT     BITMAP                  "res\\MapEdToolbarObject.bmp"
+IDR_TB_FOLDERS          BITMAP                  "res\\FoldersToolbar.bmp"
+IDR_TB_PROPVIEW         BITMAP                  "res\\PropertyViewToolbar.bmp"
 IDB_DRAGIMG             BITMAP                  "res\\DragImg.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -337,12 +354,21 @@ BEGIN
                     SS_CENTERIMAGE
 END
 
-IDD_PROPERTIES_NOTIMPLEMENTED DIALOGEX 0, 0, 250, 170
-STYLE DS_SETFONT | WS_CHILD
-FONT 8, "MS Sans Serif", 0, 0, 0x0
+IDD_PROPERTYVIEW DIALOGEX 0, 0, 187, 194
+STYLE DS_SETFONT | WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    CTEXT           "Properties sheet under construction.",IDC_STATIC_INFO,0,
-                    76,250,8
+    COMBOBOX        IDC_COMBO,1,15,184,67,CBS_DROPDOWNLIST | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LISTBOX         IDC_LIST,1,32,184,120,LBS_OWNERDRAWVARIABLE | 
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | NOT WS_BORDER | 
+                    WS_VSCROLL | WS_TABSTOP,WS_EX_STATICEDGE
+    CONTROL         "",IDC_FRAME,"Static",SS_GRAYFRAME | SS_NOTIFY,0,155,185,
+                    38,WS_EX_TRANSPARENT
+    LTEXT           "Description",IDC_TITLE,3,159,49,10
+    LTEXT           "The description of the property.",IDC_DESCRIPTION,3,172,
+                    179,17
 END
 
 

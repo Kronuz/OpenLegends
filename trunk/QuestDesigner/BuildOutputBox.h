@@ -34,7 +34,7 @@ class CBuildOutputBox :	public COutputBox
 {
 	int m_Errors;
 	int m_Warnings;
-	CBString m_sProject;
+	CString m_sProject;
 public:
 	// Pointer to main frame
 	CMainFrame *m_pMainFrame;

@@ -77,14 +77,12 @@ bool CBackground::NeedToDraw(const CDrawableContext &scontext)
 	}
 	return false; 
 }
-inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOLOR *rgbColorOverride, IBuffer **ppBuffer)
+inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOLOR *rgbColorOverride, int nBuffer)
 {
-	ASSERT(ppBuffer);
+	CSpriteSheet *pSpriteSheet = GetSpriteSheet();
+	ASSERT(pSpriteSheet);
 
 	const CSpriteContext *scontext = static_cast<const CSpriteContext*>(&context);
-
-	CSpriteSheet *pSpriteSheet = GetSpriteSheet();
-	if(!pSpriteSheet) return false;
 
 	const IGraphics *pGraphics = context.GetGraphicsDevice();
 	// We handle texture stuff
@@ -107,14 +105,14 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 
 	if(m_pSpriteData->iAnimSpd && pGraphics->GetCurrentZoom() >= 0.5f) { // fps
 		int nFrame = ( (m_pSpriteData->iAnimSpd * GetTickCount())/1000 ) % m_Boundaries.size();
-		if(*ppBuffer && scontext->m_nFrame!=nFrame) {
-			if( m_Boundaries[nFrame].Width() != m_Boundaries[scontext->m_nFrame].Width() ||
-				m_Boundaries[nFrame].Height() != m_Boundaries[scontext->m_nFrame].Height()) {
-				(*ppBuffer)->Invalidate(); // the next frame has different size, invalidate.
+		if(context.m_pBuffer[nBuffer] && scontext->m_nFrame[nBuffer]!=nFrame) {
+			if( m_Boundaries[nFrame].Width() != m_Boundaries[scontext->m_nFrame[nBuffer]].Width() ||
+				m_Boundaries[nFrame].Height() != m_Boundaries[scontext->m_nFrame[nBuffer]].Height()) {
+				context.m_pBuffer[nBuffer]->Invalidate(); // the next frame has different size, invalidate.
 			} else {
-				(*ppBuffer)->Touch(); // same size, the same buffer can be used, just touch.
+				context.m_pBuffer[nBuffer]->Touch(); // same size, the same buffer can be used, just touch.
 			}
-			scontext->m_nFrame = nFrame;
+			scontext->m_nFrame[nBuffer] = nFrame;
 		}
 	}
 
@@ -127,12 +125,12 @@ inline bool CSprite::Draw(const CDrawableContext &context, bool bBounds, ARGBCOL
 	CRect Rect;
 	scontext->GetAbsFinalRect(Rect);
 	pGraphics->Render(pTexture, 
-		m_Boundaries[scontext->m_nFrame], 
+		m_Boundaries[scontext->m_nFrame[nBuffer]], 
 		Rect, 
 		scontext->Rotation(), 
 		scontext->Transformation(), 
 		*rgbColorOverride,
-		ppBuffer);
+		&(context.m_pBuffer[nBuffer]));
 
 	if(bBounds) pGraphics->BoundingBox(Rect, COLOR_ARGB(255,0,0,0));
 
@@ -142,7 +140,7 @@ bool CMaskMap::Draw(const CDrawableContext &context)
 {
 	
 	ARGBCOLOR rgbColor = COLOR_ARGB(200,255,255,255);
-	if(!CSprite::Draw(context, false, &rgbColor, &(context.m_pBuffer2))) {
+	if(!CSprite::Draw(context, false, &rgbColor, 1)) {
 		return false;
 	}
 
@@ -150,7 +148,7 @@ bool CMaskMap::Draw(const CDrawableContext &context)
 }
 bool CBackground::Draw(const CDrawableContext &context) 
 { 
-	if(!CSprite::Draw(context, g_bBounds, NULL, &(context.m_pBuffer))) {
+	if(!CSprite::Draw(context, g_bBounds, NULL, 0)) {
 		return false;
 	}
 
@@ -195,16 +193,18 @@ int CSpriteSheet::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 	std::map<CBString, CSprite*>::iterator Iterator = m_Sprites.begin();
 	while(Iterator != m_Sprites.end()) {
 		ASSERT(Iterator->second);
-		cnt++;
-		if(!ForEach((LPVOID)(Iterator->second), lParam)) return -1;
+		int aux = ForEach((LPVOID)(Iterator->second), lParam);
+		if(aux < 0) return aux-cnt;
+		cnt += aux;
 		Iterator++;
 	}
 	return cnt;
 }
 
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
-	CDrawableContext(szName), m_nFrame(0)
+	CDrawableContext(szName)
 {
+	memset(m_nFrame, 0, sizeof(m_nFrame));
 	Mirror(false);
 	Flip(false);
 	Alpha(255);

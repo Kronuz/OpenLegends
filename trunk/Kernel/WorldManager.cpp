@@ -65,7 +65,7 @@ bool CMapGroup::Load()
 	
 	CVFile vfFile;
 	CBString sFile;
-	CBString sPath = "questdata\\" + m_pWorld->m_fnFileLoad.GetFileTitle(); // relative by default
+	CBString sPath = "questdata\\" + m_pWorld->m_fnFile.GetFileTitle(); // relative by default
 
 	// for each map in the group, we load it in the new layer
 	for(int j=0; j<m_rcPosition.Height(); j++) {
@@ -135,6 +135,16 @@ void CMapGroup::SetMapGroupSize(const CSize &MapGroupSize)
 		m_rcPosition.Height() * m_pWorld->m_szMapSize.cy
 	);
 }
+void CMapGroup::OffsetMapGroup(int x, int y)
+{
+	CPoint AdjOffset(0,0);
+	m_rcPosition.OffsetRect(x, y);
+	if(m_rcPosition.top < 0) AdjOffset.y = -m_rcPosition.top;
+	if(m_rcPosition.left < 0) AdjOffset.x = -m_rcPosition.left;
+	if(m_rcPosition.bottom >= m_pWorld->m_szWorldSize.cx) AdjOffset.y = m_pWorld->m_szWorldSize.cx - m_rcPosition.bottom;
+	if(m_rcPosition.right >= m_pWorld->m_szWorldSize.cy) AdjOffset.x = m_pWorld->m_szWorldSize.cy - m_rcPosition.right;
+	m_rcPosition.OffsetRect(AdjOffset);
+}
 void CMapGroup::MoveMapGroupTo(int x, int y)
 {
 	m_rcPosition.OffsetRect(CPoint(x,y) - m_rcPosition.TopLeft());
@@ -152,7 +162,8 @@ bool CMapGroup::isMapGroupHead(int x, int y) const
 CWorld::CWorld(LPCSTR szName) : 
  	CNamedObj(szName),
 	CDocumentObject(),
-	m_szMapSize(320*2, 240*2)
+	m_szMapSize(DEF_MAPSIZEX, DEF_MAPSIZEY),
+	m_szWorldSize(DEF_MAXMAPSX, DEF_MAXMAPSY)
 {
 	m_ArchiveIn = new CWorldTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;

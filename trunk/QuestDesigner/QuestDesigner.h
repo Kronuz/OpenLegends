@@ -35,4 +35,3 @@
 #include "MapEditorFrm.h"
 
 #include "ScriptEditorFrm.h"
-#include "HtmlFrm.h"

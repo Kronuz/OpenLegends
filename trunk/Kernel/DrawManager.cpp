@@ -106,10 +106,9 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 	m_Position(0,0),
 	m_Size(-1,-1),
 	m_nChildren(0),
-	m_bValidMap(false),
-	m_pBuffer(NULL),
-	m_pBuffer2(NULL)
+	m_bValidMap(false)
 {
+	memset(m_pBuffer, 0, sizeof(m_pBuffer));
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
 		// The default ordering is birthOrder, birthOrder, yOrder, birthOrder, birthOrder, yOrder... (one and one)
 		m_eDrawType[i] = (((i+1)%3)==0)?yOrder:birthOrder;
@@ -118,14 +117,11 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 }
 CDrawableContext::~CDrawableContext() 
 {
-	if(m_pBuffer) {
-		m_pBuffer->Invalidate();
-		m_pBuffer->Release();
-	}
-
-	if(m_pBuffer2) {
-		m_pBuffer2->Invalidate();
-		m_pBuffer2->Release();
+	for(int i=0; i<CONTEXT_BUFFERS; i++) {
+		if(m_pBuffer[i]) {
+			m_pBuffer[i]->Invalidate();
+			m_pBuffer[i]->Release();
+		}
 	}
 
 	// Optimizated using for_each() instead of a loop
@@ -695,18 +691,24 @@ void CDrawableSelection::CleanSelection() {
 	}
 	m_Objects.clear();
 }
-CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_)
+bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor)
 {
+	CPoint WorldPoint = point_;
+	// We get the world coordinates for the mouse position
+	pGraphics_->GetWorldPosition(&WorldPoint);
+
+	CRect rcBoundaries;
+	GetBoundingRect(rcBoundaries);
+	bool ret = rcBoundaries.PtInRect(WorldPoint);
+
+	*pCursor = m_CurrentCursor;
+
 	if( m_eCurrentState==eResizing	||
 		m_eCurrentState==eMoving	|| 
-		m_eCurrentState==eSelecting	   ) return m_CurrentCursor;
+		m_eCurrentState==eSelecting	   ) return ret;
 
 	m_CurrentCursor = eIDC_ARROW;
 	m_bCursorLeft = m_bCursorTop = m_bCursorRight = m_bCursorBottom = false;
-
-	CPoint WorldPoint = point_;
-	// We get the world coordinates for the mouse position
-	pGraphics_->GetWorldPosition(WorldPoint);
 
 	CRect Rect(0,0,0,0);
 	CRect RectTmp;
@@ -720,7 +722,7 @@ CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CP
 	}
 
 	// Now that we have the full bounding Rect (in world coordinates) we convert it to View coordinates.
-	pGraphics_->GetViewRect(Rect);
+	pGraphics_->GetViewRect(&Rect);
 	// Check the bounding box (in view coordinates) with the mouse point (also in view coordinates.):
 
 	// We need to validate the cursor sensibility for all sides:
@@ -778,7 +780,8 @@ CURSOR CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CP
 			}
 		}
 	}
-	return m_CurrentCursor;
+	*pCursor = m_CurrentCursor;
+	return ret;
 }
 
 bool CDrawableSelection::Paint(IGraphics *pGraphicsI, WORD wFlags)

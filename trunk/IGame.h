@@ -28,19 +28,26 @@ interface IGame :
 
 	static const WORD Version;
 
-	virtual bool Load(CVFile &vfFile) = 0;
-	virtual bool Save(CVFile &vfFile) = 0;
-	virtual bool Close() = 0;
+	// CDocumentObject override:
+	virtual bool Load(LPCSTR szFile) = 0;
+	virtual bool Save(LPCSTR szFile) = 0;
+	virtual bool Save() = 0;
+	virtual bool Close(bool bForce = false) = 0;
 
-	virtual bool LoadWorld(CVFile &vfFile) = 0;
-	virtual bool SaveWorld(CVFile &vfFile) = 0;
-	virtual bool CloseWorld() = 0;
+	virtual bool LoadWorld(LPCSTR szFile) = 0;
+	virtual bool SaveWorld(LPCSTR szFile) = 0;
+	virtual bool SaveWorld() = 0;
+	virtual bool CloseWorld(bool bForce = false) = 0;
 
 	virtual CSpriteSelection* CreateSpriteSelection(CDrawableContext **ppDrawableContext_) = 0;
 	virtual void DeleteSpriteSelection(CSpriteSelection *pSelection) = 0;
 
 	virtual void GetMapSize(CSize &mapSize) const = 0;
 	virtual void SetMapSize(const CSize &mapSize) = 0;
+
+	virtual void GetWorldSize(CSize &worldSize) const = 0;
+	virtual void SetWorldSize(const CSize &worldSize) = 0;
+
 	virtual CMapGroup *FindMapGroup(int x, int y) const = 0; //!< Get the mapgroup at location (x,y)
 	virtual CMapGroup* BuildMapGroup(int x, int y, int width, int height) = 0;
 

@@ -73,11 +73,10 @@ CMapEditorView::CMapEditorView(CMapEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
 	m_pMapGroupI(NULL),
 	m_szMap(0, 0),
-	m_nTimer(0),
 	m_Zoom(1.0f),
 	m_nSnapSize(16),
 	m_bFloating(false),
-	m_bDragMode(false),
+	m_DragState(tNone),
 	m_bIgnoreClick(false),
 	m_pGraphicsI(NULL),
 	m_CursorStatus(eIDC_ARROW),
@@ -162,14 +161,14 @@ LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 }
 LRESULT CMapEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
-	if(m_nTimer == 0) m_nTimer = SetTimer(1, 1000/30);
+	SetTimer(1, 1000/30);
 	return 0;
 }
 LRESULT CMapEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
 	// stop the animations
 	if(GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) return 0;
-	if(m_nTimer) { KillTimer(m_nTimer); m_nTimer = 0; }
+	KillTimer(1);
 
 	// Capture the MapGroup (to update the world editor)
 	if(m_pMapGroupI && m_SelectionI) {
@@ -182,16 +181,20 @@ LRESULT CMapEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CMapEditorView::OnMouseLeave(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
-	if(m_bDragMode) {
-		m_bDragMode = false;
-		ShowCursor(TRUE);
-		return BeginDrag();
+	if(m_DragState == tToDrag) {
+		m_DragState = tWaiting;
+
+		// start tracking the mouse, to see if it enters into 
+		// the client area again within 200 milliseconds:
+		SetTimer(2, 200);
 	}
+
 	return 0;
 }
+
 LRESULT CMapEditorView::OnDragLeave(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
-	m_bDragMode = true;
+	m_DragState = tToDrag;
 	m_dwTick = GetTickCount();
 	return 0;
 }
@@ -221,11 +224,19 @@ void CMapEditorView::Render()
 
 LRESULT CMapEditorView::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/)
 {
-	if(GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
-		KillTimer(m_nTimer); 
-		m_nTimer = 0;
+	if(wParam == 1) {
+		if(GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
+			KillTimer(1); 
+		}
+		if(m_bAnimated) Render(); // Animation
+	} else if(wParam == 2) {
+		// cancel this timer
+		KillTimer(2);
+		if(m_DragState == tWaiting) {
+			// now start draging
+			BeginDrag();
+		}
 	}
-	if(m_bAnimated) Render(); // Animation
 	return 0;
 }
 void CMapEditorView::DoPaint(CDCHandle dc)
@@ -279,7 +290,7 @@ LRESULT CMapEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
 
-	CBString sText;
+	CString sText;
 	sText.Format(_T("%4d%%"), (int)(100.0f * m_Zoom));
 	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
 
@@ -310,7 +321,9 @@ LRESULT CMapEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam
 	UpdateView();
 	CPoint Point(lParam);
 	ScreenToClient(&Point);
-	ToCursor(m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point));
+	CURSOR Cursor;
+	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &Cursor);
+	ToCursor(Cursor);
 
 	return 0;
 }
@@ -339,13 +352,13 @@ LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	if(m_bFloating) return 0;
 
 	CPoint Point(lParam);
-	m_CursorStatus = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point);
+	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
 	ToCursor(m_CursorStatus);
 
-	m_pGraphicsI->GetWorldPosition(Point);
+	m_pGraphicsI->GetWorldPosition(&Point);
 
 	m_SelectionI->SetSnapSize(m_bSnapToGrid?m_nSnapSize:1);
 	if(m_CursorStatus==eIDC_ARROW || m_CursorStatus==eIDC_ARROWADD || m_CursorStatus==eIDC_ARROWDEL) {
@@ -360,12 +373,12 @@ LRESULT CMapEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	if(m_CursorStatus==eIDC_SIZEALL) {
 		ShowCursor(FALSE);
 		m_SelectionI->StartMoving(Point);
-		m_bDragMode = true;
+		m_DragState = tToDrag;
 	} else if(m_CursorStatus==eIDC_SIZENESW || m_CursorStatus==eIDC_SIZENS || m_CursorStatus==eIDC_SIZENWSE ||m_CursorStatus==eIDC_SIZEWE) {
 		m_SelectionI->StartResizing(Point);
 	}
 
-	if(m_bDragMode == false) SetCapture();
+	if(m_DragState == tNone) SetCapture();
 
 	return 0;
 }
@@ -373,15 +386,15 @@ LRESULT CMapEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 {
 	ReleaseCapture();
 
-	m_bDragMode = false;
+	m_DragState = tNone;
 	CPoint Point(lParam);
-	m_CursorStatus = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point);
+	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
 	ToCursor(m_CursorStatus);
 
-	m_pGraphicsI->GetWorldPosition(Point);
+	m_pGraphicsI->GetWorldPosition(&Point);
 	
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_SelectionI->SetSnapSize(1);
 	else m_SelectionI->SetSnapSize(m_bSnapToGrid?m_nSnapSize:1);
@@ -408,7 +421,7 @@ LRESULT CMapEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 {
 //	if(m_bIgnoreClick) { m_bIgnoreClick = false; return 0; }
 	CPoint Point(lParam);
-	m_CursorStatus = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point);
+	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
@@ -417,7 +430,7 @@ LRESULT CMapEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	if(m_SelectionI->isSelecting()) {
 		m_SelectionI->CancelSelBox();
 	} else {
-		m_pGraphicsI->GetWorldPosition(Point);
+		m_pGraphicsI->GetWorldPosition(&Point);
 		if(!m_SelectionI->SelectedAt(Point)) {
 			m_SelectionI->CancelSelBox();
 		}
@@ -429,26 +442,34 @@ LRESULT CMapEditorView::OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 {
 //	if(m_bIgnoreClick) { m_bIgnoreClick = false; return 0; }
 	CPoint Point(lParam);
-	m_CursorStatus = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point);
+	bool bInSelection = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
 	ToCursor(m_CursorStatus);
 
 	if((wParam&MK_SHIFT)==MK_SHIFT && (wParam&MK_CONTROL)==MK_CONTROL) {
-		m_pGraphicsI->GetWorldPosition(Point);
+		m_pGraphicsI->GetWorldPosition(&Point);
 		m_SelectionI->StartSelBox(Point);
 		m_SelectionI->EndSelBoxAdd(Point, -1);
 	} else if((wParam&MK_SHIFT)==0 && (wParam&MK_CONTROL)==0) {
-		if(m_SelectionI->Count()==0 || m_bMulSelection==false) {
-			m_SelectionI->CleanSelection();
-			m_pGraphicsI->GetWorldPosition(Point);
-			m_SelectionI->StartSelBox(Point);
-			m_SelectionI->EndSelBoxAdd(Point, 0);
+		if(!bInSelection && m_bMulSelection==true) {
+			if(m_SelectionI->Count()==0) {
+				CPoint ScreenPoint(lParam);
+				ClientToScreen(&ScreenPoint);
+				PostMessage(WM_CONTEXTMENU, wParam, MAKELPARAM(ScreenPoint.x, ScreenPoint.y));
+			} else m_SelectionI->CleanSelection();
+		} else {
+			if(m_SelectionI->Count()==0 || m_bMulSelection==false) {
+				m_SelectionI->CleanSelection();
+				m_pGraphicsI->GetWorldPosition(&Point);
+				m_SelectionI->StartSelBox(Point);
+				m_SelectionI->EndSelBoxAdd(Point, 0);
+			} 
+			CPoint ScreenPoint(lParam);
+			ClientToScreen(&ScreenPoint);
+			PostMessage(WM_CONTEXTMENU, wParam, MAKELPARAM(ScreenPoint.x, ScreenPoint.y));
 		}
-		CPoint ScreenPoint(lParam);
-		ClientToScreen(&ScreenPoint);
-		PostMessage(WM_CONTEXTMENU, wParam, MAKELPARAM(ScreenPoint.x, ScreenPoint.y));
 	}
 /**/
 	Invalidate();
@@ -459,7 +480,7 @@ LRESULT CMapEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 {
 //	if(m_bIgnoreClick) { m_bIgnoreClick = false; return 0; }
 	CPoint Point(lParam);
-	m_CursorStatus = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point);
+	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
@@ -471,7 +492,7 @@ LRESULT CMapEditorView::OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 {
 //	if(m_bIgnoreClick) { m_bIgnoreClick = false; return 0; }
 	CPoint Point(lParam);
-	m_CursorStatus = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point);
+	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 	if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 	if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
@@ -646,9 +667,15 @@ LRESULT CMapEditorView::BeginDrag()
 	m_pDropSource->InitDrag();
 
 	CIDataObject *pDataObject = CreateOleObj(m_pDropSource);
+	if(!pDataObject) return 0;
 
+	m_DragState = tDragging;
 	m_dwTick = GetTickCount();
 	m_SelectionI->HoldOperation();
+	Invalidate();
+	UpdateWindow();
+
+	ShowCursor(TRUE);
 
 	DWORD dwEffect;
 	HRESULT hr = ::DoDragDrop(pDataObject, m_pDropSource, DROPEFFECT_COPY, &dwEffect);
@@ -657,11 +684,19 @@ LRESULT CMapEditorView::BeginDrag()
 	if(hr == DRAGDROP_S_DROP) 
 		m_SelectionI->Cancel();
 
+	m_DragState = tToDrag;
+
 	return 0;
 }
 LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
-	if(m_bDragMode && (wParam&MK_LBUTTON) == MK_LBUTTON) {
+	if(m_DragState==tWaiting) {
+		// the mouse entered the client area again before timeout:
+		KillTimer(2);
+		m_DragState=tToDrag;
+	}
+
+	if(m_DragState==tToDrag && (wParam&MK_LBUTTON) == MK_LBUTTON) {
 		TRACKMOUSEEVENT Track;
 		Track.cbSize = sizeof(TRACKMOUSEEVENT);
 		Track.dwFlags = TME_LEAVE;
@@ -672,7 +707,7 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 
 	CPoint Point(lParam);
 
-	m_CursorStatus = m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point);
+	m_SelectionI->GetMouseStateAt(m_pGraphicsI, Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 	if((wParam&MK_LBUTTON)==0) {
 		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
@@ -680,7 +715,7 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	}
 	ToCursor(m_CursorStatus);
 
-	m_pGraphicsI->GetWorldPosition(Point);
+	m_pGraphicsI->GetWorldPosition(&Point);
 
 	if(m_bFloating != m_SelectionI->isFloating()) {
 		m_bFloating = m_SelectionI->isFloating();
@@ -712,7 +747,7 @@ LRESULT CMapEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
 
-	CBString sText;
+	CString sText;
 	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
 	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
 
@@ -742,7 +777,7 @@ LRESULT CMapEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOO
 	} else if(wParam == VK_ESCAPE) {
 		if(m_SelectionI->isMoving() || m_SelectionI->isFloating()) ShowCursor(TRUE);
 		m_SelectionI->Cancel();
-		m_bDragMode = false;
+		m_DragState = tNone;
 		ReleaseCapture();
 	} else if(wParam == VK_DELETE) {
 		if(!m_SelectionI->isMoving() && !m_SelectionI->isResizing()) Delete();
@@ -876,7 +911,7 @@ inline bool CMapEditorView::Paste()
 	CPoint Point;
 	GetCursorPos(&Point);
 	ScreenToClient(&Point);
-	m_pGraphicsI->GetWorldPosition(Point);
+	m_pGraphicsI->GetWorldPosition(&Point);
 	Paste(Point);
 	return true;
 }

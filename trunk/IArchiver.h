@@ -74,7 +74,7 @@ interface CDocumentObject
 	*/
 	virtual bool Load(CVFile &vfFile) {
 		ASSERT(m_ArchiveIn);
-		m_fnFileLoad = vfFile;
+		m_fnFile = vfFile;
 		return m_ArchiveIn->ReadObject(vfFile);
 	}
 
@@ -85,17 +85,35 @@ interface CDocumentObject
 	*/
 	virtual bool Save(CVFile &vfFile) {
 		ASSERT(m_ArchiveOut);
-		m_fnFileSave = vfFile;
+		m_fnFile = vfFile;
 		return m_ArchiveOut->WriteObject(vfFile);
+	}
+	/*! \brief Saves the object to the IArchive.
+	
+		Saves or writes the object using an Archive interface derivated object, to the 
+		same file where it was loaded.
+
+		\sa Load()
+	*/
+	virtual bool Save() {
+		ASSERT(m_ArchiveOut);
+		return m_ArchiveOut->WriteObject(m_fnFile);
+	}
+
+	virtual bool Close(bool bForce = false) {
+		if(bForce) return true;
+		return !hasChanged();
 	}
 
 
 protected:
-	CDocumentObject() : m_ArchiveIn(NULL), m_ArchiveOut(NULL) {}
+	bool m_hasChanged;
+	CDocumentObject() : m_ArchiveIn(NULL), m_ArchiveOut(NULL), m_hasChanged(false) {}
 	IArchive *m_ArchiveIn;
 	IArchive *m_ArchiveOut;
 public:
-	CVFile m_fnFileLoad;
-	CVFile m_fnFileSave;
+	void Touch() { m_hasChanged = true; }
+	bool hasChanged() { return m_hasChanged; }
+	CVFile m_fnFile;
 };
 

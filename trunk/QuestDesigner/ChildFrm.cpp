@@ -64,11 +64,11 @@ LRESULT CChildFrame::OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPAR
 	if(mnuContext.CreatePopupMenu())
 	{
 		int cchWindowText = this->GetWindowTextLength();
-		CBString sWindowText;
+		CString sWindowText;
 		this->GetWindowText(sWindowText.GetBuffer(cchWindowText+1), cchWindowText+1);
 		sWindowText.ReleaseBuffer();
 
-		CBString sSave(_T("&Save '"));
+		CString sSave(_T("&Save '"));
 		sSave += sWindowText;
 		sSave += _T("'");
 

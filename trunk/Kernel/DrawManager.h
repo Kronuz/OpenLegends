@@ -52,8 +52,8 @@
 
 using namespace std;
 
-#define MAX_SUBLAYERS 6
-
+#define MAX_SUBLAYERS	6
+#define CONTEXT_BUFFERS 2
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CDrawableObject;
@@ -165,12 +165,12 @@ protected:
 
 	bool __Draw(const IGraphics *pIGraphics);
 public:
-	mutable IBuffer *m_pBuffer;		//!< Buffer for the drawable context (to use as needed)
-	mutable IBuffer *m_pBuffer2;	//!< A second buffer for the drawable context (to use as needed)
-
+	mutable IBuffer *m_pBuffer[CONTEXT_BUFFERS];	//!< Buffers for the drawable context (to use as needed)
+	
 	void Invalidate() {
-		if(m_pBuffer) m_pBuffer->Invalidate();
-		if(m_pBuffer2) m_pBuffer2->Invalidate();
+		for(int i=0; i<CONTEXT_BUFFERS; i++) {
+			if(m_pBuffer[i]) m_pBuffer[i]->Invalidate();
+		}
 	}
 
 	CDrawableContext(LPCSTR szName="");
@@ -429,7 +429,7 @@ public:
 
 	virtual int Count();
 
-	virtual CURSOR GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_);
+	virtual bool GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor);
 
 	// Make abstract methods:
 	virtual bool Draw(const IGraphics *pGraphics_) = 0; 

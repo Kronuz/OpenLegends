@@ -38,7 +38,7 @@
 class CGraphicsFactory
 {
 	static CGraphicsFactory *_instance;
-	CBString sIName;
+	CString sIName;
    	HMODULE m_hDLL;
 
 public:

@@ -23,7 +23,9 @@
 */
 
 #pragma once
+
 #include "Controls.h"
+#include "ToolBarBox.h"
 
 class CTreeInfo {
 public:
@@ -40,12 +42,15 @@ public:
 };
 
 class CFoldersTreeBox :
-	public CTreeBox
+	public CWindowImpl<CFoldersTreeBox>
 {
 	typedef CFoldersTreeBox thisClass;
 	typedef CTreeBox baseClass;
 
 protected:
+	CToolBarBox m_ctrlToolbar;
+	CTreeBox m_ctrlTree;
+
 	CImageList m_ImageList;
 	int m_nIcoIndex[II_END];
 
@@ -56,12 +61,11 @@ public:
 
 	BEGIN_MSG_MAP(thisClass)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
-		MESSAGE_HANDLER(WM_CREATE, OnDestroy)
+		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
-		 
-		REFLECTED_NOTIFY_CODE_HANDLER(TVN_SELCHANGED, OnSelChanged)
-		CHAIN_MSG_MAP(baseClass)
-		DEFAULT_REFLECTION_HANDLER()
+		MESSAGE_HANDLER(WM_SIZE, OnSize)
+
+		REFLECT_NOTIFICATIONS()
 	END_MSG_MAP()
 
 // Handler prototypes (uncomment arguments if needed):
@@ -69,7 +73,10 @@ public:
 //	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 //	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
 
-	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	{
+		return 0;
+	}
 
 	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
@@ -77,7 +84,24 @@ public:
 	LRESULT DelTree(WPARAM wParam, LPARAM lParam);
 	LRESULT AddTree(WPARAM wParam, LPARAM lParam);
 
-	LRESULT OnSelChanged(int wParam, LPNMHDR lParam, BOOL& bHandled);
+	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
+	{
+		if( !m_ctrlToolbar.IsWindow() || !m_ctrlTree.IsWindow() ) return 0;
+		RECT rc;
+		GetClientRect(&rc);
+		RECT rcTb = { rc.left, rc.top, rc.right, rc.top + 24 };
+		if(rcTb.right-rcTb.left<100) rcTb.right = rcTb.left + 100;
+
+		m_ctrlToolbar.SetWindowPos(NULL, &rcTb, SWP_NOZORDER | SWP_NOACTIVATE);
+		m_ctrlToolbar.GetWindowRect(&rcTb);
+
+		RECT rcTree = { rc.left, rcTb.bottom-rcTb.top, rc.right, rc.bottom };
+		if(rcTree.right-rcTree.left<100) rcTree.right = rcTree.left + 100;
+		if(rcTree.bottom-rcTree.top<100) rcTree.bottom = rcTree.top + 100;
+
+		m_ctrlTree.SetWindowPos(NULL, &rcTree, SWP_NOZORDER | SWP_NOACTIVATE);
+		return 0;
+	}
 
 protected:
 	HTREEITEM FindPath(HTREEITEM hParent, LPSTR szPath);

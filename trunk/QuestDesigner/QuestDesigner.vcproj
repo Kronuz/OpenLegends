@@ -185,12 +185,6 @@
 					RelativePath="ChildView.cpp">
 				</File>
 				<File
-					RelativePath="HtmlFrm.cpp">
-				</File>
-				<File
-					RelativePath="HtmlView.cpp">
-				</File>
-				<File
 					RelativePath="MapEditorFrm.cpp">
 				</File>
 				<File
@@ -286,12 +280,6 @@
 					RelativePath="ChildView.h">
 				</File>
 				<File
-					RelativePath="HtmlFrm.h">
-				</File>
-				<File
-					RelativePath="HtmlView.h">
-				</File>
-				<File
 					RelativePath="MapEditorFrm.h">
 				</File>
 				<File
@@ -324,6 +312,9 @@
 				</File>
 				<File
 					RelativePath="PropertiesDockingView.h">
+				</File>
+				<File
+					RelativePath="ToolBarBox.h">
 				</File>
 			</Filter>
 			<Filter
@@ -375,6 +366,9 @@
 				RelativePath="res\FolderO.ico">
 			</File>
 			<File
+				RelativePath="res\FoldersToolbar.bmp">
+			</File>
+			<File
 				RelativePath="res\MapEdToolbar.bmp">
 			</File>
 			<File
@@ -391,6 +385,9 @@
 			</File>
 			<File
 				RelativePath="res\ProjectToolbar.bmp">
+			</File>
+			<File
+				RelativePath="res\PropertyViewToolbar.bmp">
 			</File>
 			<File
 				RelativePath="res\QuestDesigner.exe.manifest">

@@ -70,7 +70,7 @@ public:
    }
    virtual void SetEnabled(BOOL bEnable)
    {
-      m_fEnabled = bEnable==TRUE;
+      m_fEnabled = bEnable == TRUE;
    }
    virtual BOOL IsEnabled() const
    {
@@ -108,14 +108,39 @@ public:
       dc.SetTextColor(clrFront);
       dc.DrawText(m_pszName, -1, &rcItem, DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_VCENTER);
    }
-   virtual void DrawValue(PROPERTYDRAWINFO& /*di*/) { };
-   virtual HWND CreateInplaceControl(HWND /*hWnd*/, const RECT& /*rc*/) { return NULL; };
-   virtual BOOL Activate(UINT /*action*/, LPARAM /*lParam*/) { return TRUE; };
-   virtual BOOL GetDisplayValue(LPTSTR /*pstr*/, UINT /*cchMax*/) const { return FALSE; };
-   virtual UINT GetDisplayValueLength() const { return 0; };
-   virtual BOOL GetValue(VARIANT* /*pValue*/) const { return FALSE; };
-   virtual BOOL SetValue(const VARIANT& /*value*/) { return FALSE; };
-   virtual BOOL SetValue(HWND /*hWnd*/) { return FALSE; };
+   virtual void DrawValue(PROPERTYDRAWINFO& /*di*/) 
+   { 
+   }
+   virtual HWND CreateInplaceControl(HWND /*hWnd*/, const RECT& /*rc*/) 
+   { 
+      return NULL; 
+   }
+   virtual BOOL Activate(UINT /*action*/, LPARAM /*lParam*/) 
+   { 
+      return TRUE; 
+   }
+   virtual BOOL GetDisplayValue(LPTSTR /*pstr*/, UINT /*cchMax*/) const 
+   { 
+      return FALSE; 
+   }
+   virtual UINT GetDisplayValueLength() const 
+   { 
+      return 0; 
+   }
+   virtual BOOL GetValue(VARIANT* /*pValue*/) const 
+   { 
+      return FALSE; 
+   }
+   virtual BOOL SetValue(const VARIANT& /*value*/) 
+   { 
+      ATLASSERT(false);
+      return FALSE; 
+   }
+   virtual BOOL SetValue(HWND /*hWnd*/) 
+   { 
+      ATLASSERT(false);
+      return FALSE; 
+   }
 };
 
 
@@ -137,7 +162,7 @@ public:
    }
    void DrawValue(PROPERTYDRAWINFO& di)
    {
-      UINT cchMax = GetDisplayValueLength()+1;
+      UINT cchMax = GetDisplayValueLength() + 1;
       LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
       ATLASSERT(pszText);
       if( !GetDisplayValue(pszText, cchMax) ) return;
@@ -152,10 +177,11 @@ public:
          DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER);
    }
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
-   {
+   {      
+      ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
       // Convert VARIANT to string and use that as display string...
       CComVariant v;
-      if( FAILED(v.ChangeType(VT_BSTR, &m_val)) ) return FALSE;
+      if( FAILED( v.ChangeType(VT_BSTR, &m_val) ) ) return FALSE;
       USES_CONVERSION;
       ::lstrcpyn(pstr, OLE2CT(v.bstrVal), cchMax);
       return TRUE;
@@ -166,9 +192,8 @@ public:
       // then take the length...
       // TODO: Call GetDisplayValue() instead...
       CComVariant v;
-      if( FAILED(v.ChangeType(VT_BSTR, &m_val)) ) return 0;
-      USES_CONVERSION;
-      return ::lstrlen(OLE2CT(v.bstrVal));
+      if( FAILED( v.ChangeType(VT_BSTR, &m_val) ) ) return 0;
+      return v.bstrVal == NULL ? 0 : ::lstrlenW(v.bstrVal);
    }
    BOOL GetValue(VARIANT* pVal) const
    {
@@ -199,13 +224,13 @@ public:
       m_uStyle( DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER ),
       m_clrBack( (COLORREF) -1 ),
       m_clrText( (COLORREF) -1 ),
-      m_hIcon( NULL )
+      m_hIcon(NULL)
    {
    }
    void DrawValue(PROPERTYDRAWINFO& di)
    {
       // Get property text
-      UINT cchMax = GetDisplayValueLength()+1;
+      UINT cchMax = GetDisplayValueLength() + 1;
       LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
       ATLASSERT(pszText);
       if( !GetDisplayValue(pszText, cchMax) ) return;
@@ -224,8 +249,10 @@ public:
       dc.SetTextColor(clrText);
       // Draw icon if available
       if( m_hIcon ) {
-         ::DrawIcon(dc, rcText.left + 2, rcText.top + 2, m_hIcon);
-         rcText.left += ::GetSystemMetrics(SM_CXICON) + 4;
+         POINT pt = { rcText.left + 2, rcText.top + 2 };
+         SIZE sz = { ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON) };
+         ::DrawIconEx(dc, pt.x, pt.y, m_hIcon, sz.cx, sz.cy, 0, NULL, DI_NORMAL);
+         rcText.left += sz.cx + 4;
       }
       // Draw text with custom style
       rcText.left += PROP_TEXT_INDENT;
@@ -286,7 +313,7 @@ public:
    HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
    {
       // Get default text
-      UINT cchMax = GetDisplayValueLength()+1;
+      UINT cchMax = GetDisplayValueLength() + 1;
       LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
       ATLASSERT(pszText);
       if( !GetDisplayValue(pszText, cchMax) ) return NULL;
@@ -295,7 +322,7 @@ public:
       ATLASSERT(win);
       RECT rcWin = rc;
       m_hwndEdit = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD | ES_LEFT | ES_AUTOHSCROLL);
-      ATLASSERT(win->IsWindow());
+      ATLASSERT(::IsWindow(m_hwndEdit));
       // Simple hack to validate numbers
       switch( m_val.vt ) {
       case VT_UI1:
@@ -303,34 +330,32 @@ public:
       case VT_UI4:
          win->ModifyStyle(0, ES_NUMBER);
       }
-      return *win;
+      return m_hwndEdit;
    }
    BOOL SetValue(const VARIANT& value)
    {
-      ATLASSERT(m_val.vt==VT_EMPTY || V_VT(&value)==m_val.vt); // Don't change type
-      m_val = value;
-      return TRUE;
+      if( m_val.vt == VT_EMPTY ) m_val = value;
+      return SUCCEEDED( m_val.ChangeType(m_val.vt, &value) );
    }
    BOOL SetValue(HWND hWnd) 
    { 
       ATLASSERT(::IsWindow(hWnd));
-      int len = ::GetWindowTextLength(hWnd)+1;
-      LPTSTR pstr = (LPTSTR)_alloca(len * sizeof(TCHAR));
+      int len = ::GetWindowTextLength(hWnd) + 1;
+      LPTSTR pstr = (LPTSTR) _alloca(len * sizeof(TCHAR));
       ATLASSERT(pstr);
-      if( !::GetWindowText(hWnd, pstr, len) ) {
+      if( ::GetWindowText(hWnd, pstr, len) == 0 ) {
          // Bah, an empty string AND an error causes the same return code!
-         if( ::GetLastError()!=0 ) return FALSE;
+         if( ::GetLastError() != 0 ) return FALSE;
       }
       CComVariant v = pstr;
-      if( FAILED(v.ChangeType(m_val.vt)) ) return FALSE;
       return SetValue(v);
    }
    BOOL Activate(UINT action, LPARAM /*lParam*/)
    {
       switch( action ) {
-      case PACT_DBLCLICK:
       case PACT_TAB:
       case PACT_SPACE:
+      case PACT_DBLCLICK:
          if( ::IsWindow(m_hwndEdit) ) {
             ::SetFocus(m_hwndEdit);
             ::SendMessage(m_hwndEdit, EM_SETSEL, 0, -1);
@@ -338,6 +363,58 @@ public:
          break;
       }
       return TRUE;
+   }
+};
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Simple Value property
+
+class CPropertyDateItem : public CPropertyEditItem
+{
+public:
+   CPropertyDateItem(LPCTSTR pstrName, LPARAM lParam) : 
+      CPropertyEditItem(pstrName, lParam)
+   {
+   }
+   HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+   {
+      // Get default text
+      UINT cchMax = GetDisplayValueLength() + 1;
+      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+      ATLASSERT(pszText);
+      if( !GetDisplayValue(pszText, cchMax) ) return NULL;
+      // Create window
+      CPropertyDateWindow* win = new CPropertyDateWindow();
+      ATLASSERT(win);
+      RECT rcWin = rc;
+      m_hwndEdit = win->Create(hWnd, rcWin, pszText);
+      ATLASSERT(win->IsWindow());
+      return *win;
+   }
+   BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
+   {
+      if( m_val.date == 0.0 ) {
+         ::lstrcpy(pstr, _T(""));
+         return TRUE;
+      }
+      return CPropertyEditItem::GetDisplayValue(pstr, cchMax);
+   }
+   BOOL SetValue(const VARIANT& value)
+   {
+      if( value.vt == VT_BSTR && ::SysStringLen(value.bstrVal) == 0 ) {
+         m_val.date = 0.0;
+         return TRUE;
+      }
+      return CPropertyEditItem::SetValue(value);
+   }
+   BOOL SetValue(HWND hWnd)
+   {
+      if( ::GetWindowTextLength(hWnd) == 0 ) {
+         m_val.date = 0.0;
+         return TRUE;
+      }
+      return CPropertyEditItem::SetValue(hWnd);
    }
 };
 
@@ -381,12 +458,11 @@ public:
       int cxThumb = ::GetSystemMetrics(SM_CXMENUCHECK);
       int cyThumb = ::GetSystemMetrics(SM_CYMENUCHECK);
 
-      //int cy = di.rcItem.bottom - di.rcItem.top;
-
       RECT rcMark = di.rcItem;
       rcMark.left += 10;
       rcMark.right = rcMark.left + cxThumb;
-      rcMark.top += 2; //(LONG) max(0, cy/2 - cyThumb/2);
+      rcMark.top += 2;
+      if( rcMark.top + cyThumb >= rcMark.bottom ) rcMark.top -= rcMark.top + cyThumb - rcMark.bottom + 1;
       rcMark.bottom = rcMark.top + cyThumb;
 
       UINT uState = DFCS_BUTTONCHECK | DFCS_FLAT;
@@ -401,9 +477,8 @@ public:
       case PACT_CLICK:
       case PACT_DBLCLICK:
          if( IsEnabled() ) {
-            m_bValue = !m_bValue;
-            CComVariant v(m_bValue);
-            ::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM)(VARIANT*)&v, (LPARAM)this);
+            CComVariant v = !m_bValue;
+            ::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM) (VARIANT*) &v, (LPARAM) this);
          }
          break;
       }
@@ -425,7 +500,7 @@ public:
    {
       // Get default text
       TCHAR szText[MAX_PATH] = { 0 };
-      if( !GetDisplayValue(szText, sizeof(szText)/sizeof(TCHAR)) ) return NULL;      
+      if( !GetDisplayValue(szText, (sizeof(szText) / sizeof(TCHAR)) - 1) ) return NULL;      
       // Create EDIT control
       CPropertyButtonWindow* win = new CPropertyButtonWindow();
       ATLASSERT(win);
@@ -445,42 +520,39 @@ public:
    {
       // Do nothing... A value should be set on reacting to the button notification.
       // In other words: Use SetItemValue() in response to the PLN_BROWSE notification!
-      return FALSE;
+      return TRUE;
    }
    BOOL Activate(UINT action, LPARAM /*lParam*/)
    {
       switch( action ) {
-      case PACT_DBLCLICK:
       case PACT_BROWSE:
-      case PACT_SPACE:
+      case PACT_DBLCLICK:
          // Let control owner know
          NMPROPERTYITEM nmh = { m_hWndOwner, ::GetDlgCtrlID(m_hWndOwner), PIN_BROWSE, this };
-         ::SendMessage(::GetParent(m_hWndOwner), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM)&nmh);
+         ::SendMessage(::GetParent(m_hWndOwner), WM_NOTIFY, nmh.hdr.idFrom, (LPARAM) &nmh);
       }
       return TRUE;
    }
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
+      ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
       *pstr = _T('\0');
-      if( m_val.bstrVal==NULL ) return TRUE;
+      if( m_val.bstrVal == NULL ) return TRUE;
       // Only display actual filename (strip path)
       USES_CONVERSION;
       LPCTSTR pstrFileName = OLE2CT(m_val.bstrVal);
-      // Hydra - don't like this, no good for paths.
-      /*
       LPCTSTR p = pstrFileName;
       while( *p ) {
-         if( *p==_T(':') || *p==_T('\\') ) pstrFileName = p+1;
+         if( *p == _T(':') || *p == _T('\\') ) pstrFileName = p + 1;
          p = ::CharNext(p);
       }
-      */
       ::lstrcpyn(pstr, pstrFileName, cchMax);
       return TRUE;
    }
    UINT GetDisplayValueLength() const
    {
-      TCHAR szPath[MAX_PATH];
-      if( GetDisplayValue(szPath, sizeof(szPath)/sizeof(TCHAR))==FALSE ) return 0;
+      TCHAR szPath[MAX_PATH] = { 0 };
+      if( !GetDisplayValue(szPath, (sizeof(szPath) / sizeof(TCHAR)) - 1) ) return 0;
       return ::lstrlen(szPath);
    }
 };
@@ -497,7 +569,8 @@ protected:
 
 public:
    CPropertyListItem(LPCTSTR pstrName, LPARAM lParam) : 
-      CPropertyItem(pstrName, lParam), m_hwndCombo(NULL)
+      CPropertyItem(pstrName, lParam), 
+      m_hwndCombo(NULL)
    {
       m_val = -1L;
    }
@@ -508,19 +581,19 @@ public:
    HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
    {
       // Get default text
-      UINT cchMax = GetDisplayValueLength()+1;
+      UINT cchMax = GetDisplayValueLength() + 1;
       LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
       ATLASSERT(pszText);
       if( !GetDisplayValue(pszText, cchMax) ) return NULL;
       // Create 'faked' DropDown control
-      CPropertyComboWindow* win = new CPropertyComboWindow();
+      CPropertyListWindow* win = new CPropertyListWindow();
       ATLASSERT(win);
       RECT rcWin = rc;
       m_hwndCombo = win->Create(hWnd, rcWin, pszText);
       ATLASSERT(win->IsWindow());
       // Add list
       USES_CONVERSION;      
-      for( int i=0; i<m_arrList.GetSize(); i++ ) win->AddItem(OLE2CT(m_arrList[i]));
+      for( int i = 0; i < m_arrList.GetSize(); i++ ) win->AddItem(OLE2CT(m_arrList[i]));
       win->SelectItem(m_val.lVal);
       // Go...
       return *win;
@@ -531,15 +604,15 @@ public:
       case PACT_SPACE:
          if( ::IsWindow(m_hwndCombo) ) {
             // Fake button click...
-            ::SendMessage(m_hwndCombo, WM_COMMAND, MAKEWPARAM(0,BN_CLICKED), 0);
+            ::SendMessage(m_hwndCombo, WM_COMMAND, MAKEWPARAM(0, BN_CLICKED), 0);
          }
          break;
       case PACT_DBLCLICK:
          // Simulate neat VB control effect. DblClick cycles items in list...
          // Set value and recycle edit control
          if( IsEnabled() ) {
-            CComVariant v(m_val.lVal+1);
-            ::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM)(VARIANT*)&v, (LPARAM)this);
+            CComVariant v = m_val.lVal + 1;
+            ::SendMessage(m_hWndOwner, WM_USER_PROP_CHANGEDPROPERTY, (WPARAM) (VARIANT*) &v, (LPARAM) this);
          }
          break;
       }
@@ -548,8 +621,9 @@ public:
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
       ATLASSERT(m_val.vt==VT_I4);
+      ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
       *pstr = _T('\0');
-      if( m_val.lVal<0 || m_val.lVal>=m_arrList.GetSize() ) return FALSE;
+      if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return FALSE;
       USES_CONVERSION;
       ::lstrcpyn( pstr, OLE2CT(m_arrList[m_val.lVal]), cchMax) ;
       return TRUE;
@@ -557,9 +631,9 @@ public:
    UINT GetDisplayValueLength() const
    {
       ATLASSERT(m_val.vt==VT_I4);
-      if( m_val.lVal<0 || m_val.lVal>=m_arrList.GetSize() ) return 0;
-      USES_CONVERSION;
-      return ::lstrlen(OLE2CT(m_arrList[m_val.lVal]));
+      if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return 0;
+      BSTR bstr = m_arrList[m_val.lVal];
+      return bstr == NULL ? 0 : ::lstrlenW(bstr);
    };
 
    BOOL SetValue(const VARIANT& value)
@@ -567,9 +641,9 @@ public:
       switch( value.vt ) {
       case VT_BSTR:
          {
-            m_val = 0;         
-            for( long i=0; i<m_arrList.GetSize(); i++ ) {
-               if( ::wcscmp(value.bstrVal, m_arrList[i])==0 ) {
+            m_val = 0;
+            for( long i = 0; i < m_arrList.GetSize(); i++ ) {
+               if( ::wcscmp(value.bstrVal, m_arrList[i]) == 0 ) {
                   m_val = i;
                   return TRUE;
                }
@@ -587,10 +661,12 @@ public:
    BOOL SetValue(HWND hWnd)
    { 
       ATLASSERT(::IsWindow(hWnd));
-      int len = ::GetWindowTextLength(hWnd)+1;
-      LPTSTR pstr = (LPTSTR)_alloca(len * sizeof(TCHAR));
+      int len = ::GetWindowTextLength(hWnd) + 1;
+      LPTSTR pstr = (LPTSTR) _alloca(len * sizeof(TCHAR));
       ATLASSERT(pstr);
-      if( !::GetWindowText(hWnd, pstr, len) ) return FALSE;
+      if( !::GetWindowText(hWnd, pstr, len) ) {
+         if( ::GetLastError() != 0 ) return FALSE;
+      }
       CComVariant v = pstr;
       return SetValue(v);
    }
@@ -603,14 +679,14 @@ public:
          m_arrList.Add(bstr);
          ppList++;
       }
-      if( m_val.lVal==-1 ) m_val=0;
+      if( m_val.lVal == -1 ) m_val = 0;
    }
    void AddListItem(LPCTSTR pstrText)
    {
       ATLASSERT(!::IsBadStringPtr(pstrText,-1));
       CComBSTR bstr(pstrText);
       m_arrList.Add(bstr);
-      if( m_val.lVal==-1 ) m_val=0;
+      if( m_val.lVal == -1 ) m_val = 0;
    }
 };
 
@@ -625,9 +701,9 @@ public:
    {
 #ifdef IDS_TRUE
       TCHAR szBuffer[32];
-      ::LoadString(_Module.GetResourceInstance(), IDS_FALSE, szBuffer, sizeof(szBuffer)/sizeof(TCHAR));
+      ::LoadString(_Module.GetResourceInstance(), IDS_FALSE, szBuffer, sizeof(szBuffer) / sizeof(TCHAR));
       AddListItem(szBuffer);
-      ::LoadString(_Module.GetResourceInstance(), IDS_TRUE, szBuffer, sizeof(szBuffer)/sizeof(TCHAR));
+      ::LoadString(_Module.GetResourceInstance(), IDS_TRUE, szBuffer, sizeof(szBuffer) / sizeof(TCHAR));
       AddListItem(szBuffer);
 #else
       AddListItem(_T("False"));
@@ -638,63 +714,160 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////
+// ListBox Control property
+
+class CPropertyComboItem : public CPropertyItem
+{
+public:
+   CListBox m_ctrl;
+
+   CPropertyComboItem(LPCTSTR pstrName, LPARAM lParam) : 
+      CPropertyItem(pstrName, lParam)
+   {
+   }
+   HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
+   {
+      ATLASSERT(::IsWindow(m_ctrl));
+      // Create window
+      CPropertyComboWindow* win = new CPropertyComboWindow();
+      ATLASSERT(win);
+      RECT rcWin = rc;
+      win->m_hWndCombo = m_ctrl;
+      win->Create(hWnd, rcWin);
+      ATLASSERT(::IsWindow(*win));
+      return *win;
+   }
+   BYTE GetKind() const 
+   { 
+      return PROPKIND_CONTROL; 
+   }
+   void DrawValue(PROPERTYDRAWINFO& di) 
+   { 
+      RECT rc = di.rcItem;
+      ::InflateRect(&rc, 0, -1);
+      DRAWITEMSTRUCT dis = { 0 };
+      dis.hDC = di.hDC;
+      dis.hwndItem = m_ctrl;
+      dis.CtlID = m_ctrl.GetDlgCtrlID();
+      dis.CtlType = ODT_LISTBOX;
+      dis.rcItem = rc;
+      dis.itemState = ODS_DEFAULT | ODS_COMBOBOXEDIT;
+      dis.itemID = m_ctrl.GetCurSel();
+      dis.itemData = (int) m_ctrl.GetItemData(dis.itemID);
+      ::SendMessage(m_ctrl, OCM_DRAWITEM, dis.CtlID, (LPARAM) &dis);
+   }
+   BOOL GetValue(VARIANT* pValue) const 
+   { 
+      CComVariant v = (int) m_ctrl.GetItemData(m_ctrl.GetCurSel());
+      return SUCCEEDED( v.Detach(pValue) );
+   }
+   BOOL SetValue(HWND /*hWnd*/) 
+   {      
+      int iSel = m_ctrl.GetCurSel();
+      CComVariant v = (int) m_ctrl.GetItemData(iSel);
+      return SetValue(v); 
+   }
+   BOOL SetValue(const VARIANT& value)
+   {
+      ATLASSERT(value.vt==VT_I4);
+      for( int i = 0; i < m_ctrl.GetCount(); i++ ) {
+         if( m_ctrl.GetItemData(i) == (DWORD_PTR) value.lVal ) {
+            m_ctrl.SetCurSel(i);
+            return TRUE;
+         }
+      }
+      return FALSE;
+   }
+};
+
+
+/////////////////////////////////////////////////////////////////////////////
 //
 // CProperty creators
 //
 
-inline HPROPERTY PropCreateVariant(LPCTSTR pstrName, VARIANT& Value, LPARAM lParam = 0)
+inline HPROPERTY PropCreateVariant(LPCTSTR pstrName, const VARIANT& vValue, LPARAM lParam = 0)
 {
-   CPropertyEditItem* prop = new CPropertyEditItem(pstrName, lParam);
+   CPropertyEditItem* prop = NULL;
+   ATLTRY( prop = new CPropertyEditItem(pstrName, lParam) );
    ATLASSERT(prop);
-   prop->SetValue(Value);
+   if( prop ) prop->SetValue(vValue);
    return prop;
 }
 
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, LPCTSTR pstrValue, LPARAM lParam = 0)
 {
-   CPropertyEditItem* prop = new CPropertyEditItem(pstrName, lParam);
-   ATLASSERT(prop);
-   CComVariant v(pstrValue);
-   prop->SetValue(v);
-   return prop;
+   CComVariant vValue = pstrValue;
+   return PropCreateVariant(pstrName, vValue, lParam);
 }
 
-inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, long lValue, LPARAM lParam = 0)
+inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, int iValue, LPARAM lParam = 0)
 {
-   CPropertyEditItem* prop = new CPropertyEditItem(pstrName, lParam);
-   ATLASSERT(prop);
-   CComVariant v(lValue);
-   prop->SetValue(v);
-   return prop;
+   CComVariant vValue = iValue;
+   return PropCreateVariant(pstrName, vValue, lParam);
 }
 
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, bool bValue, LPARAM lParam = 0)
 {
-   CPropertyBooleanItem* prop = new CPropertyBooleanItem(pstrName, lParam);
-   ATLASSERT(prop);
    // NOTE: Converts to integer, since we're using value as an index to dropdown
-   CComVariant v( (long)bValue & 1 );
-   prop->SetValue(v);
+   CComVariant vValue = (int) bValue & 1;
+   CPropertyBooleanItem* prop = NULL;
+   ATLTRY( prop = new CPropertyBooleanItem(pstrName, lParam) );
+   ATLASSERT(prop);
+   if( prop ) prop->SetValue(vValue);
    return prop;
 }
 
 inline HPROPERTY PropCreateFileName(LPCTSTR pstrName, LPCTSTR pstrFileName, LPARAM lParam = 0)
 {
-   CPropertyFileNameItem* prop = new CPropertyFileNameItem(pstrName, lParam);
+   ATLASSERT(!::IsBadStringPtr(pstrFileName,-1));
+   CPropertyFileNameItem* prop = NULL;
+   ATLTRY( prop = new CPropertyFileNameItem(pstrName, lParam) );
    ATLASSERT(prop);
-   CComVariant v(pstrFileName);
-   prop->SetValue(v);
+   if( prop == NULL ) return NULL;
+   CComVariant vValue = pstrFileName;
+   prop->SetValue(vValue);
    return prop;
 }
 
-inline HPROPERTY PropCreateList(LPCTSTR pstrName, LPCTSTR* ppList, long nSel = 0, LPARAM lParam = 0)
+inline HPROPERTY PropCreateDate(LPCTSTR pstrName, const SYSTEMTIME stValue, LPARAM lParam = 0)
 {
-   CPropertyListItem* prop = new CPropertyListItem(pstrName, lParam);
+   IProperty* prop = NULL;
+   ATLTRY( prop = new CPropertyDateItem(pstrName, lParam) );
    ATLASSERT(prop);
-   if( prop!=NULL && ppList!=NULL ) {
+   if( prop == NULL ) return NULL;
+   CComVariant vValue;
+   vValue.vt = VT_DATE;
+   vValue.date = 0.0; // NOTE: Clears value in case of conversion error below!
+   if( stValue.wYear > 0 ) ::SystemTimeToVariantTime( (LPSYSTEMTIME) &stValue, &vValue.date );
+   prop->SetValue(vValue);
+   return prop;
+}
+
+inline HPROPERTY PropCreateList(LPCTSTR pstrName, LPCTSTR* ppList, int iValue = 0, LPARAM lParam = 0)
+{
+   ATLASSERT(ppList);
+   CPropertyListItem* prop = NULL;
+   ATLTRY( prop = new CPropertyListItem(pstrName, lParam) );
+   ATLASSERT(prop);
+   if( prop && ppList ) {
       prop->SetList(ppList);
-      CComVariant v(nSel);
-      prop->SetValue(v);
+      CComVariant vValue = iValue;
+      prop->SetValue(vValue);
+   }
+   return prop;
+}
+
+inline HPROPERTY PropCreateComboControl(LPCTSTR pstrName, HWND hWnd, int iValue, LPARAM lParam = 0)
+{
+   ATLASSERT(::IsWindow(hWnd));
+   CPropertyComboItem* prop = NULL;
+   ATLTRY( prop = new CPropertyComboItem(pstrName, lParam) );
+   ATLASSERT(prop);
+   if( prop ) {
+      prop->m_ctrl = hWnd;
+      CComVariant vValue = iValue;
+      prop->SetValue(vValue);
    }
    return prop;
 }
@@ -706,10 +879,14 @@ inline HPROPERTY PropCreateCheckButton(LPCTSTR pstrName, bool bValue, LPARAM lPa
 
 inline HPROPERTY PropCreateReadOnlyItem(LPCTSTR pstrName, LPCTSTR pstrValue = _T(""), LPARAM lParam = 0)
 {
-   CPropertyItem* prop = new CPropertyReadOnlyItem(pstrName, lParam);
+   ATLASSERT(!::IsBadStringPtr(pstrValue,-1));
+   CPropertyItem* prop = NULL;
+   ATLTRY( prop = new CPropertyReadOnlyItem(pstrName, lParam) );
    ATLASSERT(prop);
-   CComVariant v(pstrValue);
-   prop->SetValue(v);
+   if( prop ) {
+      CComVariant v = pstrValue;
+      prop->SetValue(v);
+   }
    return prop;
 }
 

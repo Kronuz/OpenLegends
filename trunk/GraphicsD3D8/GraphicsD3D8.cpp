@@ -693,34 +693,34 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 
 	return true;
 }
-void CGraphicsD3D8::GetWorldRect(RECT &Rect_) const
+void CGraphicsD3D8::GetWorldRect(RECT *Rect_) const
 {
-	::SetRect(&Rect_,
-		(int)((float)(Rect_.left+m_RectView.left)/m_Zoom),
-		(int)((float)(Rect_.top+m_RectView.top)/m_Zoom),
-		(int)((float)(Rect_.right+m_RectView.left)/m_Zoom),
-		(int)((float)(Rect_.bottom+m_RectView.top)/m_Zoom)
+	::SetRect(Rect_,
+		(int)((float)(Rect_->left+m_RectView.left)/m_Zoom),
+		(int)((float)(Rect_->top+m_RectView.top)/m_Zoom),
+		(int)((float)(Rect_->right+m_RectView.left)/m_Zoom),
+		(int)((float)(Rect_->bottom+m_RectView.top)/m_Zoom)
 	);
 }
 
-void CGraphicsD3D8::GetWorldPosition(POINT &Point_) const
+void CGraphicsD3D8::GetWorldPosition(POINT *Point_) const
 {
-	Point_.x = (int)((float)(Point_.x+m_RectView.left)/m_Zoom);
-	Point_.y = (int)((float)(Point_.y+m_RectView.top)/m_Zoom);
+	Point_->x = (int)((float)(Point_->x+m_RectView.left)/m_Zoom);
+	Point_->y = (int)((float)(Point_->y+m_RectView.top)/m_Zoom);
 }
 
-void CGraphicsD3D8::GetViewPosition(POINT &Point_) const
+void CGraphicsD3D8::GetViewPosition(POINT *Point_) const
 {
-	Point_.x = (int)((float)Point_.x*m_Zoom)-m_RectView.left;
-	Point_.y = (int)((float)Point_.y*m_Zoom)-m_RectView.top;
+	Point_->x = (int)((float)Point_->x*m_Zoom)-m_RectView.left;
+	Point_->y = (int)((float)Point_->y*m_Zoom)-m_RectView.top;
 }
-void CGraphicsD3D8::GetViewRect(RECT &Rect_) const
+void CGraphicsD3D8::GetViewRect(RECT *Rect_) const
 {
-	::SetRect(&Rect_,
-		(int)((float)Rect_.left*m_Zoom)-m_RectView.left,
-		(int)((float)Rect_.top*m_Zoom)-m_RectView.top,
-		(int)((float)Rect_.right*m_Zoom)-m_RectView.left,
-		(int)((float)Rect_.bottom*m_Zoom)-m_RectView.top
+	::SetRect(Rect_,
+		(int)((float)Rect_->left*m_Zoom)-m_RectView.left,
+		(int)((float)Rect_->top*m_Zoom)-m_RectView.top,
+		(int)((float)Rect_->right*m_Zoom)-m_RectView.left,
+		(int)((float)Rect_->bottom*m_Zoom)-m_RectView.top
 	);
 }
 

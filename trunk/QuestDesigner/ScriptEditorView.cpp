@@ -232,7 +232,7 @@ BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T
 		ATLTRACE(_T("Error: Failed to load file: %s\n" ), lpszPathName );
 
 		// show the error message
-		CBString sMessage;
+		CString sMessage;
 		sMessage.Format(_T("Failed to load: %s\n\n" ), lpszPathName );
 		//ShowLastError ( sMessage, ::GetLastError());
 		
@@ -252,7 +252,7 @@ BOOL CScriptEditorView::DoFileOpen(LPCTSTR lpszPathName, LPCTSTR lpszTitle /*=_T
 	return TRUE;
 }
 // Save a file
-BOOL CScriptEditorView::DoFileSave ( const CBString & sPathName ) 
+BOOL CScriptEditorView::DoFileSave ( const CString & sPathName ) 
 {
 	// open the requested file
 	CME_CODE lRet = SaveFile(sPathName, FALSE /*bClearUndo*/);
@@ -261,7 +261,7 @@ BOOL CScriptEditorView::DoFileSave ( const CBString & sPathName )
 		ATLTRACE(_T("Error: Failed to save: %s\n"), sPathName);
 
 		// show the error message
-		CBString sMessage;
+		CString sMessage;
 		sMessage.Format(_T("Error: Failed to save: %s\n\n"), sPathName);
 //		MessageBox(sMessage, ::GetLastError());
 
@@ -316,7 +316,7 @@ void CScriptEditorView::UIUpdateStatusBar()
 	// display position in buffer on the status bar
 	CM_RANGE cmRange;
 	if(CME_SUCCEEDED(GetSel(&cmRange, FALSE))) {
-		CBString sText;
+		CString sText;
 		sText.Format(_T("Ln %d, Col %d"), cmRange.posEnd.nLine+1, cmRange.posEnd.nCol);
 		pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
 	} else {

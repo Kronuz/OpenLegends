@@ -97,7 +97,7 @@ LRESULT CScriptEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 LRESULT CScriptEditorFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL /*&bHandled*/)
 {
 	if(m_pScriptEditorView->IsModified()) {
-		CBString sSave;
+		CString sSave;
 		sSave.Format("Save Changes to %s?", m_pScriptEditorView->GetTitle());
 		int ret = MessageBox(sSave, _T("Quest Designer - Script Editor"), MB_YESNOCANCEL);
 		BOOL bTmp;

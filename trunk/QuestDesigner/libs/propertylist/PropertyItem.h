@@ -7,7 +7,7 @@
 // CPropertyItem - Base Property implementation for the Property controls
 //
 // Written by Bjarke Viksoe (bjarke@viksoe.dk)
-// Copyright (c) 2001-2002 Bjarke Viksoe.
+// Copyright (c) 2001-2003 Bjarke Viksoe.
 //
 // This code may be used in compiled form in any way you desire. This
 // file may be redistributed by any means PROVIDING it is 
@@ -47,6 +47,7 @@
 #define PROPKIND_BOOL       0x0005
 #define PROPKIND_CHECK      0x0006
 #define PROPKIND_SPIN       0x0007
+#define PROPKIND_CONTROL    0x0008
 
 // Activate actions
 #define PACT_ACTIVATE       0x0001

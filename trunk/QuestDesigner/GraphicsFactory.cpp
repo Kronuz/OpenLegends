@@ -81,7 +81,7 @@ HRESULT CGraphicsFactory::New(IGraphics **pGraphics, LPCSTR lpszIName) {
 		_instance->sIName = lpszIName;
 		_instance->m_hDLL = LoadLibraryEx(_instance->sIName, NULL, 0);
 		if(_instance->m_hDLL == NULL) {
-			CBString sMsg = "Error loading up " + _instance->sIName;
+			CString sMsg = "Error loading up " + _instance->sIName;
 			::MessageBox(NULL,
 				sMsg,
 				"Fatal Error",
