@@ -111,7 +111,6 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 		return -1;      // fail to create
 	}
 
-
 	HICON hIcon = AtlLoadIconImage(IDI_ICO_OK, LR_DEFAULTCOLOR);
 	m_wndStatusBar.SetPaneIcon(ID_ICON_PANE, hIcon);
 
@@ -151,7 +150,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	PostMessage(CWM_INITIALIZE);
 
 	m_InfoFrame.DisplayTab(m_OutputView.m_hWnd);
-	m_ProjectManager.Load(_T("Kronuz Project"));
+	CProjectManager::Instance()->Load(_T("Kronuz Project"));
 
 	return 0;
 }
@@ -161,7 +160,7 @@ void CMainFrame::InitializeDefaultPanes()
 	GetClientRect(&rcClient);
 
 	CRect rcFloat(0,0,400,200);
-	CRect rcDock(0,0,150,rcClient.Width()-200);
+	CRect rcDock(0,0,200,rcClient.Width()-200);
 
 	DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 	m_InfoFrame.Create(m_hWnd, rcFloat, _T("Information Window"), dwStyle);
@@ -194,11 +193,12 @@ void CMainFrame::InitializeDefaultPanes()
 		float(0.0)/*fPctPos*/,
 		rcDock.Width() /* nWidth*/,
 		rcDock.Height() /* nHeight*/);
+
 	m_FoldersView.Create(m_ListFrame, 
 		rcDefault, 
 		NULL, 
-		WS_CHILD | WS_VISIBLE |TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | 
-		TVS_SHOWSELALWAYS| TVS_DISABLEDRAGDROP, 
+		WS_CHILD | WS_VISIBLE |
+		TVS_LINESATROOT |TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS, 
 		WS_EX_CLIENTEDGE);
 	m_ListFrame.AddTab(m_FoldersView,		_T("Project"),	NULL);
 
@@ -343,7 +343,7 @@ LRESULT CMainFrame::OnWindowArrangeIcons(WORD /*wNotifyCode*/, WORD /*wID*/, HWN
 LRESULT CMainFrame::OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	m_InfoFrame.DisplayTab(m_OutputView.m_hWnd);
-	m_ProjectManager.StartBuild();
+	CProjectManager::Instance()->StartBuild();
 	return 0;
 }
 

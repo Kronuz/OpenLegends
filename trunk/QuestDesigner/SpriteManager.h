@@ -53,9 +53,10 @@
 
 #pragma once
 #include "Console.h"
-#include "interfaces.h"
+#include "Interfaces.h"
+#include "DrawManager.h"
 #include "FilePath.h"
-#include "Archiver.h"
+#include "ArchiveText.h"
 
 /*! \brief Enumaration of all sprite types.
 
@@ -100,7 +101,7 @@ class CScript :
 public:
 	CFileName m_fnScriptFile;
 
-	bool NeedsToCompile();
+	bool NeedToCompile();
 	CString GetScriptFile();
 	CString GetAmxFile();
 };
@@ -132,7 +133,7 @@ struct SBackgroundData : public SSpriteData
 		within the image file (sprite sheet), there is also the possibility to 
 		change the overall alpha value of a specific sprite.
 	*/
-	CString sSubLayer; 	/*!< \brief Name of the sublayer of the sprite.
+	int nSubLayer; 	/*!< \brief SubLayer of the sprite.
 		
 		This is it, finally, this member defines the default "sublayer" to which
 		the sprite belongs to.\n
@@ -185,7 +186,7 @@ struct SEntityData : public SBackgroundData
 	\todo Write the implementation of this class.
 */
 class CSprite :
-	public IDrawableObject,
+	public CDrawableObject,
 	public CNamedObj
 {
 public:
@@ -193,6 +194,7 @@ public:
 	virtual ~CSprite();
 
 protected:
+
 	bool m_bDefined; /*!< \brief Shows if the sprite is a defined sprite.
 
 		A sprite can be either just declared or declared and defined. A
@@ -239,6 +241,13 @@ public:
 	void AddRect(RECT rcRect);
 	void SetSpriteSheet(CSpriteSheet *pSpriteSheet);
 	void SetSpriteData(SSpriteData *pSpriteData);
+
+	void GetSize(CSize &Size) { 
+		Size.SetSize(m_Boundaries[0].Width(), m_Boundaries[0].Height());
+	}
+	void GetBaseRect(CRect &Rect) {
+		Rect.SetRect(0,0,0,0);
+	}
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -261,12 +270,6 @@ class CMaskMap :
 {
 public:
 	CMaskMap(LPCSTR szName);
-protected:
-
-public:
-	bool Draw(CDrawableContext &) { return false; }
-	bool NeedToDraw(CDrawableContext&) { return false; }
-	bool IsAt(RECT, CDrawableContext&) { return false; }
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -282,9 +285,9 @@ public:
 	\remarks
 	This class, and its derivates (i.e. CEntity), are implemented to work as flyweight 
 	objects, receiving any extrinsic state as a SDrawContext parameter for the
-	IDrawableObject interface.
+	CDrawableObject interface.
 
-	\sa IDrawableObject, SDrawContext, CEntity and CMaskMap
+	\sa CDrawableObject, SDrawContext, CEntity and CMaskMap
 	\todo Write the implementation of this class.
 */
 class CBackground : 
@@ -293,11 +296,15 @@ class CBackground :
 public:
 	CBackground(LPCSTR szName);
 protected:
-
 public:
-	bool Draw(CDrawableContext &) { return false; }
-	bool NeedToDraw(CDrawableContext&) { return false; }
-	bool IsAt(RECT, CDrawableContext&) { return false; }
+	int GetAlphaValue() {
+		return reinterpret_cast<SBackgroundData*>(m_pSpriteData)->cAlphaValue;
+	}
+	int GetSubLayer() {
+		return reinterpret_cast<SBackgroundData*>(m_pSpriteData)->nSubLayer;
+	}
+	bool Draw(CDrawableContext &context);
+	bool NeedToDraw(const CDrawableContext &scontext);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -324,15 +331,10 @@ public:
 protected:
 
 public:
-	bool Draw(CDrawableContext &) { return false; }
-	bool NeedToDraw(CDrawableContext&) { return false; }
-	bool IsAt(RECT, CDrawableContext&) { return false; }
+	bool Draw(CDrawableContext &context) { return CBackground::Draw(context); }
+	bool NeedToDraw(const CDrawableContext &context) { return CBackground::NeedToDraw(context); }
 };
 
-#define SPT_POS			0x000001ff
-#define SPT_MIRRORED	0x00001000
-#define SPT_FLIPPED		0x00002000
-#define SPT_VISIBLE		0x00004000
 /////////////////////////////////////////////////////////////////////////////
 /*! \class	CSpriteContext
 	\brief		Flyweight sprites context class.
@@ -344,36 +346,72 @@ public:
 	It is a concrete class based on the interface for flyweight drawable
 	objects.
 
-	\sa IDrawableObject
+	\sa CDrawableObject
 */
 class CSpriteContext :
+	public CNamedObj,
 	public CDrawableContext
 {
 public:
-	void Mirror(bool bMirror = true) {			//!< Mirrors the object.
-		if(bMirror) m_dwStatus |= SPT_MIRRORED;
-		else		m_dwStatus &= ~SPT_MIRRORED; 
-}
-	void Flip(bool bFlip = true) {				//!< Flips the object.
-		if(bFlip)	m_dwStatus |= SPT_FLIPPED;
-		else		m_dwStatus &= ~SPT_FLIPPED; 
-	}
-	void Rotate(int nAngle) {					//!< Rotates the object (the angle is given in degrees)
-		ASSERT(nAngle<=360 && nAngle>=0);
-		if(nAngle==360) nAngle = 0;
-		m_dwStatus &= ~SPT_POS;
-		m_dwStatus |= nAngle;
-	}
-	void ShowSprite(bool bShow = true) {			//!< Shows/hides the object.
-		if(bShow)	m_dwStatus |= SPT_VISIBLE;
-		else		m_dwStatus &= ~SPT_VISIBLE; 
+	int m_nFrame;
+
+	CSpriteContext(LPCSTR szName) : CNamedObj(szName), CDrawableContext(), m_nFrame(0) {
+		Mirror(false);
+		Flip(false);
+		Alpha(255);
+		Rotate(SROTATE_0);
+		Tile(false);
 	}
 
-	bool Draw() {
-		if(m_pDrawableObj->NeedToDraw(*this))
-			return m_pDrawableObj->Draw(*this);
-		return false;
+	void Mirror() {
+		if(isMirrored()) Mirror(false);
+		else Mirror(true);
 	}
+	void Flip() {
+		if(isFlipped()) Flip(false);
+		else Flip(true);
+	}
+	void Mirror(bool bMirror) {			//!< Mirrors the object.
+		if(bMirror) m_dwStatus |= (SMIRRORED<<_SPT_TRANSFORM);
+		else		m_dwStatus &= ~(SMIRRORED<<_SPT_TRANSFORM);
+	}
+	void Flip(bool bFlip) {						//!< Flips the object.
+		if(bFlip)	m_dwStatus |= (SFLIPPED<<_SPT_TRANSFORM);
+		else		m_dwStatus &= ~(SFLIPPED<<_SPT_TRANSFORM);
+	}
+	void Alpha(int alpha) {
+		m_dwStatus &= ~SPT_ALPHA;
+		m_dwStatus |= ((alpha<<_SPT_ALPHA)&SPT_ALPHA);
+	}
+	void Rotate(int rotate) {					//!< Rotates the object (the angle is given in degrees)
+		m_dwStatus &= ~SPT_ROT;
+		m_dwStatus |= ((rotate<<_SPT_ROT)&SPT_ROT);
+	}
+	void Tile(bool bTile = true) {
+		if(!bTile)	m_dwStatus |= (SNTILED<<_SPT_INFO);
+		else		m_dwStatus &= ~(SNTILED<<_SPT_INFO);
+	}
+
+	bool isTiled() {
+		return !((m_dwStatus&(SNTILED<<_SPT_INFO))==(SNTILED<<_SPT_INFO));
+	}
+	bool isMirrored() {
+		return ((m_dwStatus&(SMIRRORED<<_SPT_TRANSFORM))==(SMIRRORED<<_SPT_TRANSFORM));
+	}
+	bool isFlipped() {
+		return ((m_dwStatus&(SFLIPPED<<_SPT_TRANSFORM))==(SFLIPPED<<_SPT_TRANSFORM));
+	}
+	int getAlpha() {
+		return ((m_dwStatus&SPT_ALPHA)>>_SPT_ALPHA);
+	}
+	int Transformation() {
+		return ((m_dwStatus&SPT_TRANSFORM)>>_SPT_TRANSFORM);
+	}
+	//! returns the current roatation of the object in radians
+	int Rotation() {
+		return ((m_dwStatus&SPT_ROT)>>_SPT_ROT);
+	}
+
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -403,9 +441,7 @@ class CSpriteSheet :
 	friend CProjectManager;
 protected:
 	CProjectManager *m_pProjectManager;
-
 	CFileName m_fnSheetFile;
-	//CString m_sSheetName;
 
 	CSimpleMap<CString, CSprite*> m_Sprites; //!< Flyweight pool of sprites.
 
@@ -413,6 +449,8 @@ protected:
 	CSpriteSheet(CProjectManager *pProjectManager);
 	~CSpriteSheet();
 public:
+	ITexture *m_pTexture; //! cached texture (valid only if it was aquired with the same Device ID)
+
 	CFileName& GetFileName() { return m_fnSheetFile; }
 	CProjectManager* GetProjectManager() { return m_pProjectManager; }
 };

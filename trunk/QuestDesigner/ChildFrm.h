@@ -63,6 +63,6 @@ public:
 	LRESULT Unregister();
 
 	// Return the main frame
-	CMainFrame* GetMainFrame() { return m_pMainFrame; }
+	CMainFrame* GetMainFrame() { ATLASSERT(m_pMainFrame); return m_pMainFrame; }
 
 };

@@ -25,7 +25,7 @@
 	this includes the methods to create a new world, maps for that
 	world, and being living on it.
 	
-	\todo Everything is missing on this module :)
+	\todo Much is missing on this module :)
 
 */
 
@@ -35,24 +35,65 @@
 #include "interfaces.h"
 
 #include "SpriteManager.h"
+#include "ArchiveText.h"
 
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CLayer
+	\brief		CLayer class.
+	\author		Kronuz
+	\version	1.0
+	\date		May 31, 2003
+
+	A layer contains a list of all the sprites it has, and Layer 
+	children are Sprites.
+*/
 class CLayer :
-	public CNamedObj,
-	public CConsole
+	public CConsole,
+	public CNamedObj,			// Layers can have a name.
+	public IDocumentObject,		// Layers can be loaded from a file.
+	public CDrawableContext		// Layers can be painted on the screen.
 {
-	CSimpleArray<CSpriteContext*> m_Sprites;
 public:
 	CLayer(LPCSTR szName);
+	~CLayer();
+
+	void AddSpriteContext(CSpriteContext *pSpriteContext);
 };
 
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CMap
+	\brief		CMap class.
+	\author		Kronuz
+	\version	1.0
+	\date		May 31, 2003
+
+	Map children are Layers.
+*/
 class CMap :
 	public CConsole,
-	public IDocumentObject
+	public CDrawableObject		// Maps can be painted on the screen.
 {
-	CSimpleArray<CLayer*> m_Layers;
 public:
 	CMap();
 	~CMap();
+};
+
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CMapGroup
+	\brief		CMapGroup class.
+	\author		Kronuz
+	\version	1.0
+	\date		May 31, 2003
+
+	MapGroup children are Maps.
+*/
+class CMapGroup :
+	public CConsole,
+	public CDrawableContext		// Map Groups can be painted on the screen.
+{
+public:
+	CMapGroup();
+	~CMapGroup();
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -65,18 +106,16 @@ public:
 	This class Is the one that manages everything in the project,
 	from the sprite sheets list and the sounds list, to the world and
 	map of the game.
+	A world contains a list of all map groups it represents, and World 
+	children are MapGroups.
 */
 class CWorld :
-	public CNamedObj,
 	public CConsole,
-	public IDocumentObject
+	public CNamedObj,			// Worlds can have name.
+	public IDocumentObject,		// Worlds can be loaded from a file.
+	public CDrawableObject		// Worlds can be painted on the screen.
 {
-	CSimpleArray<CMap*> m_Maps;
 public:
-	CWorld();
+	CWorld(LPCSTR szName);
 	~CWorld();
-
-	// Loading/Saving methods:
-	bool Load(LPCSTR szFile); //!< Loads the world from a file
-	bool Save(LPCSTR szFile) { return false; } //!< Saves the world to a file
 };

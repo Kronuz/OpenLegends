@@ -82,8 +82,9 @@ protected:
 	typedef CMainFrame thisClass;
 	typedef dockwins::CMDIDockingFrameImpl<CMainFrame> baseClass;
 
-protected:
+public:
 	CTabbedMDIClient<CDotNetTabCtrl<CTabViewTabItem> > m_tabbedClient;
+protected:
 	sstate::CWindowStateMgr	m_stateMgr;
 	
 	CSimpleArray<CChildFrame*> m_ChildList;
@@ -109,7 +110,6 @@ protected:
 
 ////////////////////////////////////////////////////////
 
-	CProjectManager m_ProjectManager;
 public:
 	DECLARE_FRAME_WND_CLASS(NULL, IDR_MAINFRAME)
 
@@ -180,7 +180,7 @@ public:
 		//MESSAGE_HANDLER(WMQD_BEGIN, ??)
 		MESSAGE_HANDLER(WMQD_MESSAGE, m_OutputView.OnWriteMsg)
 
-		SIMPLE_MESSAGE_HANDLER(WMQD_STEPEND, m_ProjectManager.BuildNextStep)
+		SIMPLE_MESSAGE_HANDLER(WMQD_STEPEND, CProjectManager::Instance()->BuildNextStep)
 		SIMPLE_MESSAGE_HANDLER(WMQD_BUILDBEGIN, m_OutputView.BeginBuildMsg)
 		SIMPLE_MESSAGE_HANDLER(WMQD_BUILDEND, m_OutputView.EndBuildMsg)
 

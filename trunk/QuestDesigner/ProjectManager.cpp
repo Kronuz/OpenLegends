@@ -33,6 +33,8 @@
 
 #include "FoldersTreeView.h"
 
+CProjectManager *CProjectManager::_instance = NULL;
+
 CProjectManager::CProjectManager() :
 	m_iStep(0), m_iCnt1(0), m_iCnt2(0),
 	m_World(NULL)
@@ -83,7 +85,7 @@ LRESULT CProjectManager::BuildNextStep(WPARAM wParam, LPARAM lParam)
 	}
 	if(m_iStep == 0) {
 		CScript *pScript = m_Scripts.GetValueAt(m_iCnt1);
-		if(pScript->NeedsToCompile()) {
+		if(pScript->NeedToCompile()) {
 			CString sIncludeDir = g_sHomeDir + "compiler\\INCLUDE";
 			SCompiler::Instance()->Compile(
 				sIncludeDir, 
@@ -112,6 +114,7 @@ CSprite *CProjectManager::CreateSprite(_spt_type sptType, LPCSTR szName)
 			break;
 		}
 	}
+	if(!pSprite) printf("The sprite '%s' couldn't be created!\n", szName);
 	ASSERT(pSprite);
 	return pSprite;
 }
@@ -121,12 +124,15 @@ CSprite *CProjectManager::FindSprite(LPCSTR szName)
 	CSprite *pSprite = NULL;
 
 	for(int i=0; i<m_SpriteSheets.GetSize(); i++) {
-		idx = m_SpriteSheets[i]->m_Sprites.FindKey(szName);
-		if(idx!=-1) {
-			pSprite = m_SpriteSheets[i]->m_Sprites.GetValueAt(idx);
-			break;
+		if(m_SpriteSheets[i]) {
+			idx = m_SpriteSheets[i]->m_Sprites.FindKey(szName);
+			if(idx!=-1) {
+				pSprite = m_SpriteSheets[i]->m_Sprites.GetValueAt(idx);
+				break;
+			}
 		}
 	}
+
 	if(idx==-1) {
 		idx = m_UndefSprites.FindKey(szName);
 		if(idx!=-1) pSprite = m_UndefSprites.GetValueAt(idx);
@@ -199,7 +205,7 @@ CSprite *CProjectManager::ReferSprite(LPCSTR szName, _spt_type sptType)
 			return NULL;
 	} else {
 		pSprite = CreateSprite(sptType, szName);
-		m_UndefSprites.Add(szName, pSprite);
+		if(pSprite)	m_UndefSprites.Add(szName, pSprite);
 	}
 
 	return pSprite;
@@ -218,17 +224,19 @@ CSprite *CProjectManager::MakeSprite(LPCSTR szName, _spt_type sptType, CSpriteSh
 		pSprite = CreateSprite(sptType, szName);
 	}
 
-	pSpriteSheet->m_Sprites.Add(szName, pSprite);
-	pSprite->SetSpriteSheet(pSpriteSheet);
-	// We send a message letting know that a new sprite has just been defined
-	SendMessage(m_shWnd, 
-		WMQD_ADDTREE, 
-		ICO_PICTURE, 
-		(LPARAM)new CTreeInfo(
-			(LPCSTR)(m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName() + (LPCSTR)((sptType==tBackground)?"\\Backgrounds\\":(sptType==tEntity)?"\\Entities\\":"\\Mask maps\\") + szName),
-			(DWORD_PTR)pSprite
-		)
-	);
+	if(pSprite) {
+		pSpriteSheet->m_Sprites.Add(szName, pSprite);
+		pSprite->SetSpriteSheet(pSpriteSheet);
+		// We send a message letting know that a new sprite has just been defined
+		SendMessage(m_shWnd, 
+			WMQD_ADDTREE, 
+			ICO_PICTURE, 
+			(LPARAM)new CTreeInfo(
+				(LPCSTR)(m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName() + (LPCSTR)((sptType==tBackground)?"\\Backgrounds\\":(sptType==tEntity)?"\\Entities\\":"\\Mask maps\\") + szName),
+				(DWORD_PTR)pSprite
+			)
+		);
+	}
 
 	return pSprite;
 }
@@ -237,7 +245,9 @@ int CALLBACK CProjectManager::LoadSheet(LPCTSTR szFile, LPARAM lParam)
 {
 	CProjectManager *pProjectManager = (CProjectManager*)lParam;
 	CSpriteSheet *sstmp = new CSpriteSheet(pProjectManager);
+	ASSERT(sstmp);
 	pProjectManager->m_SpriteSheets.Add(sstmp);
+
 	sstmp->Load(szFile);
 
 	return 1;
@@ -290,7 +300,6 @@ void CProjectManager::DeleteSprite(LPCSTR szName)
 
 void CProjectManager::Clean()
 {
-	int i;
 	delete m_World;
 	m_World = NULL;
 
@@ -337,7 +346,7 @@ bool CProjectManager::Load(LPCSTR szFile)
 
 	printf("Done!\n");
 
-	DeleteSprite("_itemheart");
+	//	DeleteSprite("_itemheart1");
 	//Clean();
 
 	return false;

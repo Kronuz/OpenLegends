@@ -188,6 +188,7 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 	CodeMaxLibrary cmaxlib;
 
 	_Module.AddMessageLoop(&theLoop);
+	
 
 	if(!StartCodeMax(&cmaxlib)) {
 		ATLTRACE ( _T ( "CodeMax initialization failed!\n" ) );

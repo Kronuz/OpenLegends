@@ -27,31 +27,55 @@
 	in text mode. Every object loaded or saved through this
 	class is saved in the disk using a plain binary mode to accelerate
 	saving/loading operations and save space.
-	\sa Archiver.h, ArchiveText.h.
+	\sa ArchiveText.h.
 	\todo Write the implementation of this class, also write a new class to
 		manage compressed binary mode, saving on-disk space and reducing
 		the number of needed files to one (probably zipped).
 */
 #pragma once
 
-#include "Archiver.h"
+#include "interfaces.h"
+
+#include "Console.h"
+
+class CLayer;
+class CProjectManager;
+class CSpriteSheet;
 
 class CSpriteSheetBinArch :
-	public CSpriteSheetArch
+	public CConsole,
+	public IArchive
 {
-	int ReadSprite(FILE *fInFile);
+public:
+	CSpriteSheetBinArch(CSpriteSheet *pSpriteSheet) : m_pSpriteSheet(pSpriteSheet) {}
+private:
+	CSpriteSheet *m_pSpriteSheet;
 public:
 	bool ReadObject(LPCSTR szFile);
 	bool WriteObject(LPCSTR szFile);
 };
 
 class CProjectBinArch :
-	public CProjectArch
+	public CConsole,
+	public IArchive
 {
 public:
-	CProjectBinArch(CProjectManager *pProjectManager) : CProjectArch(pProjectManager) {}
-	
+	CProjectBinArch(CProjectManager *pProjectManager) : m_pProjectManager(pProjectManager) {}
 private:
+	CProjectManager *m_pProjectManager;
+public:
+	bool ReadObject(LPCSTR szFile);
+	bool WriteObject(LPCSTR szFile);
+};
+
+class CLayerBinArch :
+	public CConsole,
+	public IArchive
+{
+public:
+	CLayerBinArch(CLayer *pLayer) : m_pLayer(pLayer) {}
+private:
+	CLayer *m_pLayer;
 public:
 	bool ReadObject(LPCSTR szFile);
 	bool WriteObject(LPCSTR szFile);

@@ -67,6 +67,7 @@ class CProjectManager :
 	public CConsole,
 	public IDocumentObject
 {
+	static CProjectManager *_instance;
 	CString m_sProjectName;
 
 protected:
@@ -126,5 +127,11 @@ public:
 
 	CMap *FindMap(POINT WorldPoint); //!< Finds the map at a specific location.
 	CSprite *FindSprite(POINT MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
-
+	
+	static CProjectManager* Instance() {
+		if(_instance == NULL) {
+			_instance = new CProjectManager;
+		}
+		return _instance;
+	}
 };

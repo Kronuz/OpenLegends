@@ -31,7 +31,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20d.lib"
+				AdditionalDependencies="cmax20d.lib d3d8.lib d3dx8.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=".\libs\codemax"
 				GenerateDebugInformation="TRUE"
@@ -90,7 +90,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20.lib"
+				AdditionalDependencies="cmax20.lib d3d8.lib d3dx8.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\libs\codemax"
 				GenerateDebugInformation="TRUE"
@@ -145,7 +145,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20.lib"
+				AdditionalDependencies="cmax20.lib d3d8.lib d3dx8.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=".\libs\codemax"
 				GenerateDebugInformation="TRUE"
@@ -232,7 +232,13 @@
 					RelativePath="ArchiveText.cpp">
 				</File>
 				<File
+					RelativePath="DrawManager.cpp">
+				</File>
+				<File
 					RelativePath="FilePath.cpp">
+				</File>
+				<File
+					RelativePath="GraphicsD3D.cpp">
 				</File>
 				<File
 					RelativePath="ProjectManager.cpp">
@@ -329,10 +335,13 @@
 					RelativePath="ArchiveText.h">
 				</File>
 				<File
-					RelativePath="Archiver.h">
+					RelativePath="DrawManager.h">
 				</File>
 				<File
 					RelativePath="FilePath.h">
+				</File>
+				<File
+					RelativePath="GraphicsD3D.h">
 				</File>
 				<File
 					RelativePath="Interfaces.h">
@@ -424,6 +433,12 @@
 			</File>
 			<File
 				RelativePath="res\Warning.ico">
+			</File>
+			<File
+				RelativePath="res\arrowadd.cur">
+			</File>
+			<File
+				RelativePath="res\cursor1.cur">
 			</File>
 			<File
 				RelativePath="res\folders.bmp">

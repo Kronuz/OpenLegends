@@ -35,7 +35,7 @@
 #define _RICHEDIT_VER	0x0300
 
 // This is required for hosting browser in ATL7
-#define _ATL_DLL
+//#define _ATL_DLL
 
 #include <atlbase.h>
 #if _ATL_VER >= 0x0700

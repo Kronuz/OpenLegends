@@ -26,6 +26,9 @@
 
 #include "ChildView.h"
 
+#include "GraphicsD3D.h"
+#include "WorldManager.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CMapEditorFrame;
@@ -35,10 +38,21 @@ class CMapEditorView :
 	public CScrollWindowImpl<CMapEditorView>
 {
 private:
+	static CMapGroup *m_MapGroup;
+	CDrawableSelection m_Selection;
 
-	CSize m_MapSize;
+	CSize m_szMap;
+	CGraphicsD3D8 m_CGraphicsD3D8;
+	IGraphics *m_pGraphics;
 
+	float m_Zoom;
+	UINT_PTR m_nTimer;
+	CURSOR m_CursorStatus;
+	CURSOR m_OldCursorStatus;
 public:
+	CLayer *layer;
+
+
 	// Construction/Destruction
 	CMapEditorView(CMapEditorFrame *pParentFrame);
 
@@ -54,16 +68,60 @@ public:
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 
+		MESSAGE_HANDLER(WM_TIMER, OnTimer)
+
+		MESSAGE_HANDLER(WM_SIZE, OnSize)
+		MESSAGE_HANDLER(WM_VSCROLL, OnVScroll)
+		MESSAGE_HANDLER(WM_HSCROLL, OnHScroll)
+
+		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
+		MESSAGE_HANDLER(WM_KILLFOCUS, OnKillFocus)
+
 		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
+		MESSAGE_HANDLER(WM_MOUSEWHEEL, OnMouseWheel)
+
+		MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
+		MESSAGE_HANDLER(WM_LBUTTONUP,	OnLButtonUp)
+		MESSAGE_HANDLER(WM_RBUTTONDOWN, OnRButtonDown)
+		MESSAGE_HANDLER(WM_RBUTTONUP,	OnRButtonUp)
+		MESSAGE_HANDLER(WM_MBUTTONDOWN, OnMButtonDown)
+		MESSAGE_HANDLER(WM_MBUTTONUP,	OnMButtonUp)
+		
+		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
+		MESSAGE_HANDLER(WM_KEYUP, OnKeyUp)
 
 		CHAIN_MSG_MAP(CScrollWindowImpl<CMapEditorView>);
 	END_MSG_MAP()
 
+
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
+	LRESULT OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+
+	LRESULT OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
+	
+	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+	LRESULT OnVScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+	LRESULT OnHScroll(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled);
+
 	LRESULT OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+	LRESULT OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+
+	LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnRButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+	LRESULT OnMButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
+
+	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
 	void DoPaint(CDCHandle dc);
 
+	void Render();
+	void UpdateView();
+	void ToCursor(CURSOR cursor_);
 };

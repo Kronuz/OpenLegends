@@ -22,6 +22,9 @@
 #define ID_VIEW_WORLDEDITOR             218
 #define ID_VIEW_MAPEDITOR               219
 #define ID_VIEW_SPRITEEDITOR            220
+#define IDC_ARROWADD                    224
+#define IDC_ARROWADD1                   225
+#define IDC_ARROWDEL                    225
 #define ID_BUILD                        32773
 #define ID_EDIT_TAB                     32774
 #define ID_EDIT_UNTAB                   32775
@@ -52,7 +55,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        224
+#define _APS_NEXT_RESOURCE_VALUE        225
 #define _APS_NEXT_COMMAND_VALUE         32812
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           101
