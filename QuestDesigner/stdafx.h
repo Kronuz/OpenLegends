@@ -19,9 +19,10 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		stdafx.h 
 	\brief		Include file for standard system include files,
-		or project specific include files that are used frequently, but
-		are changed infrequently
+				or project specific include files that are used frequently, but
+				are changed infrequently
 	\date		April 15, 2003
+				July 20, 2003
 */
 
 #pragma once
@@ -32,7 +33,7 @@
 // Change these values to use different versions
 #define WINVER			0x0400
 #define _WIN32_WINNT	0x0400
-#define _WIN32_IE		0x0400
+#define _WIN32_IE		0x0500
 #define _RICHEDIT_VER	0x0300
 
 // This is required for hosting browser in ATL7
@@ -49,6 +50,7 @@
 #else
 	#define _WTL_USE_CSTRING
 #endif
+
 #include <atlapp.h>
 
 extern CAppModule _Module;
@@ -76,7 +78,12 @@ extern CAppModule _Module;
 #define _TABBEDMDI_MESSAGES_NO_WARN_ATL_MIN_CRT
 #include <TabbedMDI.h>
 
-#include "misc.h"
+#define ASSERT ATLASSERT
+
+//#define _NO_MISCSTRING
+#define _NO_MISCTYPES
+#include "..\Misc.h"
+
 #include "IdleHandlerPump.h"
 
 #include "resource.h"
@@ -99,16 +106,146 @@ extern CAppModule _Module;
 #define WMQD_ADDTREE		(WMQD_FIRST+7)
 #define WMQD_DELTREE		(WMQD_FIRST+8)
 
-#define ICO_FOLDER			0x0001
-#define ICO_PICTURE			0x0202
-#define ICO_DOC1			0x0303
-#define ICO_DOC2			0x0404
-#define ICO_PROJECT			0x0505
-#define ICO_WAV				0x0606
-#define ICO_MIDI			0x0707
-#define ICO_PICFOLDER		0x0808
-#define ICO_EMPTY			0x0909
+#define WMQD_DRAGLEAVE		(WMQD_FIRST+9)
+#define WMQD_DRAGOVER		(WMQD_FIRST+10)
+#define WMQD_DRAGENTER		(WMQD_FIRST+11)
+
+/*! Message sent to a window view when an object has been dropped to it. */
+#define WMQD_DROPOBJ		(WMQD_FIRST+20)
+
+#define MakeIco_(normal, selected) (((normal)<<8) | (selected))
+#define MakeIco(both) MakeIco_(both, both)
+
+#define II_DOC_SCRIPT		IDI_DOC_SCRIPT - IDI_BEGIN
+#define II_DOC_MAP			IDI_DOC_MAP - IDI_BEGIN
+#define II_DOC_WORLD		IDI_DOC_WORLD - IDI_BEGIN
+#define II_DOC_SPRITE		IDI_DOC_SPRITE - IDI_BEGIN
+#define II_DOC_SPTSHT		IDI_DOC_SPTSHT - IDI_BEGIN
+#define II_DOC_WAV			IDI_DOC_WAV - IDI_BEGIN
+#define II_DOC_MIDI			IDI_DOC_MIDI - IDI_BEGIN
+#define II_FOLDER_PROJECT	IDI_FOLDER_PROJECT - IDI_BEGIN
+#define II_FOLDER_CLOSED	IDI_FOLDER_CLOSED - IDI_BEGIN
+#define II_FOLDER_OPEN		IDI_FOLDER_OPEN - IDI_BEGIN
+#define II_FOLDER_LIB		IDI_FOLDER_LIB - IDI_BEGIN
+#define II_END				((IDI_END - IDI_BEGIN) + 1)
+
+#define ICO_SCRIPT			MakeIco(II_DOC_SCRIPT)
+#define ICO_MAP				MakeIco(II_DOC_MAP)
+#define ICO_WORLD			MakeIco(II_DOC_WORLD)
+#define ICO_SPRITE			MakeIco(II_DOC_SPRITE)
+#define ICO_SPTSHT			MakeIco(II_DOC_SPRITE)
+#define ICO_WAV				MakeIco(II_DOC_WAV)
+#define ICO_MIDI			MakeIco(II_DOC_MIDI)
+#define ICO_PROJECT			MakeIco(II_FOLDER_PROJECT)
+#define ICO_FOLDER			MakeIco_(II_FOLDER_CLOSED, II_FOLDER_OPEN)
+#define ICO_LIBRARY			MakeIco(II_FOLDER_LIB)
 
 #define SIMPLE_MESSAGE_HANDLER(msg, func) if(uMsg==msg) { bHandled=TRUE; lResult=func(wParam,lParam); if(bHandled) return TRUE; }
+#define MENU_COMMAND_HANDLER(id, func) \
+	if(uMsg == WM_COMMAND && id == LOWORD(wParam)) \
+	{ \
+		bHandled = TRUE; \
+		lResult = 0; \
+		func(); \
+		return TRUE; \
+	}
 
-#define ASSERT ATLASSERT
+/////////////////////////////////////////////////////////////////////////////
+// Bug fixes needed:
+#if _ATL_VER == 0x0700
+#ifndef __MAXIMIZE_FIXUPDATE
+	#error WTL BUGFIX: MDI windows need a maximization related bugfix to work (see here)
+/*
+	// This are the fixes by Daniel Bowen to the maximization and focus issues:
+	// change in CMDIChildWindowImpl class (WTL7.0, atlframe.h)
+	#define __MAXIMIZE_FIXUPDATE												// <<- Changed/Added
+	HWND Create(HWND hWndParent, _U_RECT rect = NULL, LPCTSTR szWindowName = NULL,
+			DWORD dwStyle = 0, DWORD dwExStyle = 0,
+			UINT nMenuID = 0, LPVOID lpCreateParam = NULL)
+	{
+		ATOM atom = T::GetWndClassInfo().Register(&m_pfnSuperWindowProc);
+
+		if(nMenuID != 0)
+			m_hMenu = ::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(nMenuID));
+
+		dwStyle = T::GetWndStyle(dwStyle);
+		dwExStyle = T::GetWndExStyle(dwExStyle);
+
+		dwExStyle |= WS_EX_MDICHILD;	// force this one
+		m_pfnSuperWindowProc = ::DefMDIChildProc;
+		m_hWndMDIClient = hWndParent;
+		ATLASSERT(::IsWindow(m_hWndMDIClient));
+
+		if(rect.m_lpRect == NULL)
+			rect.m_lpRect = &TBase::rcDefault;
+
+		BOOL bMaximized = FALSE;												// <<- Changed/Added
+		HWND hWndOld = (HWND)::SendMessage(m_hWndMDIClient,						// <<- Changed/Added
+			WM_MDIGETACTIVE, 0, (LPARAM)&bMaximized);							// <<- Changed/Added
+	    if(bMaximized == TRUE) ::SendMessage(m_hWndMDIClient,					// <<- Changed/Added
+			WM_SETREDRAW, FALSE, 0);											// <<- Changed/Added
+
+		HWND hWnd = CFrameWindowImplBase<TBase, TWinTraits >::Create(hWndParent, rect.m_lpRect, szWindowName, dwStyle, dwExStyle, (UINT)0U, atom, lpCreateParam);
+
+		if(hWnd != NULL && ::IsWindowVisible(m_hWnd) && !::IsChild(hWnd, ::GetFocus()))
+			::SetFocus(hWnd);
+
+		if(bMaximized == TRUE) {												// <<- Changed/Added
+			::ShowWindow(hWnd, SW_SHOWMAXIMIZED);								// <<- Changed/Added
+			::SendMessage(m_hWndMDIClient, WM_SETREDRAW, TRUE, 0);				// <<- Changed/Added
+			::RedrawWindow(m_hWndMDIClient, NULL, NULL,							// <<- Changed/Added
+				RDW_INVALIDATE | RDW_ALLCHILDREN);								// <<- Changed/Added
+		}																		// <<- Changed/Added
+
+		return hWnd;
+	}
+*/
+#endif
+#ifndef __FOCUS_FIXUPDATE
+	#error WTL BUGFIX: MDI windows need a focus related bugfix to work (see here)
+/*
+	// This are the fixes by Daniel Bowen to the maximization and focus issues:
+	// change in CFrameWindowImplBase class (WTL7.0, atlframe.h)
+	#define __FOCUS_FIXUPDATE													// <<- Changed/Added
+	LRESULT OnSetFocus(UINT, WPARAM, LPARAM, BOOL& bHandled)
+	{
+		if(m_hWndClient != NULL && ::IsWindow(m_hWndClient))					// <<- Changed/Added
+			::SetFocus(m_hWndClient);
+
+		bHandled = FALSE;
+		return 1;
+	}
+*/
+#endif
+#ifndef __TOOLBARS_FIXUPDATE
+	#error WTL BUGFIX: Vertical toolbars need a WTL bugfix to work (see here)
+/*	
+	// change in CFrameWindowImplBase class (WTL7.0, atlframe.h)
+	void UpdateBarsPosition(RECT& rect, BOOL bResizeBars = TRUE) {
+		// resize toolbar
+		DWORD dwStyles = (DWORD)::GetWindowLong(m_hWndToolBar, GWL_STYLE);
+			if(m_hWndToolBar != NULL && (dwStyles & WS_VISIBLE)) {
+			if(bResizeBars)
+				::SendMessage(m_hWndToolBar, WM_SIZE, 0, 0);
+			RECT rectTB;
+			::GetWindowRect(m_hWndToolBar, &rectTB);
+
+			if(dwStyles & CCS_VERT) rect.left += rectTB.right - rectTB.left;	// <<- Changed/Added
+			else rect.top += rectTB.bottom - rectTB.top;						// <<- Changed/Added
+		}
+			// resize status bar
+		if(m_hWndStatusBar != NULL && ((DWORD)::GetWindowLong(m_hWndStatusBar, GWL_STYLE) & WS_VISIBLE)) {
+			if(bResizeBars)
+				::SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
+			RECT rectSB;
+			::GetWindowRect(m_hWndStatusBar, &rectSB);
+			rect.bottom -= rectSB.bottom - rectSB.top;
+			if(dwStyles & CCS_VERT) {											// <<- Changed/Added
+				::SetWindowPos(m_hWndStatusBar , HWND_TOP, 0, 0, 0, 0,			// <<- Changed/Added
+				SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE );						// <<- Changed/Added
+			}																	// <<- Changed/Added
+		}
+	}
+*/
+#endif
+#endif

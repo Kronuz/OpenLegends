@@ -33,38 +33,40 @@ CMapEditorFrame::CMapEditorFrame(CMainFrame *pMainFrame) :
 }	
 void CMapEditorFrame::OnFinalMessage(HWND /*hWnd*/)
 {
+	// remove ourseves from the idle message pump
+	CMessageLoop *pLoop = _Module.GetMessageLoop();
+	ATLASSERT(NULL!=pLoop);
+	pLoop->RemoveIdleHandler(this);
+
+	// the main toolbar buttons seem to stay active for a long time
+	// after we have closed _all_ the MDI child window so were going 
+	// to force idle processing to update the toolbar.
+	PumpIdleMessages();	
+
 	delete this;
 }
-
-/* Note that vertical toolbars need a WTL bugfix to work. Change in the WTL include file 'atlframe.h' :
-	void UpdateBarsPosition(RECT& rect, BOOL bResizeBars = TRUE) {
-		// resize toolbar
-		DWORD dwStyles = (DWORD)::GetWindowLong(m_hWndToolBar, GWL_STYLE);
-			if(m_hWndToolBar != NULL && (dwStyles & WS_VISIBLE)) {
-			if(bResizeBars)
-				::SendMessage(m_hWndToolBar, WM_SIZE, 0, 0);
-			RECT rectTB;
-			::GetWindowRect(m_hWndToolBar, &rectTB);
-
-			if(dwStyles & CCS_VERT) rect.left += rectTB.right - rectTB.left;	// <<- Changed/Added
-			else rect.top += rectTB.bottom - rectTB.top;						// <<- Changed/Added
-		}
-			// resize status bar
-		if(m_hWndStatusBar != NULL && ((DWORD)::GetWindowLong(m_hWndStatusBar, GWL_STYLE) & WS_VISIBLE)) {
-			if(bResizeBars)
-				::SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);
-			RECT rectSB;
-			::GetWindowRect(m_hWndStatusBar, &rectSB);
-			rect.bottom -= rectSB.bottom - rectSB.top;
-			if(dwStyles & CCS_VERT) {											// <<- Changed/Added
-				::SetWindowPos(m_hWndStatusBar , HWND_TOP, 0, 0, 0, 0,			// <<- Changed/Added
-				SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE );						// <<- Changed/Added
-			}																	// <<- Changed/Added
-		}
+BOOL CMapEditorFrame::OnIdle()
+{
+	// check if we are we the active window...
+	if(m_pMainFrame->MDIGetActive()==m_hWnd) {
+		// fake idle processing for the view so it updates
+		m_pMapEditorView->OnIdle();
 	}
-*/
+
+	// Update all the toolbar items
+	UIUpdateToolBar();
+
+	return FALSE;
+}
+
 LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	HICON hIcon = (HICON)::LoadImage(
+				_Module.GetResourceInstance(),
+				MAKEINTRESOURCE(IDI_DOC_MAP),
+				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
+	SetIcon(hIcon, ICON_SMALL);
+
 	m_pMapEditorView = new CMapEditorView(this);
 
 	// create our view
@@ -80,8 +82,13 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 
 	// create a toolbar
 	HWND hMapEdBasicToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPED_BASIC, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_VERT | TBSTYLE_WRAPABLE );
+	// add the toolbar to the UI update map
+	UIAddToolBar(hMapEdBasicToolBar);
+
+	// create a toolbar
 	HWND hMapEdObjectToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAPED_OBJECT, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_VERT | TBSTYLE_WRAPABLE );
 	// add the toolbar to the UI update map
+	UIAddToolBar(hMapEdObjectToolBar);
 
 	// create a rebat to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_VERT)) {
@@ -91,10 +98,30 @@ LRESULT CMapEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL&
 	AddSimpleReBarBand(hMapEdBasicToolBar, NULL, TRUE);
 	AddSimpleReBarBand(hMapEdObjectToolBar, NULL, TRUE);
 
+	UIEnable(ID_MAPED_TOTOP, FALSE);
+	UIEnable(ID_MAPED_OBJUP, FALSE);
+	UIEnable(ID_MAPED_OBJDWN, FALSE);
+	UIEnable(ID_MAPED_TOBOTTOM, FALSE);
+	UIEnable(ID_MAPED_FLIP, FALSE);
+	UIEnable(ID_MAPED_MIRROR, FALSE);
+	UIEnable(ID_MAPED_C90, FALSE);
+	UIEnable(ID_MAPED_CC90, FALSE);
+	UIEnable(ID_MAPED_ALTOP, FALSE);
+	UIEnable(ID_MAPED_ALBOTTOM, FALSE);
+	UIEnable(ID_MAPED_ALLEFT, FALSE);
+	UIEnable(ID_MAPED_ALRIGHT, FALSE);
+	UIEnable(ID_MAPED_ALCY, FALSE);
+	UIEnable(ID_MAPED_ALCX, FALSE);
+
+	// Update all the menu items
+
+	// register ourselves for idle updates
+	CMessageLoop * pLoop = _Module.GetMessageLoop();
+	ATLASSERT(NULL!=pLoop);
+	pLoop->AddIdleHandler(this);		
+
 	CChildFrame::Register(tMapEditor);
 	SetMsgHandled(FALSE);
-	m_sChildName = _T("Map Editor");
-	SetTitle(m_sChildName);
 	return TRUE;
 }
 LRESULT CMapEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
@@ -125,5 +152,7 @@ LRESULT CMapEditorFrame::OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 	// We give the focus to the view
 	m_pMapEditorView->SetFocus();
 
+	// Pumping idle messages to update the main window
+	PumpIdleMessages();
 	return 0;
 }

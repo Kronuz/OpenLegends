@@ -17,37 +17,37 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		BuildOutputView.h 
-	\brief		Interface of the CBuildOutputView class.
+/*! \file		BuildOutputBox.h 
+	\brief		Interface of the CBuildOutputBox class.
 	\date		April 15, 2003
 */
 
 #pragma once
 
-#include "OutputView.h"
+#include "OutputBox.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CMainFrame;
 
-class CBuildOutputView :	public COutputView
+class CBuildOutputBox :	public COutputBox
 {
 	int m_Errors;
 	int m_Warnings;
-	CString m_sProject;
+	CBString m_sProject;
 public:
 	// Pointer to main frame
 	CMainFrame *m_pMainFrame;
 
 	BOOL PreTranslateMessage(MSG* pMsg);
 
-	BEGIN_MSG_MAP(COutputView)
+	BEGIN_MSG_MAP(COutputBox)
     
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)  
 
 		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnLButtonDoubleClick)
 	
-		CHAIN_MSG_MAP_ALT(CRichEditCommands<COutputView>, 1)
+		CHAIN_MSG_MAP_ALT(CRichEditCommands<COutputBox>, 1)
 		DEFAULT_REFLECTION_HANDLER()
 
 	END_MSG_MAP()

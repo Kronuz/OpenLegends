@@ -38,6 +38,12 @@ void CWorldEditorFrame::OnFinalMessage(HWND /*hWnd*/)
 
 LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	HICON hIcon = (HICON)::LoadImage(
+				_Module.GetResourceInstance(),
+				MAKEINTRESOURCE(IDI_DOC_WORLD),
+				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
+	SetIcon(hIcon, ICON_SMALL);
+
 	m_pWorldEditorView = new CWorldEditorView(this);
 
 	// create our view
@@ -77,13 +83,6 @@ LRESULT CWorldEditorFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lPar
 	// System settings or metrics have changed.  Propogate this message
 	// to all the child windows so they can update themselves as appropriate.
 	SendMessageToDescendants(uMsg, wParam, lParam, TRUE);
-
-	return 0;
-}
-LRESULT CWorldEditorFrame::OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
-{
-	// We give the focus to the view
-	m_pWorldEditorView->SetFocus();
 
 	return 0;
 }

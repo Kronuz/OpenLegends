@@ -37,9 +37,9 @@ protected:
 	// Pointer to parent frame
 	CChildFrame *m_pParentFrame;
 	// The view's file name
-	CString m_sFilePath;
+	CBString m_sFilePath;
 	// The view's title
-	CString m_sTitle;
+	CBString m_sTitle;
 
 	// Construction/Destruction
 	CChildView(CChildFrame *pParentFrame);
@@ -47,6 +47,6 @@ public:
 	CChildFrame *GetParentFrame() { ATLASSERT(m_pParentFrame); return m_pParentFrame; }
 	CMainFrame* GetMainFrame() { ATLASSERT(m_pParentFrame); return m_pParentFrame->GetMainFrame(); }
 
-	CString& GetFilePath() { return m_sFilePath; }
-	CString& GetTitle() { return m_sTitle; }
+	CBString& GetFilePath() { return m_sFilePath; }
+	CBString& GetTitle() { return m_sTitle; }
 };

@@ -29,26 +29,13 @@
 class CMainFrame;
 class CChildView;
 
-#define DECLARE_FRAME_CHILD_CLASS(WndClassName, uCommonResourceID) \
-virtual CFrameWndClassInfo& GetChildClassInfo() \
-{ \
-	static CFrameWndClassInfo wc = \
-	{ \
-		{ sizeof(WNDCLASSEX), 0, StartWindowProc, \
-		  0, 0, NULL, NULL, NULL, (HBRUSH)(COLOR_WINDOW + 1), NULL, WndClassName, NULL }, \
-		NULL, NULL, IDC_ARROW, TRUE, 0, _T(""), uCommonResourceID \
-	}; \
-	return wc; \
-}
-
 enum _child_type { tAny=0, tScriptEditor, tHtmlView, tWorldEditor, tMapEditor };
 /////////////////////////////////////////////////////////////////////////////
 // This is the common childs class
-typedef CWinTraits<WS_OVERLAPPEDWINDOW | WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_MAXIMIZE, WS_EX_MDICHILD> CChildFrameTraits;
 class CChildFrame : public 
-	CTabbedMDIChildWindowImpl<CChildFrame, CMDIWindow, CChildFrameTraits>
+	CTabbedMDIChildWindowImpl<CChildFrame>
 {
-	typedef CTabbedMDIChildWindowImpl<CChildFrame, CMDIWindow, CChildFrameTraits> baseClass;
+	typedef CTabbedMDIChildWindowImpl<CChildFrame> baseClass;
 protected:
 
 	// Pointer to main frame
@@ -59,14 +46,16 @@ protected:
 	CChildFrame(CMainFrame *pMainFrame, _child_type ChildType);
 	void SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar);
 
-	virtual CFrameWndClassInfo& GetChildClassInfo() = 0;
 public:
 	// Type of the child window
 	_child_type m_ChildType;
 	// Name given to the child window
-	CString m_sChildName;
+	CBString m_sChildName;
+
+	DECLARE_FRAME_WND_CLASS(NULL, IDR_MDICHILD)
 
 	BEGIN_MSG_MAP(CChildFrame)
+		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 		CHAIN_MSG_MAP(baseClass)
 	END_MSG_MAP()
 
@@ -75,21 +64,6 @@ public:
 
 	// Return the main frame
 	CMainFrame* GetMainFrame() { ATLASSERT(m_pMainFrame); return m_pMainFrame; }
-
-	HWND CreateChild(HWND hWndParent = NULL) {
-		GetChildClassInfo().Register(&m_pfnSuperWindowProc);
-
-		TCHAR szWindowName[256];
-		szWindowName[0] = 0;
-		::LoadString(_Module.GetResourceInstance(), GetChildClassInfo().m_uCommonResourceID, szWindowName, 256);
-
-		HMENU hMenu = ::LoadMenu(_Module.GetResourceInstance(), MAKEINTRESOURCE(GetChildClassInfo().m_uCommonResourceID));
-
-		HWND hWnd = Create(hWndParent, 0, szWindowName, 0, 0, (UINT)hMenu, 0);
-
-		if(hWnd != NULL)
-			m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(GetChildClassInfo().m_uCommonResourceID));
-		return hWnd;
-
-	}
+	LRESULT OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
 };
+

@@ -34,7 +34,7 @@
 	This singleton class works as an interface between the Small
 	Compiler and the rest of the application.\n
 	In order of this class to work properly, the public member
-	SCompiler::m_shWnd must be set with a valid window handle.
+	SCompiler::ms_hWnd must be set with a valid window handle.
 */
 class SCompiler :
 	public CConsole

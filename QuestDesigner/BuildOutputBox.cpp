@@ -17,31 +17,31 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		BuildOutputView.cpp 
-	\brief		Implementation of the CBuildOutputView class.
+/*! \file		BuildOutputBox.cpp 
+	\brief		Implementation of the CBuildOutputBox class.
 	\date		April 15, 2003
 */
 
 #include "stdafx.h"
 
 #include "MainFrm.h"
-#include "BuildOutputView.h"
+#include "BuildOutputBox.h"
 
-BOOL CBuildOutputView::PreTranslateMessage(MSG* /*pMsg*/)
+BOOL CBuildOutputBox::PreTranslateMessage(MSG* /*pMsg*/)
 {
 	return FALSE;
 }
 
 
-LRESULT CBuildOutputView::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+LRESULT CBuildOutputBox::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	COutputView::OnCreate(uMsg, wParam, lParam, bHandled);
+	COutputBox::OnCreate(uMsg, wParam, lParam, bHandled);
 
 	SetReadOnly();
 	return 0;
 }
 
-LRESULT CBuildOutputView::OnWriteMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
+LRESULT CBuildOutputBox::OnWriteMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	char buff[2000];
 	InfoStruct *pInfo = (InfoStruct *)lParam;
@@ -64,10 +64,10 @@ LRESULT CBuildOutputView::OnWriteMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lP
 	return 0;
 }
 
-LRESULT CBuildOutputView::OnLButtonDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+LRESULT CBuildOutputBox::OnLButtonDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 
-	CString strLineText;
+	CBString strLineText;
 	int nLineIndex = LineFromChar(LineIndex(-1));
 	int nLineLength = LineLength(LineIndex(nLineIndex));
 	int nRead = GetLine(nLineIndex, strLineText.GetBuffer(nLineLength + 3), 
@@ -86,18 +86,17 @@ LRESULT CBuildOutputView::OnLButtonDoubleClick(UINT /*uMsg*/, WPARAM /*wParam*/,
 			long lSelEnd	= lSelStart + strLineText.GetLength();
 			SetSel(lSelStart, lSelEnd);
 /////////////////////
-			CString sFile = strLineText.Mid(0,show);
+			CBString sFile = strLineText.Mid(0,show);
 			int line = sFile.ReverseFind('(');
-			CString sLine= sFile.Mid(line+1);
+			CBString sLine= sFile.Mid(line+1);
 			m_pMainFrame->FileOpen(sFile.Mid(0,line),atol(sLine));
-
 /////////////////////
 		}
 	}
 	return 0;
 }
 
-LRESULT CBuildOutputView::BeginBuildMsg(WPARAM wParam, LPARAM lParam)
+LRESULT CBuildOutputBox::BeginBuildMsg(WPARAM wParam, LPARAM lParam)
 {
 	char line[500];
 	m_sProject = (LPCSTR)lParam;
@@ -113,13 +112,13 @@ LRESULT CBuildOutputView::BeginBuildMsg(WPARAM wParam, LPARAM lParam)
 	Empty();
 
 	sprintf(line, "------ Build started: Project: %s, QuestDesigner ------\n\nCompiling...\n", m_sProject);
-	COutputView::WriteMsg(line, &fmt);
+	COutputBox::WriteMsg(line, &fmt);
 	m_Errors = 0;
 	m_Warnings = 0;
 	return TRUE;
 }
 
-LRESULT CBuildOutputView::EndBuildMsg(WPARAM wParam, LPARAM lParam)
+LRESULT CBuildOutputBox::EndBuildMsg(WPARAM wParam, LPARAM lParam)
 {
 	char line[500];
 
@@ -136,11 +135,11 @@ LRESULT CBuildOutputView::EndBuildMsg(WPARAM wParam, LPARAM lParam)
 ---------------------- Done ----------------------\n\n\
 Build: %d succeeded, %d failed\n\n\n\
 ", m_sProject, m_Errors, m_Warnings, m_Errors?0:1, m_Errors?1:0);
-	COutputView::WriteMsg(line, &fmt);
+	COutputBox::WriteMsg(line, &fmt);
 	return TRUE;
 }
 
-void CBuildOutputView::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
+void CBuildOutputBox::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
 {
 	COLORREF color = 0x000000;
 	if(strstr(lpszNewText, "Small compiler")) return;
@@ -156,6 +155,10 @@ void CBuildOutputView::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
 	if(strstr(lpszNewText, ") : Error")) { color=0x000055; m_Errors++; }
 	if(strstr(lpszNewText, ") : Fatal")) { color=0x0000ff; m_Errors++; }
 
+	if(strstr(lpszNewText, "warning")) { color=0x005500;}
+	if(strstr(lpszNewText, "error")) { color=0x000055;}
+	if(strstr(lpszNewText, "fatal")) { color=0x0000ff;}
+
 	CHARFORMAT2 fmt;
 	if(!pcFmt) {
 		fmt.dwMask = CFM_SIZE | CFM_COLOR | CFM_FACE | CFM_FACE | CFM_BOLD;
@@ -167,5 +170,5 @@ void CBuildOutputView::WriteMsg(LPCTSTR lpszNewText, CHARFORMAT2 *pcFmt)
 		pcFmt = &fmt;
 	}
 
-	COutputView::WriteMsg(lpszNewText, pcFmt);
+	COutputBox::WriteMsg(lpszNewText, pcFmt);
 }

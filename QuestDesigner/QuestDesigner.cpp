@@ -218,7 +218,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
     gi_atom = GlobalAddAtomA("QuestDesigner");
 */
 	HRESULT hRes;
-	hRes = ::CoInitialize(NULL);
+	hRes = ::OleInitialize(NULL);
+//	hRes = ::CoInitialize(NULL);
 	ATLASSERT(SUCCEEDED(hRes));
 
 	// this resolves ATL window thunking problem when Microsoft Layer for Unicode (MSLU) is used
@@ -239,7 +240,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	::FreeLibrary(hInstRich);
 
 	_Module.Term();
-	::CoUninitialize();
+//	::CoUninitialize();
+	::OleUninitialize();
 
 /*
 	if(gi_atom) GlobalDeleteAtom(gi_atom);

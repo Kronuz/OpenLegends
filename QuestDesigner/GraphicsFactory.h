@@ -17,17 +17,33 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /////////////////////////////////////////////////////////////////////////////
-/*! \file		SoundManager.h 
-	\brief		Interface of the CSound and CMusic classes.
-	\date		April 28, 2003
-
-	Classes that handle sounds and music in the game.
-	
-	\todo Everything is missing on this module :)
-
+/*! \file		GraphicsFactory.h 
+	\brief		Interface of the CGraphicsFactory class.
+	\date		June 26, 2003
 */
 
 #pragma once
+#include "../IGraphics.h"
 
-class CSound {
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CGraphicsFactory
+	\brief		CGraphicsFactory class.
+	\author		Kronuz
+	\version	1.0
+	\date		June 26, 2003
+
+	This class generates the interface to a graphics device through
+	the use of plugins in DLL files.
+*/
+class CGraphicsFactory
+{
+	static CGraphicsFactory *_instance;
+	CBString sIName;
+   	HMODULE m_hDLL;
+
+public:
+	static HRESULT Delete(IGraphics **pGraphics);
+	static HRESULT New(IGraphics **pGraphics, LPCSTR lpszIName = NULL);
 };
+
+

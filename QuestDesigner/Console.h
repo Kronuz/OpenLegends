@@ -25,6 +25,7 @@
 */
 
 #pragma once
+#include "../IConsole.h"
 
 enum _ftype { t_printf, t_error };
 struct InfoStruct {
@@ -44,11 +45,17 @@ struct InfoStruct {
 	\version	1.0
 	\date		April 23, 2003
 */
-class CConsole {
+class CConsole :
+	public IConsole
+{
+	static CConsole *_instance;
 public:
-	static HWND m_shWnd; //! Window handler to send the information
+	static HWND ms_hWnd; //! Window handler to send the information
 
+	char *gets(char *buffer) { return NULL; }
 	int print(const char *format, va_list argptr);
 	int printf(const char *format, ...);
 	int error(int number, char *message, char *filename, int firstline, int lastline, va_list argptr);
+
+	static CConsole *Instance();
 };

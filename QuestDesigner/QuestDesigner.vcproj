@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax"
+				AdditionalIncludeDirectories=".\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -31,9 +31,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20d.lib d3d8.lib d3dx8.lib"
+				AdditionalDependencies="cmax20d.lib zlib.lib"
+				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories=".\libs\codemax"
+				AdditionalLibraryDirectories=".\libs\codemax; ..\libs\zlib"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
 				TargetMachine="1"/>
@@ -41,7 +42,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
 				MkTypLibCompatible="FALSE"
-				TargetEnvironment="1"
 				GenerateStublessProxies="TRUE"
 				TypeLibraryName="$(IntDir)/QuestDesigner.tlb"
 				HeaderFileName="QuestDesigner.h"
@@ -69,7 +69,7 @@
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
 			ConfigurationType="1"
-			UseOfATL="1"
+			UseOfATL="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
 			CharacterSet="2"
 			WholeProgramOptimization="TRUE">
@@ -77,83 +77,33 @@
 				Name="VCCLCompilerTool"
 				Optimization="3"
 				GlobalOptimizations="TRUE"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="TRUE"
+				FavorSizeOrSpeed="1"
 				OptimizeForWindowsApplication="TRUE"
-				AdditionalIncludeDirectories=".\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax"
+				AdditionalIncludeDirectories=".\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax;..\libs\zlib"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG"
 				StringPooling="TRUE"
-				ExceptionHandling="FALSE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="3"
-				WarningLevel="2"
-				DebugInformationFormat="1"/>
-			<Tool
-				Name="VCCustomBuildTool"/>
-			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20.lib d3d8.lib d3dx8.lib"
-				LinkIncremental="1"
-				AdditionalLibraryDirectories=".\libs\codemax"
-				GenerateDebugInformation="TRUE"
-				SubSystem="2"
-				TargetMachine="1"/>
-			<Tool
-				Name="VCMIDLTool"
-				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="FALSE"
-				TargetEnvironment="1"
-				GenerateStublessProxies="TRUE"
-				TypeLibraryName="$(IntDir)/QuestDesigner.tlb"
-				HeaderFileName="QuestDesigner.h"
-				DLLDataFileName=""
-				InterfaceIdentifierFileName="QuestDesigner_i.c"
-				ProxyFileName="QuestDesigner_p.c"/>
-			<Tool
-				Name="VCPostBuildEventTool"/>
-			<Tool
-				Name="VCPreBuildEventTool"/>
-			<Tool
-				Name="VCPreLinkEventTool"/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
-			<Tool
-				Name="VCWebDeploymentTool"/>
-		</Configuration>
-		<Configuration
-			Name="QQ|Win32"
-			OutputDirectory="QQ"
-			IntermediateDirectory="QQ"
-			ConfigurationType="1"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2">
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\codemax"
-				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG"
-				MinimalRebuild="TRUE"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				DebugInformationFormat="4"/>
+				DebugInformationFormat="0"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="cmax20.lib d3d8.lib d3dx8.lib"
-				LinkIncremental="2"
-				AdditionalLibraryDirectories=".\libs\codemax"
+				AdditionalDependencies="cmax20.lib zlib.lib"
+				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories=".\libs\codemax; ..\libs\zlib"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="NDEBUG"
 				MkTypLibCompatible="FALSE"
 				TargetEnvironment="1"
 				GenerateStublessProxies="TRUE"
@@ -170,7 +120,7 @@
 				Name="VCPreLinkEventTool"/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="NDEBUG"
 				Culture="1033"
 				AdditionalIncludeDirectories="$(IntDir)"/>
 			<Tool
@@ -190,16 +140,25 @@
 				RelativePath="Console.cpp">
 			</File>
 			<File
+				RelativePath="..\FilePath.cpp">
+			</File>
+			<File
+				RelativePath="GraphicsFactory.cpp">
+			</File>
+			<File
 				RelativePath="MainFrm.cpp">
+			</File>
+			<File
+				RelativePath="..\Misc.cpp">
+			</File>
+			<File
+				RelativePath="ProjectFactory.cpp">
 			</File>
 			<File
 				RelativePath="QuestDesigner.cpp">
 			</File>
 			<File
 				RelativePath="SCompiler.cpp">
-			</File>
-			<File
-				RelativePath="misc.cpp">
 			</File>
 			<File
 				RelativePath="stdafx.cpp">
@@ -215,41 +174,7 @@
 						Name="VCCLCompilerTool"
 						UsePrecompiledHeader="1"/>
 				</FileConfiguration>
-				<FileConfiguration
-					Name="QQ|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
-				</FileConfiguration>
 			</File>
-			<Filter
-				Name="Core"
-				Filter="">
-				<File
-					RelativePath="ArchiveBinary.cpp">
-				</File>
-				<File
-					RelativePath="ArchiveText.cpp">
-				</File>
-				<File
-					RelativePath="DrawManager.cpp">
-				</File>
-				<File
-					RelativePath="FilePath.cpp">
-				</File>
-				<File
-					RelativePath="GraphicsD3D.cpp">
-				</File>
-				<File
-					RelativePath="ProjectManager.cpp">
-				</File>
-				<File
-					RelativePath="SpriteManager.cpp">
-				</File>
-				<File
-					RelativePath="WorldManager.cpp">
-				</File>
-			</Filter>
 			<Filter
 				Name="MDI"
 				Filter="">
@@ -288,10 +213,27 @@
 				Name="Docking"
 				Filter="">
 				<File
-					RelativePath="BuildOutputView.cpp">
+					RelativePath="BuildOutputBox.cpp">
 				</File>
 				<File
-					RelativePath="OutputView.cpp">
+					RelativePath="FoldersTreeBox.cpp">
+				</File>
+				<File
+					RelativePath="OutputBox.cpp">
+				</File>
+			</Filter>
+			<Filter
+				Name="Properties"
+				Filter="">
+				<File
+					RelativePath="PropertiesDlg.cpp">
+				</File>
+			</Filter>
+			<Filter
+				Name="Libs"
+				Filter="">
+				<File
+					RelativePath="libs\dragdrop\DragDropImpl.cpp">
 				</File>
 			</Filter>
 		</Filter>
@@ -305,10 +247,22 @@
 				RelativePath="Console.h">
 			</File>
 			<File
+				RelativePath="..\FilePath.h">
+			</File>
+			<File
+				RelativePath="GraphicsFactory.h">
+			</File>
+			<File
 				RelativePath="IdleHandlerPump.h">
 			</File>
 			<File
 				RelativePath="MainFrm.h">
+			</File>
+			<File
+				RelativePath="..\Misc.h">
+			</File>
+			<File
+				RelativePath="ProjectFactory.h">
 			</File>
 			<File
 				RelativePath="QuestDesigner.h">
@@ -317,48 +271,11 @@
 				RelativePath="SCompiler.h">
 			</File>
 			<File
-				RelativePath="misc.h">
-			</File>
-			<File
 				RelativePath="resource.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">
 			</File>
-			<Filter
-				Name="Core"
-				Filter="">
-				<File
-					RelativePath="ArchiveBinary.h">
-				</File>
-				<File
-					RelativePath="ArchiveText.h">
-				</File>
-				<File
-					RelativePath="DrawManager.h">
-				</File>
-				<File
-					RelativePath="FilePath.h">
-				</File>
-				<File
-					RelativePath="GraphicsD3D.h">
-				</File>
-				<File
-					RelativePath="Interfaces.h">
-				</File>
-				<File
-					RelativePath="ProjectManager.h">
-				</File>
-				<File
-					RelativePath="SoundManager.h">
-				</File>
-				<File
-					RelativePath="SpriteManager.h">
-				</File>
-				<File
-					RelativePath="WorldManager.h">
-				</File>
-			</Filter>
 			<Filter
 				Name="MDI"
 				Filter="">
@@ -397,13 +314,48 @@
 				Name="Docking"
 				Filter="">
 				<File
-					RelativePath="BuildOutputView.h">
+					RelativePath="BuildOutputBox.h">
 				</File>
 				<File
-					RelativePath="FoldersTreeView.h">
+					RelativePath="FoldersTreeBox.h">
 				</File>
 				<File
-					RelativePath="OutputView.h">
+					RelativePath="OutputBox.h">
+				</File>
+				<File
+					RelativePath="PropertiesDockingView.h">
+				</File>
+			</Filter>
+			<Filter
+				Name="Properties"
+				Filter="">
+				<File
+					RelativePath="PropertiesDlg.h">
+				</File>
+				<File
+					RelativePath="PropertiesSheet.h">
+				</File>
+			</Filter>
+			<Filter
+				Name="Drag and Drop"
+				Filter="">
+				<File
+					RelativePath="Controls.h">
+				</File>
+				<File
+					RelativePath="EditDropTarget.h">
+				</File>
+				<File
+					RelativePath="ListViewDropTarget.h">
+				</File>
+				<File
+					RelativePath="StaticDropTarget.h">
+				</File>
+				<File
+					RelativePath="TreeDropTarget.h">
+				</File>
+				<File
+					RelativePath="WindowDropTarget.h">
 				</File>
 			</Filter>
 		</Filter>
@@ -411,7 +363,16 @@
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest">
 			<File
+				RelativePath="res\DragImg.bmp">
+			</File>
+			<File
 				RelativePath="res\Error.ico">
+			</File>
+			<File
+				RelativePath="res\FolderC.ico">
+			</File>
+			<File
+				RelativePath="res\FolderO.ico">
 			</File>
 			<File
 				RelativePath="res\MapEdToolbar.bmp">
@@ -441,13 +402,28 @@
 				RelativePath="QuestDesigner.rc">
 			</File>
 			<File
+				RelativePath="res\QuestDesignerLib.ico">
+			</File>
+			<File
 				RelativePath="res\QuestDesignerMap.ico">
+			</File>
+			<File
+				RelativePath="res\QuestDesignerMidi.ico">
+			</File>
+			<File
+				RelativePath="res\QuestDesignerProject.ico">
 			</File>
 			<File
 				RelativePath="res\QuestDesignerScript.ico">
 			</File>
 			<File
+				RelativePath="res\QuestDesignerSprite.ico">
+			</File>
+			<File
 				RelativePath="res\QuestDesignerSpriteSheet.ico">
+			</File>
+			<File
+				RelativePath="res\QuestDesignerWav.ico">
 			</File>
 			<File
 				RelativePath="res\QuestDesignerWorld.ico">

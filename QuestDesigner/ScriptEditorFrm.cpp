@@ -60,6 +60,12 @@ BOOL CScriptEditorFrame::OnIdle()
 
 LRESULT CScriptEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	HICON hIcon = (HICON)::LoadImage(
+				_Module.GetResourceInstance(),
+				MAKEINTRESOURCE(IDI_DOC_SCRIPT),
+				IMAGE_ICON, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON), LR_SHARED);
+	SetIcon(hIcon, ICON_SMALL);
+
 	m_pScriptEditorView = new CScriptEditorView(this);
 
 	// create our view
@@ -91,7 +97,7 @@ LRESULT CScriptEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /
 LRESULT CScriptEditorFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL /*&bHandled*/)
 {
 	if(m_pScriptEditorView->IsModified()) {
-		CString sSave;
+		CBString sSave;
 		sSave.Format("Save Changes to %s?", m_pScriptEditorView->GetTitle());
 		int ret = MessageBox(sSave, _T("Quest Designer - Script Editor"), MB_YESNOCANCEL);
 		BOOL bTmp;

@@ -23,7 +23,8 @@
 #include "stdafx.h"
 #include "QuestDesigner.h"
 
-#include "aboutdlg.h"
+#include "AboutDlg.h"
+#include "PropertiesDlg.h"
 
 #include <ssfiledialog.h>
 
@@ -59,10 +60,11 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 
 BOOL CMainFrame::OnIdle()
 {
-	// Update all the toolbar items
-	UIUpdateToolBar();
 	// Update all the menu items
 	UIUpdateMenuItems();
+
+	// Update all the toolbar items
+	UIUpdateToolBar();
 
 	return FALSE;
 }
@@ -70,7 +72,7 @@ BOOL CMainFrame::OnIdle()
 LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	// updating the window handler of the project's console
-	CConsole::m_shWnd = m_hWnd;
+	CConsole::ms_hWnd = m_hWnd;
 
 	// create command bar window
 	HWND hWndCmdBar = m_CmdBar.Create(m_hWnd, rcDefault, NULL, ATL_SIMPLE_CMDBAR_PANE_STYLE);
@@ -103,8 +105,8 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	}	
 
 	AddSimpleReBarBand(hWndCmdBar);
-	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 250, TRUE);
-	AddSimpleReBarBand(hMapEdToolBar, "Map Editor", FALSE, 200, TRUE);
+	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 285, TRUE);
+	AddSimpleReBarBand(hMapEdToolBar, "Map Editor", TRUE, 200, TRUE);
 	AddSimpleReBarBand(hScriptToolBar, "Script Editor", FALSE, 375, TRUE);
 
 	// create a status bar
@@ -126,6 +128,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 		return -1;      // fail to create
 	}
 
+	m_tabbedClient.UseMDIChildIcon();
 	m_tabbedClient.SetTabOwnerParent(m_hWnd);
 	BOOL bSubclass = m_tabbedClient.SubclassWindow(m_hWndMDIClient);
 	m_CmdBar.UseMaxChildDocIconAndFrameCaptionButtons(false);
@@ -141,7 +144,12 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	UISetCheck(ID_APP_INFORMATION, TRUE);
 	UISetCheck(ID_APP_PROPERTIES, FALSE);
 
-	// Update all the menu items
+	UIEnableToolbar(FALSE);
+
+	// Update all the toolbar items
+	UIUpdateToolBar();
+
+	UIEnableToolbar(TRUE);
 	UIUpdateMenuItems();
 
 	// register object for message filtering and idle updates
@@ -155,60 +163,85 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 
 	PostMessage(CWM_INITIALIZE);
 
-	m_InfoFrame.DisplayTab(m_OutputView.m_hWnd);
-	CProjectManager::Instance()->Load(_T("Kronuz Project"));
+	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
+	CVFile vfFile("Kronuz Project");
+
+	ShowWindow(true);
+	Invalidate();
+	UpdateWindow();
+	CProjectFactory::Instance(m_hWnd)->Interface()->Load(vfFile);
 
 	return 0;
 }
+
 void CMainFrame::InitializeDefaultPanes()
 {
 	CRect rcClient;
 	GetClientRect(&rcClient);
 
 	CRect rcFloat(0,0,400,200);
-	CRect rcDock(0,0,200,rcClient.Width()-200);
+	//CRect rcDock(0,0,200,200);
+	CRect rcDock(0, 0, 200, rcClient.Height()/3);
 
 	DWORD dwStyle = WS_OVERLAPPEDWINDOW | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+
+	// Create docking windows:
 	m_InfoFrame.Create(m_hWnd, rcFloat, _T("Information Window"), dwStyle);
-	DockWindow(
-		m_InfoFrame,
-		dockwins::CDockingSide(dockwins::CDockingSide::sBottom),
-		0 /*nBar*/,
-		float(0.0)/*fPctPos*/,
-		rcDock.Width() /* nWidth*/,
-		rcDock.Height() /* nHeight*/);
+	m_ListFrame.Create(m_hWnd, rcFloat, _T("World List Window"), dwStyle);
 
-	dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL;
-	m_OutputView.Create(m_InfoFrame, rcDefault, NULL, dwStyle, WS_EX_CLIENTEDGE);
-	m_TaskListView.Create(m_InfoFrame, rcDefault, NULL, dwStyle, WS_EX_CLIENTEDGE);
-	m_DescriptionView.Create(m_InfoFrame, rcDefault, NULL, dwStyle, WS_EX_CLIENTEDGE);
-	m_OutputView.m_pMainFrame = this;
+	m_PropFrame.Create(m_hWnd, rcFloat, _T("Properties Window"), dwStyle,	WS_EX_CLIENTEDGE);
 
+	// Add bitmaps to the docking window's tabs
 	int nFirstIndex = m_InfoFrame.AddBitmap(IDB_MSDEV_TAB_ICONS, RGB(0,255,0));
 
-	m_InfoFrame.AddTab(m_DescriptionView,	_T("Project Description"),	1 + nFirstIndex);
-	m_InfoFrame.AddTab(m_TaskListView,		_T("Things To Do"),			6 + nFirstIndex);
-	m_InfoFrame.AddTab(m_OutputView,		_T("Output Window"),		3 + nFirstIndex);
-
-
-	m_ListFrame.Create(m_hWnd, rcFloat, _T("World List Window"), dwStyle);
-	DockWindow(
+	// Dock the windows.
+	DockWindow (
+		m_PropFrame,
+		dockwins::CDockingSide(dockwins::CDockingSide::sRight),
+		0,				// nBar
+		float(0.0),		// fPctPos
+		rcDock.Width(),	// nWidth
+		rcDock.Height()	// nHeight
+	);
+	DockWindow (
 		m_ListFrame,
 		dockwins::CDockingSide(dockwins::CDockingSide::sRight),
-		0 /*nBar*/,
-		float(0.0)/*fPctPos*/,
-		rcDock.Width() /* nWidth*/,
-		rcDock.Height() /* nHeight*/);
+		0,				// nBar
+		float(0.0),		// fPctPos
+		rcDock.Width(),	// nWidth
+		rcDock.Height()*2	// nHeight
+	);
+	DockWindow (
+		m_InfoFrame,
+		dockwins::CDockingSide(dockwins::CDockingSide::sBottom),
+		0,				// nBar
+		float(0.0),		// fPctPos
+		rcDock.Width(),	// nWidth
+		rcDock.Height()	// nHeight
+	);
 
-	m_FoldersView.Create(m_ListFrame, 
-		rcDefault, 
-		NULL, 
-		WS_CHILD | WS_VISIBLE |
-		TVS_LINESATROOT |TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS, 
-		WS_EX_CLIENTEDGE);
-	m_ListFrame.AddTab(m_FoldersView,		_T("Project"),	NULL);
+	////////////////////////////////////////////////////////////////////
+	// Create the content for the docking windows:
+	dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL | ES_AUTOHSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_NOHIDESEL;
+	m_TaskListView.Create(m_InfoFrame,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+	m_DescriptionView.Create(m_InfoFrame,	rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+	m_OutputBox.Create(m_InfoFrame,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+	m_OutputBox.m_pMainFrame = this;
+
+	dwStyle = WS_CHILD | WS_VISIBLE | TVS_LINESATROOT | TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS;
+	m_GameProject.Create(m_ListFrame,		rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+	m_Quest.Create(m_ListFrame,				rcDefault,	NULL,	dwStyle,	WS_EX_CLIENTEDGE);
+
+	// Add the created windows to the docking frame:
+	m_InfoFrame.AddTab(m_DescriptionView,	_T("Project Description"),	1 + nFirstIndex);
+	m_InfoFrame.AddTab(m_TaskListView,		_T("Things To Do"),			6 + nFirstIndex);
+	m_InfoFrame.AddTab(m_OutputBox,			_T("Output Window"),		3 + nFirstIndex);
+
+	m_ListFrame.AddTab(m_Quest,				_T("Quest"),				NULL);
+	m_ListFrame.AddTab(m_GameProject,		_T("Game Project"),			NULL);
 
 }
+
 LRESULT CMainFrame::OnInitialize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	sstate::CDockWndMgr mgrDockWnds;
@@ -220,6 +253,7 @@ LRESULT CMainFrame::OnInitialize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 	m_stateMgr.Add(sstate::CToggleWindowAdapter(m_hWndStatusBar));
 	m_stateMgr.Add(mgrDockWnds);
 	m_stateMgr.Restore();
+
 	UpdateLayout();
 	return 0;
 }
@@ -234,22 +268,38 @@ LRESULT CMainFrame::OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 	PostMessage(WM_CLOSE);
 	return 0;
 }
-LRESULT CMainFrame::OnFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+LRESULT CMainFrame::OnScriptFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	// create a new MDI child window
 //	CreateNewChildWnd();
 
 	CHtmlFrame *pChild = new CHtmlFrame(this);
-	pChild->CreateChild(m_hWndClient);
+	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+	ATLASSERT(hChildWnd);
 
 	// TODO: add code to initialize document
 
 	return 0;
 }
+
+LRESULT CMainFrame::OnScriptFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	static TCHAR szFilter[] = "OZ Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
+	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
+	
+	if(IDOK == wndFileDialog.DoModal()) {
+		ScriptFileOpen(wndFileDialog.m_ofn.lpstrFile, 0, (wndFileDialog.m_ofn.Flags&OFN_READONLY)?TRUE:FALSE);
+	}
+	return TRUE;
+}
+LRESULT CMainFrame::OnFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	return 0;
+}
+
 LRESULT CMainFrame::OnFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-
-	static TCHAR szFilter[] = "OZ Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
+	static TCHAR szFilter[] = "OZ Quest files (*.qss;*.qsz)|*.qss; *.qsz|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
 	if(IDOK == wndFileDialog.DoModal()) {
@@ -306,17 +356,15 @@ LRESULT CMainFrame::OnViewWorldEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /
 		SendMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
 	} else {
 		CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
-		HWND hChildWnd = pChild->CreateChild(m_hWndClient);
+		HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+		ATLASSERT(hChildWnd);
 	}
 	OnIdle(); // Force idle processing to update the toolbar.
 	return 0;
 }
 LRESULT CMainFrame::OnViewMapEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	CMapEditorFrame *pChild = new CMapEditorFrame(this);
-	HWND hChildWnd = pChild->CreateChild(m_hWndClient);
-
-	OnIdle(); // Force idle processing to update the toolbar.
+	MapCreate(CPoint(0,0));
 	return 0;
 }
 LRESULT CMainFrame::OnViewSpriteEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
@@ -328,6 +376,13 @@ LRESULT CMainFrame::OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCt
 {
 	CAboutDlg dlg;
 	dlg.DoModal();
+	return 0;
+}
+LRESULT CMainFrame::OnAppConfig(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	CPropertiesDlg dlg(0);
+	int result = dlg.DoModal();
+
 	return 0;
 }
 LRESULT CMainFrame::OnWindowCascade(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
@@ -348,8 +403,8 @@ LRESULT CMainFrame::OnWindowArrangeIcons(WORD /*wNotifyCode*/, WORD /*wID*/, HWN
 
 LRESULT CMainFrame::OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	m_InfoFrame.DisplayTab(m_OutputView.m_hWnd);
-	CProjectManager::Instance()->StartBuild();
+	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
+	CProjectFactory::Instance()->StartBuild();
 	return 0;
 }
 
@@ -366,7 +421,67 @@ int CMainFrame::Select(LPCTSTR szFilename, LPARAM lParam)
 	}
 	return 0;
 }
+
+int CMainFrame::MapCreate(CPoint &Point)
+{
+	CMapGroup *pMapGroupI;
+	if((pMapGroupI = CProjectFactory::Interface()->FindMapGroup(Point.x, Point.y))==NULL) {
+		if((pMapGroupI = CProjectFactory::Interface()->BuildMapGroup(Point.x, Point.y, 1, 1))==NULL) return 0;
+	}
+
+	// Searching for an open child with the same file:
+	LPCSTR szTitle = pMapGroupI->GetMapGroupID();
+
+	CMapEditorFrame *pChild = new CMapEditorFrame(this);
+	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+	ATLASSERT(hChildWnd);
+
+	// get the child's 'view' (actually child's client control)
+	CMapEditorView *pView = pChild->GetView();
+	if(!pView->DoMapOpen(pMapGroupI, szTitle)) {
+		// kill the failed window (will delete itself)
+		::SendMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		return 0;
+	}
+	return 1;
+
+	return 0;
+}
+
+int CMainFrame::MapFileOpen(CPoint &Point)
+{
+	CMapGroup *pMapGroupI;
+	if((pMapGroupI = CProjectFactory::Interface()->FindMapGroup(Point.x, Point.y))==NULL) return MapCreate(Point);
+
+	LPCSTR szTitle = pMapGroupI->GetMapGroupID();
+
+	// Searching for an open child with the same file:
+//	if(Select(szTitle, 0)) return 1;
+
+	if(!pMapGroupI->Load()) return 0;
+
+	CMapEditorFrame *pChild = new CMapEditorFrame(this);
+	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+	ATLASSERT(hChildWnd);
+
+	// get the child's 'view' (actually child's client control)
+	CMapEditorView *pView = pChild->GetView();
+	if(!pView->DoMapOpen(pMapGroupI, szTitle)) {
+		// kill the failed window (will delete itself)
+		::SendMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		return 0;
+	}
+	return 1;
+}
+
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
+{
+	CVFile vfFile(szFilename);
+	CProjectFactory::Interface()->LoadWorld(vfFile);
+	return 1;
+}
+
+int CMainFrame::ScriptFileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
 	// Searching for an open child with the same file:
 	if(Select(szFilename, lParam)) return 1;
@@ -376,10 +491,9 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 	_splitpath(szFilename, NULL, NULL, szTitle, szExt);
 	lstrcat(szTitle, szExt);
 
-	// create a hiden MDI child
-	// create a new MDI child window
 	CScriptEditorFrame *pChild = new CScriptEditorFrame(this);
-	HWND hChildWnd = pChild->CreateChild(m_hWndClient);
+	HWND hChildWnd = pChild->CreateEx(m_hWndClient);
+	ATLASSERT(hChildWnd);
 
 	// get the child's 'view' (actually child's client control)
 	CScriptEditorView *pView = pChild->GetView();
@@ -387,7 +501,7 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 	// open the requested file
 	if(!pView->DoFileOpen(szFilename, szTitle)) {
 		// kill the failed window (will delete itself)
-		pChild->DestroyWindow();
+		::SendMessage(pChild->m_hWnd,WM_CLOSE,0,0);
 		return 0;
 	} else {
 		pView->SetReadOnly(bReadOnly);
@@ -396,7 +510,7 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 	return 1;
 }
 
-void CMainFrame::UIUpdateMenuItems ()
+void CMainFrame::UIUpdateMenuItems()
 {
 	_child_type ActiveChildType = tAny;
 	CChildFrame *pChildFrame;
@@ -421,12 +535,12 @@ void CMainFrame::UIUpdateMenuItems ()
 		UIEnable(ID_SCRIPTED_PRINT, FALSE);
 		UIEnable(ID_SCRIPTED_PRINT_SETUP, FALSE);
 
-		UIEnable(ID_SCRIPTED_UNDO, FALSE);
-		UIEnable(ID_SCRIPTED_REDO, FALSE);	
-		UIEnable(ID_SCRIPTED_CUT, FALSE);
-		UIEnable(ID_SCRIPTED_COPY, FALSE);
-		UIEnable(ID_SCRIPTED_PASTE, FALSE);
-		UIEnable(ID_SCRIPTED_ERASE, FALSE);
+		UIEnable(ID_UNDO, FALSE);
+		UIEnable(ID_REDO, FALSE);	
+		UIEnable(ID_CUT, FALSE);
+		UIEnable(ID_COPY, FALSE);
+		UIEnable(ID_PASTE, FALSE);
+		UIEnable(ID_ERASE, FALSE);
 
 		UIEnable(ID_SCRIPTED_TAB, FALSE);
 		UIEnable(ID_SCRIPTED_UNTAB, FALSE);
@@ -456,4 +570,13 @@ void CMainFrame::UIUpdateMenuItems ()
 		}
 	}
 
+}
+void CMainFrame::UIEnableToolbar(BOOL bEnable)
+{
+	const _AtlUpdateUIMap* pMap = GetUpdateUIMap();
+	ATLASSERT(pMap != NULL);
+	for(int nCount = 1; pMap->m_nID != (WORD)-1; nCount++) {
+		UIEnable(pMap->m_nID, bEnable);
+		pMap++;
+	}
 }
