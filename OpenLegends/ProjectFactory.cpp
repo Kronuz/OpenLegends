@@ -58,9 +58,9 @@ CProjectFactory* CProjectFactory::Instance(HWND hWnd)
 			_instance->m_pGameI->SetSpriteCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
 			_instance->m_pGameI->SetSpriteSheetCallback(CProjectFactory::StatusChanged, (LPARAM)_instance);
 		} else {
-			MessageBox(NULL, 
-				"Couldn't load kernel, check kernel version.", 
-				"Open Legends - Fatal Error", MB_OK | MB_ICONERROR);
+			delete _instance;
+			_instance = NULL;
+			exit(1);
 		}
 	}
 	return _instance;

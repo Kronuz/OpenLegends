@@ -18,8 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! 
-	$Header$
-	\file		$Id$ $Name$
+	\file		GraphicsD3D8.cpp
 	\brief		Implementation of the DirectGraphics 2D Graphics plugin for Open Legends.
 	\date		May 19, 2003: 
 					* Initial Release.
@@ -62,12 +61,6 @@
 				still show wrong. ??
 				There's a strange flickering when there are two 
 				running GraphicsD3D engines (i.e. QD and OL debugger)
-
-*/
-/*
-	$Log$
-	Revision 1.20  2004/09/17 00:37:37  kronuz
-	CVS test
 
 */
 

@@ -50,8 +50,12 @@ LRESULT CMapEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 {
 	LRESULT lResult = DefWindowProc();
 
+	bHandled = FALSE;
+
 	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D9.dll"))) {
-		MessageBox("Couldn't load graphics plugin, check plugin version.", "Quest Designer");
+		::PostMessage(GetParent(), WM_CLOSE, 0, 0);
+		exit(1);
+		return ERROR_FILE_NOT_FOUND;
 	}
 
 	ASSERT(m_pGraphicsI);
@@ -61,8 +65,6 @@ LRESULT CMapEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 	}
 
 	m_pSoundManager = CProjectFactory::Interface()->GetSoundManager();
-
-	bHandled = FALSE;
 
 	return lResult;
 }
@@ -209,8 +211,10 @@ bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 	if(!DoFileClose()) return false;
 
 	m_pMapGroupI = (CMapGroup *)wParam;
-	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pMapGroupI))))
+	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pMapGroupI)))) {
 		MessageBox("Couldn't load kernel, check kernel version.", "Quest Designer");
+		return false;
+	}
 
 	ASSERT(m_pMapGroupI);
 	if(!m_pMapGroupI) return false;

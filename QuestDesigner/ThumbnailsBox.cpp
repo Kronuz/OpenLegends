@@ -53,8 +53,12 @@ LRESULT CThumbnailsBox::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 {
 	LRESULT lResult = DefWindowProc();
 
+	bHandled = FALSE;
+
 	if(FAILED(CGraphicsFactory::New(&m_pGraphicsI, "GraphicsD3D9.dll"))) {
-		MessageBox("Couldn't load graphics plugin, check plugin version.", "Quest Designer");
+		PostMessage(WM_CLOSE);
+		exit(1);
+		return ERROR_FILE_NOT_FOUND;
 	}
 
 	ASSERT(m_pGraphicsI);
@@ -62,8 +66,6 @@ LRESULT CThumbnailsBox::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 	if(!m_pGraphicsI->Initialize(m_hWnd)) {
 		PostMessage(WM_CLOSE);
 	}
-
-	bHandled = FALSE;
 
 	return lResult;
 }
@@ -301,8 +303,10 @@ bool CThumbnailsBox::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 
 	m_pThumbnails->SetBkColor(COLOR_ARGB(255,255,255,255));
 
-	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pThumbnails))))
+	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pThumbnails)))) {
 		MessageBox("Couldn't load kernel, check kernel version.", "Quest Designer");
+		return false;
+	}
 	m_SelectionI->SetLayer(0);
 
 	OnRefresh();

@@ -12,7 +12,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Inglés (Estados Unidos) resources
+// English (U.S.) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -496,7 +496,8 @@ BEGIN
                     98,8
     LTEXT           "Author e-mail:",IDC_STATIC,175,130,44,8
     LTEXT           "Open Legends Website:",IDC_STATIC,175,119,68,8
-    LTEXT           "http://www.openlegends.com",IDC_URL1_STATIC,259,119,88,8
+    LTEXT           "http://www.openlegends.com",IDC_URL1_STATIC,259,119,88,
+                    8
     PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,153,70,14
     CTEXT           "Copyright (C) 2001-2004. Open Legends's Project",
                     IDC_STATIC,146,159,250,8
@@ -1034,7 +1035,7 @@ BEGIN
     ID_DBG_CONTINUE         "Continue debugging.\nContinue"
 END
 
-#endif    // Inglés (Estados Unidos) resources
+#endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
