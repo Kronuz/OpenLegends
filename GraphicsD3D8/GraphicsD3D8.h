@@ -153,6 +153,7 @@ class CGraphicsD3D8 :
 	static D3DDISPLAYMODE ms_PreferredMode;
 	static int ms_nScreenWidth;
 	static int ms_nScreenHeight;
+	static bool ms_bLastRendered;
 
 	float m_Zoom;
 	bool m_bInitialized;
@@ -254,6 +255,7 @@ public:
 		int rotate = GFX_ROTATE_0, 
 		int transform = GFX_NORMAL, 
 		ARGBCOLOR rgbColor = COLOR_ARGB(255,255,255,255), 
+		float lightness = 0.5f,
 		IBuffer **buffer = NULL,
 		float rotation = 0.0f,
 		float scale = 1.0f

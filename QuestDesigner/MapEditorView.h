@@ -69,7 +69,7 @@ public:
 	// Called to clean up after window is destroyed
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
-	BEGIN_MSG_MAP(CWorldEditView)
+	BEGIN_MSG_MAP(CMapEditorView)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 
@@ -128,6 +128,14 @@ public:
 	void UIUpdateStatusBar();
 
 	void OnNoSound();
+
+	BOOL CanUndo();
+	BOOL CanRedo();
+	BOOL CanCut();
+	BOOL CanCopy();
+	BOOL CanPaste();
+	BOOL IsSelection();
+	BOOL IsReadOnly();
 
 	// Called to do idle processing
 	virtual BOOL OnIdle();

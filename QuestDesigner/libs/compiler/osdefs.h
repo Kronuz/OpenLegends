@@ -30,8 +30,12 @@
 #    define _Windows    1
 #  endif
 #  ifdef _WIN32
-#    define __WIN32__   1
-#    define __32BIT__   1
+#    ifndef __32BIT__
+#      define __32BIT__   1
+#    endif
+#    ifndef __WIN32__
+#      define __WIN32__   1
+#    endif
 #  endif
 #endif
 

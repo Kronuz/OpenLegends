@@ -25,7 +25,6 @@
 #pragma once
 
 #include "Controls.h"
-#include "ToolBarBox.h"
 
 #include <WtlFileTreeCtrl.h>
 
@@ -34,11 +33,12 @@
 class CMainFrame;
 
 class CFoldersTreeBox :
-	public CWindowImpl<CFoldersTreeBox>
+	public CWindowImpl < CFoldersTreeBox > 
 {
+	CIDropTarget *m_pDropTarget;
 protected:
-	CToolBarBox m_ctrlToolbar;
-	CTreeBox m_ctrlTree;
+	CTrueColorToolBarCtrl m_ctrlToolbar;
+	CWtlFileTreeCtrl m_ctrlTree;
 
 	CImageList m_ImageList;
 	int m_nIcoIndex[II_END];
@@ -52,12 +52,16 @@ public:
 	BEGIN_MSG_MAP(CFoldersTreeBox)
 		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
+		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_SETREDRAW, OnSetRedraw)
 		MESSAGE_HANDLER(WM_SIZE, OnSize)
 		MESSAGE_HANDLER(WM_ITEM_SELECTED, OnFileItemSelected )
 
-		REFLECT_NOTIFICATIONS()
+		NOTIFY_CODE_HANDLER(TVN_BEGINDRAG, OnBegindrag)
+
+		// Not entirely sure why this filter "should be" needed...
+		//if( uMsg==WM_NOTIFY && ((LPNMHDR)lParam)->hwndFrom == m_ctrlToolbar ) 
+			REFLECT_NOTIFICATIONS()
 	END_MSG_MAP()
 
 // Handler prototypes (uncomment arguments if needed):
@@ -74,7 +78,7 @@ public:
 		return 0;
 	}
 
-	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	LRESULT OnEraseBackground(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
 		return 0;
 	}
@@ -86,26 +90,15 @@ public:
 	LRESULT OnAddTree(WPARAM wParam, LPARAM lParam);
 	void PopulateTree(LPCSTR szRootFolder);
 
-	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
-	{
-		if( !m_ctrlToolbar.IsWindow() || !m_ctrlTree.IsWindow() ) return 0;
-		RECT rc;
-		GetClientRect(&rc);
-		RECT rcTb = { rc.left, rc.top, rc.right, rc.top + 24 };
-		if(rcTb.right-rcTb.left<100) rcTb.right = rcTb.left + 100;
+	HTREEITEM InsertRootItem( LPCSTR szFile, LPCSTR szPath, HTREEITEM hParent, DWORD Idx=-1 );
+	HTREEITEM InsertFileItem( LPCSTR szFile, LPCSTR szPath, HTREEITEM hParent, DWORD Idx=-1 );
 
-		m_ctrlToolbar.SetWindowPos(NULL, &rcTb, SWP_NOZORDER | SWP_NOACTIVATE);
-		m_ctrlToolbar.GetWindowRect(&rcTb);
+	LRESULT OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/);
 
-		RECT rcTree = { rc.left, rcTb.bottom-rcTb.top, rc.right, rc.bottom };
-		if(rcTree.right-rcTree.left<100) rcTree.right = rcTree.left + 100;
-		if(rcTree.bottom-rcTree.top<100) rcTree.bottom = rcTree.top + 100;
-
-		m_ctrlTree.SetWindowPos(NULL, &rcTree, SWP_NOZORDER | SWP_NOACTIVATE);
-		return 0;
-	}
+	LRESULT OnBegindrag(int idCtrl, LPNMHDR pnmh, BOOL& bHandled);
 	bool InitDragDrop();
+
 protected:
-	HTREEITEM FindPath(HTREEITEM hParent, LPSTR szPath);
-	HTREEITEM FindLeaf(HTREEITEM hParent, LPSTR szName);
+	HTREEITEM FindPath(HTREEITEM hParent, LPCSTR _szPath);
+	HTREEITEM FindLeaf(HTREEITEM hParent, LPCSTR _szName);
 };

@@ -79,6 +79,14 @@ bool SObjProp::SetProperties(SPropertyList &PL)
 	}
 	return bChanged;
 }
+void SObjProp::Commit() const
+{
+	pContext->Commit();
+}
+void SObjProp::Cancel()
+{
+	pContext->Cancel();
+}
 
 // This functions are used to sort the sprite list before rendering to the screen.
 inline bool CDrawableContext::ContextSubLayerCompare::operator()(const CDrawableContext *a, const CDrawableContext *b) const
@@ -338,7 +346,7 @@ inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawabl
 
 	if(pDrawableContext->m_pDrawableObj) {
 		if(!pDrawableContext->isSelected() && m_bHighlight) {
-			ARGBCOLOR rgbColor = COLOR_ARGB(255,96,96,96);
+			ARGBCOLOR rgbColor = COLOR_ARGB(255,128,128,128);
 			return pDrawableContext->m_pDrawableObj->Draw(*pDrawableContext, &rgbColor);
 		}
 		return pDrawableContext->m_pDrawableObj->Draw(*pDrawableContext);
@@ -359,7 +367,7 @@ bool CDrawableContext::DrawSelected(const IGraphics *pIGraphics)
 }
 bool CDrawableContext::DrawSelectedH(const IGraphics *pIGraphics) 
 {
-	DrawContext Draw(false, false, true);
+	DrawContext Draw(true, false, true);
 	return Draw(this, pIGraphics);
 }
 
@@ -559,7 +567,7 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_CurrentCursor(eIDC_ARROW),
 	m_nSnapSize(1),
 	m_bShowGrid(false),
-	m_nLayer(0),
+	m_nLayer(2), // Default Layer = 2
 	m_rcSelection(0,0,0,0),
 	m_ptInitialPoint(0,0),
 	m_bAllowMultiLayerSel(false),

@@ -307,8 +307,8 @@ void CGameManager::DeleteSpriteSheet(int nIndex)
 			m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName(),
 			Deleted);
 
-		delete pSpriteSheet;
 		m_SpriteSheets.erase(Iterator);
+		delete pSpriteSheet;
 	}
 }
 void CGameManager::DeleteSprite(LPCSTR szName)
@@ -366,16 +366,37 @@ int CALLBACK RemoveMask(LPVOID sprite, LPARAM lParam)
 	}
 	return 0;
 }
+// This really just adds the sprite sheet to the game, the Sprite sheet object
+// should have been already created. This just validates the addition and
+// returns NULL on error. (so far, never NULL)
+CSpriteSheet* CGameManager::MakeSpriteSheet(CSpriteSheet *pSpriteSheet)
+{
+	ASSERT(pSpriteSheet);
+	m_SpriteSheets.push_back(pSpriteSheet);
 
+	CallbackProc(
+		SpriteSheet, 
+		pSpriteSheet, 
+		m_sProjectName + "\\Sprite sheets\\" + pSpriteSheet->GetName(),
+		Added);
+
+	return pSpriteSheet;
+}
 int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, LPARAM lParam)
 {
 	CGameManager *pGameManager = reinterpret_cast<CGameManager*>(lParam);
-	CSpriteSheet *sstmp = new CSpriteSheet(pGameManager);
-	ASSERT(sstmp);
-	pGameManager->m_SpriteSheets.push_back(sstmp);
+	CSpriteSheet *pSpriteSheet = new CSpriteSheet(pGameManager);
+	ASSERT(pSpriteSheet);
 
 	CVFile vfFile(szFile);
-	sstmp->Load(vfFile);
+	pSpriteSheet->Load(vfFile);
+
+	if( find(pGameManager->m_SpriteSheets.begin(), 
+			 pGameManager->m_SpriteSheets.end(), 
+			 pSpriteSheet) == pGameManager->m_SpriteSheets.end() ) {
+		ASSERT(!*"Sprite sheet not added to the game. Use MakeSpriteSheet() at loading time.");
+		delete pSpriteSheet;
+	}
 
 	return 1;
 }

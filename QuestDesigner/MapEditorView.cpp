@@ -107,7 +107,7 @@ LRESULT CMapEditorView::OnSelChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND hWn
 	m_SelectionI->SetLayerSelection(nLayer);
 
 	OnChangeSel(OCS_UPDATE); // was OnChangeSel(OCS_AUTO)
-	UpdateView();
+	Invalidate();
 
 	return 0;
 }
@@ -133,7 +133,7 @@ LRESULT CMapEditorView::OnStateChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND h
 	m_pMapGroupI->ShowLayer(nLayer, (nVisibleState == 0));
 	m_SelectionI->LockLayer(nLayer, (nLockedState == 1));
 
-	UpdateView();
+	Invalidate();
 
 	return 0;
 }
@@ -156,7 +156,7 @@ LRESULT CMapEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 			GetMainFrame()->m_ctrlLayers.SetItemState(nLayer, "1_Visible", 0);
 			GetMainFrame()->m_ctrlLayers.SetItemState(nLayer, "2_Locked", 0);
 		}
-		GetMainFrame()->m_ctrlLayers.SetCurSel(0);
+		GetMainFrame()->m_ctrlLayers.SetCurSel(2);
 	}
 
 	OnChangeSel(OCS_RENEW);
@@ -226,6 +226,7 @@ bool CMapEditorView::DoMapOpen(CMapGroup *pMapGroupI, LPCTSTR lpszTitle)
 	OnChangeSel(OCS_RENEW);
 
 	UpdateView();
+	Invalidate();
 	return true;
 }
 
@@ -407,17 +408,58 @@ void CMapEditorView::UIUpdateMenuItems()
 	}
 	pMainUpdateUI->UIEnable(ID_APP_SAVE, hasChanged());	
 
-/* Undo features and stuff will be left pending for the next major release
-	pUpdateUI->UIEnable(ID_UNDO, m_SelectionI->CanUndo());
-	pUpdateUI->UIEnable(ID_REDO, m_SelectionI->CanRedo());
+/* Undo features and stuff will be left pending for the next major release */
+	pMainFrm->UIEnable(ID_UNDO, CanUndo());
+	pMainFrm->UIEnable(ID_REDO, CanRedo());
 
-	pUpdateUI->UIEnable(ID_CUT, m_SelectionI->CanCut());
-	pUpdateUI->UIEnable(ID_COPY, m_SelectionI->CanCopy());
-	pUpdateUI->UIEnable(ID_PASTE, m_SelectionI->CanPaste());
-	pUpdateUI->UIEnable(ID_ERASE, m_SelectionI->IsSelection());
+	pMainFrm->UIEnable(ID_CUT, CanCut());
+	pMainFrm->UIEnable(ID_COPY, CanCopy());
+	pMainFrm->UIEnable(ID_PASTE, CanPaste());
+	pMainFrm->UIEnable(ID_ERASE, IsSelection());
 
-*/
 }
+BOOL CMapEditorView::CanUndo()
+{
+	if(!m_SelectionI) return FALSE;
+	if(isHeld()) return FALSE;
+	return FALSE;
+}
+BOOL CMapEditorView::CanRedo()
+{
+	if(!m_SelectionI) return FALSE;
+	if(isHeld()) return FALSE;
+	return FALSE;
+}
+BOOL CMapEditorView::CanCut()
+{
+	if(!m_SelectionI) return FALSE;
+	if(isHeld()) return FALSE;
+	return (m_SelectionI->Count() != 0);
+}
+BOOL CMapEditorView::CanCopy()
+{
+	if(!m_SelectionI) return FALSE;
+	return (m_SelectionI->Count() != 0);
+}
+BOOL CMapEditorView::CanPaste()
+{
+	if(!m_SelectionI) return FALSE;
+	if(isHeld()) return FALSE;
+	return TRUE;
+}
+
+BOOL CMapEditorView::IsSelection()
+{
+	if(!m_SelectionI) return FALSE;
+	if(isHeld()) return FALSE;
+	return (m_SelectionI->Count() != 0);
+}
+BOOL CMapEditorView::IsReadOnly()
+{
+	if(!m_SelectionI) return FALSE;
+	return FALSE;
+}
+
 inline bool CMapEditorView::Flip() 
 {
 	m_SelectionI->FlipSelection();
@@ -709,7 +751,7 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 	}
 	GetMainFrame()->m_ctrlLayers.SetCurSel(m_SelectionI->GetLayer());
 
-	::SendMessage(hWnd, WMP_CLEAR, 0, 0);
+	::SendMessage(hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
 
 	SInfo Information;
 	SObjProp *pOP = m_SelectionI->GetFirstSelection();

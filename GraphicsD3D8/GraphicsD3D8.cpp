@@ -19,8 +19,18 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		GraphicsD3D8.cpp
 	\brief		Implementation of the DirectGraphics 2D Graphics plugin for Open Zelda.
-	\date		May 19, 2003
+	\date		May 19, 2003: 
+					* Initial Release.
 				June 9, 2003
+				September 10, 2003: 
+					- Bug Fix: The Alpha and RGB values are now updated in the vertex buffer
+					  in case a change has been made (different values)
+				September 17, 2003
+					+ Optimization. The vertex buffer is no longer needed to be updated
+					  neither it needs to contain the ARGB values of the vertices.
+					  (The vertices color and alpha value are set ar Draw time using
+					   two stages for the color (aditive blending) and modulation for
+					   alpha blending)
 	\author		Kronuz
 	\remarks	Known bugs:
 				Take the next scenario. There is an open map (being displayed), the
@@ -116,6 +126,7 @@ int CGraphicsD3D8::ms_nCount = 0;
 int CGraphicsD3D8::ms_nScreenWidth = 0;
 int CGraphicsD3D8::ms_nScreenHeight = 0;
 bool CGraphicsD3D8::ms_bWindowed = true;
+bool CGraphicsD3D8::ms_bLastRendered = false;
 IDirect3D8 *CGraphicsD3D8::ms_pD3D = NULL;
 IDirect3DDevice8 *CGraphicsD3D8::ms_pD3DDevice = NULL;
 std::map<std::string, CTextureD3D8*> CGraphicsD3D8::ms_Textures;
@@ -252,9 +263,9 @@ inline void CGraphicsD3D8::Clear(const RECT *rect, ARGBCOLOR rgbColor) const
 
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &m_WorldMatrix));
 	if(rect) {
-		D3DVERIFY(ms_pD3DDevice->Clear(1, (D3DRECT*)rect, D3DCLEAR_TARGET, rgbColor.dwColor, 1.0f, 0));
+		D3DVERIFY(ms_pD3DDevice->Clear(1, (D3DRECT*)rect, D3DCLEAR_TARGET, rgbColor, 1.0f, 0));
 	} else {
-		D3DVERIFY(ms_pD3DDevice->Clear(0, NULL, D3DCLEAR_TARGET, rgbColor.dwColor, 1.0f, 0));
+		D3DVERIFY(ms_pD3DDevice->Clear(0, NULL, D3DCLEAR_TARGET, rgbColor, 1.0f, 0));
 	}
 }
 
@@ -405,15 +416,24 @@ inline void CGraphicsD3D8::RenderRect(const RECT &rectDest, ARGBCOLOR rgbColor) 
 	float b = (float)(rectDest.bottom) - 1;
 
 	D3DCDVERTEX rect[5] = {
-		{ l, t, 0.0f, rgbColor.dwColor },
-		{ l, b, 0.0f, rgbColor.dwColor },
-		{ r, b, 0.0f, rgbColor.dwColor },
-		{ r, t, 0.0f, rgbColor.dwColor },
-		{ l, t, 0.0f, rgbColor.dwColor }
+		{ l, t, 0.0f, rgbColor },
+		{ l, b, 0.0f, rgbColor },
+		{ r, b, 0.0f, rgbColor },
+		{ r, t, 0.0f, rgbColor },
+		{ l, t, 0.0f, rgbColor }
 	};
 
 	D3DVERIFY(ms_pD3DDevice->SetTexture(0, NULL));
 	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE));
+	if(ms_bLastRendered == true) {
+		ms_bLastRendered = false;
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+	}
 
 	D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_LINESTRIP, 4, rect, sizeof(D3DCDVERTEX)));
 }
@@ -427,14 +447,24 @@ inline void CGraphicsD3D8::RenderFill(const RECT &rectDest, ARGBCOLOR rgbColor) 
 	float b = (float)(rectDest.bottom);
 
 	D3DCDVERTEX rect[4] = {
-		{ l, t, 0.0f, rgbColor.dwColor },
-		{ l, b, 0.0f, rgbColor.dwColor },
-		{ r, t, 0.0f, rgbColor.dwColor },
-		{ r, b, 0.0f, rgbColor.dwColor }
+		{ l, t, 0.0f, rgbColor },
+		{ l, b, 0.0f, rgbColor },
+		{ r, t, 0.0f, rgbColor },
+		{ r, b, 0.0f, rgbColor }
 	};
 
 	D3DVERIFY(ms_pD3DDevice->SetTexture(0, NULL));
 	D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE));
+	if(ms_bLastRendered == true) {
+		ms_bLastRendered = false;
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+	}
+
 	D3DVERIFY(ms_pD3DDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, rect, sizeof(D3DCDVERTEX)));
 }
 inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITexture *texture, const RECT &rectSrc, const RECT &rectDest, int rotate, int transform, ARGBCOLOR rgbColor) const
@@ -448,7 +478,7 @@ inline void CGraphicsD3D8::UpdateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 	for(int offset=0; offset<(*vbuffer)->m_nVertices; offset++) {
 		tile[offset].u += udiff;
 		tile[offset].v += vdiff;
-		tile[offset].dwColor = (D3DCOLOR)(rgbColor.dwColor);
+		tile[offset].dwColor = (D3DCOLOR)rgbColor;
 	}
 	(*vbuffer)->m_texTop = rectSrc.top;
 	(*vbuffer)->m_texLeft = rectSrc.left;
@@ -534,7 +564,7 @@ inline void CGraphicsD3D8::CreateVertexBuffer(SVertexBuffer **vbuffer, const ITe
 				}
 
 				tile[offset].z = 0.0f;
-				tile[offset].dwColor = (D3DCOLOR)(rgbColor.dwColor);
+				tile[offset].dwColor = rgbColor;
 				offset++;
 			}
 		}
@@ -737,6 +767,10 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		CONSOLE_PRINTF(" | Acceleration: %s rasterization\n", (m_devType==D3DDEVTYPE_HAL)?"Hardware":"Software");
 		CONSOLE_PRINTF(" | Max Texture Size: %dx%d\n", D3DCaps.MaxTextureWidth, D3DCaps.MaxTextureHeight);
 		CONSOLE_DEBUG(" | Max Primitives & Vertices: %d/%d\n", D3DCaps.MaxVertexIndex, D3DCaps.MaxPrimitiveCount);
+		CONSOLE_DEBUG(" | Support for temporary register: %s\n", ((D3DCaps.PrimitiveMiscCaps & D3DPMISCCAPS_TSSARGTEMP) == D3DPMISCCAPS_TSSARGTEMP)?"Yes":"No");
+#ifdef _USE_HWVB
+		CONSOLE_PRINTF(" | Using Hardware Vertex Buffers!\n");
+#endif
 #ifdef _USE_SWAPCHAINS
 		CONSOLE_PRINTF(" | Using SwapChains!\n");
 #endif	
@@ -1186,7 +1220,7 @@ void CGraphicsD3D8::DrawText(const POINT &pointDest, LPCSTR lpString, ...) const
 
 	RECT rect;
 	::SetRect(&rect, pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300);
-	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, m_rgbFontColor.dwColor);
+	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, m_rgbFontColor);
 }
 void CGraphicsD3D8::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR lpString, ...) const
 {
@@ -1200,7 +1234,7 @@ void CGraphicsD3D8::DrawText(const POINT &pointDest, ARGBCOLOR rgbColor, LPCSTR 
 
 	RECT rect;
 	::SetRect(&rect, pointDest.x, pointDest.y, pointDest.x+300, pointDest.y+300);
-	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, rgbColor.dwColor);
+	m_pD3DFont->DrawTextA(lpBuffer, -1, &rect, 0, rgbColor);
 }
 
 void CGraphicsD3D8::SetClearColor(ARGBCOLOR rgbColor)
@@ -1292,16 +1326,16 @@ void CGraphicsD3D8::UpdateGrid(int nGridSize, ARGBCOLOR rgbColor)
 	}
 
 	// the grid buffer is still valid, so we check if it needs a color change:
-	if( s_rgbColor.dwColor == rgbColor.dwColor) return;
+	if( s_rgbColor == rgbColor ) return;
 
 	for(int lines=0; lines<m_nGridLines[0]; lines++) {
-		m_pGrid[0][lines].dwColor = rgbColor.dwColor;
-		m_pGrid[0][lines+1].dwColor = rgbColor.dwColor;
+		m_pGrid[0][lines].dwColor = rgbColor;
+		m_pGrid[0][lines+1].dwColor = rgbColor;
 	}
 
 	for(int lines=0; lines<m_nGridLines[1]; lines++) {
-		m_pGrid[1][lines].dwColor = rgbColor2.dwColor;
-		m_pGrid[1][lines+1].dwColor = rgbColor2.dwColor;
+		m_pGrid[1][lines].dwColor = rgbColor2;
+		m_pGrid[1][lines+1].dwColor = rgbColor2;
 	}
 
 	s_rgbColor = rgbColor;
@@ -1320,22 +1354,22 @@ void CGraphicsD3D8::BuildGrid(int nGridIdx, int nGridSize, ARGBCOLOR rgbColor)
 		m_pGrid[nGridIdx][offset].x = 0;
 		m_pGrid[nGridIdx][offset].y = (float)(y*nGridSize)*m_Zoom;
 		m_pGrid[nGridIdx][offset].z = 1;
-		m_pGrid[nGridIdx][offset].dwColor = rgbColor.dwColor;
+		m_pGrid[nGridIdx][offset].dwColor = rgbColor;
 		m_pGrid[nGridIdx][offset+1].x = (float)(m_RectWorld.right-m_RectWorld.left)*m_Zoom;
 		m_pGrid[nGridIdx][offset+1].y = (float)(y*nGridSize)*m_Zoom;
 		m_pGrid[nGridIdx][offset+1].z = 1;
-		m_pGrid[nGridIdx][offset+1].dwColor = rgbColor.dwColor;
+		m_pGrid[nGridIdx][offset+1].dwColor = rgbColor;
 		offset += 2;
 	}
 	for(int x=0; x<cols; x++) {
 		m_pGrid[nGridIdx][offset].x = (float)(x*nGridSize)*m_Zoom;
 		m_pGrid[nGridIdx][offset].y = 0;
 		m_pGrid[nGridIdx][offset].z = 1;
-		m_pGrid[nGridIdx][offset].dwColor = rgbColor.dwColor;
+		m_pGrid[nGridIdx][offset].dwColor = rgbColor;
 		m_pGrid[nGridIdx][offset+1].x = (float)(x*nGridSize)*m_Zoom;
 		m_pGrid[nGridIdx][offset+1].y = (float)(m_RectWorld.bottom-m_RectWorld.top)*m_Zoom;
 		m_pGrid[nGridIdx][offset+1].z = 1;
-		m_pGrid[nGridIdx][offset+1].dwColor = rgbColor.dwColor;
+		m_pGrid[nGridIdx][offset+1].dwColor = rgbColor;
 		offset += 2;
 	}
 
@@ -1358,6 +1392,16 @@ bool CGraphicsD3D8::DrawGrid(int size, ARGBCOLOR rgbColor)
 	D3DXMATRIX matTmp;
 	D3DXMatrixTranslation(&matTmp, -(float)m_RectView.left, -(float)m_RectView.top, 0.0);
 	D3DVERIFY(ms_pD3DDevice->SetTransform(D3DTS_WORLD, &matTmp));
+
+	if(ms_bLastRendered == true) {
+		ms_bLastRendered = false;
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TEXTURE));
+		D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+	}
 
 	D3DLINEPATTERN Pattern;
 	Pattern.wRepeatFactor=2;
@@ -1495,6 +1539,7 @@ void CGraphicsD3D8::Render(
 	int rotate, 
 	int transform, 
 	ARGBCOLOR rgbColor, 
+	float lightness,
 	IBuffer **buffer,
 	float rotation,
 	float scale
@@ -1528,7 +1573,7 @@ void CGraphicsD3D8::Render(
 	// create or update the vertex buffers:
 	if(!VertexBuffer) {
 		CreateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
-	} else if((static_cast<CBufferD3D8*>(*buffer))->isDirty() || VertexBuffer->m_rgbColor.dwColor != rgbColor.dwColor) {
+	} else if((static_cast<CBufferD3D8*>(*buffer))->isDirty() || VertexBuffer->m_rgbColor != rgbColor) {
 		UpdateVertexBuffer(&VertexBuffer, texture, rectSrc, rectDest, rotate, transform, rgbColor);
 	}
 	/////////////////////////////////////////////////////////
@@ -1564,6 +1609,31 @@ void CGraphicsD3D8::Render(
 		ASSERT((IDirect3DBaseTexture8*)texture->GetTexture());
 		D3DVERIFY(ms_pD3DDevice->SetTexture(0, (IDirect3DBaseTexture8*)texture->GetTexture()));
 		D3DVERIFY(ms_pD3DDevice->SetVertexShader(D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1));
+
+		
+		float lightnessAlpha;
+		BYTE lightnessValue;
+		if(lightness<0.5f) {
+			lightnessAlpha = (2.0f * lightness);
+			lightnessValue = 0;
+		} else {
+			lightnessAlpha = (2.0f - 2.0f * lightness);
+			lightnessValue = (BYTE)((1.0f - lightnessAlpha) * 255.0f + 0.5f);
+		}
+		ARGBCOLOR rgbLightness = COLOR_ARGB(
+			(BYTE)(lightnessAlpha * 255.0f + 0.5f),
+			lightnessValue, lightnessValue, lightnessValue );
+
+		D3DVERIFY(ms_pD3DDevice->SetRenderState(D3DRS_TEXTUREFACTOR, rgbLightness));
+		if(ms_bLastRendered == false || true) {
+			ms_bLastRendered = true;
+			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE2X));
+
+			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_MODULATEALPHA_ADDCOLOR));
+			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG1, D3DTA_TFACTOR));
+			D3DVERIFY(ms_pD3DDevice->SetTextureStageState(1, D3DTSS_COLORARG2, D3DTA_CURRENT));
+		}
+	
 #ifdef _USE_HWVB
 		if(!VertexBuffer->m_pD3DVB) BuildHWVertexBuffer(VertexBuffer);
 		if(VertexBuffer->m_pD3DVB) {

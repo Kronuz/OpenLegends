@@ -42,6 +42,9 @@
 class CProperty : public IProperty
 {
 protected:
+
+   LPCTSTR m_szMultivalue;
+
    HWND   m_hWndOwner;
    LPTSTR m_pszName;
    bool   m_fEnabled;
@@ -49,7 +52,12 @@ protected:
    LPARAM m_lParam;
 
 public:
-   CProperty(LPCTSTR pstrName, LPARAM lParam) : m_bMultivalue(false), m_fEnabled(true), m_lParam(lParam), m_hWndOwner(NULL)
+   CProperty(LPCTSTR pstrName, LPARAM lParam) : 
+	  m_szMultivalue(_T("*VARIOUS*")),
+	  m_bMultivalue(false), 
+	  m_fEnabled(true), 
+	  m_lParam(lParam), 
+	  m_hWndOwner(NULL)
    {
       ATLASSERT(!::IsBadStringPtr(pstrName,-1));
       ATLTRY(m_pszName = new TCHAR[ (::lstrlen(pstrName) * sizeof(TCHAR)) + 1 ]);
@@ -90,18 +98,22 @@ public:
    {
       CDCHandle dc(di.hDC);
       COLORREF clrBack, clrFront;
-      if( di.state & ODS_DISABLED ) {
+      if( di.state & ODS_SELECTED ) { // Modified by Kronuz
+         clrBack = di.clrSelBack;
+         clrFront = di.clrSelText;
+      } else if( di.state & ODS_DISABLED ) {
          clrFront = di.clrDisabled;
          clrBack = di.clrBack;
-      }
-      else if( di.state & ODS_SELECTED ) {
-         clrFront = di.clrSelText;
-         clrBack = di.clrSelBack;
-      }
-      else {
+      } else {
          clrFront = di.clrText;
          clrBack = di.clrBack;
       }
+      if( (di.state & ODS_GRAYED) ) { // Added by Kronuz:
+         clrBack = ::GetSysColor(COLOR_3DFACE);
+		 if( di.state & ODS_DISABLED ) clrFront = di.clrDisabled;
+		 else clrFront = di.clrText;
+      }
+
       RECT rcItem = di.rcItem;
       dc.FillSolidRect(&rcItem, clrBack);
       rcItem.left += 2; // Indent text
@@ -191,7 +203,7 @@ public:
       ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
 
 	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
 		  return TRUE;
 	  }
 
@@ -204,7 +216,7 @@ public:
    }
    UINT GetDisplayValueLength() const
    {
-	  if(IsMultivalue()) return sizeof(_T("* ")); // Added by Kronuz
+	   if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
       // Hmm, need to convert it to display string first and
       // then take the length...
       // TODO: Call GetDisplayValue() instead...
@@ -316,16 +328,82 @@ class CPropertyEditItem : public CPropertyItem
 {
 protected:
    HWND m_hwndEdit;
-
+   DWORD m_dwSlider;
+   int m_iLowerLimit;
+   int m_iHigherLimit;
+   DWORD m_dwStyle;
+	
 public:
+   CPropertyEditItem(LPCTSTR pstrName, int iLower, int iHigher, DWORD dwSlider, DWORD dwStyle, LPARAM lParam) : 
+      CPropertyItem(pstrName, lParam), 
+      m_hwndEdit(NULL),
+	  m_dwSlider(dwSlider),
+	  m_iLowerLimit(iLower),
+	  m_iHigherLimit(iHigher),
+	  m_dwStyle(dwStyle)
+   {
+   }
    CPropertyEditItem(LPCTSTR pstrName, LPARAM lParam) : 
       CPropertyItem(pstrName, lParam), 
-      m_hwndEdit(NULL)
+      m_hwndEdit(NULL),
+	  m_dwSlider(0),
+	  m_iLowerLimit(0),
+	  m_iHigherLimit(0),
+	  m_dwStyle(0)
    {
    }
    BYTE GetKind() const 
    { 
       return PROPKIND_EDIT; 
+   }
+   void DrawValue(PROPERTYDRAWINFO& di)
+   {
+	  if(m_dwSlider & 0xff000000) {
+		  ATLASSERT(m_val.vt==VT_I4);
+		  if( m_val.lVal < m_iLowerLimit ) m_val.lVal = m_iLowerLimit;
+		  if( m_val.lVal > m_iHigherLimit  ) m_val.lVal = m_iHigherLimit;
+	  }
+
+      UINT cchMax = GetDisplayValueLength() + 1;
+      LPTSTR pszText = (LPTSTR) _alloca(cchMax * sizeof(TCHAR));
+      ATLASSERT(pszText);
+      if( !GetDisplayValue(pszText, cchMax) ) return;
+      CDCHandle dc(di.hDC);
+      dc.SetBkMode(TRANSPARENT);
+      dc.SetTextColor(di.state & ODS_DISABLED ? di.clrDisabled : di.clrText);
+      dc.SetBkColor(di.clrBack);
+      RECT rcText = di.rcItem;
+      rcText.left += PROP_TEXT_INDENT;
+
+	  if(m_dwSlider & 0xff000000) { // Added by Kronuz:
+		  rcText.top--;
+		  rcText.bottom--;
+	  }
+
+      dc.DrawText(pszText, -1, 
+         &rcText, 
+         DT_LEFT | DT_SINGLELINE | DT_EDITCONTROL | DT_NOPREFIX | DT_END_ELLIPSIS | DT_VCENTER);
+
+	  // Added by Kronuz:
+	  if(m_dwSlider & 0xff000000) {
+		  RECT rcSlider = di.rcItem;
+		  rcSlider.top = rcSlider.bottom - 4;
+
+		  int len = (rcSlider.right - rcSlider.left);
+		  if(len>80) len = 80;
+
+		  int pos = (len * (m_val.lVal - m_iLowerLimit)) / (m_iHigherLimit - m_iLowerLimit);
+
+		  rcSlider.right = rcSlider.left + pos;
+		  dc.FillSolidRect(&rcSlider, m_dwSlider & 0x00ffffff);
+		  
+		  DWORD dwBkColor = m_dwSlider >> 24;
+		  dwBkColor |= dwBkColor << 8;
+		  dwBkColor |= dwBkColor << 8;
+		  rcSlider.left = rcSlider.right;
+		  rcSlider.right = di.rcItem.left + len;
+		  dc.FillSolidRect(&rcSlider, dwBkColor);
+	  }
    }
    HWND CreateInplaceControl(HWND hWnd, const RECT& rc) 
    {
@@ -335,11 +413,16 @@ public:
       ATLASSERT(pszText);
       if( !GetDisplayValue(pszText, cchMax) ) return NULL;
       // Create EDIT control
-      CPropertyEditWindow* win = new CPropertyEditWindow();
+      CPropertyEditWindow* win = new CPropertyEditWindow(m_iLowerLimit, m_iHigherLimit, m_dwSlider);
       ATLASSERT(win);
       RECT rcWin = rc;
-      m_hwndEdit = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD | ES_LEFT | ES_AUTOHSCROLL);
+
+      // Added by Kronuz (to center the control text, and also to leave space to the slider when needed):
+	  if(m_dwSlider & 0xff000000) rcWin.top--;
+
+      m_hwndEdit = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD | ES_LEFT | ES_AUTOHSCROLL | m_dwStyle);
       ATLASSERT(::IsWindow(m_hwndEdit));
+
       // Simple hack to validate numbers
       switch( m_val.vt ) {
       case VT_UI1:
@@ -367,7 +450,7 @@ public:
       CComVariant v = pstr;
       return SetValue(v);
    }
-   BOOL Activate(UINT action, LPARAM /*lParam*/)
+   BOOL Activate(UINT action, LPARAM lParam)
    {
       switch( action ) {
       case PACT_TAB:
@@ -412,7 +495,7 @@ public:
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
 	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
 		  return TRUE;
 	  }
 
@@ -558,7 +641,7 @@ public:
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
 	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
 		  return TRUE;
 	  }
 
@@ -578,7 +661,7 @@ public:
    }
    UINT GetDisplayValueLength() const
    {
-	  if(IsMultivalue()) return sizeof(_T("* ")); // Added by Kronuz
+	   if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
 
       TCHAR szPath[MAX_PATH] = { 0 };
       if( !GetDisplayValue(szPath, (sizeof(szPath) / sizeof(TCHAR)) - 1) ) return 0;
@@ -618,8 +701,9 @@ public:
       CPropertyListWindow* win = new CPropertyListWindow();
       ATLASSERT(win);
       RECT rcWin = rc;
-      m_hwndCombo = win->Create(hWnd, rcWin, pszText);
-      ATLASSERT(win->IsWindow());
+
+      m_hwndCombo = win->Create(hWnd, rcWin, pszText, WS_VISIBLE | WS_CHILD);
+	  ATLASSERT(::IsWindow(m_hwndCombo)); // Modified by Kronuz
       // Add list
       USES_CONVERSION;      
       for( int i = 0; i < m_arrList.GetSize(); i++ ) win->AddItem(OLE2CT(m_arrList[i]));
@@ -650,7 +734,7 @@ public:
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
 	  if(IsMultivalue()) { // Added by Kronuz
-		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  ::lstrcpyn(pstr, m_szMultivalue, cchMax);
 		  return TRUE;
 	  }
 
@@ -664,7 +748,7 @@ public:
    }
    UINT GetDisplayValueLength() const
    {
-	  if(IsMultivalue()) return sizeof(_T("* ")); // Added by Kronuz
+	   if(IsMultivalue()) return (::lstrlen(m_szMultivalue) + 1); // Added by Kronuz
 
       ATLASSERT(m_val.vt==VT_I4);
       if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return 0;
@@ -822,10 +906,10 @@ public:
 // CProperty creators
 //
 
-inline HPROPERTY PropCreateVariant(LPCTSTR pstrName, const VARIANT& vValue, LPARAM lParam = 0)
+inline HPROPERTY PropCreateVariant(LPCTSTR pstrName, const VARIANT& vValue, int iLower, int iHigher, DWORD dwSlider, DWORD dwStyle, LPARAM lParam = 0)
 {
    CPropertyEditItem* prop = NULL;
-   ATLTRY( prop = new CPropertyEditItem(pstrName, lParam) );
+   ATLTRY( prop = new CPropertyEditItem(pstrName, iLower, iHigher, dwSlider, dwStyle, lParam) );
    ATLASSERT(prop);
    if( prop ) prop->SetValue(vValue);
    return prop;
@@ -834,13 +918,23 @@ inline HPROPERTY PropCreateVariant(LPCTSTR pstrName, const VARIANT& vValue, LPAR
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, LPCTSTR pstrValue, LPARAM lParam = 0)
 {
    CComVariant vValue = pstrValue;
-   return PropCreateVariant(pstrName, vValue, lParam);
+   return PropCreateVariant(pstrName, vValue, 0, 0, 0, 0, lParam);
 }
 
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, int iValue, LPARAM lParam = 0)
 {
    CComVariant vValue = iValue;
-   return PropCreateVariant(pstrName, vValue, lParam);
+   return PropCreateVariant(pstrName, vValue, 0, 0, 0, 0, lParam);
+}
+inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, int iValue, int iLower, int iHigher, DWORD dwSlider, LPARAM lParam = 0)
+{
+   CComVariant vValue = iValue;
+   return PropCreateVariant(pstrName, vValue, iLower, iHigher, dwSlider, 0, lParam);
+}
+inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, int iValue, DWORD dwStyle, LPARAM lParam = 0)
+{
+   CComVariant vValue = iValue;
+   return PropCreateVariant(pstrName, vValue, 0, 0, 0, dwStyle, lParam);
 }
 
 inline HPROPERTY PropCreateSimple(LPCTSTR pstrName, bool bValue, LPARAM lParam = 0)

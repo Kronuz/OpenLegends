@@ -19,6 +19,335 @@ Modified and improved by Kronuz. July 29, 2003
 
 int CSystemImageList::m_nRefCount = 0;
 
+////////////////////////////// Implementation of CTreeInfo /////////////////////////////////
+bool CTreeInfo::isFlagged() 
+{ 
+	return false; 
+}
+void CTreeInfo::Flag(bool bFlag) 
+{ 
+}
+bool CTreeInfo::GetInfo(SInfo *pI) const 
+{ 
+	return false; 
+}
+bool CTreeInfo::GetProperties(SPropertyList *pPL) const 
+{ 
+	return false; 
+}
+bool CTreeInfo::SetProperties(SPropertyList &PL) 
+{ 
+	return false; 
+}
+void CTreeInfo::Commit() const 
+{
+}
+void CTreeInfo::Cancel() 
+{
+}
+
+void CTreeInfo::_Data2Info(LPBYTE pRawData)
+{
+	ATLASSERT(pRawData != NULL);
+	if(pRawData == NULL) return;
+	_OpenZeldaFile *pOZFile = (_OpenZeldaFile *)pRawData;
+	// Find name and description:
+	if(LOWORD(pOZFile->dwSignature) == OZF_SIGNATURE) {
+		char tmp[sizeof(pOZFile->ID)];
+		strcpy(tmp, pOZFile->ID);
+		strtok(tmp, "\n");						// signature
+		LPSTR name = strtok(NULL, "\n");		// name
+		LPSTR desc = name + strlen(name) + 1;	// description
+
+		if(name) m_sDisplayName = name;
+		if(desc) m_sDescription = desc;
+		m_eType = titFile;
+	}
+
+}
+void CTreeInfo::_Data2Thumbnail()
+{
+	ATLASSERT(m_pRawData != NULL);
+	if(m_pRawData == NULL) return;
+	_OpenZeldaFile *pOZFile = (_OpenZeldaFile *)m_pRawData;
+	// Load the thumbnail:
+	if(LOWORD(pOZFile->dwSignature) == OZF_SIGNATURE && pOZFile->dwBitmapOffset) {
+		LPBITMAP pBitmap = (LPBITMAP)(m_pRawData + pOZFile->dwBitmapOffset);
+		pBitmap->bmBits = (LPVOID)((LPBYTE)pBitmap + sizeof(BITMAP));
+		m_bmpThumbnail = *pBitmap;
+		m_dwMask |= ITEMTHUMBNAIL;
+		m_eType = titFile;
+	}
+}
+
+CTreeInfo::CTreeInfo(BYTE _cSubType, const std::string _sItemPath) :
+	m_eType(titFolder),
+	m_cSubType(_cSubType),
+	m_hItem(NULL),
+	m_hWndParent(NULL),
+	m_dwMask(0),
+	m_DataSize(0),
+	m_pRawData(NULL)
+{
+	memset(&m_bmpThumbnail, 0, sizeof(BITMAP));
+	int idx = _sItemPath.rfind('\\');
+	if(idx != std::string::npos) {
+		m_sItemPath = _sItemPath.substr(0, idx);
+		m_sDisplayName = _sItemPath.substr(idx+1);
+	} else {
+		m_sDisplayName = _sItemPath;
+	}
+}
+CTreeInfo::CTreeInfo(BYTE _cSubType, const std::string _sItemPath, LPBYTE _pRawData, size_t _DataSize) :
+	m_eType(titFolder),
+	m_cSubType(_cSubType),
+	m_hItem(NULL),
+	m_hWndParent(NULL),
+	m_dwMask(0),
+	m_DataSize(0),
+	m_pRawData(NULL)
+{
+	memset(&m_bmpThumbnail, 0, sizeof(BITMAP));
+	int idx = _sItemPath.rfind('\\');
+	if(idx != std::string::npos) {
+		m_sItemPath = _sItemPath.substr(0, idx);
+		m_sDisplayName = _sItemPath.substr(idx+1);
+	} else {
+		m_sDisplayName = _sItemPath;
+	}
+
+	SetData(_pRawData, _DataSize);
+	_Data2Info(m_pRawData);
+	_Data2Thumbnail();
+}
+CTreeInfo::CTreeInfo(BYTE _cSubType, const std::string _sItemPath, const std::string _sFilePath) :
+	m_eType(titFolder),
+	m_cSubType(_cSubType),
+	m_hItem(NULL),
+	m_hWndParent(NULL),
+	m_dwMask(0),
+	m_DataSize(0),
+	m_pRawData(NULL)
+{
+	SetFilePath(_sFilePath.c_str());
+
+	memset(&m_bmpThumbnail, 0, sizeof(BITMAP));
+	int idx = _sItemPath.rfind('\\');
+	if(idx != std::string::npos) {
+		m_sItemPath = _sItemPath.substr(0, idx);
+		m_sDisplayName = _sItemPath.substr(idx+1);
+	} else {
+		m_sDisplayName = _sItemPath;
+	}
+
+	m_vFile.SetFileDesc(m_sDisplayName.c_str());
+}
+CTreeInfo::~CTreeInfo()
+{
+	delete []m_pRawData;
+}
+
+bool CTreeInfo::SetData(LPBYTE _pData, size_t _DataSize) 
+{
+	delete []m_pRawData; // delete current data (if any)
+	m_pRawData = _pData;
+	m_DataSize = _DataSize;
+	m_dwMask |= ITEMDATA;
+	m_dwMask &= ~ITEMTHUMBNAIL;
+
+	return true;
+}
+bool CTreeInfo::SetThumbnail(BITMAP _bmpThumbnail) 
+{
+	if((m_dwMask & ITEMDATA) != ITEMDATA) return false;
+	m_bmpThumbnail = _bmpThumbnail;
+	m_dwMask |= ITEMTHUMBNAIL;
+	return true;
+}
+bool CTreeInfo::SetFilePath(LPCSTR _szFilePath) 
+{
+	ATLASSERT(_szFilePath);
+	if(!_szFilePath) return false;
+	if(!*_szFilePath) return false;
+
+	m_vFile.SetFilePath(_szFilePath);
+	m_sDisplayName = m_vFile.GetFileDesc();
+	m_dwMask |= ITEMFILE;
+	return true;
+}
+LPCSTR CTreeInfo::GetDisplayName() 
+{
+	return m_sDisplayName.c_str();
+}
+LPCSTR CTreeInfo::GetItemPath() 
+{
+	return m_sItemPath.c_str();
+}
+const CVFile* CTreeInfo::GetFile() 
+{
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return NULL;
+	return &m_vFile;
+}
+const LPBITMAP CTreeInfo::GetThumbnail() 
+{
+	if((m_dwMask & ITEMTHUMBNAIL) != ITEMTHUMBNAIL) return NULL;
+	return &m_bmpThumbnail;
+}
+size_t CTreeInfo::GetDataSize() 
+{
+	if((m_dwMask & ITEMDATA) != ITEMDATA) return 0;
+	return m_DataSize;
+}
+LPBYTE CTreeInfo::GetData() 
+{
+	if((m_dwMask & ITEMDATA) != ITEMDATA) return NULL;
+	return m_pRawData;
+}
+bool CTreeInfo::Save() 
+{
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
+	if(m_DataSize == 0) return false;
+
+	if(m_vFile.Write(m_pRawData, m_DataSize) == m_DataSize)
+		m_eType = titFile;
+	return true;
+}
+bool CTreeInfo::Save(LPCSTR _szFilePath) 
+{
+	ATLASSERT(_szFilePath);
+	if(!_szFilePath) return false;
+	if(!*_szFilePath) return false;
+	
+	m_dwMask |= ITEMFILE;
+	m_vFile.SetFilePath(_szFilePath);
+	return Save();
+}
+bool CTreeInfo::Load() 
+{
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
+	if(m_vFile.Open("r")) {
+		m_eType = titFile;
+		int size = m_vFile.GetFileSize();
+		if(size) {
+			LPBYTE pBuffer = new BYTE[size];
+			m_vFile.Read(pBuffer, size);
+			m_vFile.Close();
+
+			SetData(pBuffer, size);
+			_Data2Info(m_pRawData);
+			_Data2Thumbnail();
+			return true;
+		} else {
+			m_vFile.Close();
+			delete []m_pRawData;
+			m_pRawData = NULL;
+			m_DataSize = 0;
+			m_dwMask &= ~ITEMDATA;
+			m_dwMask &= ~ITEMTHUMBNAIL;
+		}
+	}
+	return false;
+}
+
+bool CTreeInfo::LoadThumbnail() 
+{
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
+
+	if((m_dwMask & ITEMDATA) == ITEMDATA) return false;
+	if((m_dwMask & ITEMTHUMBNAIL) == ITEMTHUMBNAIL) return false;
+
+	if(m_vFile.Open("r")) {
+		m_eType = titFile;
+		_OpenZeldaFile OZF;
+		if(m_vFile.Read(&OZF, sizeof(_OpenZeldaFile)) != sizeof(_OpenZeldaFile)) {
+			m_vFile.Close();
+			return false;
+		}
+		_Data2Info((LPBYTE)&OZF);
+		// Load the thumbnail:
+		if(LOWORD(OZF.dwSignature) == OZF_SIGNATURE && OZF.dwBitmapOffset) {
+			size_t size = m_vFile.GetFileSize();
+			if(OZF.dwBitmapOffset + sizeof(BITMAP) < size) {
+				size -= OZF.dwBitmapOffset;
+				LPBYTE pBuffer = new BYTE[size];
+				m_vFile.Seek(OZF.dwBitmapOffset, SEEK_SET);
+				m_vFile.Read(pBuffer, size);
+				SetData(pBuffer, size);
+				m_vFile.Close();
+
+				LPBITMAP pBitmap = (LPBITMAP)(pBuffer);
+				pBitmap->bmBits = (LPVOID)((LPBYTE)pBitmap + sizeof(BITMAP));
+				m_bmpThumbnail = *pBitmap;
+				m_dwMask |= ITEMTHUMBNAIL;
+				return true;
+			}
+		}
+		m_vFile.Close();
+	}
+	return false;
+}
+bool CTreeInfo::Delete()
+{
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
+	if(m_vFile.Delete() == -1) return false;
+	m_eType = titFile;
+	return true;
+}
+
+bool CTreeInfo::Update() 
+{
+	bool ret = false;
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
+	if(m_vFile.Open("wb")) {
+		m_eType = titFile;
+		_OpenZeldaFile OZFile;
+		m_vFile.Read(&OZFile, sizeof(_OpenZeldaFile));
+
+		if(LOWORD(OZFile.dwSignature) == OZF_SIGNATURE) {
+			LPSTR aux = strchr(OZFile.ID, '\n');
+			if(aux) {
+				aux++;
+				std::string sTmp = m_sDisplayName + "\n" + m_sDescription;
+				strncpy(aux, sTmp.c_str(), sizeof(OZFile.ID) - (aux - OZFile.ID) - 1);
+
+				m_vFile.Seek(0, SEEK_SET);
+				if(m_vFile.Write(&OZFile, sizeof(_OpenZeldaFile)) == sizeof(_OpenZeldaFile)) ret = true;
+			}
+		}
+		m_vFile.Close();
+	} 
+	return ret;
+}
+bool CTreeInfo::Rename(LPCSTR _szName) 
+{
+	ATLASSERT(_szName);
+	if(!_szName) return false;
+	if(!*_szName) return false;
+
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
+	CVFile vFile = m_vFile;
+	vFile.SetFileTitle(_szName);
+	if(m_vFile.Rename(vFile) == -1) return false;
+	m_sDisplayName = _szName;
+	m_eType = titFile;
+	Update();
+	return true;
+}
+bool CTreeInfo::MoveFile(LPCSTR _szFilePath) 
+{
+	ATLASSERT(_szFilePath);
+	if(!_szFilePath) return false;
+	if(!*_szFilePath) return false;
+
+	if((m_dwMask & ITEMFILE) != ITEMFILE) return false;
+	CVFile vFile;
+	vFile.SetFileTitle(_szFilePath);
+	m_sDisplayName = vFile.GetFileDesc();
+	if(m_vFile.Rename(vFile) == -1) return false;
+	m_eType = titFile;
+	return true;
+}
+
 ////////////////////////////// Implementation of CSystemImageList /////////////////////////////////
 
 CSystemImageList::CSystemImageList()
@@ -65,8 +394,6 @@ BOOL CWtlFileTreeCtrl::PreTranslateMessage(MSG* pMsg)
 BOOL CWtlFileTreeCtrl::SubclassWindow( HWND hWnd )
 {
 	BOOL bRet = CWindowImpl<CWtlFileTreeCtrl, CTreeViewCtrl>::SubclassWindow( hWnd );
-	if( bRet )
-		PostMessage(WM_POPULATE_TREE);
 	return bRet;
 }
 
@@ -91,6 +418,8 @@ void CWtlFileTreeCtrl::SetShowFiles( BOOL bFiles )
 
 void CWtlFileTreeCtrl::OnViewRefresh() 
 {
+	if(m_RootItem == 0) return;
+
 	SetRedraw( FALSE );
 
 	// Get the item which is currently selected
@@ -107,7 +436,7 @@ void CWtlFileTreeCtrl::OnViewRefresh()
 		// If the selected path is not a directory, we go up one level
 		CFileFind find;
 		BOOL bFind = find.FindFile( sPath.c_str() );  
-		if( (!bFind || !find.IsDirectory()) && hItem!=m_RootItem) {
+		if( (!bFind || !find.IsDirectory()) && hItem != m_RootItem) {
 			hItem = GetParentItem( hItem );
 			sPath  = ItemToPath( hItem );
 		}
@@ -230,14 +559,26 @@ int CWtlFileTreeCtrl::GetSelIconIndex( const std::string sFilename )
 
 LRESULT CWtlFileTreeCtrl::OnKeyDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	if(wParam == VK_F4) {
-		if(m_RootItem == TVI_ROOT) {
-			InsertFileItem("", "Temporaty", TVI_ROOT);
-			m_RootItem = InsertFileItem("", "Sprite Sets", TVI_ROOT);
-		}
-	} else if(wParam == VK_F5) {
+	if(wParam == VK_F5) {
 		OnViewRefresh();
 		return 1;
+	} else if(wParam == VK_F2) {
+		EditLabel(GetSelectedItem());
+	} else if(wParam == VK_DELETE) {
+		CTreeInfo *pTreeInfo = (CTreeInfo *)GetItemData(GetSelectedItem());
+		if(pTreeInfo) {
+			if(pTreeInfo->Delete()) {
+				HTREEITEM hParent = GetParentItem(GetSelectedItem());
+				DeleteItem(GetSelectedItem());
+				if(!GetChildItem(hParent)) {
+					TVITEM item;
+					item.hItem = hParent;
+					item.mask = TVIF_CHILDREN;
+					item.cChildren = FALSE;
+					SetItem(&item);
+				}
+			}
+		}
 	} else bHandled = FALSE;
 	return 0;
 }
@@ -278,17 +619,30 @@ void CWtlFileTreeCtrl::SetRootFolder( const std::string sPath )
 		OnViewRefresh();
 }
 
+HTREEITEM CWtlFileTreeCtrl::InsertRootItem( LPCSTR szFile, LPCSTR szPath, HTREEITEM hParent, DWORD Idx )
+{
+	m_RootItem = InsertFileItem(szFile, szPath, hParent, Idx);
+	return m_RootItem;
+}
+HTREEITEM CWtlFileTreeCtrl::InsertFileItem( LPCSTR szFile, LPCSTR szPath, HTREEITEM hParent, DWORD Idx )
+{
+	return InsertFileItem(std::string(szFile), std::string(szPath), hParent, Idx);
+}
 
-HTREEITEM CWtlFileTreeCtrl::InsertFileItem(const std::string sFile, const std::string sPath, HTREEITEM hParent )
+HTREEITEM CWtlFileTreeCtrl::InsertFileItem(const std::string sFile, const std::string sPath, HTREEITEM hParent, DWORD Idx )
 {
 	// Retreive the icon indexes for the specified file/folder
-	std::string FullPath = sPath;
-	if( FullPath[ FullPath.length() - 1 ] != '\\')
-		FullPath += "\\";
-	FullPath += sFile;
+	std::string sFullPath = sPath;
+	if( sFullPath[ sFullPath.length() - 1 ] != '\\' && !sFullPath.empty())
+		sFullPath += "\\";
+	sFullPath += sFile;
 
-	int nIconIndex = GetIconIndex( FullPath );
-	int nSelIconIndex = GetSelIconIndex( FullPath );
+	int nIconIndex = (int)(Idx >> 8);
+	int nSelIconIndex = (int)(Idx & 0xff);
+	if( Idx == -1 ) {
+		nIconIndex = GetIconIndex( sFullPath );
+		nSelIconIndex = GetSelIconIndex( sFullPath );
+	}
 	if( nIconIndex == -1 || nSelIconIndex == -1 ) {
 		if(m_hImageList == NULL)
 			ATLTRACE( _T("Failed in call to SHGetFileInfo for %s, GetLastError:%d\n"), sPath.c_str(), ::GetLastError() );
@@ -299,21 +653,30 @@ HTREEITEM CWtlFileTreeCtrl::InsertFileItem(const std::string sFile, const std::s
 
 	//Add the actual item
 	std::string sTemp;
-	if( sFile != "" )
-		sTemp = sFile;
-	else
-		sTemp = sPath;
+	if( sFile != "" ) sTemp = sFile;
+	else sTemp = sPath;
+
+	// Build the tree information:
+	CTreeInfo *pTreeInfo = new CTreeInfo('?', sTemp, sFullPath);
+	pTreeInfo->LoadThumbnail(); // if the file is found, the titFile type is set
 	
 	TV_INSERTSTRUCT tvis;
 	ZeroMemory( &tvis, sizeof(TV_INSERTSTRUCT) );
 	tvis.hParent		= hParent;
 	tvis.hInsertAfter	= TVI_LAST;
-	tvis.item.mask		= TVIF_CHILDREN | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_TEXT;
-	tvis.item.pszText	= (char*)sTemp.c_str();
+	tvis.item.mask		= TVIF_CHILDREN | TVIF_PARAM | TVIF_IMAGE | TVIF_SELECTEDIMAGE | TVIF_TEXT;
+	tvis.item.pszText	= (LPSTR)pTreeInfo->GetDisplayName();
 	tvis.item.iImage	= nIconIndex;
 	tvis.item.iSelectedImage = nSelIconIndex;
-	tvis.item.cChildren = HasGotSubEntries( FullPath );
+	tvis.item.cChildren = HasGotSubEntries( sFullPath );
+	tvis.item.lParam	= (LPARAM)pTreeInfo;
+
 	HTREEITEM hItem = InsertItem( &tvis );
+	pTreeInfo->m_hItem = hItem;
+	pTreeInfo->m_hWndParent = m_hWnd;
+	ATLASSERT(hItem);
+	if(!hItem) delete pTreeInfo;
+
 	return hItem;
 }
 
@@ -558,15 +921,22 @@ LRESULT CWtlFileTreeCtrl::OnPopulateTree(UINT uMsg, WPARAM wParam, LPARAM lParam
 	OnViewRefresh();
 	return 0L;
 }
-
-LRESULT CWtlFileTreeCtrl::OnLButtonDblClick(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+LRESULT CWtlFileTreeCtrl::OnEraseBackground(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
-	DWORD_PTR Data = GetItemData( GetSelectedItem() );
-	if(Data) ::SendMessage( GetParent(), WM_ITEM_SELECTED, (WPARAM)Data, 0 );
-/*
-	std::string path = GetSelectedPath(FALSE);
-	::SendMessage( GetParent(), WM_ITEM_SELECTED, (WPARAM)path.c_str(), 0 );
-*/
+	return 0;
+}
+LRESULT CWtlFileTreeCtrl::OnRButtonDown(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	return 0;
+}
+LRESULT CWtlFileTreeCtrl::OnLButtonDblClick(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+{
+	if(ItemHasChildren(GetSelectedItem())) {
+		Expand(GetSelectedItem(), TVE_TOGGLE);
+	} else {
+		CTreeInfo *pTreeInfo = (CTreeInfo *)GetItemData( GetSelectedItem() );
+		if(pTreeInfo) ::SendMessage( GetParent(), WM_ITEM_SELECTED, (WPARAM)pTreeInfo, 0 );
+	}
 	return 0;	
 }
 
@@ -581,6 +951,26 @@ LRESULT CWtlFileTreeCtrl::OnItemExpanding(int /*idCtrl*/, LPNMHDR pnmh, BOOL& /*
 			std::string sPath = ItemToPath(pNMTreeView->itemNew.hItem);
 			DisplayPath( sPath, pNMTreeView->itemNew.hItem );
 		}
+	}
+	return 0;
+}
+
+LRESULT CWtlFileTreeCtrl::OnEndLabelEdit(int /*idCtrl*/, LPNMHDR pnmh, BOOL& /*bHandled*/)
+{
+	LPNMTVDISPINFO pNMTVDispInfo = (LPNMTVDISPINFO)pnmh;
+	if(pNMTVDispInfo->item.pszText == NULL) return FALSE;
+
+	CTreeInfo *pTreeInfo = (CTreeInfo *)GetItemData( GetSelectedItem() );
+	if(!pTreeInfo) return FALSE;
+
+	if(!pTreeInfo->Rename(pNMTVDispInfo->item.pszText)) return FALSE;
+	return TRUE;
+}
+LRESULT CWtlFileTreeCtrl::OnDeleteItem(int /*idCtrl*/, LPNMHDR pnmh, BOOL& /*bHandled*/)
+{
+	NM_TREEVIEW* pNMTreeView = (NM_TREEVIEW*)pnmh;
+	if( pNMTreeView->action == TVM_DELETEITEM )	{
+		delete (CTreeInfo*)pNMTreeView->itemNew.lParam;
 	}
 	return 0;
 }

@@ -37,8 +37,6 @@ static int nStatusBarPanes [] =
 	ID_READONLY_PANE
 };
 
-CBString g_sHomeDir;
-
 static LPCTSTR lpcszQuestDesignerRegKey = _T("SOFTWARE\\OpenZelda\\QuestDesigner");
 
 BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
@@ -100,47 +98,51 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	UIAddToolBar(hProjectToolBar);
 
 	// create a toolbar
-	HWND hMapEdToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAIN, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_ADJUSTABLE);
+	HWND hMainToolBar = CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_MAIN, FALSE, ATL_SIMPLE_TOOLBAR_PANE_STYLE | CCS_ADJUSTABLE);
 	// add the toolbar to the UI update map
-	UIAddToolBar(hMapEdToolBar);
+	UIAddToolBar(hMainToolBar);
 
-	CToolBarCtrl wndToolBar;
-	wndToolBar.Attach( hMapEdToolBar );
+	// Initialize the Projects toolbar:
+	m_ctrlProjectToolBar.SubclassWindow( hProjectToolBar );
+	m_ctrlProjectToolBar.LoadTrueColorToolBar(18, IDR_TB1_PROJECT);
+
+	// Initialize the Main toolbar:
+	m_ctrlMainToolBar.SubclassWindow( hMainToolBar );
+	m_ctrlMainToolBar.LoadTrueColorToolBar(18, IDR_TB1_MAIN);
 
 	TBBUTTONINFO tbbi;
 	tbbi.cbSize = sizeof( TBBUTTONINFO );
 	tbbi.dwMask = TBIF_SIZE;
-	wndToolBar.GetButtonInfo( ID_MAPED_LAYER, &tbbi );
+	m_ctrlMainToolBar.GetButtonInfo( ID_MAPED_LAYER, &tbbi );
 
 	tbbi.dwMask = TBIF_SIZE | TBIF_STYLE;
 	tbbi.fsStyle = TBSTYLE_SEP;
 	tbbi.cx = 150;
-	wndToolBar.SetButtonInfo( ID_MAPED_LAYER, &tbbi );
+	m_ctrlMainToolBar.SetButtonInfo( ID_MAPED_LAYER, &tbbi );
 
 	RECT rc;
-	wndToolBar.GetRect( ID_MAPED_LAYER, &rc );
-	wndToolBar.Detach();
+	m_ctrlMainToolBar.GetRect( ID_MAPED_LAYER, &rc );
 	 
 	rc.left += ::GetSystemMetrics( SM_CXEDGE );
 	rc.right -= ::GetSystemMetrics( SM_CXEDGE );
 	rc.bottom += 200;
 
 	m_bLayers = TRUE;
-	m_ctrlLayers.Create( hMapEdToolBar, &rc, NULL,
+	m_ctrlLayers.Create( hMainToolBar, &rc, NULL,
 		WS_CHILD | WS_VISIBLE | WS_VSCROLL |
 		CBS_DROPDOWNLIST | CBS_HASSTRINGS | CBS_OWNERDRAWVARIABLE,
 		0, ID_MAPED_LAYER );
 
 	m_ctrlLayers.SetFont(AtlGetDefaultGuiFont());
 
-	m_ctrlLayers.SetStatesBitmap(IDB_COMBO_ICONS, 16);
+	m_ctrlLayers.LoadStatesBitmap(16, IDB_COMBO_ICONS, IDB_COMBO_ICONS2);
 	m_ctrlLayers.AddStateIcon("1_Visible", 1, 2);
 	m_ctrlLayers.AddStateIcon("2_Locked", 3, 2);
 
 	for(int i=0; i<MAX_LAYERS; i++) {
 		m_ctrlLayers.AddString(g_szLayerNames[i]);
 	}
-	m_ctrlLayers.SetCurSel(0);
+	m_ctrlLayers.SetCurSel(2);
 
 	// create a rebat to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_ADJUSTABLE)) {
@@ -149,7 +151,7 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	}	
 	AddSimpleReBarBand(hWndCmdBar);
 	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 0, TRUE);
-	AddSimpleReBarBand(hMapEdToolBar, NULL, TRUE, 0, TRUE);
+	AddSimpleReBarBand(hMainToolBar, NULL, TRUE, 0, TRUE);
 
 	// create a status bar
 	if(!CreateSimpleStatusBar(_T("Ready")) ||
@@ -275,6 +277,7 @@ void CMainFrame::InitializeDefaultPanes()
 	m_Quest.Create(m_hWnd);
 	m_SpriteSets.Create(m_hWnd);
 	m_SpriteSets.InitDragDrop();
+	m_SpriteSets.InsertRootItem("Sprite Sets", "", TVI_ROOT, ICO_PROJECT);
 	
 	hPane = 
 	CreatePane(m_GameProject,		_T("Project"),		ilIcons.ExtractIcon(2),  rcDockV, NULL, dockwins::CDockingSide(dockwins::CDockingSide::sBottom));
@@ -747,7 +750,10 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_APP_STOPBUILD, FALSE);
 	}
 
-	if( ActiveChildType!=tScriptEditor || m_pProjectFactory->isBuilding()) {
+	if( (ActiveChildType!=tScriptEditor && 
+		 ActiveChildType!=tMapEditor) ||
+		m_pProjectFactory->isBuilding()) {
+
 		UIEnable(ID_APP_SAVE, FALSE);
 		UIEnable(ID_APP_SAVE_ALL, FALSE);
 		UIEnable(ID_APP_SAVE_AS, FALSE);

@@ -205,16 +205,19 @@ LRESULT CProjectFactory::BuildNextStep(WPARAM wParam, LPARAM lParam)
 int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 {
 	char szFilePath[MAX_PATH];
+	CTreeInfo *pTreeInfo = NULL;
 	CProjectFactory *_this = reinterpret_cast<CProjectFactory*>(lParam);
 	ASSERT(_this->m_hWnd);
 	if(IsWindow(_this->m_hWnd)) {
 		switch(NewStatus->eInfoType) {
 			case itSpriteSheet: {
 				if(NewStatus->SpriteSheet.eInfoReason == irAdded) {
+					NewStatus->SpriteSheet.pInterface->GetFilePath(szFilePath, MAX_PATH);
+					pTreeInfo = new CTreeInfo('S', NewStatus->SpriteSheet.lpszString, szFilePath);
 					SendMessage(_this->m_hWnd, 
 						WMGP_ADDTREE, 
 						ICO_SPTSHT, 
-						(LPARAM)new CTreeInfo(NewStatus->SpriteSheet.lpszString, NULL)
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}
@@ -222,7 +225,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					SendMessage(_this->m_hWnd, 
 						WMGP_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo(NewStatus->SpriteSheet.lpszString, NULL)
+						(LPARAM)new CTreeInfo('*', NewStatus->SpriteSheet.lpszString, NULL)
 					);
 					return 1;
 				}
@@ -234,13 +237,12 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 			case itBackground: {
 				if(NewStatus->Sprite.eInfoReason == irAdded) {
 					NewStatus->Sprite.pInterface->GetSpriteSheet()->GetFilePath(szFilePath, MAX_PATH);
-					char *tmp = new char[strlen(szFilePath)+2];
-					strcpy(tmp+1, szFilePath);
-					*tmp = 'S'; // sprite (sprite sheet)
+					pTreeInfo = new CTreeInfo('S', NewStatus->Sprite.lpszString, szFilePath);
+					pTreeInfo->m_eType = titFile;
 					SendMessage(_this->m_hWnd, 
 						WMGP_ADDTREE, 
 						ICO_SPRITE, 
-						(LPARAM)new CTreeInfo(NewStatus->Sprite.lpszString, (DWORD_PTR)(NewStatus->Sprite.pInterface))
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}
@@ -248,7 +250,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					SendMessage(_this->m_hWnd, 
 						WMGP_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo(NewStatus->Sprite.lpszString, NULL)
+						(LPARAM)new CTreeInfo('*', NewStatus->Sprite.lpszString, NULL)
 					);
 					return 1;
 				}
@@ -257,13 +259,12 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 			case itSound: {
 				if(NewStatus->Sound.eInfoReason == irAdded) {
 					NewStatus->Sound.pInterface->GetSoundFilePath(szFilePath, MAX_PATH);
-					char *tmp = new char[strlen(szFilePath)+2];
-					strcpy(tmp+1, szFilePath);
-					*tmp = 'N'; // sound
+					pTreeInfo = new CTreeInfo('N', NewStatus->Sound.lpszString, szFilePath);
+					pTreeInfo->m_eType = titFile;
 					SendMessage(_this->m_hWnd, 
 						WMQ_ADDTREE, 
 						ICO_WAV, 
-						(LPARAM)new CTreeInfo(NewStatus->Sound.lpszString, (DWORD_PTR)tmp)
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}
@@ -271,7 +272,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					SendMessage(_this->m_hWnd, 
 						WMQ_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo(NewStatus->Sound.lpszString, NULL)
+						(LPARAM)new CTreeInfo('*', NewStatus->Sound.lpszString, NULL)
 					);
 					return 1;
 				}
@@ -280,13 +281,12 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 			case itScript: {
 				if(NewStatus->Script.eInfoReason == irAdded) {
 					NewStatus->Script.pInterface->GetScriptFilePath(szFilePath, MAX_PATH);
-					char *tmp = new char[strlen(szFilePath)+2];
-					strcpy(tmp+1, szFilePath);
-					*tmp = 'E'; // entity
+					pTreeInfo = new CTreeInfo('E', NewStatus->Script.lpszString, szFilePath);
+					pTreeInfo->m_eType = titFile;
 					SendMessage(_this->m_hWnd, 
 						WMGP_ADDTREE, 
 						ICO_SCRIPT, 
-						(LPARAM)new CTreeInfo(NewStatus->Script.lpszString, (DWORD_PTR)tmp)
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}
@@ -294,7 +294,7 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					SendMessage(_this->m_hWnd, 
 						WMGP_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo(NewStatus->Script.lpszString, NULL)
+						(LPARAM)new CTreeInfo('*', NewStatus->Script.lpszString, NULL)
 					);
 					return 1;
 				}

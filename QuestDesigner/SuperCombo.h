@@ -94,7 +94,8 @@ protected:
 	int m_nAnchor;
 	int m_nCaret;
 
-	CImageList m_ImageList;
+	CImageList m_ImageList1;
+	CImageList m_ImageList2;
 
 	CContainedWindowT<CEdit> m_ctrlEdit;
 	CContainedWindowT<CListBox> m_ctrlListBox;
@@ -115,7 +116,9 @@ public:
 		m_nLastGetSel(-1),
 		m_nImageWidth(0),
 		m_nItemHeight(18),
-		m_nItemWidth(150)
+		m_nItemWidth(150),
+		m_ImageList1(NULL),
+		m_ImageList2(NULL)
 	{
 	}
 
@@ -259,34 +262,40 @@ public:
 	}
 
 	// Icons and State-Icons:
-	bool SetStatesBitmap(UINT uBitmap, int nWidth) 
+	BOOL LoadStatesBitmap(int nWidth, UINT uStates, UINT uStatesDisabled=0) 
 	{
-		HBITMAP hBitmap = 
-			(HBITMAP)LoadImage( _Module.GetResourceInstance(), MAKEINTRESOURCE(uBitmap),
-				IMAGE_BITMAP, 0, 0,
-				LR_DEFAULTSIZE | LR_CREATEDIBSECTION );
+		ATLASSERT(IS_INTRESOURCE(uStates));
+		SetStatesBitmap(m_ImageList1, uStates, nWidth);
 
-		if(!hBitmap) return false;
-
-		BITMAP bmBitmap;
-		::GetObject(hBitmap, sizeof(BITMAP), &bmBitmap);
-
-		CSize cSize(bmBitmap.bmWidth, bmBitmap.bmHeight); 
-		int	nImages	= cSize.cx / nWidth;
-
-		RGBTRIPLE*	rgb	= (RGBTRIPLE*)(bmBitmap.bmBits);
-		COLORREF rgbMask = RGB(rgb[0].rgbtRed, rgb[0].rgbtGreen, rgb[0].rgbtBlue);
-
-		if(!m_ImageList.Create(nWidth, cSize.cy, ILC_COLOR32 | ILC_MASK, nImages, 0))
-			return false;
-
-		if(m_ImageList.Add(hBitmap, rgbMask) == -1)
-			return false;
-
+		if(uStatesDisabled) {
+			ATLASSERT(IS_INTRESOURCE(uStatesDisabled));
+			if(!SetStatesBitmap(m_ImageList2, uStatesDisabled, nWidth))
+				return FALSE;
+		}
 		m_nImageWidth = nWidth;
-		m_nItemHeight = nWidth;// + 2;
-		return true;
+		m_nItemHeight = nWidth;
+
+		return TRUE;
 	}
+
+	BOOL SetStatesBitmap(CImageList &cImageList, UINT uBitmap, int nWidth)
+	{
+		CImage Image;
+		if(!LoadBitmap(&Image, _Module.GetModuleInstance(), uBitmap)) 
+			return FALSE;
+
+		int	nImages	= Image.GetWidth() / nWidth;
+
+		if(!cImageList.IsNull()) m_ImageList1.Destroy();
+		if(!cImageList.Create(nWidth, Image.GetHeight(), ILC_COLOR32, nImages, 0))
+			return FALSE;
+
+		if(cImageList.Add(Image) == -1)
+			return FALSE;
+
+		return TRUE;
+	}
+
 	bool AddIcon(LPCSTR szID)
 	{
 		return AddStateIcon(szID, 0, 0);
@@ -297,8 +306,8 @@ public:
 	}
 	bool AddStateIcon(LPCSTR szID, int nBaseIndex, int nStates)
 	{
-		ASSERT(!m_ImageList.IsNull());
-		ASSERT(nBaseIndex+nStates-1 < m_ImageList.GetImageCount());
+		ASSERT(!m_ImageList1.IsNull());
+		ASSERT(nBaseIndex+nStates-1 < m_ImageList1.GetImageCount());
 		return (m_States.insert(pairState(szID, std::pair<int, int>(nBaseIndex, nStates)))).second;
 	}
 	void DeleteStateIcon(LPCSTR szID)
@@ -308,7 +317,10 @@ public:
 	}
 	void UseImageList(HIMAGELIST hImageList) 
 	{ 
-		m_ImageList.Attach(hImageList);
+		if(!m_ImageList1.IsNull()) m_ImageList1.Destroy();
+		if(!m_ImageList2.IsNull()) m_ImageList2.Destroy();
+
+		m_ImageList1.Attach(hImageList);
 	}
 
 	int SetItemIcon(int nItemIndex, LPCSTR szID, int nIconIndex)
@@ -531,6 +543,8 @@ public:
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
 		ResetContent();
+		if(!m_ImageList1.IsNull()) m_ImageList1.Destroy();
+		if(!m_ImageList2.IsNull()) m_ImageList2.Destroy();
 		return 0;
 	}
 
@@ -574,7 +588,7 @@ public:
 		m_nCurSel = GetCurSel();
 
 		CString sItem;
-		if(GetSelCount() > 1) sItem = "*";
+		if(GetSelCount() > 1) sItem = "*VARIOUS*";
 		else if(m_nCurSel != CB_ERR) {
 			// get the old item selection text
 			GetLBText(m_nCurSel, sItem);
@@ -756,7 +770,7 @@ public:
 		} else if(nVirtKey == VK_RETURN) {
 			CString str;
 			GetWindowText(str);
-			if(str != "*") {
+			if(str != "*VARIOUS*") {
 				int nLength = str.GetLength();
 				int nSel = SelectString(-1, str);
 				if(CB_ERR != nSel) {
@@ -767,7 +781,7 @@ public:
 			}
 		} else if(nVirtKey == VK_ESCAPE) {
 			CString sItem;
-			if(GetSelCount() > 1) sItem = "*";
+			if(GetSelCount() > 1) sItem = "*VARIOUS*";
 			else if(m_nCurSel != CB_ERR) {
 				// get the old item selection text
 				GetLBText(m_nCurSel, sItem);
@@ -908,9 +922,11 @@ public:
 			nImage += Iterator->second.first;
 
 			// the index should be a valid index
-			ASSERT( nImage >= 0 && nImage < m_ImageList.GetImageCount() );
-			
-			m_ImageList.Draw(dcMem, nImage, (nDrawedImages++)*m_nImageWidth + nShiftRight, nMiddle, uStyleThis);
+			ASSERT( nImage >= 0 && nImage < m_ImageList1.GetImageCount() );
+			if((itemState & ODS_DISABLED || itemState & ODS_GRAYED) && !m_ImageList2.IsNull() )
+				m_ImageList2.Draw(dcMem, nImage, (nDrawedImages++)*m_nImageWidth + nShiftRight, nMiddle, ILD_NORMAL);
+			else
+				m_ImageList1.Draw(dcMem, nImage, (nDrawedImages++)*m_nImageWidth + nShiftRight, nMiddle, uStyleThis);
 		}
 	}
 	void DeleteItem(LPDELETEITEMSTRUCT lpDeleteItemStruct)

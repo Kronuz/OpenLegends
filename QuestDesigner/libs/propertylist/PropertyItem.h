@@ -38,6 +38,8 @@
 #define PIN_CLICK               (PIN_FIRST-7)
 #define PIN_DBLCLICK            (PIN_FIRST-8)
 #define PIN_ADDITEM             (PIN_FIRST-9)
+#define PIN_ITEMUPDATED         (PIN_FIRST-10)
+#define PIN_ITEMEDIT            (PIN_FIRST-11)
 
 // Identifiers returned by GetKind()
 #define PROPKIND_CATEGORY   0x0001
@@ -90,6 +92,8 @@ typedef struct
 #define WM_USER_PROP_COLLAPSE         WM_USER+434
 #define WM_USER_PROP_NAVIGATE         WM_USER+435
 #define WM_USER_PROP_SETCHECKSTATE    WM_USER+436
+#define WM_USER_PROP_OWNED            WM_USER+437 // Added by Kronuz
+#define WM_USER_PROP_EDITPROPERTY     WM_USER+438 // Added by Kronuz
 #endif // WM_USER_xxx
 
 

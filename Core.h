@@ -19,8 +19,9 @@
 #define _SPT_ROT			4
 #define SPT_ROT				((SROTATE_0<<_SPT_ROT) | (SROTATE_90<<_SPT_ROT) | (SROTATE_180<<_SPT_ROT) | (SROTATE_270<<_SPT_ROT))
 
-#define SPT_ALPHA			0x00ff00
-#define _SPT_ALPHA			8
+// Deprecated, now use full ARGB values (Strider's idea):
+//#define SPT_ALPHA			0x00ff00
+//#define _SPT_ALPHA			8
 
 // Flags for the drawable objects and their transformations:
 #define DVISIBLE			0x01
@@ -46,6 +47,35 @@ enum CURSOR {
 	ceToResize			= 0x01E0,
 	ceToSelect			= 0x0E02
 };
+
+////////////////////////////////////////////////////////////////////
+// Files stuff:
+#pragma pack(1)
+// All Open Zelda saved files must have this header:
+struct _OpenZeldaFile {
+	char ID[160];			// ID, Name and Description Separated by '\n' and ended by '\0'
+	DWORD dwSignature;		// Signature of the file. (all OZ signatures have 0x7a6f in the low word)
+	DWORD dwSize;			// Size of the file (or memory)
+	DWORD dwBitmapOffset;	// Where the thumbnail is (Start + Index Size + Data Size). 0 if no thumbnail.
+	DWORD dwDataOffset;		// Where the data begins. (Start + Index Size). 0 if no data.
+};
+#pragma pack()
+// List of valid file types, their IDs and Signatures:
+const WORD OZF_SIGNATURE = 0x5a4f;
+#define MAKEOZSIGN(w) (((DWORD)(w&0xffff)<<16) | OZF_SIGNATURE)
+
+const DWORD OZF_SPRITE_SET_SIGNATURE	= MAKEOZSIGN(0xff01);
+const DWORD OZF_MAP_GROUP_SIGNATURE		= MAKEOZSIGN(0xff02);
+const DWORD OZF_WORLD_SIGNATURE			= MAKEOZSIGN(0xff03);
+const DWORD OZF_SPRITE_SHEET_SIGNATURE	= MAKEOZSIGN(0xff04);
+
+const char OZF_SPRITE_SET_ID[]			= "Quest Designer Sprite Set";
+const char OZF_MAP_GROUP_ID[]			= "Quest Designer Map Group";
+const char OZF_WORLD_ID[]				= "Quest Designer World";
+const char OZF_SPRITE_SHEET_GROUP_ID[]	= "Quest Designer Sprite Sheet";
+
+////////////////////////////////////////////////////////////////////
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 struct SPropertyList;
@@ -77,11 +107,22 @@ public:
 enum InfoType { itUnknown, itWorld, itMapGroup, itMap, itSpriteSheet, itSprite, itBackground, itMask, itEntity, itSpriteContext, itSound, itScript };
 interface IPropertyEnabled
 {
+	// Multipurpose flag:
 	virtual bool isFlagged() = 0;
 	virtual void Flag(bool bFlag = true) = 0;
+
+	// Get the Item's information:
 	virtual bool GetInfo(SInfo *pI) const = 0;
+
+	// Get/Set Item's Properties:
 	virtual bool GetProperties(SPropertyList *pPL) const = 0;
 	virtual bool SetProperties(SPropertyList &PL) = 0;
+
+	// Commit/Begin changes:
+	virtual void Commit() const = 0; // commit the changes
+
+	// Cancel Changes since last call to Commit():
+	virtual void Cancel() = 0; // cancel the changes
 };
 
 struct GameInfo;

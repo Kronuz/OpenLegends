@@ -9,16 +9,6 @@
 #ifndef __CONTROLS_H__
 #define __CONTROLS_H__
 
-class CTreeInfo {
-public:
-	char m_szPath[MAX_PATH];
-	DWORD_PTR m_dwData;
-	CTreeInfo(LPCSTR szPath, DWORD_PTR dwData) {
-		strncpy(m_szPath, szPath, MAX_PATH);
-		m_dwData = dwData;
-	}
-};
-
 #include <WtlFileTreeCtrl.h>
 
 #include "DragDropImpl.h"
@@ -29,7 +19,7 @@ public:
 #include "TreeDropTarget.h"
 
 #include "../IGame.h"
-
+/*
 class CEditBox : public CWindowImpl<CEditBox, WTL::CEdit>, public WTL::CEditCommands<CEditBox>
 {
 	CIDropTarget* m_pDropTarget;
@@ -77,46 +67,30 @@ public:
 		return true;
 	}
 
-
 };
-
-class CTreeBox : public CWtlFileTreeCtrl
+/*
+class CTreeBox : 
+	public CWindowImpl<CTreeBox, CWtlFileTreeCtrl>
 {
-	CIDropTarget* m_pDropTarget;
+	CIDropTarget *m_pDropTarget;
 public:
 	
-	DECLARE_WND_SUPERCLASS(NULL, CWtlFileTreeCtrl::GetWndClassName())
-
 	BEGIN_MSG_MAP(CTreeBox)
-		MESSAGE_HANDLER(WM_CREATE, OnCreate)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
-		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBkgnd)
-
 		REFLECTED_NOTIFY_CODE_HANDLER(TVN_BEGINDRAG, OnBegindrag)
-
-		CHAIN_MSG_MAP(CWtlFileTreeCtrl);
-
-		REFLECT_NOTIFICATIONS()
+		DEFAULT_REFLECTION_HANDLER()
 	END_MSG_MAP()
 	
-	CTreeBox():m_pDropTarget(NULL){}
-
-	LRESULT OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+	CTreeBox() : 
+		CWtlFileTreeCtrl(), 
+		m_pDropTarget(NULL) 
 	{
-		LRESULT lRet = DefWindowProc(uMsg, wParam, lParam);
-
-		return lRet;
 	}
 
-	LRESULT OnEraseBkgnd(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
-	{
-		return 0;
-	}
-	
 	LRESULT OnDestroy(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 	{
-		RevokeDragDrop(m_hWnd); //calls release
-		m_pDropTarget=NULL;
+		RevokeDragDrop(m_hWnd); // calls Release()
+		m_pDropTarget = NULL;
 		return 0;
 	}
 
@@ -126,49 +100,71 @@ public:
 		USES_CONVERSION;
 		CComBSTR bstr;
 		
-		GetItemText(pnmtv->itemNew.hItem, bstr.m_str);
-		_SpriteSet *pSpriteSet = (_SpriteSet*)GetItemData(pnmtv->itemNew.hItem);
-		
-		CIDropSource* pDropSource = new CIDropSource;
-		if(pDropSource == NULL) return 0;
-		pDropSource->AddRef();
+		// Get and verify item data:
+		CTreeInfo *pTreeInfo = (CTreeInfo *)GetItemData(pnmtv->itemNew.hItem);
+		if(!pTreeInfo) return 0;
 
+		if(pTreeInfo->m_eType == titFolder) return 0; // only drag files.
+
+		// Build the OLE interfaces:
+		CIDropSource* pDropSource = new CIDropSource;
 		CIDataObject* pDataObject = new CIDataObject(pDropSource);
-		if(pDataObject == NULL) return 0;
+		if(pDropSource == NULL || pDataObject == NULL) {
+			delete pDropSource;
+			delete pDataObject;
+			return 0;
+		}
+		pDropSource->AddRef();
 		pDataObject->AddRef();
 
-		TCHAR* str = OLE2T(bstr.m_str);
-
+		// Create object to drag:
 		HGLOBAL hGlobal = NULL;
 		BITMAP *pBitmap = NULL;
 		HBITMAP hBitmapOle = NULL;
 		CRect BitmapRect(0, 0, 0, 0);
-		if(pSpriteSet) {
-			if(strncmp(pSpriteSet->Info.ID, QUEST_SET_ID, QUEST_SET_IDLEN)) pSpriteSet = NULL;
-			else if(pSpriteSet->Info.dwSignature != QUEST_SET_SIGNATURE) pSpriteSet = NULL;
-		}
-		if(pSpriteSet) {
-			hGlobal = GlobalAlloc(GMEM_MOVEABLE, pSpriteSet->Info.dwSize);
-			if(!hGlobal) return 0;
+		NULL;
+
+		GetItemText(pnmtv->itemNew.hItem, bstr.m_str);
+		CString sStr = OLE2T(bstr.m_str); // Item's name
+
+		pBitmap = pTreeInfo->GetThumbnail();// try to get the thumbnail
+
+		// check if the object contains a valid OZ file as the data:
+		_OpenZeldaFile *pOZFile = (_OpenZeldaFile*)(pTreeInfo->GetData());
+		if(pOZFile) if(LOWORD(pOZFile->dwSignature) != OZF_SIGNATURE) pOZFile = NULL;
+		if(pOZFile) {
+			hGlobal = GlobalAlloc(GMEM_MOVEABLE, pOZFile->dwSize);
+			if(!hGlobal) {
+				pDropSource->Release();
+				pDataObject->Release();
+				return 0;
+			}
 
 			BYTE *pMem = (BYTE*)GlobalLock(hGlobal);
 			ASSERT(pMem);
 
-			memcpy(pMem, pSpriteSet, pSpriteSet->Info.dwSize);
+			memcpy(pMem, pOZFile, pOZFile->dwSize);
 			GlobalUnlock(hGlobal);
 
-			if(pSpriteSet->Info.dwBitmapOffset) {
-				pBitmap = (BITMAP *)((char *)pSpriteSet + pSpriteSet->Info.dwBitmapOffset);
-				pBitmap->bmBits = (char*)pBitmap + sizeof(BITMAP);
+			if(pOZFile->dwBitmapOffset && !pBitmap) {
+				pBitmap = (BITMAP *)((LPBYTE)pOZFile + pOZFile->dwBitmapOffset);
+				pBitmap->bmBits = (LPVOID)((LPBYTE)pBitmap + sizeof(BITMAP));
 			}
 		} else {
-			hGlobal = GlobalAlloc(GMEM_MOVEABLE, sizeof(TCHAR)*(strlen(str)+1)); //for NULL
-			if(!hGlobal) return 0;
+			// If the Tree item data is an unkown type, and there is a file path, use it:
+			if(pTreeInfo->GetFile() && pTreeInfo->m_cSubType=='?') sStr = (LPCSTR)pTreeInfo->GetFile()->GetFilePath();
 
-			TCHAR *pMem = (TCHAR*)GlobalLock(hGlobal);
+			hGlobal = GlobalAlloc(GMEM_MOVEABLE, sStr.GetLength() + 1); // for NULL
+			if(!hGlobal) {
+				pDropSource->Release();
+				pDataObject->Release();
+				return 0;
+			}
+
+			LPSTR pMem = (LPSTR)GlobalLock(hGlobal);
 			ASSERT(pMem);
 
-			strcpy(pMem, str);
+			strcpy(pMem, sStr);
 			GlobalUnlock(hGlobal);
 		}
 
@@ -235,7 +231,6 @@ public:
 			::DeleteDC(hDCMem);
 			ReleaseDC(hDC);
 		}
-
 		//////////////////////////////////////
 		fmtetc.cfFormat = CF_TEXT;
 		fmtetc.tymed = TYMED_HGLOBAL;
@@ -254,38 +249,40 @@ public:
 
 		DWORD dwEffect;
 		HRESULT hr = ::DoDragDrop(pDataObject, pDropSource, DROPEFFECT_COPY, &dwEffect);
+
 		pDropSource->Release();
 		pDataObject->Release();
+
 		return 0;
 	}
 
 	bool InitDragDrop()
 	{
-			m_pDropTarget = new CTreeDropTarget(m_hWnd);
-			if(m_pDropTarget == NULL)
-				return false;
-			m_pDropTarget->AddRef();
+		m_pDropTarget = new CTreeDropTarget(m_hWnd);
+		if(m_pDropTarget == NULL) return false;
+		m_pDropTarget->AddRef();
 
-			if(FAILED(RegisterDragDrop(m_hWnd,m_pDropTarget))) //calls addref
-			{
-				m_pDropTarget = NULL;
-				return false;
-			}
-			else
-				m_pDropTarget->Release(); //i decided to AddRef explicitly after new
+		if(FAILED(RegisterDragDrop(m_hWnd, m_pDropTarget))) { // calls AddRef()
+			m_pDropTarget->Release();
+			m_pDropTarget = NULL;
+			return false;
+		} else {
+			m_pDropTarget->Release(); // I decided to AddRef explicitly after new
+		}
 
-			FORMATETC ftetc={0};
-			ftetc.cfFormat = CF_TEXT;
-			ftetc.dwAspect = DVASPECT_CONTENT;
-			ftetc.lindex = -1;
-			ftetc.tymed = TYMED_HGLOBAL;
-			m_pDropTarget->AddSuportedFormat(ftetc);
-			ftetc.cfFormat=CF_HDROP;
-			m_pDropTarget->AddSuportedFormat(ftetc);
+		FORMATETC ftetc = {0};
+		ftetc.cfFormat = CF_TEXT;
+		ftetc.dwAspect = DVASPECT_CONTENT;
+		ftetc.lindex = -1;
+		ftetc.tymed = TYMED_HGLOBAL;
+		m_pDropTarget->AddSuportedFormat(ftetc);
+		ftetc.cfFormat=CF_HDROP;
+		m_pDropTarget->AddSuportedFormat(ftetc);
 		return true;
 	}
 };
-
+*/
+/*
 class CStaticBox : public CWindowImpl<CStatic,WTL::CStatic>
 {
 	CIDropTarget* m_pDropTarget;
@@ -518,13 +515,13 @@ public:
 		/////////////////////////////////////////
 		HRESULT hr;
 		IStream* pStream;
-		/*IStream* pStream;
-		//ie5.0 API
-		hr = SHCreateStreamOn("readme.txt",STGM_READ,&pStream);
-		medium.pstm = pStream;
-		fmtetc.tymed = TYMED_ISTREAM;
-		medium.tymed = TYMED_ISTREAM;
-		pdobj->SetData(&fmtetc,&medium,TRUE);*/
+//		IStream* pStream;
+//		//ie5.0 API
+//		hr = SHCreateStreamOn("readme.txt",STGM_READ,&pStream);
+//		medium.pstm = pStream;
+//		fmtetc.tymed = TYMED_ISTREAM;
+//		medium.tymed = TYMED_ISTREAM;
+//		pdobj->SetData(&fmtetc,&medium,TRUE);
 		/////////////////////////////////////////
 		CreateStreamOnHGlobal(NULL, TRUE, &pStream);
 		DWORD dwWritten;
@@ -561,5 +558,5 @@ public:
 		return 0;
 	}
 };
-
+*/
 #endif //__CONTROLS_H__

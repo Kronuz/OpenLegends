@@ -301,6 +301,8 @@ public:
 	virtual bool GetInfo(SInfo *pI) const { return false; }
 	virtual bool GetProperties(SPropertyList *pPL) const { return false; }
 	virtual bool SetProperties(SPropertyList &PL) { return false; }
+	virtual void Commit() const {};
+	virtual void Cancel() {};
 
 	virtual bool Draw(const IGraphics *pIGraphics=NULL);
 	virtual bool DrawSelected(const IGraphics *pIGraphics=NULL);
@@ -415,6 +417,8 @@ struct SObjProp :
 	virtual bool GetInfo(SInfo *pI) const;
 	virtual bool GetProperties(SPropertyList *pPL) const;
 	virtual bool SetProperties(SPropertyList &PL);
+	virtual void Commit() const;
+	virtual void Cancel();
 };
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	CDrawableSelection

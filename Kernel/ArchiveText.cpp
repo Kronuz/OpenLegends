@@ -39,7 +39,7 @@ bool CSpriteSheetTxtArch::ReadObject(CVFile &vfFile)
 	m_nLines = 0;
 	CHAR buff[100];
 
-	if(!vfFile.Open()) return false;
+	if(!vfFile.Open("r")) return false;
 
 	CONSOLE_DEBUG("Loading %s (%d bytes)...\n", vfFile.GetFileName(), vfFile.GetFileSize());
 
@@ -50,6 +50,10 @@ bool CSpriteSheetTxtArch::ReadObject(CVFile &vfFile)
 	} else {
 		m_pSpriteSheet->SetName(sSheetName);
 	}
+
+	CGameManager *pGameManager = CGameManager::Instance();
+	if(!pGameManager->MakeSpriteSheet(m_pSpriteSheet)) return false;
+
 	while(ReadSprite(vfFile)>=0);
 
 	vfFile.Close();
@@ -250,7 +254,7 @@ bool CProjectTxtArch::WriteObject(CVFile &vfFile)
 
 bool CMapTxtArch::ReadObject(CVFile &vfFile)
 {
-	vfFile.Open();
+	vfFile.Open("r");
 
 	int nObjects;
 	m_nLines = 0;
@@ -377,7 +381,7 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 {
 	bool bRet = true;
 
-	if(!vfFile.Open()) return false;
+	if(!vfFile.Open("r")) return false;
 	CONSOLE_DEBUG("Loading %s (%d bytes)...\n", vfFile.GetFileName(), vfFile.GetFileSize());
 
 	m_nLines = 0;
