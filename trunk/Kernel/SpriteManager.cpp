@@ -571,7 +571,7 @@ void CSpriteSelection::BuildRealSelectionBounds()
 	CRect RectTmp;
 	m_rcSelection.SetRectEmpty();
 	vectorObject::iterator Iterator;
-	for(Iterator = m_Objects[0].begin(); Iterator != m_Objects[0].end(); Iterator++) {
+	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
 		Iterator->pContext->GetAbsFinalRect(RectTmp);
 		m_rcSelection.UnionRect(m_rcSelection, RectTmp);
 		// We need to keep the initial size and location of every selected object:
@@ -581,7 +581,7 @@ void CSpriteSelection::BuildRealSelectionBounds()
 
 void CSpriteSelection::SetSelectionName(LPCSTR szName)
 {
-	m_ObjectsNames[m_nCurrentGroup] = szName;
+	m_Groups[m_nCurrentGroup].Name = szName;
 }
 
 LPCSTR CSpriteSelection::GetSelectionName(LPSTR szName, int size)
@@ -589,9 +589,8 @@ LPCSTR CSpriteSelection::GetSelectionName(LPSTR szName, int size)
 	SObjProp *pSel = GetFirstSelection();
 	*szName = '\0';
 
-	ASSERT(m_Objects.size() == m_ObjectsNames.size());
-	if(m_nCurrentGroup>0 && m_nCurrentGroup<(int)m_ObjectsNames.size()) {
-		strncpy(szName+1, m_ObjectsNames[m_nCurrentGroup].c_str(), size-2);
+	if(m_nCurrentGroup>0 && m_nCurrentGroup<(int)m_Groups.size()) {
+		strncpy(szName+1, (LPCSTR)m_Groups[m_nCurrentGroup].Name.c_str(), size-2);
 		*szName = '@'; // To recognize them from regular sprites, Sprite Sets names internally start with '@' (as long as the name is not changed)
 	} else if(pSel) {
 		strncpy(szName, (LPCSTR)pSel->pContext->GetObjName(), size-1);
@@ -606,16 +605,16 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	CRect Rect(0,0,0,0);
 	CRect RectTmp;
 
-	// Always draws what's in group 0
-	int nObjects = (int)m_Objects[0].size();
+	// Always draws what's in group 0 (the current selection group)
+	int nSelected = (int)m_Groups[0].O.size();
 	const CSpriteContext *scontext = NULL;
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		scontext = static_cast<const CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 		Rect.UnionRect(Rect, RectTmp);
-		if(nObjects>1) {
+		if(nSelected>1) {
 			if(!m_bHighlightOnly && !m_bFloating) {
 				if(Iterator->bSubselected || !m_bHoldSelection) {
 					if(m_bHoldSelection) {
@@ -708,19 +707,19 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 
 	if(!m_bFloating) {
 		if(m_bHighlightOnly) {
-			if(nObjects>0) {
+			if(nSelected>0) {
 				// draw a bounding rect over the selected objects:
 				pGraphics_->FillRect(Rect, COLOR_ARGB(64,255,255,0));
 				pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,0,0));
 			}
 		} else {
-			if(nObjects>1) {
+			if(nSelected>1) {
 				if(m_bHoldSelection) pGraphics_->SelectionBox(Rect, COLOR_ARGB(128,160,160,160));
 				else {
 					if(isGroup()) pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,192,96));
  					else pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
 				}
-			} else if(nObjects==1) {
+			} else if(nSelected==1) {
 				if(scontext->isTiled()) {
 					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,255,200));
 				} else {
@@ -868,7 +867,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	// we start by sorting the selected objects (in the selection):
 	SortSelection();
 
-	if(m_Objects[0].size() == 0) {
+	if(m_Groups[0].O.size() == 0) {
 		if(bDeleteBitmap && ppBitmap) {
 			*ppBitmap = NULL;
 			delete []pBitmap;
@@ -887,8 +886,8 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	// we need a map to hold every different object (to make an object index.)
 	std::map<CDrawableObject*, int> ObjectsNames;
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	for(int i=0; Iterator != m_Objects[0].end(); i++) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	for(int i=0; Iterator != m_Groups[0].O.end(); i++) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		ASSERT(scontext);
 		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
@@ -955,12 +954,14 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	CRect rcBoundaries, RectTmp;
 	GetBoundingRect(&rcBoundaries);
 
+	// NEED TO FIX *** (sprite sets sprite's whithin the selection should not be copied as sprites, but as a single sprite sets)
+
 	_SpriteSet *CopyBoard = (_SpriteSet*)pRawBuffer;
 	strcpy(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID);
 	strcat(CopyBoard->Info.Header.ID, "\nUntitled Sprite Set\nDescription goes here.");
 	CopyBoard->Info.Header.dwSignature = OLF_SPRITE_SET_SIGNATURE;
 	CopyBoard->Info.Header.dwSize = asize + bmpsize;
-	CopyBoard->Info.nObjects = (int)m_Objects[0].size();
+	CopyBoard->Info.nSelected = (int)m_Groups[0].O.size();
 
 	CopyBoard->Info.rcBoundaries = rcBoundaries;
 	CopyBoard->Info.rcBoundaries.OffsetRect(-rcBoundaries.TopLeft());
@@ -985,8 +986,8 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		IndexIterator++;
 	}
 
-	Iterator = m_Objects[0].begin();
-	for(i=0; Iterator != m_Objects[0].end(); i++) {
+	Iterator = m_Groups[0].O.begin();
+	for(i=0; Iterator != m_Groups[0].O.end(); i++) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		ASSERT(scontext);
 		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
@@ -1136,9 +1137,10 @@ CRect CSpriteSelection::PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoi
 		pSpriteContext->SetObjSubLayer(static_cast<CBackground *>(pSprite)->GetObjSubLayer());
 		pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
 
+		// NEED TO FIX *** (Pasted sprite sets within pasted data, should be pasted here)
 		pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
 		if(!pPoint) {
-			m_Objects[0].push_back(SObjProp(this, pSpriteContext));
+			m_Groups[0].O.push_back(SObjProp(this, pSpriteContext));
 			pSpriteContext->MoveTo(0, 0);
 			pSpriteContext->SelectContext();
 
@@ -1186,7 +1188,7 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 		m_nCurrentGroup = SetNextPasteGroup(GetNameFromOLFile(&CopyBoard->Info.Header, szSpriteSetName, sizeof(szSpriteSetName)));
 		CONSOLE_DEBUG("Sprite Set '%s' to be pasted as group #%d\n", szSpriteSetName, m_nPasteGroup);
 
-		for(UINT i=0; i<CopyBoard->Info.nObjects; i++) {
+		for(UINT i=0; i<CopyBoard->Info.nSelected; i++) {
 
 			_SpriteSet::_SpriteSetData01 *pSpriteSetData01 = NULL;
 			_SpriteSet::_SpriteSetData02 *pSpriteSetData02 = NULL;
@@ -1309,15 +1311,19 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 					// the sprite absolute postion must be set after inserting it in the layer.
 					pSpriteContext->SelectContext();
 					pSpriteContext->SetAbsFinalRect(RectTmp);
-					// push to the main group:
-					m_Objects[0].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
-					// push to the current paste group:
-					if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+
+					if(m_nPasteGroup != 0) {
+						// push to the current paste group:
+						m_Groups[m_nPasteGroup].O.push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+					} else {
+						// push to the main group (the current selection group):
+						m_Groups[0].O.push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+					}
 				} else {
 					RectTmp.OffsetRect(*pPoint);
 					pSpriteContext->SetAbsFinalRect(RectTmp);
 					// push to the current paste group:
-					if(m_nPasteGroup != 0) m_Objects[m_nPasteGroup].push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
+					if(m_nPasteGroup != 0) m_Groups[m_nPasteGroup].O.push_back(SObjProp(this, pSpriteContext, RectTmp, XChain, YChain));
 				}
 			} else {
 				if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
@@ -1340,11 +1346,22 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 			RetRect.UnionRect(RetRect, RectTmp);
 		}
 
-		// there was only a single sprite in the sprite set, so we set the 
-		// paste group to 0 and clear the used group:
-		if(m_nPasteGroup != 0 && m_Objects[m_nPasteGroup].size() <= 1) {
-			m_Objects[m_nPasteGroup].clear();
-			m_nCurrentGroup = m_nPasteGroup = 0;
+		// After we have our sprite set pasted (probably as a new group), we now select it:
+		if(m_nPasteGroup != 0) { //If the paste group was the selection group, then it's already selected.
+			bool bSingle = false;
+			// there was only a single sprite in the sprite set, so we set the paste group to 0 and clear the used group:
+			if(m_Groups[m_nPasteGroup].O.size() <= 1) bSingle = true;
+
+			vectorObject::iterator Iterator;
+			for(Iterator = m_Groups[m_nPasteGroup].O.begin(); Iterator != m_Groups[m_nPasteGroup].O.end(); Iterator++) {
+				Iterator->pContext->SelectContext();
+				m_Groups[0].O.push_back(*Iterator);
+				if(!bSingle) m_Groups[0].O.back().pRef = (Iterator.operator ->());
+			}
+			if(bSingle) {
+				m_Groups[m_nPasteGroup].O.clear();
+				m_nCurrentGroup = m_nPasteGroup = 0;
+			}
 		}
 
 		if(!pPoint && bPaste) {
@@ -1496,7 +1513,7 @@ bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
 		if(RetRect.IsRectNull()) return false;
 	}
 
-	if(m_Objects[m_nPasteGroup].empty()) {
+	if(m_Groups[m_nPasteGroup].O.empty()) {
 		EndMoving(point_);
 		if(m_nPasteGroup) CONSOLE_PRINTF("Paste error : Attempt to paste an empty Sprite!\n");
 		else CONSOLE_PRINTF("Paste error : Attempt to paste an empty Quest Designer Sprite Set!\n");
@@ -1505,7 +1522,7 @@ bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
 
 	MoveTo(point_);
 
-	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects[m_nPasteGroup].size(), (*m_ppMainDrawable)->Objects());
+	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Groups[m_nPasteGroup].O.size(), (*m_ppMainDrawable)->Objects());
 	return true;
 }
 
@@ -1513,7 +1530,7 @@ void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 {
 	if(m_bHoldSelection) return;
 	// no new groups can be created from an empty selection or a single sprite selection.
-	if(m_Objects[0].size() <= 1) return;
+	if(m_Groups[0].O.size() <= 1) return;
 
 	// get the next availible paste group:
 	m_nCurrentGroup = SetNextPasteGroup(szGroupName);
@@ -1521,9 +1538,9 @@ void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 
 	ASSERT(m_nCurrentGroup > 0);
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
-		m_Objects[m_nCurrentGroup].push_back(*Iterator);
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
+		m_Groups[m_nCurrentGroup].O.push_back(*Iterator);
 		Iterator++;
 	}
 
@@ -1533,10 +1550,11 @@ void CSpriteSelection::GroupToSelection()
 {
 	if(m_bHoldSelection) return;
 	// no new groups can be created from an empty selection or a single sprite selection.
-	if(m_Objects[0].size() <= 1) return;
+	if(m_Groups[0].O.size() <= 1) return;
 	if(m_nCurrentGroup < 1) return;
 
-	m_Objects[m_nCurrentGroup].clear();
+	// NEED TO FIX *** (if there's a parent for the group, make the sprites part of the parent's group)
+	m_Groups[m_nCurrentGroup].O.clear();
 	m_nCurrentGroup = 0;
 }
 void CSpriteSelection::SelectionToTop()
@@ -1548,8 +1566,8 @@ void CSpriteSelection::SelectionToTop()
 	SortSelection();
 	int nNextOrder = pLayer->ReOrder(1);
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
 			Iterator->pContext->SetObjOrder(nNextOrder++);
 		}
@@ -1563,10 +1581,10 @@ void CSpriteSelection::SelectionToBottom()
 
 	// we start by sorting the selected objects (in the selection):
 	SortSelection();
-	int nNextOrder = pLayer->ReOrder(1, 0, m_Objects[0].size());
+	int nNextOrder = pLayer->ReOrder(1, 0, m_Groups[0].O.size());
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
 			Iterator->pContext->SetObjOrder(nNextOrder++);
 		}
@@ -1582,8 +1600,8 @@ void CSpriteSelection::SelectionDown()
 	SortSelection();
 	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
 			int nNextOrder = Iterator->pContext->GetObjOrder() - 3;
 			if(nNextOrder < 0) nNextOrder = 0;
@@ -1601,8 +1619,8 @@ void CSpriteSelection::SelectionUp()
 	SortSelection();
 	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
 			int nNextOrder = Iterator->pContext->GetObjOrder() + 3;
 			Iterator->pContext->SetObjOrder(nNextOrder);
@@ -1616,8 +1634,8 @@ void CSpriteSelection::FlipSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
@@ -1646,6 +1664,17 @@ void CSpriteSelection::FlipSelection()
 			Iterator->rcRect = Rect; // for floating selections
 		}
 
+		// applying chains to selections, update the in-group's chains & stuff:
+		if(Iterator->pRef) {
+			ASSERT(Iterator->pRef->pRef == NULL);
+			Iterator->pRef->eXChain = Iterator->eXChain;
+			Iterator->pRef->eYChain = Iterator->eYChain;
+			Iterator->pRef->bSubselected = Iterator->bSubselected;
+			Iterator->pRef->pContext = Iterator->pContext;
+			Iterator->pRef->pSelection = Iterator->pSelection;
+			Iterator->pRef->rcRect = Iterator->rcRect;
+		}
+
 		Iterator++;
 	}
 
@@ -1661,8 +1690,8 @@ void CSpriteSelection::MirrorSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
@@ -1691,6 +1720,17 @@ void CSpriteSelection::MirrorSelection()
 			Iterator->rcRect = Rect; // for floating selections
 		}
 
+		// applying chains to selections, update the in-group's chains & stuff:
+		if(Iterator->pRef) {
+			ASSERT(Iterator->pRef->pRef == NULL);
+			Iterator->pRef->eXChain = Iterator->eXChain;
+			Iterator->pRef->eYChain = Iterator->eYChain;
+			Iterator->pRef->bSubselected = Iterator->bSubselected;
+			Iterator->pRef->pContext = Iterator->pContext;
+			Iterator->pRef->pSelection = Iterator->pSelection;
+			Iterator->pRef->rcRect = Iterator->rcRect;
+		}
+
 		Iterator++;
 	}
 
@@ -1706,8 +1746,8 @@ void CSpriteSelection::CWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
@@ -1749,6 +1789,17 @@ void CSpriteSelection::CWRotateSelection()
 			Iterator->rcRect = Rect; // for floating selections
 		}
 
+		// applying chains to selections, update the in-group's chains & stuff:
+		if(Iterator->pRef) {
+			ASSERT(Iterator->pRef->pRef == NULL);
+			Iterator->pRef->eXChain = Iterator->eXChain;
+			Iterator->pRef->eYChain = Iterator->eYChain;
+			Iterator->pRef->bSubselected = Iterator->bSubselected;
+			Iterator->pRef->pContext = Iterator->pContext;
+			Iterator->pRef->pSelection = Iterator->pSelection;
+			Iterator->pRef->rcRect = Iterator->rcRect;
+		}
+
 		Iterator++;
 	}
 
@@ -1764,8 +1815,8 @@ void CSpriteSelection::CCWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(&rcBoundaries);
 
-	vectorObject::iterator Iterator = m_Objects[0].begin();
-	while(Iterator != m_Objects[0].end()) {
+	vectorObject::iterator Iterator = m_Groups[0].O.begin();
+	while(Iterator != m_Groups[0].O.end()) {
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
@@ -1805,6 +1856,17 @@ void CSpriteSelection::CCWRotateSelection()
 		scontext->SetAbsFinalRect(Rect);
 		if(m_eCurrentState==eMoving) {
 			Iterator->rcRect = Rect; // for floating selections
+		}
+
+		// applying chains to selections, update the in-group's chains & stuff:
+		if(Iterator->pRef) {
+			ASSERT(Iterator->pRef->pRef == NULL);
+			Iterator->pRef->eXChain = Iterator->eXChain;
+			Iterator->pRef->eYChain = Iterator->eYChain;
+			Iterator->pRef->bSubselected = Iterator->bSubselected;
+			Iterator->pRef->pContext = Iterator->pContext;
+			Iterator->pRef->pSelection = Iterator->pSelection;
+			Iterator->pRef->rcRect = Iterator->rcRect;
 		}
 
 		Iterator++;

@@ -590,7 +590,7 @@ public:
 		m_nCurSel = GetCurSel();
 
 		CString sItem;
-		if(GetSelCount() > 1) sItem = "*VARIOUS*";
+		if(GetSelCount() > 1) sItem = "*VARIES*";
 		else if(m_nCurSel != CB_ERR) {
 			// get the old item selection text
 			GetLBText(m_nCurSel, sItem);
@@ -770,7 +770,7 @@ public:
 		} else if(nVirtKey == VK_RETURN) {
 			CString str;
 			GetWindowText(str);
-			if(str != "*VARIOUS*") {
+			if(str != "*VARIES*") {
 				int nLength = str.GetLength();
 				int nSel = SelectString(-1, str);
 				if(CB_ERR != nSel) {
@@ -781,7 +781,7 @@ public:
 			}
 		} else if(nVirtKey == VK_ESCAPE) {
 			CString sItem;
-			if(GetSelCount() > 1) sItem = "*VARIOUS*";
+			if(GetSelCount() > 1) sItem = "*VARIES*";
 			else if(m_nCurSel != CB_ERR) {
 				// get the old item selection text
 				GetLBText(m_nCurSel, sItem);
