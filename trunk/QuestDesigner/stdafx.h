@@ -89,7 +89,8 @@ extern CAppModule _Module;
 //#define _NO_MISCSTRING
 #define _NO_MISCTYPES
 
-#include "..\Misc.h"
+#include "../Misc.h"
+#include "../IConsole.h"
 
 #include "IdleHandlerPump.h"
 
@@ -166,6 +167,21 @@ extern CAppModule _Module;
 	}
 
 void ShowHelp(HWND hWnd, LPCSTR szTopic = NULL);
+
+
+#ifdef _DEBUG
+#define CONSOLE_DEBUG CConsole::Instance()->printf
+#define CONSOLE_PRINTF CConsole::Instance()->printf
+#define CONSOLE_PUTCHAR(c) CConsole::Instance()->putch(c)
+#define CONSOLE_GETCHAR() CConsole::Instance()->getch()
+#define CONSOLE_GETS(s,n) CConsole::Instance()->gets(s,n)
+#else
+#define CONSOLE_DEBUG __noop
+#define CONSOLE_PRINTF CConsole::Instance()->printf
+#define CONSOLE_PUTCHAR(c) CConsole::Instance()->putch(c)
+#define CONSOLE_GETCHAR() CConsole::Instance()->getch()
+#define CONSOLE_GETS(s,n) CConsole::Instance()->gets(s,n)
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // Bug fixes and updates needed:

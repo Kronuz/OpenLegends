@@ -26,6 +26,7 @@
 //
 // Beware of bugs.
 //
+// Modified by Kronuz on September 8th, 2003
 
 #ifndef __cplusplus
   #error WTL requires C++ compilation (use a .cpp suffix)
@@ -343,6 +344,21 @@ public:
       ATLASSERT(pValue);
       if( prop == NULL || pValue == NULL ) return FALSE;
       return prop->GetValue(pValue);
+   }
+   // Added by Kronuz
+   void SetItemMultivalue(HPROPERTY prop, bool bMultivalue)
+   {
+      ATLASSERT(::IsWindow(m_hWnd));
+      ATLASSERT(prop);
+	  if( prop == NULL ) return;
+	  // Set as multivalue and repaint
+      prop->SetMultivalue(bMultivalue);
+      // Thanks to Daniel Bowen for fixing the recreation of inplace editor here.
+      int idx = FindProperty(prop);
+      if( idx >= 0 ) {
+         InvalidateItem(idx);
+         if( idx == m_iInplaceIndex ) _SpawnInplaceWindow(prop, m_iInplaceIndex);
+      }
    }
    BOOL SetItemValue(HPROPERTY prop, VARIANT* pValue)
    {

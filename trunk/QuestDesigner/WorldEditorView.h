@@ -36,6 +36,7 @@ class CWorldEditorView :
 	public CChildView,
 	public CScrollWindowImpl<CWorldEditorView>
 {
+	typedef CScrollWindowImpl<CWorldEditorView> baseClass;
 private:
 
 	CSize m_WorldFullSize;
@@ -69,8 +70,7 @@ public:
 	//DECLARE_WND_CLASS_EX(NULL, 0, -1)
 
 	// Called to translate window messages before they are dispatched 
-	BOOL PreTranslateMessage(MSG *pMsg);
-
+	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	// Called to clean up after window is destroyed
 	virtual void OnFinalMessage(HWND /*hWnd*/);
 
@@ -119,11 +119,16 @@ public:
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled);
 
 	void DoPaint(CDCHandle dc);
-	void ToCursor(CURSOR cursor_);
+	CURSOR ToCursor(CURSOR cursor_);
 
 	void UpdateSelections();
 	void UpdateMouse(const CPoint &point);
 	bool ScrollTo(CPoint &point, CRect &rcClient, CSize &szMap);
 
-	bool hasChanged();
+	// Called to do idle processing
+	virtual BOOL OnIdle() { return FALSE; }
+	// has the content of the control changed?
+	virtual bool hasChanged();
+
+	virtual HWND SetFocus() { return baseClass::SetFocus(); }
 };

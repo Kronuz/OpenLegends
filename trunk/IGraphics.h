@@ -361,8 +361,8 @@ interface IGraphics
 		\remarks 
 		rectDest is a bounding rectangle giving the selction box. All rectangles are
 		of inclusive-exlusive type. A selection box contains is in essence a bounding box 
-		with small selection squares in the corners and in the middles to give the sense
-		that the selection can be resized.
+		with rubber bands (small selection squares in the corners and in the middles to 
+		give the sense that the selection can be resized.)
 		Before any drawing can take place, a function call to BeginPaint() must be issued.
 
 		This functionality is implemented at this level because optimizatinos can be 

@@ -19,12 +19,11 @@
 
 /////////////////////////////////////////////////////////////////////////////
 // PropertiesDockingView.cpp : implementation of the properties view dialog class
-//
+// Todo: multiple selection in the combo box and multiple edition in the properties.
 
 #include "stdafx.h"
 
 #include "PropertiesDockingView.h"
-
 
 PROPDESC PropDesc[] = {
 { "Description",		IDS_DESC_DESC },
@@ -37,6 +36,7 @@ PROPDESC PropDesc[] = {
 	{ "IsMirrored",			IDS_DESC_ISMIRRORED },
 	{ "IsFlipped",			IDS_DESC_ISFLIPPED },
 	{ "Rotation",			IDS_DESC_ROTATION },
+	{ "Alpha",				IDS_DESC_ALPHA },
 { "Misc",				IDS_DESC_EMPTY },
 	{ "Layer",				IDS_DESC_LAYER },
 	{ "SubLayer",			IDS_DESC_SUBLAYER },
@@ -53,30 +53,47 @@ LRESULT CPropertyView::OnItemChanged(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*
 
 	if(!selectioninfo->prop) return 0;
 
+	LPCSTR Name = selectioninfo->prop->GetName();
+	SProperty *pP = m_PropertyList.FindProperty(Name);
+	ASSERT(pP);
+	if(!pP) return 0;
+
 	VARIANT value;
 	memset(&value,0,sizeof(VARIANT));
 	value.vt = VT_I4;
+	if(pP->eType == SProperty::ptString) value.vt = VT_BSTR;
 	if(!selectioninfo->prop->GetValue(&value)) return 0;
-
-	LPCSTR Name = selectioninfo->prop->GetName();
-	SProperty *pP = m_PropertyList.FindProperty(Name);
 
 	switch(pP->eType) {
 		case SProperty::ptString: 
-			strncpy(pP->szString, value.pcVal, pP->uMDL-1);
+			strncpy(pP->szString, COLE2CT(value.bstrVal), pP->uMDL-1);
+			pP->bChanged = true;
 			break;
 		case SProperty::ptValue: 
 			pP->nValue = value.intVal;
+			pP->bChanged = true;
 			break;
 		case SProperty::ptBoolean: 
 			pP->bBoolean = !(value.boolVal==FALSE);
+			pP->bChanged = true;
 			break;
 		case SProperty::ptList: 
 			pP->nIndex = value.intVal;
+			pP->bChanged = true;
 			break;
 	}
 
-	m_pProperty->SetProperties(m_PropertyList);
+	int idx = m_ctrlComboBox.GetFirstSel();
+	while(idx != -1) {
+		IPropertyEnabled *pProperty = (IPropertyEnabled *)m_ctrlComboBox.GetItemDataPtr(idx);
+		if((int)pProperty == -1) return 0;
+
+		pProperty->SetProperties(m_PropertyList);
+
+		idx = m_ctrlComboBox.GetNextSel();
+	}
+	m_PropertyList.Touch(); // cleans all changed flags in the property list.
+	
 
 	return 0;
 }
@@ -106,20 +123,10 @@ LRESULT CPropertyView::OnSelChanged(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*/
 // Combo box:
 LRESULT CPropertyView::OnSelChange(WORD /*wNotifyCode*/, WORD /*wID*/, HWND hWndCtl, BOOL& bHandled)
 {
-	bHandled = false;
+	bHandled = FALSE;
 	ASSERT(GetDlgItem(IDC_COMBO) == hWndCtl);
 
-	CComboBox ctrlCombo = hWndCtl;
-	int idx = ctrlCombo.GetCurSel();
-	m_pProperty = (IPropertyEnabled *)ctrlCombo.GetItemDataPtr(idx);
-
-	SPropertyList Properties;
-	memset(&Properties, 0, sizeof(SPropertyList));
-	m_pProperty->GetProperties(&Properties);
-	m_ctrlList.ResetContent();
-	AddProperties(&Properties);
-
-	return 0;
+	return OnSetProperties();
 }
 
 LRESULT CPropertyView::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -143,10 +150,13 @@ LRESULT CPropertyView::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 	RECT rcClient;
 	GetClientRect(&rcClient);
 
-	m_pProperty = NULL;
-
 	m_ctrlToolbar.SubclassWindow( CFrameWindowImplBase<>::CreateSimpleToolBarCtrl(m_hWnd, IDR_TB_PROPVIEW, FALSE, ATL_SIMPLE_TOOLBAR_STYLE | CCS_NODIVIDER | CCS_NOPARENTALIGN | TBSTYLE_FLAT) );
 	m_ctrlToolbar.MoveWindow(0,0, rcClient.right - rcClient.left, 10);
+	m_ctrlComboBox.SubclassWindow(GetDlgItem(IDC_COMBO));
+
+	m_ctrlComboBox.SetMultiSelection();
+	m_ctrlComboBox.SetStatesBitmap(IDB_COMBO_ICONS, 16);
+	m_ctrlComboBox.AddIcon("Icon");
 
 	static CFont font;
 	CLogFont lf = GetFont();
@@ -167,9 +177,8 @@ LRESULT CPropertyView::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 }
 LRESULT CPropertyView::OnClear(WPARAM wParam, LPARAM lParam)
 {
-	CComboBox ctrlCombo = GetDlgItem(IDC_COMBO);
-	ctrlCombo.SetCurSel(0);
-	ctrlCombo.ResetContent();
+	m_ctrlComboBox.SetCurSel(0);
+	m_ctrlComboBox.ResetContent();
 	m_ctrlList.ResetContent();
 
 	char szBuffer[500];
@@ -179,109 +188,147 @@ LRESULT CPropertyView::OnClear(WPARAM wParam, LPARAM lParam)
 
 	return 0;
 }
+
+void CPropertyView::AddProperties(SPropertyList *pPL)
+{
+	HPROPERTY hProp = NULL;
+	for(int i=0; i<pPL->nProperties; i++) {
+		hProp = m_ctrlList.FindProperty(pPL->aProperties[i].szPropName);
+		if(hProp) {
+			if(pPL->aProperties[i].eType != SProperty::ptCategory) {
+				VARIANT value;
+				memset(&value,0,sizeof(VARIANT));
+
+				if(pPL->aProperties[i].eType == SProperty::ptString) {
+					value.vt = VT_LPSTR;
+					value.pcVal = pPL->aProperties[i].szString;
+					m_ctrlList.SetItemValue(hProp, &value);
+				} else if(pPL->aProperties[i].eType == SProperty::ptValue) {
+					value.vt = VT_I4;
+					value.intVal = pPL->aProperties[i].nValue;
+					m_ctrlList.SetItemValue(hProp, &value);
+				} else if(pPL->aProperties[i].eType == SProperty::ptBoolean) {
+					value.vt = VT_BOOL;
+					value.boolVal = pPL->aProperties[i].bBoolean;
+					m_ctrlList.SetItemValue(hProp, &value);
+				} else if(pPL->aProperties[i].eType == SProperty::ptList) {
+					value.vt = VT_I4;
+					value.intVal = pPL->aProperties[i].nIndex;
+					m_ctrlList.SetItemValue(hProp, &value);
+				}
+			}
+			if(hProp) {
+				m_ctrlList.SetItemEnabled(hProp, pPL->aProperties[i].bEnabled);
+				m_ctrlList.SetItemMultivalue(hProp, pPL->aProperties[i].bMultivalue);
+			}
+		} else {
+			if(pPL->aProperties[i].eType == SProperty::ptCategory) {
+				hProp = m_ctrlList.AddItem( PropCreateCategory(pPL->aProperties[i].szPropName) );
+			} else if(pPL->aProperties[i].eType == SProperty::ptString) {
+				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].szString) );
+			} else if(pPL->aProperties[i].eType == SProperty::ptValue) {
+				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].nValue) );
+			} else if(pPL->aProperties[i].eType == SProperty::ptBoolean) {
+				hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].bBoolean) );
+			} else if(pPL->aProperties[i].eType == SProperty::ptList) {
+				hProp = m_ctrlList.AddItem( PropCreateList( pPL->aProperties[i].szPropName, pPL->aProperties[i].List, pPL->aProperties[i].nIndex) );
+			}
+			if(hProp) {
+				m_ctrlList.SetItemEnabled(hProp, pPL->aProperties[i].bEnabled);
+				m_ctrlList.SetItemMultivalue(hProp, pPL->aProperties[i].bMultivalue);
+			}
+		}
+	}
+	memset(&m_PropertyList, 0, sizeof(SPropertyList));
+	m_PropertyList.Merge(pPL); // save the properties for later.
+}
+
 LRESULT CPropertyView::OnAddInfo(WPARAM wParam, LPARAM lParam)
 {
 	ASSERT(lParam);
 
 	IPropertyEnabled *pPropObj = (IPropertyEnabled *)wParam;
-
 	SInfo *pI = (SInfo *)lParam;
-	CString sInfo;
-	switch(pI->eType) {
-		case itMask:			sInfo="[Mask]";			break;
-		case itEntity:			sInfo="[Entity]";		break;
-		case itBackground:		sInfo="[Background]";	break;
-		case itMapGroup:		sInfo="[MapGroup]";		break;
-		case itSound:			sInfo="[Sound]";		break;
-		case itSpriteSheet:		sInfo="[SpriteSheet]";	break;
-		default:				sInfo="[Unknown]";		break;
-	}
-	sInfo += "   ";
-	sInfo += pI->szScope;
-	sInfo += "::";
-	if(*(pI->szName)=='\0') sInfo += "unnamed";
-	else sInfo += pI->szName;
 
-	CComboBox ctrlCombo = GetDlgItem(IDC_COMBO);
-	int idx = ctrlCombo.AddString(sInfo);
-	ctrlCombo.SetItemDataPtr(idx, (LPVOID)pI->pPropObject);
+	CString sInfo;
+
+	if(*(pI->szName)=='\0' || *(pI->szName)=='*' ) sInfo = "unnamed";
+	else sInfo = pI->szName;
+
+	sInfo += ": ";
+	sInfo += pI->szScope;
+	sInfo += " ";
+
+	int nIconIndex = 0;
+	switch(pI->eType) {
+		case itMask:
+			sInfo += "(Mask)";
+			break;
+		case itEntity:
+			sInfo += "(Entity)";
+			nIconIndex = 5;
+			break;
+		case itBackground:
+			sInfo += "(Background)";
+			nIconIndex = 6;
+			break;
+		case itMapGroup:
+			sInfo += "(MapGroup)";
+			nIconIndex = 7;
+			break;
+		case itSound:
+			sInfo += "(Sound)";
+			nIconIndex = 8;
+			break;
+		case itSpriteSheet:
+			sInfo += "(SpriteSheet)";
+			break;
+		default:
+			sInfo += "(Unknown)";
+			break;
+	}
+
+	int idx = m_ctrlComboBox.AddString(sInfo);
+	m_ctrlComboBox.SetItemDataPtr(idx, (LPVOID)pI->pPropObject);
+	m_ctrlComboBox.SetItemIcon(idx, "Icon", nIconIndex);
 
 	if(pPropObj) {
 		if(pI->pPropObject == pPropObj) 
-			ctrlCombo.SetCurSel(idx);
+			m_ctrlComboBox.SetCurSel(idx);
 	} else {
-		ctrlCombo.SetCurSel(0);
+		m_ctrlComboBox.SetSel(idx);
 	}
 	return 0;
 }
-void CPropertyView::AddProperties(SPropertyList *pPL)
+LRESULT CPropertyView::OnSetProperties(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
-	HPROPERTY hProp = NULL;
 	m_ctrlList.ResetContent();
-	for(int i=0; i<pPL->nProperties; i++) {
-		if(pPL->aProperties[i].eType == SProperty::ptCategory) {
-			hProp = m_ctrlList.AddItem( PropCreateCategory(pPL->aProperties[i].szPropName) );
-		} else if(pPL->aProperties[i].eType == SProperty::ptString) {
-			hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].szString) );
-		} else if(pPL->aProperties[i].eType == SProperty::ptValue) {
-			hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].nValue) );
-		} else if(pPL->aProperties[i].eType == SProperty::ptBoolean) {
-			hProp = m_ctrlList.AddItem( PropCreateSimple(pPL->aProperties[i].szPropName, pPL->aProperties[i].bBoolean) );
-		} else if(pPL->aProperties[i].eType == SProperty::ptList) {
-			hProp = m_ctrlList.AddItem( PropCreateList( pPL->aProperties[i].szPropName, pPL->aProperties[i].List, pPL->aProperties[i].nIndex) );
-		}
-		if(hProp) m_ctrlList.SetItemEnabled(hProp, pPL->aProperties[i].bEnabled);
+
+	return OnUpdate();
+}
+
+LRESULT CPropertyView::OnUpdate(WPARAM /*wParam*/, LPARAM /*lParam*/)
+{
+	SPropertyList FinalProperties;
+	memset(&FinalProperties, 0, sizeof(SPropertyList));
+
+	int idx = m_ctrlComboBox.GetFirstSel();
+	while(idx != -1) {
+		IPropertyEnabled *pProperty = (IPropertyEnabled *)m_ctrlComboBox.GetItemDataPtr(idx);
+		if((int)pProperty == -1) return 0;
+
+		SPropertyList Properties;
+		memset(&Properties, 0, sizeof(SPropertyList));
+		pProperty->GetProperties(&Properties);
+		if(!FinalProperties.Merge(&Properties)) break;
+
+		idx = m_ctrlComboBox.GetNextSel();
 	}
-	m_PropertyList = *pPL; // save the properties for later.
-}
-void CPropertyView::UpdateProperties()
-{
-	SPropertyList *pPL = &m_PropertyList;
 
-	VARIANT value;
-	memset(&value,0,sizeof(VARIANT));
+	AddProperties(&FinalProperties);
 
-	HPROPERTY hProp = NULL;
-	for(int i=0; i<pPL->nProperties; i++) {
-		if(pPL->aProperties[i].eType == SProperty::ptCategory) continue;
+	BOOL bDummy;
+	m_ctrlComboBox.OnSelChange(0,0,0,bDummy);
 
-		hProp = m_ctrlList.FindProperty(pPL->aProperties[i].szPropName);
-		if(!hProp) continue;
-
-		if(pPL->aProperties[i].eType == SProperty::ptString) {
-			value.vt = VT_LPSTR;
-			value.pcVal = pPL->aProperties[i].szString;
-			m_ctrlList.SetItemValue(hProp, &value);
-		} else if(pPL->aProperties[i].eType == SProperty::ptValue) {
-			value.vt = VT_I4;
-			value.intVal = pPL->aProperties[i].nValue;
-			m_ctrlList.SetItemValue(hProp, &value);
-		} else if(pPL->aProperties[i].eType == SProperty::ptBoolean) {
-			value.vt = VT_BOOL;
-			value.boolVal = pPL->aProperties[i].bBoolean;
-			m_ctrlList.SetItemValue(hProp, &value);
-		} else if(pPL->aProperties[i].eType == SProperty::ptList) {
-			value.vt = VT_I4;
-			value.intVal = pPL->aProperties[i].nIndex;
-			m_ctrlList.SetItemValue(hProp, &value);
-		}
-	}
-}
-LRESULT CPropertyView::OnSetProperties(WPARAM wParam, LPARAM lParam)
-{
-	ASSERT(lParam);
-	SPropertyList *pPL = (SPropertyList *)lParam;
-
-	m_pProperty = pPL->Information.pPropObject;
-
-	AddProperties(pPL);
-
-	return 0;
-}
-LRESULT CPropertyView::OnUpdate(WPARAM wParam, LPARAM lParam)
-{
-	memset(&m_PropertyList, 0, sizeof(SPropertyList));
-	m_pProperty->GetProperties(&m_PropertyList);
-	UpdateProperties();
 	return 0;
 }

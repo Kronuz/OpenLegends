@@ -30,9 +30,7 @@
 // Forward declarations
 class CChildFrame;
 
-class CChildView :
-	public CConsole
-{
+class CChildView {
 protected:
 	// Pointer to parent frame
 	CChildFrame *m_pParentFrame;
@@ -50,7 +48,11 @@ public:
 	CString& GetFilePath() { return m_sFilePath; }
 	CString& GetTitle() { return m_sTitle; }
 
+	virtual BOOL PreTranslateMessage(MSG* pMsg) = 0;
+	// Called to do idle processing by the parent frame:
+	virtual BOOL OnIdle() = 0;
 	virtual bool hasChanged() = 0;
+	virtual HWND SetFocus() = 0;
 
 	UINT GetProfileInt( LPCSTR pszSection, LPCSTR pszEntry, int nDefault ) const
 		{ return RegGetProfileInt( COMPANY, APPNAME, pszSection, pszEntry, nDefault ); }

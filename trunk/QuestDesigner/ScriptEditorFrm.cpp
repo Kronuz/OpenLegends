@@ -31,33 +31,6 @@ CScriptEditorFrame::CScriptEditorFrame(CMainFrame *pMainFrame) :
 { 
 }	
 
-void CScriptEditorFrame::OnFinalMessage(HWND /*hWnd*/)
-{
-	// remove ourseves from the idle message pump
-	CMessageLoop *pLoop = _Module.GetMessageLoop();
-	ATLASSERT(NULL!=pLoop);
-	pLoop->RemoveIdleHandler(this);
-
-	// the main toolbar buttons seem to stay active for a long time
-	// after we have closed _all_ the MDI child window so were going 
-	// to force idle processing to update the toolbar.
-	PumpIdleMessages();	
-
-	delete this;
-}
-BOOL CScriptEditorFrame::OnIdle()
-{
-	// update the main window's title bar
-	//UIUpdateTitle();
-		
-	// check if we are we the active window...
-	if(m_pMainFrame->MDIGetActive()==m_hWnd) {
-		// fake idle processing for the view so it updates
-		m_pScriptEditorView->OnIdle();
-	}
-	return FALSE;
-}
-
 LRESULT CScriptEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
 	HICON hIcon = (HICON)::LoadImage(
@@ -76,22 +49,22 @@ LRESULT CScriptEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BO
 										WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_HSCROLL | WS_VSCROLL, 
 										WS_EX_CLIENTEDGE);
 	if ( NULL == m_hWndClient ) {
-		ATLTRACE ( _T ( "Error: failed to create child window\n" ) );
+		ATLTRACE(_T("Error: failed to create child window\n"));
 		return FALSE;
 	}
 
-	// register ourselves for idle updates
-	CMessageLoop * pLoop = _Module.GetMessageLoop();
-	ATLASSERT(NULL!=pLoop);
-	pLoop->AddIdleHandler(this);		
+	m_pChildView = m_pScriptEditorView;
 
 	CChildFrame::Register(tScriptEditor);
-	SetMsgHandled(FALSE);
+	bHandled = FALSE;
+
 	return TRUE;
 }
 LRESULT CScriptEditorFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
 	CChildFrame::Unregister();
+	bHandled = FALSE;
+
 	return 0;
 }
 
@@ -110,34 +83,6 @@ LRESULT CScriptEditorFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 	} else {
 		return DefWindowProc();
 	}
-	return 0;
-}
-
-LRESULT CScriptEditorFrame::OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
-{
-	LPMSG pMsg = (LPMSG)lParam;
-	// we need the base class to do its stuff
-	if(baseClass::PreTranslateMessage(pMsg))
-		return TRUE;
-
-	// the messages need to be hended to the active view
-	return m_pScriptEditorView->PreTranslateMessage(pMsg);
-}
-LRESULT CScriptEditorFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
-{
-	// System settings or metrics have changed.  Propogate this message
-	// to all the child windows so they can update themselves as appropriate.
-	SendMessageToDescendants(uMsg, wParam, lParam, TRUE);
-
-	return 0;
-}
-LRESULT CScriptEditorFrame::OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
-{
-	// We give the focus to the view
-	m_pScriptEditorView->SetFocus();
-
-	// Pumping idle messages to update the main window
-	PumpIdleMessages();
 	return 0;
 }
 

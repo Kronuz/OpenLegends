@@ -44,7 +44,6 @@ CLayer::~CLayer()
 {
 	delete m_ArchiveIn;
 }
-
 CMapGroup::CMapGroup() :
 	CDrawableContext(),
 	m_pWorld(NULL),
@@ -54,6 +53,14 @@ CMapGroup::CMapGroup() :
 	m_bLoaded(false),
 	m_pMusic(NULL)
 {
+	// Build all layers for the map:
+	CLayer *pLayer = NULL;
+	for(int i=0; i<MAX_SUBLAYERS; i++) {
+		pLayer = new CLayer;
+		pLayer->SetName(g_szLayerNames[i]);
+		pLayer->SetObjSubLayer(i);	// tell the newly created layer what layer it is.
+		AddChild(pLayer);			// add the new layer to the map group
+	}
 }
 CMapGroup::~CMapGroup()
 {
@@ -62,28 +69,30 @@ CMapGroup::~CMapGroup()
 bool CMapGroup::Load()
 {
 	if(m_bLoaded) return true;	// loaded map groups can not be loaded again.
-	CLayer *layer = new CLayer;
+
+	// For now, there is only one layer availible in the worlds the ground layer (layer 2):
+	CLayer *pLayer = static_cast<CLayer *>(GetChild(2));
+	ASSERT(pLayer);
 	
 	CVFile vfFile;
 	CBString sFile;
 	CBString sPath = "questdata\\" + m_pWorld->m_fnFile.GetFileTitle(); // relative by default
 
-	// for each map in the group, we load it in the new layer
+	// for each map in the group, we load it in the ground layer:
 	for(int j=0; j<m_rcPosition.Height(); j++) {
 		for(int i=0; i<m_rcPosition.Width(); i++) {
 			sFile.Format("\\screens\\%d-%d.lnd", m_rcPosition.left + i, m_rcPosition.top + j);
 			vfFile.SetFilePath(sPath + sFile);
 
-			layer->SetLoadPoint(m_pWorld->m_szMapSize.cx*i, m_pWorld->m_szMapSize.cy*j);
-			layer->Load(vfFile);
+			pLayer->SetLoadPoint(m_pWorld->m_szMapSize.cx*i, m_pWorld->m_szMapSize.cy*j);
+			pLayer->Load(vfFile);
 		}
 	}
-	layer->SetObjSubLayer(0);	// tell the newly created layer what layer it is.
-	AddChild(layer);			// add the new layer to the map group
 
 	m_bLoaded = true;			// Map group loaded.
 	return true;
 }
+
 bool CMapGroup::Save()
 {
 	return false;
@@ -92,6 +101,20 @@ bool CMapGroup::Save()
 LPCSTR CMapGroup::GetMapGroupID() const
 {
 	return m_sMapID;
+}
+
+void CMapGroup::ShowLayer(int nLayer, bool bShow)
+{
+	ASSERT(nLayer>=0 && nLayer<=MAX_LAYERS);
+	CLayer *pLayer = static_cast<CLayer *>(GetChild(nLayer));
+	if(pLayer) pLayer->ShowContext(bShow);
+}
+bool CMapGroup::isVisible(int nLayer)
+{
+	ASSERT(nLayer>=0 && nLayer<=MAX_LAYERS);
+	CLayer *pLayer = static_cast<CLayer *>(GetChild(nLayer));
+	if(pLayer) return pLayer->isVisible();
+	return false;
 }
 
 BITMAP* CMapGroup::GetThumbnail(RECT *pRect, int x, int y) const

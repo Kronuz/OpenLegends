@@ -27,7 +27,7 @@
 
 #include "FoldersTreeBox.h"
 
-const WORD IGame::Version = 0x0200;
+const WORD IGame::Version = 0x0300;
 CProjectFactory *CProjectFactory::_instance = NULL;
 
 CProjectFactory::CProjectFactory() :
@@ -153,9 +153,9 @@ LRESULT CProjectFactory::StartBuild()
 	m_iStep = 0;
 	m_iCnt1 = Interface()->CountScripts();
 	if(m_iCnt1 == 0) m_iStep++;
-	SendMessage(m_hWnd, WMQD_BUILDBEGIN, 0, (LPARAM)(LPCSTR)Interface()->GetProjectName());
-	SendMessage(m_hWnd, WMQD_STEPEND, 0, 0); /**/
+	::SendMessage(m_hWnd, WMQD_BUILDBEGIN, 0, (LPARAM)(LPCSTR)Interface()->GetProjectName());
 	m_bBuilding = true;
+	::PostMessage(m_hWnd, WMQD_STEPEND, 0, 0); /**/
 	return TRUE;
 }
 
@@ -194,10 +194,10 @@ LRESULT CProjectFactory::BuildNextStep(WPARAM wParam, LPARAM lParam)
 				sIncludeDir, 
 				pScript->GetScriptFilePath(szScriptFile, MAX_PATH), 
 				pScript->GetCompiledFilePath(szCompiledFile, MAX_PATH) );
-		} else SendMessage(m_hWnd, WMQD_STEPEND, 0, 0);
+		} else ::PostMessage(m_hWnd, WMQD_STEPEND, 0, 0);
 	} else {
-		SendMessage(m_hWnd, WMQD_BUILDEND, m_iStep, 0);
 		m_bBuilding = false;
+		::PostMessage(m_hWnd, WMQD_BUILDEND, m_iStep, 0);
 	}
 	return TRUE;
 }

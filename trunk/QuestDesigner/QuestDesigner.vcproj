@@ -196,6 +196,12 @@
 					RelativePath="ChildView.cpp">
 				</File>
 				<File
+					RelativePath=".\GEditorFrm.cpp">
+				</File>
+				<File
+					RelativePath=".\GEditorView.cpp">
+				</File>
+				<File
 					RelativePath="MapEditorFrm.cpp">
 				</File>
 				<File
@@ -206,6 +212,12 @@
 				</File>
 				<File
 					RelativePath="ScriptEditorView.cpp">
+				</File>
+				<File
+					RelativePath=".\SptShtEditorFrm.cpp">
+				</File>
+				<File
+					RelativePath=".\SptShtEditorView.cpp">
 				</File>
 				<File
 					RelativePath="WorldEditorFrm.cpp">
@@ -295,6 +307,9 @@
 			<File
 				RelativePath="stdafx.h">
 			</File>
+			<File
+				RelativePath=".\SuperCombo.h">
+			</File>
 			<Filter
 				Name="MDI"
 				Filter="">
@@ -303,6 +318,12 @@
 				</File>
 				<File
 					RelativePath="ChildView.h">
+				</File>
+				<File
+					RelativePath=".\GEditorFrm.h">
+				</File>
+				<File
+					RelativePath=".\GEditorView.h">
 				</File>
 				<File
 					RelativePath="MapEditorFrm.h">
@@ -315,6 +336,12 @@
 				</File>
 				<File
 					RelativePath="ScriptEditorView.h">
+				</File>
+				<File
+					RelativePath=".\SptShtEditorFrm.h">
+				</File>
+				<File
+					RelativePath=".\SptShtEditorView.h">
 				</File>
 				<File
 					RelativePath="WorldEditorFrm.h">
@@ -520,6 +547,12 @@
 				RelativePath="res\arrowselect.cur">
 			</File>
 			<File
+				RelativePath=".\res\bitmap2.bmp">
+			</File>
+			<File
+				RelativePath=".\res\combo_icons.bmp">
+			</File>
+			<File
 				RelativePath="res\DragImg.bmp">
 			</File>
 			<File
@@ -536,6 +569,21 @@
 			</File>
 			<File
 				RelativePath="res\FoldersToolbar.bmp">
+			</File>
+			<File
+				RelativePath=".\res\LampOff.bmp">
+			</File>
+			<File
+				RelativePath=".\res\LampOn.bmp">
+			</File>
+			<File
+				RelativePath=".\res\layer_icons.bmp">
+			</File>
+			<File
+				RelativePath=".\res\LockOff.bmp">
+			</File>
+			<File
+				RelativePath=".\res\LockOn.bmp">
 			</File>
 			<File
 				RelativePath=".\res\logo.bmp">

@@ -20,6 +20,7 @@
 //
 // Beware of bugs.
 //
+// Modified by Kronuz on September 8th, 2003
 
 #ifndef __PROPERTYITEM__H
   #error PropertyItemImpl.h requires PropertyItem.h to be included first
@@ -44,10 +45,11 @@ protected:
    HWND   m_hWndOwner;
    LPTSTR m_pszName;
    bool   m_fEnabled;
+   bool   m_bMultivalue;	// Added by Kronuz.
    LPARAM m_lParam;
 
 public:
-   CProperty(LPCTSTR pstrName, LPARAM lParam) : m_fEnabled(true), m_lParam(lParam), m_hWndOwner(NULL)
+   CProperty(LPCTSTR pstrName, LPARAM lParam) : m_bMultivalue(false), m_fEnabled(true), m_lParam(lParam), m_hWndOwner(NULL)
    {
       ATLASSERT(!::IsBadStringPtr(pstrName,-1));
       ATLTRY(m_pszName = new TCHAR[ (::lstrlen(pstrName) * sizeof(TCHAR)) + 1 ]);
@@ -141,6 +143,15 @@ public:
       ATLASSERT(false);
       return FALSE; 
    }
+   // Added by Kronuz:
+   virtual bool IsMultivalue() const 
+   { 
+	   return m_bMultivalue; 
+   }
+   virtual void SetMultivalue(bool bMultivalue) 
+   { 
+	   m_bMultivalue = bMultivalue; 
+   }
 };
 
 
@@ -151,7 +162,6 @@ class CPropertyItem : public CProperty
 {
 protected:
    CComVariant m_val;
-
 public:
    CPropertyItem(LPCTSTR pstrName, LPARAM lParam) : CProperty(pstrName, lParam)
    {
@@ -179,6 +189,12 @@ public:
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {      
       ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
+
+	  if(IsMultivalue()) { // Added by Kronuz
+		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  return TRUE;
+	  }
+
       // Convert VARIANT to string and use that as display string...
       CComVariant v;
       if( FAILED( v.ChangeType(VT_BSTR, &m_val) ) ) return FALSE;
@@ -188,6 +204,7 @@ public:
    }
    UINT GetDisplayValueLength() const
    {
+	  if(IsMultivalue()) return sizeof(_T("* ")); // Added by Kronuz
       // Hmm, need to convert it to display string first and
       // then take the length...
       // TODO: Call GetDisplayValue() instead...
@@ -394,6 +411,11 @@ public:
    }
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
+	  if(IsMultivalue()) { // Added by Kronuz
+		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  return TRUE;
+	  }
+
       if( m_val.date == 0.0 ) {
          ::lstrcpy(pstr, _T(""));
          return TRUE;
@@ -535,6 +557,11 @@ public:
    }
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
+	  if(IsMultivalue()) { // Added by Kronuz
+		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  return TRUE;
+	  }
+
       ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
       *pstr = _T('\0');
       if( m_val.bstrVal == NULL ) return TRUE;
@@ -551,6 +578,8 @@ public:
    }
    UINT GetDisplayValueLength() const
    {
+	  if(IsMultivalue()) return sizeof(_T("* ")); // Added by Kronuz
+
       TCHAR szPath[MAX_PATH] = { 0 };
       if( !GetDisplayValue(szPath, (sizeof(szPath) / sizeof(TCHAR)) - 1) ) return 0;
       return ::lstrlen(szPath);
@@ -620,6 +649,11 @@ public:
    }
    BOOL GetDisplayValue(LPTSTR pstr, UINT cchMax) const
    {
+	  if(IsMultivalue()) { // Added by Kronuz
+		  ::lstrcpyn(pstr, _T("*"), cchMax);
+		  return TRUE;
+	  }
+
       ATLASSERT(m_val.vt==VT_I4);
       ATLASSERT(!::IsBadStringPtr(pstr, cchMax));
       *pstr = _T('\0');
@@ -630,6 +664,8 @@ public:
    }
    UINT GetDisplayValueLength() const
    {
+	  if(IsMultivalue()) return sizeof(_T("* ")); // Added by Kronuz
+
       ATLASSERT(m_val.vt==VT_I4);
       if( m_val.lVal < 0 || m_val.lVal >= m_arrList.GetSize() ) return 0;
       BSTR bstr = m_arrList[m_val.lVal];

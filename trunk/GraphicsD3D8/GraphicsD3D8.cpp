@@ -1435,7 +1435,7 @@ void CGraphicsD3D8::SelectionBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 	RECT rcb = Rects;
 	RenderRect(Rects, rgbColor);
 
-	// Small boxes at the corners:
+	// rubber bands (Small boxes at the corners):
 	::SetRect(&rcb, Rects.left-cbsz, Rects.top-cbsz, Rects.left+cbsz+1, Rects.top+cbsz+1);
 	RenderFill(rcb, rgbColor);
 
@@ -1448,7 +1448,7 @@ void CGraphicsD3D8::SelectionBox(const RECT &rectDest, ARGBCOLOR rgbColor) const
 	::SetRect(&rcb, Rects.right-1-cbsz, Rects.bottom-1-cbsz, Rects.right-1+cbsz+1, Rects.bottom-1+cbsz+1);
 	RenderFill(rcb, rgbColor);
 
-	// Small boxes in the middles:
+	// rubber bands (Small boxes in the middles):
 	int my = Rects.top + (Rects.bottom-Rects.top)/2;
 	int mx = Rects.left + (Rects.right-Rects.left)/2;
 

@@ -20,6 +20,7 @@
 #pragma once
 
 #include "../IGame.h"
+#include "SuperCombo.h"
 
 #include <PropertyList.h>
 #include "ToolBarBox.h"
@@ -33,20 +34,18 @@ class CPropertyView :
 	public CDialogImpl<CPropertyView>,
 	public CDialogResize<CPropertyView>
 {
-	IPropertyEnabled *m_pProperty;
 	SPropertyList m_PropertyList;
 
 	int m_nMinWidth;
 	int m_nMinHeight;
 
 	void AddProperties(SPropertyList *pPL);
-	void UpdateProperties();
-
 public:
 	enum { IDD = IDD_PROPERTYVIEW };
 
 	CToolBarBox m_ctrlToolbar;
 	CPropertyListCtrl m_ctrlList;
+	CSuperComboBoxCtrl m_ctrlComboBox;
 
 	BEGIN_MSG_MAP(CPropertyView)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
@@ -79,8 +78,8 @@ public:
 
 	LRESULT OnClear(WPARAM wParam, LPARAM lParam);
 	LRESULT OnAddInfo(WPARAM wParam, LPARAM lParam);
-	LRESULT OnSetProperties(WPARAM wParam, LPARAM lParam);
-	LRESULT OnUpdate(WPARAM wParam, LPARAM lParam);
+	LRESULT OnSetProperties(WPARAM /*wParam*/ = 0, LPARAM /*lParam*/ = 0);
+	LRESULT OnUpdate(WPARAM /*wParam*/ = 0, LPARAM /*lParam*/ = 0);
 
 };
 

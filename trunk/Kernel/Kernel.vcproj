@@ -87,9 +87,7 @@
 				WarningLevel="3"
 				DebugInformationFormat="0"/>
 			<Tool
-				Name="VCCustomBuildTool"
-				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff amxexec.asm
-"/>
+				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="fmodvc.lib zlib.lib amxexec.obj"

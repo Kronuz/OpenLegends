@@ -46,6 +46,23 @@ class CWorld;
 #include "SpriteManager.h"
 #include "ArchiveText.h"
 
+const char g_szLayerNames[MAX_LAYERS][30] = {
+	"0 - Underground",
+	"1 - Underground",
+	"2 - Ground",
+	"3 - First Level",
+	"4 - Second Level",
+	"5 - Third Level"
+};
+const char g_szSubLayerNames[MAX_SUBLAYERS][30] = {
+	"0 - Background",
+	"1 - Sprites",
+	"2 - Entities",
+	"3 - Top Background",
+	"4 - Top Sprites",
+	"5 - Top Entities"
+};
+
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CLayer
 	\brief		CLayer class.
@@ -101,6 +118,9 @@ public:
 	// Interface:
 	virtual bool Load();
 	virtual bool Save();
+
+	virtual void ShowLayer(int nLayer, bool bShow = true);
+	virtual bool isVisible(int nLayer);
 
 	virtual void GetSize(CSize &_Size) const { CDrawableContext::GetSize(_Size); };
 

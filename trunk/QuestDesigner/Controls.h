@@ -129,53 +129,133 @@ public:
 		GetItemText(pnmtv->itemNew.hItem, bstr.m_str);
 		_SpriteSet *pSpriteSet = (_SpriteSet*)GetItemData(pnmtv->itemNew.hItem);
 		
-		CIDropSource* pdsrc = new CIDropSource;
-		if(pdsrc == NULL)
-			return 0;
-		pdsrc->AddRef();
+		CIDropSource* pDropSource = new CIDropSource;
+		if(pDropSource == NULL) return 0;
+		pDropSource->AddRef();
 
-		CIDataObject* pdobj = new CIDataObject(pdsrc);
-		if(pdobj == NULL)
-			return 0;
-		pdobj->AddRef();
+		CIDataObject* pDataObject = new CIDataObject(pDropSource);
+		if(pDataObject == NULL) return 0;
+		pDataObject->AddRef();
 
-		FORMATETC fmtetc = {0};
-		fmtetc.cfFormat = CF_TEXT;
-		fmtetc.dwAspect = DVASPECT_CONTENT;
-		fmtetc.lindex = -1;
-		fmtetc.tymed = TYMED_HGLOBAL;
-
-		STGMEDIUM medium = {0};
-		medium.tymed = TYMED_HGLOBAL;
 		TCHAR* str = OLE2T(bstr.m_str);
 
+		HGLOBAL hGlobal = NULL;
+		BITMAP *pBitmap = NULL;
+		HBITMAP hBitmapOle = NULL;
+		CRect BitmapRect(0, 0, 0, 0);
 		if(pSpriteSet) {
-			if(strcmp(pSpriteSet->Info.ID, "Quest Designer Sprite Set")) pSpriteSet = NULL;
+			if(strncmp(pSpriteSet->Info.ID, QUEST_SET_ID, QUEST_SET_IDLEN)) pSpriteSet = NULL;
 			else if(pSpriteSet->Info.dwSignature != QUEST_SET_SIGNATURE) pSpriteSet = NULL;
 		}
-
 		if(pSpriteSet) {
-			int size = (int)(sizeof(_SpriteSet::_SpriteSetInfo)+sizeof(_SpriteSet::_SpriteSetData)*pSpriteSet->Info.nSize);
-			medium.hGlobal = GlobalAlloc(GMEM_MOVEABLE, size);
-			BYTE *pMem = (BYTE*)GlobalLock(medium.hGlobal);
-			memcpy(pMem, pSpriteSet, size);
-			GlobalUnlock(medium.hGlobal);
+			hGlobal = GlobalAlloc(GMEM_MOVEABLE, pSpriteSet->Info.dwSize);
+			if(!hGlobal) return 0;
+
+			BYTE *pMem = (BYTE*)GlobalLock(hGlobal);
+			ASSERT(pMem);
+
+			memcpy(pMem, pSpriteSet, pSpriteSet->Info.dwSize);
+			GlobalUnlock(hGlobal);
+
+			if(pSpriteSet->Info.dwBitmapOffset) {
+				pBitmap = (BITMAP *)((char *)pSpriteSet + pSpriteSet->Info.dwBitmapOffset);
+				pBitmap->bmBits = (char*)pBitmap + sizeof(BITMAP);
+			}
 		} else {
-			medium.hGlobal = GlobalAlloc(GMEM_MOVEABLE, sizeof(TCHAR)*(strlen(str)+1)); //for NULL
-			TCHAR *pMem = (TCHAR*)GlobalLock(medium.hGlobal);
+			hGlobal = GlobalAlloc(GMEM_MOVEABLE, sizeof(TCHAR)*(strlen(str)+1)); //for NULL
+			if(!hGlobal) return 0;
+
+			TCHAR *pMem = (TCHAR*)GlobalLock(hGlobal);
+			ASSERT(pMem);
+
 			strcpy(pMem, str);
-			GlobalUnlock(medium.hGlobal);
+			GlobalUnlock(hGlobal);
 		}
 
-		pdobj->SetData(&fmtetc,&medium,TRUE);
-		
+		FORMATETC fmtetc = {0};
+		STGMEDIUM medium = {0};
+		fmtetc.dwAspect = DVASPECT_CONTENT;
+		fmtetc.lindex = -1;
+		//////////////////////////////////////
+		if(pBitmap) { // If there is a thumbnail bitmap:
+			// fill BITMAPINFO struct
+			BITMAPINFO bmpInfo;
+			BITMAPINFOHEADER* pInfo = &bmpInfo.bmiHeader;
+			pInfo->biSize = sizeof(BITMAPINFOHEADER);
+			pInfo->biWidth  = pBitmap->bmWidth;
+			pInfo->biHeight = pBitmap->bmHeight;
+			pInfo->biPlanes = 1;
+			pInfo->biBitCount = pBitmap->bmBitsPixel;
+			pInfo->biCompression = BI_RGB;
+			pInfo->biSizeImage = 0;
+			pInfo->biXPelsPerMeter = 0;
+			pInfo->biYPelsPerMeter = 0;
+			pInfo->biClrUsed = 0;
+			pInfo->biClrImportant = 0;
+
+			HDC hDC = GetDC();
+			HDC hDCMem = ::CreateCompatibleDC(hDC); 
+			HBITMAP hBitmap = ::CreateCompatibleBitmap(hDC, pInfo->biWidth, pInfo->biHeight);
+			HGDIOBJ hOldBmp = ::SelectObject(hDCMem, hBitmap);
+
+			BitmapRect.SetRect(0, 0, pBitmap->bmWidth, pBitmap->bmHeight);
+			StretchDIBits(
+				hDCMem,
+				0,						// x-coordinate of upper-left corner of dest. rectangle
+				0,						// y-coordinate of upper-left corner of dest. rectangle
+				pBitmap->bmWidth,		// width of destination rectangle
+				pBitmap->bmHeight,		// height of destination rectangle
+				0,						// x-coordinate of upper-left corner of source rectangle
+				0,						// y-coordinate of upper-left corner of source rectangle
+				pBitmap->bmWidth,		// width of source rectangle
+				pBitmap->bmHeight,		// height of source rectangle
+				pBitmap->bmBits,		// address of bitmap bits
+				&bmpInfo,				// address of bitmap data
+				DIB_RGB_COLORS,			// usage flags
+				SRCCOPY					// raster operation code
+			);
+			//////////////////////////////////////
+			fmtetc.cfFormat = CF_BITMAP;
+			fmtetc.tymed = TYMED_GDI;			
+			medium.tymed = TYMED_GDI;
+			hBitmapOle = (HBITMAP)OleDuplicateData(hBitmap, fmtetc.cfFormat, NULL);
+			medium.hBitmap = hBitmapOle;
+			pDataObject->SetData(&fmtetc, &medium, FALSE);
+			//////////////////////////////////////
+			fmtetc.cfFormat = CF_ENHMETAFILE;
+			fmtetc.tymed = TYMED_ENHMF;
+			medium.tymed = TYMED_ENHMF;
+			HDC hMetaDC = CreateEnhMetaFile(hDC, NULL, NULL, NULL);
+			::BitBlt(hMetaDC, 0, 0, BitmapRect.Width(), BitmapRect.Height(), hDCMem, 0, 0, SRCCOPY);
+			medium.hEnhMetaFile = CloseEnhMetaFile(hMetaDC);
+			pDataObject->SetData(&fmtetc, &medium, TRUE);
+			//////////////////////////////////////
+			::SelectObject(hDCMem, hOldBmp);
+			::DeleteObject(hBitmap);
+			::DeleteDC(hDCMem);
+			ReleaseDC(hDC);
+		}
+
+		//////////////////////////////////////
+		fmtetc.cfFormat = CF_TEXT;
+		fmtetc.tymed = TYMED_HGLOBAL;
+		medium.tymed = TYMED_HGLOBAL;
+		medium.hGlobal = hGlobal;
+		pDataObject->SetData(&fmtetc, &medium, TRUE);
+		//////////////////////////////////////
+
 		CDragSourceHelper dragSrcHelper;
-		// get drag image from the window through DI_GETDRAGIMAGE (treeview seems to already support it)
-		dragSrcHelper.InitializeFromWindow(m_hWnd, pnmtv->ptDrag, pdobj);
+		if(hBitmapOle) { // If there is a thumbnail bitmap:
+			dragSrcHelper.InitializeFromBitmap(hBitmapOle, BitmapRect.CenterPoint(), BitmapRect, pDataObject, RGB(255,255,255)); //will own the bmp
+		} else {
+			// get drag image from the window through DI_GETDRAGIMAGE (treeview seems to already support it)
+			dragSrcHelper.InitializeFromWindow(m_hWnd, pnmtv->ptDrag, pDataObject);
+		}
+
 		DWORD dwEffect;
-		HRESULT hr = ::DoDragDrop(pdobj, pdsrc, DROPEFFECT_COPY, &dwEffect);
-		pdsrc->Release();
-		pdobj->Release();
+		HRESULT hr = ::DoDragDrop(pDataObject, pDropSource, DROPEFFECT_COPY, &dwEffect);
+		pDropSource->Release();
+		pDataObject->Release();
 		return 0;
 	}
 

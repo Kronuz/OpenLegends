@@ -52,7 +52,7 @@ int sc_printf(const char *message,...)
   va_list argptr;
 
   va_start(argptr,message);
-  ret = SCompiler::Instance()->print(message, argptr);
+  ret = CConsole::Instance()->print(message, argptr);
   va_end(argptr);
 
   return ret;
@@ -60,7 +60,7 @@ int sc_printf(const char *message,...)
 }
 int sc_error(int number,char *message,char *filename,int firstline,int lastline,va_list argptr)
 {
-	return SCompiler::Instance()->error(number,message,filename,firstline,lastline,argptr);
+	return CConsole::Instance()->error(number,message,filename,firstline,lastline,argptr);
 }
 void *sc_opensrc(char *filename)
 {
@@ -270,10 +270,10 @@ DWORD WINAPI ThreadProc( LPVOID lpParameter )
 
 	WaitForSingleObject(pCompiler->m_Mutex, INFINITE);
 	pCompiler->m_bInUse = true;
-	SendMessage(SCompiler::ms_hWnd, WMQD_STEPBEGIN, 0, 0);
+	::PostMessage(CConsole::ms_hWnd, WMQD_STEPBEGIN, 0, 0);
 	sc_compile(pTPT->argc, pTPT->argv);
 	pCompiler->m_bInUse = false;
-	SendMessage(SCompiler::ms_hWnd, WMQD_STEPEND, 0, 0);
+	::PostMessage(CConsole::ms_hWnd, WMQD_STEPEND, 0, 0);
 	ReleaseMutex(pCompiler->m_Mutex);
 
 	for(int i=0; i<pTPT->argc; i++) 

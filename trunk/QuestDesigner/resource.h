@@ -42,8 +42,8 @@
 #define IDI_END                         240
 #define IDD_ACK                         252
 #define IDI_ICON1                       256
-#define IDB_BITMAP1                     257
 #define IDB_LOGO                        257
+#define IDB_COMBO_ICONS                 263
 #define ID_VIEW_PANEFIRST               500
 #define ID_PANE_THINGSTODO              500
 #define ID_PANE_PROJECTDESCRIPTION      501
@@ -58,16 +58,15 @@
 #define IDC_ARROWSELECT                 1002
 #define IDC_COMBO                       1003
 #define IDC_LIST                        1004
-#define IDC_MHAND                       1004
 #define IDC_TITLE                       1005
 #define IDC_FRAME                       1006
 #define IDC_DESCRIPTION                 1007
-#define IDC_HAND                        1007
-#define IDC_PROPERTIES_PLACEHOLDER      1008
-#define IDC_PROPERTIES_TREE             1009
-#define IDC_STATIC_CONFIGURE            1010
-#define IDC_STATIC_INFO                 1011
-#define IDC_STATIC_OPTION               1012
+#define IDC_MHAND                       1008
+#define IDC_PROPERTIES_PLACEHOLDER      1009
+#define IDC_PROPERTIES_TREE             1010
+#define IDC_STATIC_CONFIGURE            1011
+#define IDC_STATIC_INFO                 1012
+#define IDC_STATIC_OPTION               1013
 #define IDC_GPL_EDIT                    1020
 #define IDC_EMAIL1_STATIC               1021
 #define IDC_URL1_STATIC                 1022
@@ -119,15 +118,15 @@
 #define ID_MAPED_NOZOOM                 32270
 #define ID_MAPED_OBJDWN                 32271
 #define ID_MAPED_OBJUP                  32272
-#define ID_MAPED_PLAYER                 32274
-#define ID_MAPED_RULE                   32278
-#define ID_MAPED_SELECT                 32281
-#define ID_MAPED_SELECT_ALL             32282
-#define ID_MAPED_SELECT_NONE            32283
-#define ID_MAPED_TOBOTTOM               32284
-#define ID_MAPED_TOTOP                  32285
-#define ID_MAPED_ZOOMIN                 32286
-#define ID_MAPED_ZOOMOUT                32287
+#define ID_MAPED_PLAYER                 32273
+#define ID_MAPED_RULE                   32274
+#define ID_MAPED_SELECT                 32275
+#define ID_MAPED_SELECT_ALL             32276
+#define ID_MAPED_SELECT_NONE            32277
+#define ID_MAPED_TOBOTTOM               32278
+#define ID_MAPED_TOTOP                  32279
+#define ID_MAPED_ZOOMIN                 32280
+#define ID_MAPED_ZOOMOUT                32281
 #define ID_SCRIPTED_CLEAR_ALL_BOOKMARKS 32301
 #define ID_SCRIPTED_FIND_NEXT           32304
 #define ID_SCRIPTED_FIND_PREV           32305
@@ -149,8 +148,9 @@
 #define ID_QUEST_NEW                    32401
 #define ID_SCRIPTED_CODELIST            32404
 #define ID_SCRIPTED_CODETIP1            32405
-#define ID_BUTTON32406                  32406
 #define ID_SCRIPTED_CODETIP2            32406
+#define ID_APP_NOSOUND                  32408
+#define ID_BUTTON32409                  32409
 #define ID_APP_SAVE                     57603
 #define ID_APP_SAVE_AS                  57604
 #define ID_ERASE                        57632
@@ -166,7 +166,6 @@
 #define ID_REDO                         57644
 #define IDS_MESSAGE_PASSED_N_OF_FILE    60001
 #define IDS_WARNING_RELOAD              60002
-
 #define IDS_DESC_EMPTY                  60100
 #define IDS_DESC_DESC                   60101
 #define IDS_DESC_NAME                   60102
@@ -183,13 +182,14 @@
 #define IDS_DESC_ISVISIBLE              60113
 #define IDS_DESC_VCHAIN                 60114
 #define IDS_DESC_HCHAIN                 60115
+#define IDS_DESC_ALPHA                  60116
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        259
-#define _APS_NEXT_COMMAND_VALUE         32407
+#define _APS_NEXT_RESOURCE_VALUE        263
+#define _APS_NEXT_COMMAND_VALUE         32410
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           105
 #endif

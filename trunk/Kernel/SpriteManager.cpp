@@ -19,7 +19,11 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		SpriteManager.cpp
 	\brief		Implementation of the sprite classes.
-	\date		April 17, 2003
+	\date		April 17, 2003:
+					* Initial release.
+				September 3, 2003:
+					- Bug Fix. Pasted objects could not be rotated correctly.
+					- Bug Fix. Rotated objects not showing correctly.
 
 	This file implements all the classes that manage the sprites,
 	including backgrounds, sprite sheets, animations, mask maps and
@@ -66,7 +70,7 @@ bool CBackground::NeedToDraw(const CDrawableContext &scontext)
 		const IGraphics *pGraphics = scontext.GetGraphicsDevice();
 		CRect rcLocation;
 		CRect rcVisible = pGraphics->GetVisibleRect();
-		scontext.GetAbsRect(rcLocation);
+		scontext.GetAbsFinalRect(rcLocation);
 		rcLocation.IntersectRect(rcVisible, rcLocation);
 		if(!rcLocation.IsRectEmpty()) return true;
 	}
@@ -262,8 +266,12 @@ bool CSpriteContext::GetInfo(SInfo *pI) const
 	else if(eType == tBackground) pI->eType = itBackground;
 	else if(eType == tEntity) pI->eType = itEntity;
 
-	strncpy(pI->szName, GetName(), 29);
-	strncpy(pI->szScope, m_pDrawableObj->GetName(), 29);
+	strncpy(pI->szName, GetName(), sizeof(pI->szName) - 1);
+	strncpy(pI->szScope, m_pDrawableObj->GetName(), sizeof(pI->szScope) - 1);
+
+	pI->szName[sizeof(pI->szName) - 1] = '\0';
+	pI->szScope[sizeof(pI->szScope) - 1] = '\0';
+
 	pI->pPropObject = (IPropertyEnabled*)this;
 	return true;
 }
@@ -276,7 +284,7 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 	CRect Rect;
 	pPL->AddCategory("Appearance");
 	if(pPL->Information.eType == itEntity) pPL->AddString("Name", GetName());
-	GetAbsRect(Rect);
+	GetAbsFinalRect(Rect);
 	pPL->AddValue("X", Rect.left);
 	pPL->AddValue("Y", Rect.top);
 	if(pPL->Information.eType == itEntity) {
@@ -285,17 +293,31 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 		pPL->AddBoolean("IsMirrored", isMirrored(), false);
 		pPL->AddBoolean("IsFlipped", isFlipped(), false);
 		pPL->AddList("Rotation", Rotation(), "0 degrees, 90 degrees, 180 degrees, 270 degrees", false);
+		pPL->AddValue("Alpha", getAlpha(), false);
 	} else {
 		pPL->AddValue("Width", Rect.Width());
 		pPL->AddValue("Height", Rect.Height());
 		pPL->AddBoolean("IsMirrored", isMirrored());
 		pPL->AddBoolean("IsFlipped", isFlipped());
 		pPL->AddList("Rotation", Rotation(), "0 degrees, 90 degrees, 180 degrees, 270 degrees");
+		pPL->AddValue("Alpha", getAlpha());
 	}
 
 	pPL->AddCategory("Misc");
-	pPL->AddList("Layer", GetObjLayer(), "0 - Ground, 1 - First Level, 2 - Second Level, 3 - Third Level, 4 - Fourth Level, 5 - Fifth Level ");
-	pPL->AddList("SubLayer", GetObjSubLayer(), "0 - Background, 1 - Sprites, 2 - Entities, 3 - Top Background, 4 - Top Sprites, 5 - Top Entities");
+
+	char szLayersList[MAX_LAYERS + sizeof(g_szLayerNames)] = {0};
+	for(int i=0; i<MAX_LAYERS; i++) {
+		strcat(szLayersList, g_szLayerNames[i]);
+		if(i != MAX_LAYERS-1) strcat(szLayersList, ",");
+	}
+	char szSubLayersList[MAX_SUBLAYERS + sizeof(g_szSubLayerNames)] = {0};
+	for(int i=0; i<MAX_SUBLAYERS; i++) {
+		strcat(szSubLayersList, g_szSubLayerNames[i]);
+		if(i != MAX_SUBLAYERS-1) strcat(szSubLayersList, ",");
+	}
+
+	pPL->AddList("Layer", GetObjLayer(), szLayersList);
+	pPL->AddList("SubLayer", GetObjSubLayer(), szSubLayersList);
 	pPL->AddString("Sprite Sheet", static_cast<CSprite*>(m_pDrawableObj)->GetSpriteSheet()->GetName(), false);
 	
 	pPL->AddCategory("Behavior");
@@ -308,36 +330,39 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 	SProperty* pP;
 
 	CRect Rect;
-	GetAbsRect(Rect);
+	GetAbsFinalRect(Rect);
 
 	pP = PL.FindProperty("X", SProperty::ptValue);
-	if(pP) if(pP->bEnabled) Rect.left = (_Chain)pP->nValue;
+	if(pP) if(pP->bEnabled && pP->bChanged) Rect.OffsetRect(pP->nValue - Rect.left, 0);
 	
 	pP = PL.FindProperty("Y", SProperty::ptValue);
-	if(pP) if(pP->bEnabled) Rect.top = (_Chain)pP->nValue;
+	if(pP) if(pP->bEnabled && pP->bChanged) Rect.OffsetRect(0, pP->nValue - Rect.top);
 
 	pP = PL.FindProperty("Width", SProperty::ptValue);
-	if(pP) if(pP->bEnabled) Rect.right = Rect.left + (_Chain)pP->nValue;
+	if(pP) if(pP->bEnabled && pP->bChanged) Rect.right = Rect.left + pP->nValue;
 
 	pP = PL.FindProperty("Height", SProperty::ptValue);
-	if(pP) if(pP->bEnabled) Rect.bottom = Rect.top + (_Chain)pP->nValue;
+	if(pP) if(pP->bEnabled && pP->bChanged) Rect.bottom = Rect.top + pP->nValue;
 
-	SetAbsRect(Rect);
+	SetAbsFinalRect(Rect);
+
+	pP = PL.FindProperty("Alpha", SProperty::ptValue);
+	if(pP) if(pP->bEnabled && pP->bChanged) Alpha(pP->nValue);
 
 	pP = PL.FindProperty("IsMirrored", SProperty::ptBoolean);
-	if(pP) if(pP->bEnabled) Mirror((_Chain)pP->bBoolean);
+	if(pP) if(pP->bEnabled && pP->bChanged) Mirror(pP->bBoolean);
 
 	pP = PL.FindProperty("IsFlipped", SProperty::ptBoolean);
-	if(pP) if(pP->bEnabled) Flip((_Chain)pP->bBoolean);
+	if(pP) if(pP->bEnabled && pP->bChanged) Flip(pP->bBoolean);
 	
 	pP = PL.FindProperty("Rotation", SProperty::ptList);
-	if(pP) if(pP->bEnabled) Rotate((_Chain)pP->nIndex);
+	if(pP) if(pP->bEnabled && pP->bChanged) Rotate(pP->nIndex);
 
 	pP = PL.FindProperty("SubLayer", SProperty::ptList);
-	if(pP) if(pP->bEnabled) SetObjSubLayer((_Chain)pP->nIndex);
+	if(pP) if(pP->bEnabled && pP->bChanged) SetObjSubLayer(pP->nIndex);
 
 	pP = PL.FindProperty("Layer", SProperty::ptList);
-	if(pP) if(pP->bEnabled) SetObjLayer((_Chain)pP->nIndex);
+	if(pP) if(pP->bEnabled && pP->bChanged) SetObjLayer(pP->nIndex);
 
 	return true;
 }
@@ -355,29 +380,27 @@ CSpriteContext::CSpriteContext(LPCSTR szName) :
 
 void CSpriteSelection::BuildRealSelectionBounds()
 {
+	CRect RectTmp;
 	m_rcSelection.SetRectEmpty();
-	// We need to keep the initial size and location of every selected object:
-
-	mapObject::iterator Iterator = m_Objects.begin();
-	while(Iterator != m_Objects.end()) {
-		CRect Rect;
-		Iterator->first->GetAbsFinalRect(Rect);
-		Iterator->second.rcRect = Rect;
-		m_rcSelection.UnionRect(m_rcSelection, Rect);
-		Iterator++;
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		Iterator->pContext->GetAbsFinalRect(RectTmp);
+		m_rcSelection.UnionRect(m_rcSelection, RectTmp);
+		// We need to keep the initial size and location of every selected object:
+		Iterator->rcRect = RectTmp;
 	}
 }
 SObjProp* CSpriteSelection::GetFirstSelection()
 {
 	m_CurrentSel = m_Objects.begin();
 	if(m_CurrentSel == m_Objects.end()) return NULL;
-	return &(m_CurrentSel++)->second;
+	return (m_CurrentSel++).operator ->();
 }
 SObjProp* CSpriteSelection::GetNextSelection() 
 {
 	if(m_CurrentSel == NULL) return NULL;
 	if(m_CurrentSel == m_Objects.end()) return NULL;
-	return &(m_CurrentSel++)->second;
+	return (m_CurrentSel++).operator ->();
 }
 
 bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
@@ -387,9 +410,9 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 	int nObjects = (int)m_Objects.size();
 	const CSpriteContext *scontext = NULL;
 
-	mapObject::iterator Iterator = m_Objects.begin();
+	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
-		scontext = static_cast<const CSpriteContext*>(Iterator->first);
+		scontext = static_cast<const CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 		Rect.UnionRect(Rect, RectTmp);
 		if(nObjects>1) {
@@ -398,19 +421,19 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 
 			CRect rcSpecial, rcArrow;
 			rcSpecial = RectTmp;
-			if(Iterator->second.eXChain == left) {
+			if(Iterator->eXChain == left) {
 				rcSpecial.right = rcSpecial.left+1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->second.eXChain == right) {
+			} else if(Iterator->eXChain == right) {
 				rcSpecial.left = rcSpecial.right-1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->second.eXChain == fixed) {
+			} else if(Iterator->eXChain == fixed) {
 				rcSpecial.right = rcSpecial.left+1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 				rcSpecial = RectTmp;
 				rcSpecial.left = rcSpecial.right-1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-			} else if(Iterator->second.eXChain == stretch) {
+			} else if(Iterator->eXChain == stretch) {
 				rcSpecial.top = rcSpecial.top+rcSpecial.Height()/2;
 				rcSpecial.bottom = rcSpecial.top+1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
@@ -431,19 +454,19 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 			}
 
 			rcSpecial = RectTmp;
-			if(Iterator->second.eYChain == up) {
+			if(Iterator->eYChain == up) {
 				rcSpecial.bottom = rcSpecial.top+1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->second.eYChain == down) {
+			} else if(Iterator->eYChain == down) {
 				rcSpecial.top = rcSpecial.bottom-1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-			} else if(Iterator->second.eYChain == fixed) {
+			} else if(Iterator->eYChain == fixed) {
 				rcSpecial.bottom = rcSpecial.top+1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
 				rcSpecial = RectTmp;
 				rcSpecial.top = rcSpecial.bottom-1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-			} else if(Iterator->second.eYChain == stretch) {
+			} else if(Iterator->eYChain == stretch) {
 				rcSpecial.left = rcSpecial.left+rcSpecial.Width()/2;
 				rcSpecial.right = rcSpecial.left+1;
 				pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
@@ -492,9 +515,9 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 
 // this function expects normalized rects
 // simpler, yet much better ResizeObject()
-void CSpriteSelection::ResizeObject(CDrawableContext *Object, const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_)
+void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_)
 {
-	const CSpriteContext *scontext = static_cast<const CSpriteContext*>(Object);
+	CSpriteContext *scontext = static_cast<CSpriteContext*>(ObjProp_.pContext);
 	if(!scontext->isTiled()) bAllowResize_ = false;
 
 	int w = ObjProp_.rcRect.Width();
@@ -602,53 +625,209 @@ void CSpriteSelection::ResizeObject(CDrawableContext *Object, const SObjProp &Ob
 	}
 
 	ASSERT(Rect.right>Rect.left && Rect.bottom>Rect.top);
-	Object->SetAbsFinalRect(Rect);
+	scontext->SetAbsFinalRect(Rect);
 }
 
-HGLOBAL CSpriteSelection::Copy()
+// pBitmap must point to a block of memory allocated by the Kernel (i.e. via CaptureSelection or similars)
+HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 {
-	if(m_Objects.size() == 0) return NULL;
+	BITMAP *pBitmap = NULL;
+	if(ppBitmap) pBitmap = *ppBitmap;
 
-	CRect rcBoundaries, RectTmp;
-	GetBoundingRect(rcBoundaries);
+	if(m_Objects.size() == 0) {
+		if(bDeleteBitmap && ppBitmap) {
+			*ppBitmap = NULL;
+			delete []pBitmap;
+		}
+		return NULL;
+	}
 
-	int size = (int)(sizeof(_SpriteSet::_SpriteSetInfo)+sizeof(_SpriteSet::_SpriteSetData)*m_Objects.size());
-	HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, size); 
-	if(hglbCopy == NULL) return NULL;
+	int bmpsize = 0;
+	if(pBitmap) bmpsize = sizeof(BITMAP) + pBitmap->bmHeight * pBitmap->bmWidthBytes;
+	int size = (int)(sizeof(_SpriteSet::_SpriteSetInfo));
 
- 	// Lock the handle and copy the text to the buffer. 
-	_SpriteSet *CopyBoard = (_SpriteSet*)::GlobalLock(hglbCopy);
-	strcpy(CopyBoard->Info.ID, "Quest Designer Sprite Set");
-	CopyBoard->Info.dwSignature = QUEST_SET_SIGNATURE;
-	CopyBoard->Info.nSize = (int)m_Objects.size();
-
-	CopyBoard->Info.rcBoundaries = rcBoundaries;
-	CopyBoard->Info.rcBoundaries.OffsetRect(-rcBoundaries.TopLeft());
-	
-	_SpriteSet::_SpriteSetData *pData = (_SpriteSet::_SpriteSetData *)((char*)CopyBoard + sizeof(_SpriteSet::_SpriteSetInfo));
-
-	mapObject::iterator Iterator = m_Objects.begin();
+	// Analize the selected objeects to find out the needed size for the sprite set:
+	CSprite *pOldSprite = NULL;
+	vectorObject::iterator Iterator = m_Objects.begin();
 	for(int i=0; Iterator != m_Objects.end(); i++) {
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
-		
-		scontext->GetAbsFinalRect(RectTmp);
-		RectTmp.OffsetRect(-rcBoundaries.TopLeft());
-		LPCSTR szName = scontext->GetObjName();
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
+		CSprite *pSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
+		ASSERT(pSprite);
 
-		strncpy(pData[i].szName, szName, 30);
-		pData[i].Rect = RectTmp;
-		pData[i].dwStatus = scontext->GetStatus();
-		pData[i].nSubLayer = scontext->GetObjSubLayer();
-		pData[i].nLayer = scontext->GetObjLayer();
-		pData[i].nOrder = scontext->GetObjOrder();
-		pData[i].XChain = Iterator->second.eXChain;
-		pData[i].YChain = Iterator->second.eYChain;
+		size += sizeof(_SpriteSet::_SpriteSetData);
+
+		// if it is not an entity, with and height it will need mask: SSD_WIDTHHEIGHT
+		if(pSprite->GetSpriteType() != tEntity) {
+			size += sizeof(_SpriteSet::_SpriteSetData01);
+		}
+
+		// if it has chains or transformations it will need mask: SSD_TRANSCHAIN
+		if( pObjProp->eXChain != relative || pObjProp->eYChain != relative ||
+			scontext->isMirrored() || scontext->isFlipped() || scontext->Rotation() ) {
+			size += sizeof(_SpriteSet::_SpriteSetData02);
+		}
+
+		// if it has an alpha value set, it will need mask: SSD_ALPHA
+		if(scontext->getAlpha() != 255) {
+			size += sizeof(_SpriteSet::_SpriteSetData04);
+		}
+
+		if(pOldSprite != pSprite) {
+			pOldSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
+			int nNameLen = 0;
+			nNameLen = strlen(scontext->GetObjName()) + 1;
+			ASSERT(nNameLen < 30);
+			size += nNameLen;
+		}
 
 		Iterator++;
 	}
 
+	// Now that we know the exact space all the sprites will need, we allocate it:
+	HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, size + bmpsize); 
+	if(hglbCopy == NULL) {
+		if(bDeleteBitmap && ppBitmap) {
+			*ppBitmap = NULL;
+			delete []pBitmap;
+		}
+		return NULL;
+	}
+
+ 	// Lock the handle and copy the text to the buffer. 
+	LPBYTE RawBuffer = (LPBYTE)::GlobalLock(hglbCopy);
+	ASSERT(RawBuffer);
+
+	CRect rcBoundaries, RectTmp;
+	GetBoundingRect(rcBoundaries);
+
+	_SpriteSet *CopyBoard = (_SpriteSet*)RawBuffer;
+	strcpy(CopyBoard->Info.ID, QUEST_SET_ID);
+	strcat(CopyBoard->Info.ID, "\nUnnamed Sprite Set\nDescription goes here.");
+	CopyBoard->Info.dwSignature = QUEST_SET_SIGNATURE;
+	CopyBoard->Info.dwSize = size + bmpsize;
+	CopyBoard->Info.nObjects = (int)m_Objects.size();
+
+	CopyBoard->Info.rcBoundaries = rcBoundaries;
+	CopyBoard->Info.rcBoundaries.OffsetRect(-rcBoundaries.TopLeft());
+	CopyBoard->Info.dwBitmapOffset = 0;
+	
+	LPBYTE pData = (LPBYTE)(RawBuffer + sizeof(_SpriteSet::_SpriteSetInfo));
+
+	// Now we are ready to copy the objects's information into the sprite set,
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+
+	pOldSprite = NULL;
+	Iterator = m_Objects.begin();
+	for(i=0; Iterator != m_Objects.end(); i++) {
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
+		CSprite *pSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
+		ASSERT(pSprite);
+
+		int Mask = 0;
+		LPSTR szName = NULL;
+		int nNameLen = 0;
+		_SpriteSet::_SpriteSetData01 *pSpriteSetData01 = NULL;
+		_SpriteSet::_SpriteSetData02 *pSpriteSetData02 = NULL;
+		_SpriteSet::_SpriteSetData04 *pSpriteSetData04 = NULL;
+
+		// Search for all required options and mask. 
+
+		_SpriteSet::_SpriteSetData *pSpriteSetData = (_SpriteSet::_SpriteSetData *)pData;
+		pData += sizeof(_SpriteSet::_SpriteSetData);
+
+		// if it is not an entity, with and height it will need mask: SSD_WIDTHHEIGHT
+		if(pSprite->GetSpriteType() != tEntity) {
+			Mask |= SSD_WIDTHHEIGHT;
+			pSpriteSetData01 = (_SpriteSet::_SpriteSetData01 *)pData;
+			pData += sizeof(_SpriteSet::_SpriteSetData01);
+		}
+
+		// if it has chains or transformations it will need mask: SSD_TRANSCHAIN
+		if( pObjProp->eXChain != relative || pObjProp->eYChain != relative ||
+			scontext->isMirrored() || scontext->isFlipped() || scontext->Rotation() ) {
+			Mask |= SSD_TRANSCHAIN;
+			pSpriteSetData02 = (_SpriteSet::_SpriteSetData02 *)pData;
+			pData += sizeof(_SpriteSet::_SpriteSetData02);
+		}
+
+		// if it has an alpha value set, it will need mask: SSD_ALPHA
+		if(scontext->getAlpha() != 255) {
+			Mask |= SSD_ALPHA;
+			pSpriteSetData04 = (_SpriteSet::_SpriteSetData04 *)pData;
+			pData += sizeof(_SpriteSet::_SpriteSetData04);
+		}
+
+		if(pOldSprite != pSprite) {
+			pOldSprite = static_cast<CSprite *>(scontext->GetDrawableObj());
+			nNameLen = strlen(scontext->GetObjName()) + 1;
+			ASSERT(nNameLen < 30);
+			szName = (LPSTR)pData;
+			pData += nNameLen;
+		}
+
+		// Fill the needed data:
+
+		scontext->GetAbsFinalRect(RectTmp);
+		RectTmp.OffsetRect(-rcBoundaries.TopLeft());
+
+		ASSERT(pSpriteSetData);
+
+		ASSERT(Mask < 0x0010);
+		ASSERT(scontext->GetObjLayer() < 0x0008);
+		ASSERT(scontext->GetObjSubLayer() < 0x0008);
+		ASSERT(nNameLen < 0x0030);
+
+		pSpriteSetData->Mask = Mask & 0x000F;
+		pSpriteSetData->NameLen = nNameLen & 0x001F;
+		pSpriteSetData->Layer = scontext->GetObjLayer() & 0x0007;
+		pSpriteSetData->SubLayer = scontext->GetObjSubLayer() & 0x0007;
+		pSpriteSetData->tiled = scontext->isTiled();
+		pSpriteSetData->X = (WORD)RectTmp.left;
+		pSpriteSetData->Y = (WORD)RectTmp.top;
+
+		if(pSpriteSetData01) { // SSD_WIDTHHEIGHT
+			ASSERT(RectTmp.Width() < 0x1000);
+			ASSERT(RectTmp.Height() < 0x1000);
+
+			pSpriteSetData01->Width = RectTmp.Width() & 0x0fff;
+			pSpriteSetData01->Height = RectTmp.Height() & 0x0fff;
+		}
+		if(pSpriteSetData02) { // SSD_TRANSCHAIN
+			ASSERT(scontext->Rotation() < 0x0004);
+
+			pSpriteSetData02->rotation = scontext->Rotation() & 0x0003;
+			pSpriteSetData02->mirrored = (bool)scontext->isMirrored();
+			pSpriteSetData02->flipped = (bool)scontext->isFlipped();
+			pSpriteSetData02->XChain = pObjProp->eXChain;
+			pSpriteSetData02->YChain = pObjProp->eYChain;
+		}
+		if(pSpriteSetData04) { // SSD_ALPHA
+			pSpriteSetData04->alpha = (BYTE)scontext->getAlpha();
+		}
+		if(szName) {
+			strcpy(szName, scontext->GetObjName());
+		}
+
+		Iterator++;
+	}
+
+	ASSERT(RawBuffer + size == pData);
+
+	if(pBitmap) {
+		CopyBoard->Info.dwBitmapOffset = (DWORD)size; // offset of the bitmap
+		memcpy(RawBuffer + size, pBitmap, sizeof(BITMAP));
+		memcpy(RawBuffer + size + sizeof(BITMAP), pBitmap->bmBits, bmpsize - sizeof(BITMAP));
+	}
+
 	::GlobalUnlock(hglbCopy); 
 
+	if(bDeleteBitmap && ppBitmap) {
+		*ppBitmap = NULL;
+		delete []pBitmap; // free bitmap memory
+	}
 	return hglbCopy;
 }
 bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite) 
@@ -680,51 +859,25 @@ bool CSpriteSelection::PasteSprite(CLayer *pLayer, LPCSTR szSprite)
 	pSpriteContext->MoveTo(-Size.cx/2, -Size.cy/2);
 
 	m_Objects.clear();
-	m_Objects.insert(pairObject(pSpriteContext, SObjProp(pSpriteContext)));
+	m_Objects.push_back(SObjProp(pSpriteContext));
 	return true;
 }
-bool CSpriteSelection::PasteObj(CLayer *pLayer, _SpriteSet::_SpriteSetData *pData)
+bool CSpriteSelection::PasteObj(CLayer *pLayer, LPBYTE *ppData)
 {
-	CSprite *pSprite = CGameManager::Instance()->FindSprite(pData->szName);
-	if(!pSprite) {
-		CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", pData->szName);
-		return false;
-	}
-	if(pSprite->GetSpriteType() == tMask) {
-		CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", pData->szName);
-		return false;
-	}
-	if(!pLayer) {
-		CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", pData->szName);
-		return false;
-	}
-
-	CSpriteContext *pSpriteContext = new CSpriteContext("");
-	pSpriteContext->SetDrawableObj(pSprite);
-	pSpriteContext->SetStatus(pData->dwStatus);
-	pSpriteContext->SetObjSubLayer(pData->nSubLayer);
-
-	pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
-	m_Objects.insert(pairObject(pSpriteContext, SObjProp(pSpriteContext, pData->Rect, pData->XChain, pData->YChain)));
-
-	// the sprite absolute postion must be set after inserting it in the layer.
-	pSpriteContext->SetAbsFinalRect(pData->Rect);
-	pSpriteContext->SelectContext();
-
 	return true;
 }
 bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 {
-	CLayer *pLayer = NULL;
-	UINT nLayer = -1;
-
 	ASSERT(pBuffer);
+
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+	UINT nLayer = -1;
 
 	CPoint Point(0,0);
 	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
 	// is it a sprite set?
-	if(strcmp(CopyBoard->Info.ID, "Quest Designer Sprite Set")) {
-		pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+	if(strncmp(CopyBoard->Info.ID, QUEST_SET_ID, QUEST_SET_IDLEN)) {
 		if(!PasteSprite(pLayer, (LPCSTR)pBuffer)) return false;
 		m_bFloating = true;
 	} else {
@@ -736,13 +889,101 @@ bool CSpriteSelection::Paste(LPVOID pBuffer, const CPoint &point_)
 		m_Objects.clear();
 		Point = CopyBoard->Info.rcBoundaries.CenterPoint();
 
-		_SpriteSet::_SpriteSetData *pData = (_SpriteSet::_SpriteSetData *)((char*)CopyBoard + sizeof(_SpriteSet::_SpriteSetInfo));
-		for(UINT i=0; i<CopyBoard->Info.nSize; i++) {
-			if(nLayer != pData[i].nLayer) {
-				nLayer = pData[i].nLayer;
-				pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(nLayer));
+		LPSTR szName = NULL;
+
+		LPBYTE pData = (LPBYTE)((char*)CopyBoard + sizeof(_SpriteSet::_SpriteSetInfo));
+		for(UINT i=0; i<CopyBoard->Info.nObjects; i++) {
+
+			_SpriteSet::_SpriteSetData01 *pSpriteSetData01 = NULL;
+			_SpriteSet::_SpriteSetData02 *pSpriteSetData02 = NULL;
+			_SpriteSet::_SpriteSetData04 *pSpriteSetData04 = NULL;
+
+			// Initialize structures from data and mask:
+			_SpriteSet::_SpriteSetData *pSpriteSetData = (_SpriteSet::_SpriteSetData *)pData;
+			pData += sizeof(_SpriteSet::_SpriteSetData);
+
+			if((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT) {
+				pSpriteSetData01 = (_SpriteSet::_SpriteSetData01 *)pData;;
+				pData += sizeof(_SpriteSet::_SpriteSetData01);
 			}
-			PasteObj(pLayer, &pData[i]);
+			if((pSpriteSetData->Mask & SSD_TRANSCHAIN) == SSD_TRANSCHAIN) {
+				pSpriteSetData02 = (_SpriteSet::_SpriteSetData02 *)pData;;
+				pData += sizeof(_SpriteSet::_SpriteSetData02);
+			}
+			if((pSpriteSetData->Mask & SSD_ALPHA) == SSD_ALPHA) {
+				pSpriteSetData04 = (_SpriteSet::_SpriteSetData04 *)pData;;
+				pData += sizeof(_SpriteSet::_SpriteSetData04);
+			}
+			if(pSpriteSetData->NameLen) {
+				szName = (LPSTR)pData;
+				pData += pSpriteSetData->NameLen;
+			}
+
+			// Build sprite:
+			if(nLayer!=-1 || !pLayer) {
+				if(nLayer != pSpriteSetData->Layer) {
+					nLayer = pSpriteSetData->Layer;
+					pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(nLayer));
+				}
+			} // else if there is a current layer selected, use that layer instead
+
+			CSprite *pSprite = CGameManager::Instance()->FindSprite(szName);
+			if(!pSprite) {
+				CONSOLE_PRINTF("Paste error : Couldn't find the requested sprite: '%s'!\n", szName);
+				continue;
+			}
+			if(pSprite->GetSpriteType() == tMask) {
+				CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", szName);
+				continue;
+			}
+			if(!pLayer) {
+				CONSOLE_PRINTF("Paste error : Couldn't paste '%s' in the requested layer!\n", szName);
+				continue;
+			}
+
+			CSpriteContext *pSpriteContext = new CSpriteContext(""); // New sprite context with no name.
+			pSpriteContext->SetDrawableObj(pSprite);
+
+			// Fill sprite data:
+
+			int alpha = 255;
+			int rotation = 0;
+			bool mirrored = false;
+			bool flipped = false;
+			
+			_Chain XChain = relative;
+			_Chain YChain = relative;
+			CRect RectTmp(pSpriteSetData->X, pSpriteSetData->Y, pSpriteSetData->X - 1, pSpriteSetData->Y - 1);
+			pSpriteContext->SetObjSubLayer(pSpriteSetData->SubLayer);
+			pSpriteContext->Tile(pSpriteSetData->tiled);
+
+			if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
+				RectTmp.right = RectTmp.left + pSpriteSetData01->Width;
+				RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
+			}
+			if(pSpriteSetData02) { //SSD_TRANSCHAIN
+				rotation = pSpriteSetData02->rotation;
+				mirrored = pSpriteSetData02->mirrored;
+				flipped = pSpriteSetData02->flipped;
+				XChain = pSpriteSetData02->XChain;
+				YChain = pSpriteSetData02->YChain;
+			}
+			if(pSpriteSetData04) { //SSD_ALPHA
+				alpha = pSpriteSetData04->alpha;
+			}
+
+			pSpriteContext->Rotate(rotation);
+			pSpriteContext->Mirror(mirrored);
+			pSpriteContext->Flip(flipped);
+			pSpriteContext->Alpha(alpha);
+
+			pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
+			m_Objects.push_back(SObjProp(pSpriteContext, RectTmp, XChain, YChain));
+
+			// the sprite absolute postion must be set after inserting it in the layer.
+			pSpriteContext->SetAbsFinalRect(RectTmp);
+			pSpriteContext->SelectContext();
+
 		}
 	}
 
@@ -759,13 +1000,13 @@ void CSpriteSelection::FlipSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	mapObject::iterator Iterator = m_Objects.begin();
+	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
-		if(Iterator->second.eYChain == up) Iterator->second.eYChain = down;
-		else if(Iterator->second.eYChain == down) Iterator->second.eYChain = up;
+		if(Iterator->eYChain == up) Iterator->eYChain = down;
+		else if(Iterator->eYChain == down) Iterator->eYChain = up;
 
 		// no rotations nor transormations are allowed for entities 
 		// (that should be handled in the scripts instead)
@@ -785,8 +1026,18 @@ void CSpriteSelection::FlipSelection()
 		Rect.NormalizeRect();
 
 		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
+
 		Iterator++;
 	}
+
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
+	}
+
 	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::MirrorSelection()
@@ -794,13 +1045,13 @@ void CSpriteSelection::MirrorSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	mapObject::iterator Iterator = m_Objects.begin();
+	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
-		if(Iterator->second.eXChain == left) Iterator->second.eXChain = right;
-		else if(Iterator->second.eXChain == right) Iterator->second.eXChain = left;
+		if(Iterator->eXChain == left) Iterator->eXChain = right;
+		else if(Iterator->eXChain == right) Iterator->eXChain = left;
 
 		// no rotations nor transormations are allowed for entities 
 		// (that should be handled in the scripts instead)
@@ -820,8 +1071,18 @@ void CSpriteSelection::MirrorSelection()
 		Rect.NormalizeRect();
 
 		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
+
 		Iterator++;
 	}
+
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
+	}
+
 	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::CWRotateSelection()
@@ -829,16 +1090,16 @@ void CSpriteSelection::CWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	mapObject::iterator Iterator = m_Objects.begin();
+	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
-		_Chain cTmp = Iterator->second.eXChain;
-		Iterator->second.eXChain = Iterator->second.eYChain;
-		if(cTmp == left) Iterator->second.eYChain = up;
-		else if(cTmp == right) Iterator->second.eYChain = down;
-		else Iterator->second.eYChain = cTmp;
+		_Chain cTmp = Iterator->eXChain;
+		Iterator->eXChain = Iterator->eYChain;
+		if(cTmp == left) Iterator->eYChain = up;
+		else if(cTmp == right) Iterator->eYChain = down;
+		else Iterator->eYChain = cTmp;
 
 		// no rotations nor transormations are allowed for entities 
 		// (that should be handled in the scripts instead)
@@ -868,8 +1129,18 @@ void CSpriteSelection::CWRotateSelection()
 		Rect.NormalizeRect();
 
 		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
+
 		Iterator++;
 	}
+
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
+	}
+
 	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::CCWRotateSelection()
@@ -877,16 +1148,16 @@ void CSpriteSelection::CCWRotateSelection()
 	CRect rcBoundaries, RectTmp, Rect;
 	GetBoundingRect(rcBoundaries);
 
-	mapObject::iterator Iterator = m_Objects.begin();
+	vectorObject::iterator Iterator = m_Objects.begin();
 	while(Iterator != m_Objects.end()) {
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->first);
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 
-		_Chain cTmp = Iterator->second.eYChain;
-		Iterator->second.eYChain = Iterator->second.eXChain;
-		if(cTmp == up) Iterator->second.eXChain = left;
-		else if(cTmp == down) Iterator->second.eXChain = right;
-		else Iterator->second.eYChain = cTmp;
+		_Chain cTmp = Iterator->eYChain;
+		Iterator->eYChain = Iterator->eXChain;
+		if(cTmp == up) Iterator->eXChain = left;
+		else if(cTmp == down) Iterator->eXChain = right;
+		else Iterator->eYChain = cTmp;
 
 		// no rotations nor transormations are allowed for entities 
 		// (that should be handled in the scripts instead)
@@ -916,7 +1187,17 @@ void CSpriteSelection::CCWRotateSelection()
 		Rect.NormalizeRect();
 
 		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
+
 		Iterator++;
 	}
+
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
+	}
+
 	m_bModified = m_bChanged = true;
 }

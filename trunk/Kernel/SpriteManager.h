@@ -62,8 +62,6 @@
 #include <map>
 #include <vector>
 
-#define QUEST_SET_SIGNATURE 0xae1d229e
-
 #define SPRITE_BOUNDS	1	// show sprite boundaries?
 #define SPRITE_MASKS	2	// show the sprite mask, if any?
 #define SPRITE_ENTITIES	4	// show entities?
@@ -428,37 +426,61 @@ public:
 
 };
 
+#define QUEST_SET_SIGNATURE 0xae1d229e
+const char QUEST_SET_ID[] = "Quest Designer Sprite Set";
+const int QUEST_SET_IDLEN = 25;
+
+#define SSD_WIDTHHEIGHT	0x01	// 0001
+#define SSD_TRANSCHAIN	0x02	// 0100
+#define SSD_ALPHA		0x04	// 1000
+
 #pragma pack(1)
 struct _SpriteSet {
 	struct _SpriteSetInfo {
-		char ID[30];
+		char ID[200]; // ID, Name and Description Separated by '\n' and ended by '\0'
 		DWORD dwSignature;
-		UINT nSize;
-		UINT nMinOrder;		// minimum birth order of all objects in the sprite set
+		DWORD dwSize;
+		UINT nObjects;
 		CRect rcBoundaries;
+		DWORD dwBitmapOffset;
+		// the name continues here 
 	} Info;
-	struct _SpriteSetData {
-		char szName[31];
-		DWORD dwStatus;
-		_Chain XChain;
-		_Chain YChain;
-		UINT nLayer;
-		UINT nSubLayer;
-		UINT nOrder;
-		CRect Rect;
+	struct _SpriteSetData {	// (6 bytes)
+		unsigned Mask :		4;
+		unsigned NameLen :	5; // if it has the same name as the last sprite, this is 0.
+		unsigned Layer :	3;
+		unsigned SubLayer :	3;
+		bool tiled :		1;
+		WORD X;
+		WORD Y;
 	};
+	struct _SpriteSetData01 { // mask 1	(3 bytes)
+		unsigned Width :	12; // 4096 x 4096
+		unsigned Height :	12;
+	};
+	struct _SpriteSetData02 { // mask 42(1 bytes)
+		unsigned rotation :	2;
+		bool mirrored :		1;
+		bool flipped :		1;
+		_Chain XChain :		2;
+		_Chain YChain :		2;
+	};
+	struct _SpriteSetData04 { // mask 4 (1 byte)
+		BYTE alpha;
+	};
+	// the name continues here 
 };
 #pragma pack()
 
 class CSpriteSelection :
 	public CDrawableSelection
 {
-	mapObject::iterator m_CurrentSel;
+	vectorObject::iterator m_CurrentSel;
 
-	void ResizeObject(CDrawableContext *Object, const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
+	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
 	void BuildRealSelectionBounds();
 
-	bool PasteObj(CLayer *pLayer, _SpriteSet::_SpriteSetData *pData);
+	bool PasteObj(CLayer *pLayer, LPBYTE *ppData);
 	bool PasteSprite(CLayer *pLayer, LPCSTR szSprite);
 
 public:
@@ -475,7 +497,11 @@ public:
 	virtual SObjProp* GetFirstSelection();
 	virtual SObjProp* GetNextSelection();
 
-	virtual HGLOBAL Copy();
+	// If no bitmap is provided, no thumbnail bitmap is added to the copy.
+	// If a bitmap is provided, and the memory for the bitmap has been allocated 
+	// by the kernel you can set bDeleteBitmap to true, so the memory gets deleted 
+	// in the copy process. In this case, *ppBitmap is nulled to avoid missuses.
+	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false); 
 	virtual bool Paste(LPVOID pBuffer, const CPoint &point_);
 };
 

@@ -20,7 +20,7 @@
 //
 // Beware of bugs.
 //
-
+// Modified by Kronuz on September 8th, 2003
 
 /////////////////////////////////////////////////////////////////////////////
 // Defines
@@ -116,6 +116,9 @@ public:
    virtual BOOL GetValue(VARIANT* pValue) const = 0;
    virtual BOOL SetValue(const VARIANT& value) = 0;
    virtual BOOL SetValue(HWND hWnd) = 0;
+   // Added by Kronuz:
+   virtual bool IsMultivalue() const = 0;
+   virtual void SetMultivalue(bool bMultivalue = true) = 0;
 };
 typedef IProperty* HPROPERTY;
 

@@ -820,6 +820,12 @@ public:
 	void UpdateControlPositions()
 	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); CM_UpdateControlPositions ( m_hWnd ); }
 
+	//
+	// CodeSense 2.1.0.22 (Kronuz)
+	//
+	DWORD GetTokenAt(int col, int row) const
+	{ ATLASSERT ( ::IsWindow ( m_hWnd ) ); return CM_GetTokenAt ( m_hWnd, col, row); }
+
 // Commands
 public:
 	LRESULT WordUpperCase ()
@@ -1116,6 +1122,8 @@ public:
 	{ return ExecuteCmd ( CMD_CODETIP ); }
 	LRESULT CodeList ()
 	{ return ExecuteCmd ( CMD_CODELIST ); }
+	LRESULT DestroyCodeTip ()
+	{ return ExecuteCmd ( CMD_DESTROYCODETIP ); }
 
 };
 

@@ -28,6 +28,8 @@
 #include <DockingFrame.h>
 #include <TabbedDockingWindow.h>
 
+#include "SuperCombo.h"
+
 #define CWM_INITIALIZE	(WMDF_LAST+1)
 
 /////////////////////////////////////////////////////////////////////////////
@@ -88,7 +90,12 @@ protected:
 
 public:
 	CTabbedMDIClient< CDotNetTabCtrl<CTabViewTabItem> > m_tabbedClient;
-	CMainFrame() : m_pProjectFactory(NULL), m_pOZKernel(NULL) {}
+	CMainFrame() : 
+		m_pProjectFactory(NULL), 
+		m_pOZKernel(NULL), 
+		m_bProjectLoaded(false), 
+		m_bAllowSounds(true) 
+	{}
 
 protected:
 	sstate::CWindowStateMgr	m_stateMgr;
@@ -120,9 +127,10 @@ protected:
 
 public:
 	BOOL m_bLayers;
-	CComboBox m_Layers;
+	CSuperComboBoxCtrl m_ctrlLayers;
 
 	bool m_bProjectLoaded;
+	bool m_bAllowSounds;
 	HWND m_ahWnd[10];
 
 ////////////////////////////////////////////////////////
@@ -162,6 +170,8 @@ public:
 		UPDATE_ELEMENT(ID_APP_MAPED, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_SPTSHTED, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 		UPDATE_ELEMENT(ID_APP_SCRIPTED, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
+		
+		UPDATE_ELEMENT(ID_APP_NOSOUND, UPDUI_MENUPOPUP | UPDUI_TOOLBAR)
 
 		UPDATE_ELEMENT(ID_SCRIPTED_READ_ONLY, UPDUI_MENUPOPUP)
 		
@@ -208,24 +218,26 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(CWM_INITIALIZE, OnInitialize)
 
-		COMMAND_ID_HANDLER(ID_PROJECT_OPEN, OnProjectOpen)
+		MENU_COMMAND_HANDLER(ID_PROJECT_OPEN, OnProjectOpen)
 
-		COMMAND_ID_HANDLER(ID_QUEST_NEW, OnFileNew)
-		COMMAND_ID_HANDLER(ID_QUEST_OPEN, OnFileOpen)
+		MENU_COMMAND_HANDLER(ID_QUEST_NEW, OnFileNew)
+		MENU_COMMAND_HANDLER(ID_QUEST_OPEN, OnFileOpen)
 
-		COMMAND_ID_HANDLER(ID_APP_NEW, OnScriptFileNew)
-		COMMAND_ID_HANDLER(ID_APP_OPEN, OnScriptFileOpen)
+		MENU_COMMAND_HANDLER(ID_APP_NEW, OnScriptFileNew)
+		MENU_COMMAND_HANDLER(ID_APP_OPEN, OnScriptFileOpen)
 
-		COMMAND_ID_HANDLER(ID_APP_TOOLBAR, OnViewToolBar)
-		COMMAND_ID_HANDLER(ID_APP_STATUS_BAR, OnViewStatusBar)
-		COMMAND_ID_HANDLER(ID_APP_EXIT, OnFileExit)
+		MENU_COMMAND_HANDLER(ID_APP_TOOLBAR, OnViewToolBar)
+		MENU_COMMAND_HANDLER(ID_APP_STATUS_BAR, OnViewStatusBar)
+		MENU_COMMAND_HANDLER(ID_APP_EXIT, OnFileExit)
 
-		COMMAND_ID_HANDLER(ID_APP_WORLDED, OnViewWorldEditor)
-		COMMAND_ID_HANDLER(ID_APP_MAPED, OnViewMapEditor)
-		COMMAND_ID_HANDLER(ID_APP_SPTSHTED, OnViewSpriteEditor)
+		COMMAND_ID_HANDLER(ID_APP_NOSOUND, OnNoSound)
 
-		COMMAND_ID_HANDLER(ID_APP_BUILD, OnBuildProject)
-		COMMAND_ID_HANDLER(ID_APP_STOPBUILD, OnStopBuild)
+		MENU_COMMAND_HANDLER(ID_APP_WORLDED, OnViewWorldEditor)
+		MENU_COMMAND_HANDLER(ID_APP_MAPED, OnViewMapEditor)
+		MENU_COMMAND_HANDLER(ID_APP_SPTSHTED, OnViewSpriteEditor)
+
+		MENU_COMMAND_HANDLER(ID_APP_BUILD, OnBuildProject)
+		MENU_COMMAND_HANDLER(ID_APP_STOPBUILD, OnStopBuild)
 		//MESSAGE_HANDLER(WMQD_BEGIN, ??)
 		MESSAGE_HANDLER(WMQD_MESSAGE, m_OutputBox.OnWriteMsg)
 
@@ -249,17 +261,19 @@ public:
 			m_PaneWindows[LOWORD(wParam) - ID_VIEW_PANEFIRST]->Toggle();
 		}
 
-		COMMAND_ID_HANDLER(ID_APP_HELP, OnAppHelp)
-		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
-		COMMAND_ID_HANDLER(ID_APP_PREFERENCES, OnAppConfig)
-		COMMAND_ID_HANDLER(ID_WINDOW_CASCADE, OnWindowCascade)
-		COMMAND_ID_HANDLER(ID_WINDOW_TILE_HORZ, OnWindowTile)
-		COMMAND_ID_HANDLER(ID_WINDOW_ARRANGE, OnWindowArrangeIcons)
+		MENU_COMMAND_HANDLER(ID_APP_HELP, OnAppHelp)
+		MENU_COMMAND_HANDLER(ID_APP_ABOUT, OnAppAbout)
+		MENU_COMMAND_HANDLER(ID_APP_PREFERENCES, OnAppConfig)
+		MENU_COMMAND_HANDLER(ID_WINDOW_CASCADE, OnWindowCascade)
+		MENU_COMMAND_HANDLER(ID_WINDOW_TILE_HORZ, OnWindowTile)
+		MENU_COMMAND_HANDLER(ID_WINDOW_ARRANGE, OnWindowArrangeIcons)
 
 		// Pass all unhandled WM_COMMAND messages to the active child window
 		CHAIN_MDI_CHILD_COMMANDS()
 		CHAIN_MSG_MAP(CUpdateUI<CMainFrame>)
 		CHAIN_MSG_MAP(baseClass)
+
+		REFLECT_NOTIFICATIONS()
 
 	END_MSG_MAP()
 
@@ -275,34 +289,36 @@ public:
 	LRESULT OnInitialize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-	LRESULT OnFileExit(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnNoSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
 
-	LRESULT OnProjectOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnFileExit();
+	LRESULT OnFileNew();
+	LRESULT OnFileOpen();
+
+	LRESULT OnProjectOpen();
 	
-	LRESULT OnScriptFileNew(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnScriptFileOpen(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnScriptFileNew();
+	LRESULT OnScriptFileOpen();
 
-	LRESULT OnViewToolBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnViewStatusBar(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnViewToolBar();
+	LRESULT OnViewStatusBar();
+	
+	LRESULT OnViewWorldEditor();
+	LRESULT OnViewMapEditor();
+	LRESULT OnViewSpriteEditor();
 
-	LRESULT OnViewWorldEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnViewMapEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnViewSpriteEditor(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnViewInformationWindow();
+	LRESULT OnViewPropertiesWindow();
 
-	LRESULT OnViewInformationWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnViewPropertiesWindow(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnAppHelp();
+	LRESULT OnAppAbout();
+	LRESULT OnAppConfig();
+	LRESULT OnWindowCascade();
+	LRESULT OnWindowTile();
+	LRESULT OnWindowArrangeIcons();
 
-	LRESULT OnAppHelp(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnAppConfig(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnWindowCascade(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnWindowTile(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnWindowArrangeIcons(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-
-	LRESULT OnBuildProject(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
-	LRESULT OnStopBuild(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnBuildProject();
+	LRESULT OnStopBuild();
 
 	HWND CreatePane(HWND hWndClient, LPCTSTR sName, HICON hIcon, CRect& rcDock, HWND hDockTo, dockwins::CDockingSide side);
 public:

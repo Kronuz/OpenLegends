@@ -30,22 +30,101 @@
 CChildFrame::CChildFrame(CMainFrame *pMainFrame, _child_type ChildType) :
 	m_pMainFrame(pMainFrame),
 	m_ChildType(ChildType),
+	m_pChildView(NULL),
 	m_pCmdBar(NULL)
 {
 }
+
+// Called to clean up after window is destroyed (called when WM_NCDESTROY is sent)
+void CChildFrame::OnFinalMessage(HWND /*hWnd*/)
+{
+	// remove ourseves from the idle message pump
+	CMessageLoop *pLoop = _Module.GetMessageLoop();
+	ATLASSERT(NULL!=pLoop);
+	pLoop->RemoveIdleHandler(this);
+
+	// the main toolbar buttons seem to stay active for a long time
+	// after we have closed _all_ the MDI child window so were going 
+	// to force idle processing to update the toolbar.
+	PumpIdleMessages();	
+
+	delete this;
+}
+
+LRESULT CChildFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	ATLASSERT(m_pChildView); // this should have been set by the user class
+
+	// register ourselves for idle updates
+	CMessageLoop * pLoop = _Module.GetMessageLoop();
+	ATLASSERT(NULL!=pLoop);
+	pLoop->AddIdleHandler(this);		
+
+	SetMsgHandled(FALSE);
+	return TRUE;
+}
+
+LRESULT CChildFrame::OnForwardMsg(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
+{
+	LPMSG pMsg = (LPMSG)lParam;
+	// we need the base class to do its stuff
+	if(baseClass::PreTranslateMessage(pMsg))
+		return TRUE;
+
+	if(!m_pChildView) return 0;
+
+	// the messages need to be hended to the active view
+	return m_pChildView->PreTranslateMessage(pMsg);
+}
+
+LRESULT CChildFrame::OnSettingChange(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
+{
+	// System settings or metrics have changed.  Propogate this message
+	// to all the child windows so they can update themselves as appropriate.
+	SendMessageToDescendants(uMsg, wParam, lParam, TRUE);
+
+	return 0;
+}
+
+LRESULT CChildFrame::OnSetFocus(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+{
+	if(!m_pChildView) return false;
+
+	// We give the focus to the view
+	m_pChildView->SetFocus();
+
+	// Pumping idle messages to update the main window
+	PumpIdleMessages();
+	return 0;
+}
+
+BOOL CChildFrame::OnIdle()
+{
+	// check if we are we the active window...
+	if(m_pMainFrame->MDIGetActive()==m_hWnd) {
+		// fake idle processing for the view so it updates
+		if(m_pChildView) return m_pChildView->OnIdle();
+	}
+	return FALSE;
+}
+
 bool CChildFrame::hasChanged() 
 { 
+	if(!m_pChildView) return false;
 	return m_pChildView->hasChanged(); 
 }
+
 void CChildFrame::SetCommandBarCtrlForContextMenu(CTabbedMDICommandBarCtrl* pCmdBar)
 {
 	m_pCmdBar = pCmdBar;
 }
+
 LRESULT CChildFrame::OnSize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled) {
 	bHandled = FALSE;
 	if(wParam == SIZE_MINIMIZED) ShowWindow(FALSE);
 	return 0;
 }
+
 LRESULT CChildFrame::Register(_child_type ChildType)
 {
 	ATLASSERT(m_pMainFrame);
@@ -55,65 +134,10 @@ LRESULT CChildFrame::Register(_child_type ChildType)
 
 	return TRUE;
 }
+
 LRESULT CChildFrame::Unregister()
 {
 	ATLASSERT(m_pMainFrame);
 	m_pMainFrame->m_ChildList.Remove(this);
-	return 0;
-}
-
-LRESULT CChildFrame::OnShowTabContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
-{
-	POINT ptPopup = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-
-	// Build up the menu to show
-	CMenu mnuContext;
-
-	// or build dynamically
-	// (being sure to enable/disable menu items as appropriate,
-	// and giving the appropriate IDs)
-	if(mnuContext.CreatePopupMenu())
-	{
-		int cchWindowText = this->GetWindowTextLength();
-		CString sWindowText;
-		this->GetWindowText(sWindowText.GetBuffer(cchWindowText+1), cchWindowText+1);
-		sWindowText.ReleaseBuffer();
-
-		CString sSave(_T("&Save '"));
-		sSave += sWindowText;
-		sSave += _T("'");
-
-		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_FILE_SAVE, sSave);
-		mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_FILE_CLOSE, _T("&Close\tCtrl+F4"));
-		mnuContext.AppendMenu(MF_SEPARATOR);
-		//mnuContext.AppendMenu((MF_ENABLED | MF_STRING), ID_VIEW_SOURCE, _T("&View Source"));
-
-		if(m_pCmdBar != NULL)
-		{
-			// NOTE: The CommandBarCtrl in our case is the mainframe's, so the commands
-			//  would actually go to the main frame if we don't specify TPM_RETURNCMD.
-			//  In the main frame's message map, if we don't specify
-			//  CHAIN_MDI_CHILD_COMMANDS, we are not going to see those command
-			//  messages. We have 2 choices here - either specify TPM_RETURNCMD,
-			//  then send/post the message to our window, or don't specify
-			//  TPM_RETURNCMD, and be sure to have CHAIN_MDI_CHILD_COMMANDS
-			//  in the main frame's message map.
-
-			//m_pCmdBar->TrackPopupMenu(mnuContext, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_TOPALIGN | TPM_VERTICAL,
-			//	ptPopup.x, ptPopup.y);
-
-			DWORD nSelection = m_pCmdBar->TrackPopupMenu(mnuContext, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_TOPALIGN | TPM_VERTICAL | TPM_RETURNCMD,
-				ptPopup.x, ptPopup.y);
-			if(nSelection != 0)
-			{
-				this->PostMessage(WM_COMMAND, MAKEWPARAM(nSelection, 0));
-			}
-		}
-		else
-		{
-			mnuContext.TrackPopupMenuEx(TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_TOPALIGN | TPM_VERTICAL,
-				ptPopup.x, ptPopup.y, m_hWnd, NULL);
-		}
-	}
 	return 0;
 }

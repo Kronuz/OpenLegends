@@ -30,7 +30,9 @@
 
 CScriptEditorView::CScriptEditorView(CScriptEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
+	m_nParenthesis(0),
 	m_bModified(false),
+	m_bCodeTip(false),
 	m_hFont(NULL)
 {
 	m_szTipFunc[0] = _T('\0');
@@ -80,7 +82,7 @@ void CScriptEditorView::OnFinalMessage(HWND /*hWnd*/)
 	delete this;
 }
 
-LRESULT CScriptEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+LRESULT CScriptEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
 	// Let the CodeSense control be created
 	LRESULT nResult = DefWindowProc();
@@ -93,11 +95,14 @@ LRESULT CScriptEditorView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*l
 
 	LoadProfile();
 
+	SetMsgHandled(FALSE);
+
 	return nResult;
 }
 LRESULT CScriptEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled)
 {
 	SaveProfile();
+
 	return 0;
 }
 
@@ -144,6 +149,7 @@ LRESULT CScriptEditorView::OnCodeList1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND 
 }
 LRESULT CScriptEditorView::OnCodeTip1(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
+	m_nParenthesis = 0;
 	CodeTip();
 	return 0;
 }
@@ -407,7 +413,7 @@ void CScriptEditorView::UIUpdateMenuItems()
 	pUpdateUI->UIEnable(ID_SCRIPTED_CODELIST, TRUE );
 	pUpdateUI->UIEnable(ID_SCRIPTED_CODETIP1, TRUE );
 	pUpdateUI->UIEnable(ID_SCRIPTED_CODETIP2, TRUE );
-
+	
 	pUpdateUI->UIEnable(ID_SCRIPTED_TAB, TRUE ); // can always indent
 	pUpdateUI->UIEnable(ID_SCRIPTED_UNTAB, (bSelection && !bColumnSelection));
 
@@ -453,6 +459,12 @@ BOOL CScriptEditorView::OnKeyPress ( CM_KEYDATA *pkd )
 	// in the OnCodeTip() handler.
 	//
 	if( '(' == pkd->nKeyCode ) {
+		m_nParenthesis = -1;
+		DestroyCodeTip();
+		CodeTip();
+	} else if( ')' == pkd->nKeyCode && m_bCodeTip) {
+		m_nParenthesis = 1;
+		DestroyCodeTip();
 		CodeTip();
 	}
 
@@ -480,6 +492,12 @@ LRESULT CScriptEditorView::OnCodeTip ( CM_CODETIPDATA * )
 	return CM_TIPSTYLE_NONE;
 }
 
+BOOL CScriptEditorView::OnCodeTipCancel ( CM_CODETIPDATA * ) 
+{
+	m_bCodeTip = false;
+	return FALSE;
+}
+
 BOOL CScriptEditorView::OnCodeTipInitialize( CM_CODETIPDATA *pctd )
 {
 	ASSERT( CM_TIPSTYLE_MULTIFUNC == pctd->nTipType );
@@ -504,6 +522,8 @@ BOOL CScriptEditorView::OnCodeTipInitialize( CM_CODETIPDATA *pctd )
 
 	// Default to first argument
 	pmfData->ctfData.nArgument = 1;
+
+	m_bCodeTip = true;
 
 	// Apply changes to pmfData members
 	return TRUE;
@@ -530,6 +550,8 @@ BOOL CScriptEditorView::OnCodeTipUpdate( CM_CODETIPDATA *pctd )
 	{
 		// Caret moved too far up / back
 		::DestroyWindow( hToolTip );
+		m_nParenthesis = 0;
+		CodeTip();
 		return FALSE;
 	}
 	else 
@@ -741,56 +763,103 @@ BOOL CScriptEditorView::GetCurrentFunction( LPSTR pszName, bool bMustExist )
 	// typed a function name followed by a space, and *then* the left
 	// parenthesis, i.e. "MessageBox ("
 
-	// Get the current line
+	// Get the current slected range
 	GetSel( &range, TRUE );
-	GetLine( range.posEnd.nLine, szLine );
 
-	// There's nothing for us to do if the line is empty
-	if( '\0' == *szLine )
-		return FALSE;
+	int nEnd = range.posEnd.nCol;
+	int nLine = range.posEnd.nLine;
+	int nEndTmp = nEnd;
 
-	int nEnd = range.posEnd.nCol - 1;
+	bool bFound = (m_nParenthesis < 0);
+	int nNestLevel = m_nParenthesis; // nested parenthesis level
 
-	// Trim off trailing '(', if found
-	if( nEnd > 0 && nEnd < lstrlen( szLine ) )
-	{
-		if( '(' == szLine[ nEnd ] )
-			nEnd --;
+	// test: main(do(re,mi), fa, sol(la,si))
+	// Get the current line
+	GetLine( nLine, szLine );
+	while(nLine >= 0) {
+		// There's nothing for us to do if the line is empty or commented
+		if( *szLine != '\0' ) {
+			if(nEndTmp != -1) {
+				// find the end of the function name at the current location:
+				while(szLine[nEnd] != '\0' && !_istalnum( szLine[nEnd] ) && szLine[nEnd] != '_' ) {
+					if(szLine[nEnd] == ')' || szLine[nEnd] == '(') {
+						nEnd--;
+						break;
+					}
+					nEnd++;
+				}
+				if(bFound == false) {
+					while(_istalnum( szLine[nEnd] ) || szLine[nEnd] == '_' ) {
+						nEnd++;
+					}
+					nEnd--;
+				}
+				while(nEnd >= 0 && (!_istalnum( szLine[nEnd] ) && szLine[nEnd] != '_' || nNestLevel > 0) ) {
+					if(szLine[nEnd] == ')') nNestLevel++;
+					else if(szLine[nEnd] == '(') {
+						nNestLevel--;
+					}
+					nEnd--;
+				}
+				// The function name begins at the first alphanumeric character on line
+				int nStart = min( nEnd, lstrlen( szLine ) );
+				while( nStart > 0 && ( _istalnum( szLine[nStart - 1] ) || szLine[nStart - 1] == '_') ) nStart--;
 
-		// Trim off trailing whitespace
-		while( nEnd > 0 && ' ' == szLine[nEnd] )
-			nEnd --;
+				if(nNestLevel<=0) {
+					DWORD dwToken = GetTokenAt(nStart, nLine);		
+					if( CM_TOKENTYPE_SINGLELINECOMMENT != dwToken &&
+						CM_TOKENTYPE_MULTILINECOMMENT != dwToken ) {
+
+						// Extract the function name
+						lstrcpyn( szFunc, szLine + nStart, nEnd - nStart + 2 );
+
+						// Save the starting position for use with the CodeTip.  This is so we
+						// can destroy the tip window if the user moves the cursor back before or
+						// above the starting point.
+						//
+						m_posSel.nCol = nStart;
+						m_posSel.nLine = nLine;
+
+						if(bFound) {
+							nLine = -1;
+							nEnd = -1;
+						}
+					}
+				}
+				if(nLine > 0) nEnd = nStart;
+			}
+			for(nEndTmp = -1; nEnd >= 0 && szLine[nEnd] != ';'; nEnd--) {
+				if(szLine[nEnd] == '(') {
+					nEnd--;
+					while(nEnd >= 0 && !_istalnum( szLine[nEnd] ) && szLine[nEnd] != '_' ) {
+						if(szLine[nEnd] == ')') nNestLevel++;
+						else if(szLine[nEnd] == '(') nNestLevel--;
+						nEnd--;
+					}
+					nEndTmp = nEnd;
+					if(nNestLevel <= 0) bFound = true;
+					nNestLevel--;
+					break;
+				} else if(szLine[nEnd] == ')') nNestLevel++;
+			}
+			if(szLine[nEnd] == ';') {
+				nEnd = -1;
+				nLine = -1;
+			}
+		} else nEnd = -1;
+		if(nEnd < 0) {
+			if(--nLine < 0) break;
+			GetLine(nLine, szLine);
+			nEnd = lstrlen( szLine );
+		}
 	}
-
-	if( nEnd < 0 )
-		return FALSE;
-
-	// The function name begins at the first alphanumeric character on line
-	int nStart = min( nEnd, lstrlen( szLine ) );
-
-	while( nStart > 0 && ( _istalnum( szLine[nStart - 1] ) ||
-		'_' == szLine[nStart - 1] ) )
-	{
-		--nStart;
-	}
-
-	// Save the starting position for use with the CodeTip.  This is so we
-	// can destroy the tip window if the user moves the cursor back before or
-	// above the starting point.
-	//
-	m_posSel.nCol = nStart;
-	m_posSel.nLine = range.posEnd.nLine;
-
-	// Extract the function name
-	lstrcpyn( szFunc, szLine + nStart, nEnd - nStart + 2 );
 
 	if( '\0' == *szFunc )
 		return FALSE;
 
 	// If we don't care whether or not the function actually exists in the
 	// list, just return the string.
-	if( !bMustExist )
-	{
+	if( !bMustExist ) {
 		if( pszName )
 			lstrcpy( pszName, szFunc );
 

@@ -26,6 +26,8 @@ struct SProperty
 	char Buffer[BUFFSIZE];
 	LPCSTR szPropName;
 	bool bEnabled;
+	bool bChanged;
+	bool bMultivalue;
 	UINT uMDL;	// Maximum data length
 	union {
 		LPSTR szString;		// ptString
@@ -52,6 +54,62 @@ struct SPropertyList
 		}
 		return NULL;
 	}
+
+	void Touch() {
+		for(int i=0; i<nProperties; i++) {
+			aProperties[i].bChanged = false;
+		}
+	}
+	bool Merge(const SPropertyList *pPL) {
+		for(int i=0; i<pPL->nProperties; i++) {
+			SProperty *pP = FindProperty(pPL->aProperties[i].szPropName);
+			if(pP) {
+				if(pPL->aProperties[i].eType != SProperty::ptCategory && !pP->bMultivalue) {
+					// if the new property has a different value from the existent,
+					// we set the property to be multivalue.
+					if(pP->eType == SProperty::ptString) {
+						if(strcmp(pP->szString, pPL->aProperties[i].szString))
+							pP->bMultivalue = true;
+					} else if(pP->eType == SProperty::ptValue) {
+						if(pP->nValue != pPL->aProperties[i].nValue)
+							pP->bMultivalue = true;
+					} else if(pP->eType == SProperty::ptBoolean) {
+						if(pP->bBoolean != pPL->aProperties[i].bBoolean)
+							pP->bMultivalue = true;
+					} else if(pP->eType == SProperty::ptList) {
+						if(pP->nIndex != pPL->aProperties[i].nIndex)
+							pP->bMultivalue = true;
+					}
+					// just disables allowed, no enables are wanted here:
+					if(pPL->aProperties[i].bEnabled == false) pP->bEnabled = false;
+				}
+			} else {
+				if(!DupProperty(&pPL->aProperties[i])) return false;
+			}
+		}
+		return true;
+	}
+
+	bool DupProperty(const SProperty *pP) {
+		if(nProperties>=MAX_PROPS) return false;
+		aProperties[nProperties] = *pP;
+		if(pP->eType == SProperty::ptList) {
+			LPSTR eob = aProperties[nProperties].Buffer + BUFFSIZE;
+			LPSTR list = eob - aProperties[nProperties].uMDL;
+
+			aProperties[nProperties].List = (LPCSTR *)list;
+			for(int i=0; i<=10; i++) {
+				LPCSTR tmp = aProperties[nProperties].List[i];
+				if(tmp) {
+					aProperties[nProperties].List[i] = 
+						aProperties[nProperties].Buffer + (int)(tmp - pP->Buffer);
+				}
+			}
+		}
+
+		nProperties++;
+		return true;
+	}
 	bool SetName(LPCSTR _szName) {
 		if(nProperties>=MAX_PROPS) return false;
 		aProperties[nProperties].szPropName = aProperties[nProperties].Buffer;
@@ -63,6 +121,7 @@ struct SPropertyList
 		if(nProperties>=MAX_PROPS) return false;
 		SetName(_szName);
 		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
 		aProperties[nProperties].eType = SProperty::ptCategory;
 		nProperties++;
 		return true;
@@ -71,6 +130,7 @@ struct SPropertyList
 		if(nProperties>=MAX_PROPS) return false;
 		SetName(_szName);
 		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
 
 		LPSTR aux = aProperties[nProperties].Buffer + BUFFSIZE - aProperties[nProperties].uMDL;
 
@@ -84,6 +144,7 @@ struct SPropertyList
 		if(nProperties>=MAX_PROPS) return false;
 		SetName(_szName);
 		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
 		aProperties[nProperties].nIndex = _nIndex;
 		LPSTR eob = aProperties[nProperties].Buffer + BUFFSIZE;
 		LPSTR list = eob - aProperties[nProperties].uMDL;
@@ -117,6 +178,7 @@ struct SPropertyList
 		if(nProperties>=MAX_PROPS) return false;
 		SetName(_szName);
 		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
 		aProperties[nProperties].nValue = _nValue;
 		aProperties[nProperties].eType = SProperty::ptValue;
 		nProperties++;
@@ -126,6 +188,7 @@ struct SPropertyList
 		if(nProperties>=MAX_PROPS) return false;
 		SetName(_szName);
 		aProperties[nProperties].bEnabled = _bEnabled;
+		aProperties[nProperties].bChanged = false;
 		aProperties[nProperties].bBoolean = _bBoolean;
 		aProperties[nProperties].eType = SProperty::ptBoolean;
 		nProperties++;
