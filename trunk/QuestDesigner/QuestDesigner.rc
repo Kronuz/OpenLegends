@@ -145,6 +145,7 @@ BEGIN
     BUTTON      ID_MAPED_SELECT_ALL
     BUTTON      ID_MAPED_SELECT_NONE
     BUTTON      ID_MAPED_SELHOLD
+    BUTTON      ID_MAPED_SELDHOLD
     SEPARATOR
     BUTTON      ID_MAPED_NOZOOM
     BUTTON      ID_MAPED_ZOOMIN
@@ -991,7 +992,7 @@ BEGIN
     ID_APP_SOUND            "Enable sounds in the application.\nEnable Sounds"
     ID_APP_ANIM             "Enable animations in the application.\nEnable Animations"
     ID_APP_PARALLAX         "Enable Parallax views.\nEnable Parallax"
-    ID_MAPED_SELHOLD        "Toggle hold/lock the current selection.\nHold Selection"
+    ID_MAPED_SELHOLD        "In-place edition/Edit the current selection.\nIn-place edition"
     ID_DBG_DEBUG            "Debug the Quest File.\nDebug Quest"
 END
 
@@ -1033,6 +1034,11 @@ BEGIN
     ID_DBG_PROFILER         "Show Profiler.\nShow Profiler"
     ID_DBG_BREAKPOINT       "Toggle a breakpoint.\nToggle Breakpoint"
     ID_DBG_CONTINUE         "Continue debugging.\nContinue"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_MAPED_SELDHOLD       "Exit in-place edition/Exit the current in-place edition one level.\nExit in-place edition"
 END
 
 #endif    // English (U.S.) resources
