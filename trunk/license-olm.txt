@@ -1,0 +1,25 @@
+Open Legends Media License Version 1.1
+Copyright (c) 2003-2004 The Open Legends Team.
+----------------------------------------------
+The Open Legends game engine is distributed under the GNU General Public License Version 2, this license only refers to the files included with the Open Legends Quest Packs ("Open Legends Media") including but not limited to any scripts (either in source coude or byte code form, the "Software"), images, photographs, animations, video, audio, music, text and the Open Legends Quest Pack ("Quest Pack") itself incorporated as part the Quest Pack distributed with or without the Open Legends game engine distribution.
+
+The Quest Pack and its Open Legends Media are being provided by whoever is named in the copyright or copyrights for the Quest Pack and, if applicable, the Open Legends Media ("Copyright Holder") under the following license. By obtaining, using and/or copying this work, you (the "Licensee") agree that you have read, understood, and will comply with the following terms and conditions:
+
+Permission to use, copy, modify, and distribute this Quest Pack or any Open Legends Media included in it, with or without modification, for the purpose of using for the Open Legends Project or with the Open Legends game engine and without fee or royalty is hereby granted, provided that you include this notice on ALL copies of the Quest Pack and documentation or portions thereof, including modifications, that you make:
+
+  1. The full text of this notice in a location viewable to users of the redistributed or derivative work.
+
+  2. Notice of any changes or modifications to the files, including the date changes were made.
+
+  3. You may charge a distribution fee for the physical act of transferring a copy.
+  
+  4. To use any Open Legends Media in any products not part of the "Open Legends Project", as well as in any commercial production, the written permission of the Copyright Holder is required.
+
+  5. You may not copy, sublicense, distribute or transfer any Open Legends Media except as expressly provided under this License Agreement, without prior written permission from the Copyright Holder. Any attempt otherwise to copy, sublicense, distribute or transfer Open Legends Media is void and your rights to use the quest or any files under this License agreement shall be automatically terminated.
+
+THIS OPEN LEGENDS MEDIA IS PROVIDED ON AN "AS IS," THE OPEN LEGENDS TEAM AND THE COPYRIGHT HOLDER MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO, WARRANTIES OF TOTLE OR MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE OPEN LEGENDS MEDIA WILL NOT INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+
+THE OPEN LEGENDS TEAM AND THE COPYRIGHT HOLDER WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY USE OF THE OPEN LEGENDS MEDIA.
+
+The name of the Copyright Holder may not be used to endorse or promote products derived from this Open Legends Media without specific prior written permission.
+Title to copyright in this Quest Pack and any associated Open Legends Media will at all times remain with the Copyright Holder.
