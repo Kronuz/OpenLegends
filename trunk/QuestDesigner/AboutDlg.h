@@ -32,6 +32,7 @@ private:
 	// The dialogs hyperlink
 	CHyperLink m_wndHyperLinkURL1;
 	CHyperLink m_wndHyperLinkEmail1;
+	CHyperLink m_wndHyperLinkSupport1;
 
 public:
 	enum { IDD = IDD_ABOUTBOX };

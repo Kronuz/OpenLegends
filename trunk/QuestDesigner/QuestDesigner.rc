@@ -480,28 +480,30 @@ IDI_DOC_WAV             ICON                    "res\\QuestDesignerWav.ico"
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 403, 174
+IDD_ABOUTBOX DIALOGEX 0, 0, 403, 185
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About Quest Designer"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,7,153,50,14
-    CTEXT           "Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)",
-                    IDC_STATIC,146,149,250,8
+    DEFPUSHBUTTON   "OK",IDOK,7,164,50,14
+    CTEXT           "Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)",
+                    IDC_STATIC,146,160,250,8
     GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
-    GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,40
+    GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,51
     CTEXT           "Quest Designer v.0.8.5 (beta)\nfor Open Legends",
-                    IDC_STATIC,7,122,132,17,0,WS_EX_TRANSPARENT
+                    IDC_STATIC,7,134,132,17,0,WS_EX_TRANSPARENT
     EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
     LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
-                    98,8
+                    115,8
     LTEXT           "Author e-mail:",IDC_STATIC,175,130,44,8
     LTEXT           "Open Legends Website:",IDC_STATIC,175,119,68,8
-    LTEXT           "http://www.openlegends.com",IDC_URL1_STATIC,259,119,88,
+    LTEXT           "http://openlegends.sf.net/",IDC_URL1_STATIC,259,119,115,
                     8
-    PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,153,70,14
-    CTEXT           "Copyright (C) 2001-2004. Open Legends's Project",
-                    IDC_STATIC,146,159,250,8
+    LTEXT           "Support the developers:",IDC_STATIC,175,141,76,8
+    LTEXT           "Make a Donation",IDC_SUPPORT1_STATIC,259,141,115,8
+    PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,164,70,14
+    CTEXT           "Copyright (C) 2001-2005. Open Legends's Project",
+                    IDC_STATIC,146,170,250,8
 END
 
 IDD_PROPERTIES DIALOGEX 0, 0, 360, 206
@@ -556,14 +558,10 @@ CAPTION "Acknowledgments"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "Close",IDOK,109,232,50,14
-    LTEXT           "Portions of this software use:\n    CodeMax, Copyright 1997-2000 Barry Allyn,\n    CodeSense, Copyright 2000-2003 Nathan Lewis, and",
-                    IDC_STATIC,21,21,219,27
-    LTEXT           "    Small Compiler, Copyright (c) 1997-2002 ITB CompuPhase.\n    All rights reserved.\n\nLegends is a registered trademark of Nintendo of America Inc.",
-                    IDC_STATIC,21,44,219,36
-    LTEXT           "Code based in the conceptual design and original idea by Greg Denness.",
-                    IDC_STATIC,20,7,232,8
     GROUPBOX        "Many Thanks to:",IDC_STATIC,15,83,239,142
     EDITTEXT        IDC_THANKS_EDIT,24,94,222,124,ES_MULTILINE | WS_VSCROLL
+    EDITTEXT        IDC_ACK_EDIT,14,7,239,76,ES_MULTILINE | ES_READONLY | 
+                    NOT WS_BORDER
 END
 
 IDD_COLORPEEK DIALOG  0, 0, 224, 42
@@ -642,8 +640,10 @@ BEGIN
         RIGHTMARGIN, 396
         VERTGUIDE, 139
         VERTGUIDE, 146
+        VERTGUIDE, 259
+        VERTGUIDE, 374
         TOPMARGIN, 7
-        BOTTOMMARGIN, 167
+        BOTTOMMARGIN, 178
     END
 
     IDD_ACK, DIALOG

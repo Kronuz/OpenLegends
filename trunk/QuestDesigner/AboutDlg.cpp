@@ -57,7 +57,7 @@ LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPar
 	GetClientRect(&rcClient);
 	memdc.FillRect(&rcClient, COLOR_3DFACE);
 
-	Image.AlphaBlend(memdc, 7, 15, Image.GetWidth(), Image.GetHeight(), 0, 0, Image.GetWidth(), Image.GetHeight());
+	Image.AlphaBlend(memdc, 7, 25, Image.GetWidth(), Image.GetHeight(), 0, 0, Image.GetWidth(), Image.GetHeight());
 
 	return 0;
 
@@ -68,10 +68,13 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 
 	// set-up the dialogs hyperlinks
 	m_wndHyperLinkURL1.SubclassWindow ( GetDlgItem ( IDC_URL1_STATIC ) );
-	m_wndHyperLinkURL1.SetHyperLink ( _T ("http://www.openlegends.com") );		
+	m_wndHyperLinkURL1.SetHyperLink ( _T ("http://openlegends.sf.net/") );
 
 	m_wndHyperLinkEmail1.SubclassWindow ( GetDlgItem ( IDC_EMAIL1_STATIC ) );
-	m_wndHyperLinkEmail1.SetHyperLink ( _T ("mailto:kronuz@users.sourceforge.net") );		
+	m_wndHyperLinkEmail1.SetHyperLink ( _T ("mailto:kronuz@users.sourceforge.net") );
+
+	m_wndHyperLinkSupport1.SubclassWindow ( GetDlgItem ( IDC_SUPPORT1_STATIC ) );
+	m_wndHyperLinkSupport1.SetHyperLink ( _T ("https://www.paypal.com/xclick/business=kronuz%40hotmail.com") );
 
 	LPSTR szLicense;
 
@@ -126,8 +129,23 @@ LRESULT CAboutDlg::OnAcknowlegments(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndC
 LRESULT CAckDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	CenterWindow(GetParent());
+
+	SetDlgItemText(IDC_ACK_EDIT, _T("\
+Code based in the conceptual design and original idea by Greg Denness.\r\n\
+Portions of this software use:\r\n\
+    CodeMax, Copyright 1997-2000 Barry Allyn,\r\n\
+    CodeSense, Copyright 2000-2003 Nathan Lewis, and\r\n\
+    Small Compiler, Copyright (c) 1997-2002 ITB CompuPhase.\r\n\
+    All rights reserved.\r\n\
+\r\n\
+All trademarks used are properties of their respective owners."));
+
 	SetDlgItemText(IDC_THANKS_EDIT, _T("\
-I want to thank all people who helped me and collaborated in one way or the other and helped OpenLegends to become what it is today:\r\n\r\n\
+I want to give a very special thank you to those who have donated money to the cause:\r\n\
+      So far, only Tanner Christensen, thank you :)\r\n\
+\r\n\
+Also, I want to thank all people who helped me and collaborated in one way or the other and helped OpenLegends to become what it is today:\r\n\
+\r\n\
       + GD for his magnificent idea and original design;\r\n\
       + Strider for his support and all the new Sprite Sheets \r\n\
           he is working on;\r\n\
@@ -147,8 +165,9 @@ I want to thank all people who helped me and collaborated in one way or the othe
       + HocusPocus;\r\n\
       + GodGinrai;\r\n\
       + and last, but not least, the guys at GU who have \r\n\
-          a great website (http://www.thegaminguniverse.com)\r\n\r\n\
-If you feel I'm missing sombody, please tell me so I can add her/him/you to the list. "));
+          a great website (http://www.thegaminguniverse.com)\r\n\
+\r\n\
+If you feel I'm missing sombody, please tell me so I can add her/him/you to the list."));
 
 	return TRUE;
 }
