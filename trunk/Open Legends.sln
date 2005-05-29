@@ -1,6 +1,7 @@
 Microsoft Visual Studio Solution File, Format Version 8.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QuestDesigner", "QuestDesigner\QuestDesigner.vcproj", "{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}"
 	ProjectSection(ProjectDependencies) = postProject
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9} = {1B00B5FB-F7B9-4183-82BD-692262A0D0D9}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsD3D8", "GraphicsD3D8\GraphicsD3D8.vcproj", "{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}"
@@ -9,10 +10,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsD3D8", "GraphicsD3D
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Kernel", "Kernel\Kernel.vcproj", "{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}"
 	ProjectSection(ProjectDependencies) = postProject
+		{8606DEA8-2B95-46FA-BC48-18D6A1DE0165} = {8606DEA8-2B95-46FA-BC48-18D6A1DE0165}
+		{745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5} = {745AEAC2-1BB2-4601-BCB5-23FC2F84A2A5}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenLegends", "OpenLegends\OpenLegends.vcproj", "{0280F8EB-BB1B-488C-BFF5-4C494926F77C}"
 	ProjectSection(ProjectDependencies) = postProject
+		{1B00B5FB-F7B9-4183-82BD-692262A0D0D9} = {1B00B5FB-F7B9-4183-82BD-692262A0D0D9}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsD3D9", "GraphicsD3D9\GraphicsD3D9.vcproj", "{8606DEA8-2B95-46FA-BC48-18D6A1DE0165}"
@@ -20,9 +24,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsD3D9", "GraphicsD3D
 	EndProjectSection
 EndProject
 Global
-	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
-		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
-	EndGlobalSection
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
@@ -63,5 +64,8 @@ Global
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
 	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+	GlobalSection(DPCodeReviewSolutionGUID) = preSolution
+		DPCodeReviewSolutionGUID = {00000000-0000-0000-0000-000000000000}
 	EndGlobalSection
 EndGlobal

@@ -248,7 +248,7 @@ bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 
 /////////////////////////////////////////////////////////////////////////////
 // Bug fixes and updates needed:
-#if _ATL_VER == 0x0700
+#if (_WTL_VER == 0x0700)
 #ifndef __MAXIMIZE_FIXUPDATE
 	#error WTL BUGFIX: MDI windows need a maximization related bugfix to work (see here)
 /*
@@ -299,7 +299,7 @@ bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 #endif
 #endif
 
-#if _ATL_VER <= 0x0750
+#if (_WTL_VER <= 0x0750)
 #ifndef __FOCUS_FIXUPDATE
 	#error WTL BUGFIX: MDI windows need a focus related bugfix to work (see here)
 /*
@@ -323,8 +323,8 @@ bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 	#define __TOOLBARS_FIXUPDATE
 	void UpdateBarsPosition(RECT& rect, BOOL bResizeBars = TRUE) {
 		// resize toolbar
-		DWORD dwStyles = (DWORD)::GetWindowLong(m_hWndToolBar, GWL_STYLE);
-			if(m_hWndToolBar != NULL && (dwStyles & WS_VISIBLE)) {
+		DWORD dwStyles = (DWORD)::GetWindowLong(m_hWndToolBar, GWL_STYLE);		// <<- Changed/Added
+		if(m_hWndToolBar != NULL && (dwStyles & WS_VISIBLE)) {					// <<- Changed/Added
 			if(bResizeBars)
 				::SendMessage(m_hWndToolBar, WM_SIZE, 0, 0);
 			RECT rectTB;
@@ -333,7 +333,8 @@ bool LoadImage( CImage *pImage, HINSTANCE hInstance, UINT nIDResource )
 			if(dwStyles & CCS_VERT) rect.left += rectTB.right - rectTB.left;	// <<- Changed/Added
 			else rect.top += rectTB.bottom - rectTB.top;						// <<- Changed/Added
 		}
-			// resize status bar
+
+		// resize status bar
 		if(m_hWndStatusBar != NULL && ((DWORD)::GetWindowLong(m_hWndStatusBar, GWL_STYLE) & WS_VISIBLE)) {
 			if(bResizeBars)
 				::SendMessage(m_hWndStatusBar, WM_SIZE, 0, 0);

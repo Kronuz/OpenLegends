@@ -920,14 +920,13 @@ void CDrawableSelection::SelPointRemove(const CPoint &point_)
 
 				vectorObject::iterator removed = 
 					remove_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
-				if(removed != m_Groups[i].O.end()) {
-					m_Groups[i].O.erase(removed, m_Groups[i].O.end());
+				if(removed != m_Groups[0].O.end()) {
+					m_Groups[0].O.erase(removed, m_Groups[0].O.end());
 					return;
 				}
 
 				// the context is not yet selected, so try to select the full group containing it (if any)
 				SelectGroup(nGroup, false);
-
 			}
 
 			// remove the last selection:

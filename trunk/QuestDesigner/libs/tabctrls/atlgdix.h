@@ -43,7 +43,7 @@ namespace WTL
         GetBValue(c1) + ((GetBValue(c2) - GetBValue(c1)) * factor / 100) );
 #endif
 
-
+#if (_WTL_VER < 0x0750)
 /////////////////////////////////////////////////////////////////////////////
 // CIcon
 
@@ -202,7 +202,6 @@ public:
 
 typedef CIconT<true> CIcon;
 typedef CIconT<false> CIconHandle;
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCursor
@@ -466,6 +465,7 @@ public:
    }
 };
 
+#endif // (_WTL_VER < 0x0750)
 
 /////////////////////////////////////////////////////////////////////////////
 // CMemDC
