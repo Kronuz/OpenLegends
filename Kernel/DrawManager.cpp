@@ -20,8 +20,14 @@
 /*! \file		DrawManager.cpp
 	\brief		Implementation of the Drawing classes.
 	\date		June 15, 2003
-
-	This file implements the classes to handle drawing objects and selections.
+					* First release
+				May 29, 2005
+					- Fix: The [i] issue that prevented compilation has been corrected.
+					- Bug: New bugs were created. Groups are not yet functional.
+	\author		Kronuz
+	\remarks	This file implements the classes to handle drawing objects and selections.
+				Known bugs:
+				This has a major bug while working with groups. need to be fixed
 */
 
 #include "stdafx.h"
