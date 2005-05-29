@@ -7,7 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include <atlres.h>
+#include "libs/wtl/atlres.h"
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -33,7 +33,7 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include <atlres.h>\0"
+    "#include ""libs/wtl/atlres.h""\0"
 END
 
 3 TEXTINCLUDE 

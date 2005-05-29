@@ -34,7 +34,8 @@ Open Legends Project v.0.8.7: (not yet released)
 
 Open Legends Project v.0.8.5: (September 8, 2004)
 * Name change due NoA request!
-* First release of Open Legends (formerly Open Zelda) 
+* First release of Open Legends (formerly Open Zelda)
++ QD: Decided to include WTL 7.5 in the source code to avoid compiling problems.
 
 Open Zelda Project v.0.8.4: (September 7, 2004)
 - QL: Fixed a bug on the graphics engine.
