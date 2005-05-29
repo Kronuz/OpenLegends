@@ -1,9 +1,9 @@
-Open Legends Media License Version 1.1
-Copyright (c) 2003-2004 The Open Legends Team.
+Open Legends Media License Version 1.2
+Copyright (c) 2003-2005 The Open Legends Team.
 ----------------------------------------------
-The Open Legends game engine is distributed under the GNU General Public License Version 2, this license only refers to the files included with the Open Legends Quest Packs ("Open Legends Media") including but not limited to any scripts (either in source coude or byte code form, the "Software"), images, photographs, animations, video, audio, music, text and the Open Legends Quest Pack ("Quest Pack") itself incorporated as part the Quest Pack distributed with or without the Open Legends game engine distribution.
+The Open Legends game engine is distributed under the GNU General Public License Version 2, this license only refers to the files included with or within the Open Legends Quest Packs ("Open Legends Media") including but not limited to any scripts (either in source coude or byte code form, the "Software"), images, photographs, animations, video, audio, music, text and the Open Legends Quest Pack ("Quest Pack") itself incorporated as part the Quest Pack distributed with or without the Open Legends game engine distribution.
 
-The Quest Pack and its Open Legends Media are being provided by whoever is named in the copyright or copyrights for the Quest Pack and, if applicable, the Open Legends Media ("Copyright Holder") under the following license. By obtaining, using and/or copying this work, you (the "Licensee") agree that you have read, understood, and will comply with the following terms and conditions:
+The Quest Packs and its Open Legends Media are being provided by whoever is named in the copyright or copyrights for the Quest Pack and, if applicable, the Open Legends Media ("Copyright Holder") under the following license, unless other licence specified. By obtaining, using and/or copying this work, you (the "Licensee") agree that you have read, understood, and will comply with the following terms and conditions:
 
 Permission to use, copy, modify, and distribute this Quest Pack or any Open Legends Media included in it, with or without modification, for the purpose of using for the Open Legends Project or with the Open Legends game engine and without fee or royalty is hereby granted, provided that you include this notice on ALL copies of the Quest Pack and documentation or portions thereof, including modifications, that you make:
 
