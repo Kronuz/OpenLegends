@@ -114,6 +114,7 @@
 				ProxyFileName="QuestDesigner_p.c"/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description="UPX file compression"
 				CommandLine="upx -f $(SolutionDir)$(OutDir)/$(ProjectName).exe"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
