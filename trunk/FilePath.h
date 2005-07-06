@@ -21,7 +21,8 @@
 	\brief		Interface of the classes that maintain filenames and paths.
 	\date		April 28, 2003
 				September 24, 2003: Zip files greatly support improved
-				July 6, 2005: +Added WriteLine as define, takes input from buff.
+				July 6, 2005: +Added WriteLine as define, takes input from buff.(renamed: WriteStringToFile)
+							  +Also added the WriteLongToFile & WriteFloatToFile defines.
 
 	This file implements the CVFile to handle filenames and paths. Also
 	contains the path to the home directory of the game files.
@@ -50,9 +51,23 @@ extern CBString g_sHomeDir;
 #define ReadStringFromFile(string, file) \
 	((file).GetLine(buff, sizeof(buff))==NULL) ? (string="[eof]") : (m_nLines++, string=buff, string.Trim())
 
-#define WriteLine(file) \
+#define WriteStringToFile(file) {\
 	(file).Write(buff, (int)strlen(buff)); \
-	(file).Write("\n", 1);
+	(file).Write("\n", 1);\
+	}
+
+#define WriteFloatToFile(value, file) {
+	CBString buff; \
+	buff.Format("%f", value); \
+	WriteStringToFile(file); \
+	}
+
+#define WriteLongToFile(value, file) {
+	CBString buff; \
+	buff.Format("%ld", value); \
+	WriteStringToFile(file); \
+	}
+
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 class CVFile;
