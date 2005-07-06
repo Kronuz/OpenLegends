@@ -57,14 +57,14 @@ extern CBString g_sHomeDir;
 	}
 
 #define WriteFloatToFile(value, file) {
-	CBString buff; \
-	buff.Format("%f", value); \
+	CHAR buff[100]; \
+	sprintf(buff, "%f", value); \
 	WriteStringToFile(file); \
 	}
 
 #define WriteLongToFile(value, file) {
-	CBString buff; \
-	buff.Format("%ld", value); \
+	CHAR buff[100]; \
+	sprintf(buff, "%ld", value); \
 	WriteStringToFile(file); \
 	}
 
