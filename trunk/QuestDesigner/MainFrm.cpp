@@ -946,6 +946,7 @@ int CMainFrame::MapCreate(CPoint &Point)
 	CMapGroup *pMapGroupI;
 	if((pMapGroupI = m_pOLKernel->FindMapGroup(Point.x, Point.y))==NULL) {
 		if((pMapGroupI = m_pOLKernel->BuildMapGroup(Point.x, Point.y, 1, 1))==NULL) return 0;
+		else pMapGroupI->Load();
 	}
 
 	// Searching for an open child with the same file:
