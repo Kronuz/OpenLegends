@@ -25,12 +25,20 @@ Open Legends Project v.0.9.0: (not yet released)
 > OL: Basic script API functions.
 > QD: Ask and auto-convert files to the new QD format upon quest opening.
 
-Open Legends Project v.0.8.7: (not yet released)
-> QD: Properties window working.
-> QD: Saving/Loading quest files.
-> QD: Saving/Loading map files.
+Open Legends Project v.0.8.9 (not yet released)
 > QD: Sprite Sets with names saved as Sprite Sets in the maps.
 > QD: Debugger inspection watches.
+> QL: Unreferenced entities are compiled. (library files.)
+> QD: Properties window working.
+> QD: Complete Saving/Loading quest files.
+> QD: Complete Saving/Loading map files.
+
+Open Legends Project V.0.8.8 (not yet released)
+> Bugfixing time! =D
+
+Open Legends Project v.0.8.7: (not yet released)
+> QD: (basic) Saving/Loading quest files.
+> QD: (basic) Saving/Loading map files.
 
 Open Legends Project v.0.8.5: (September 8, 2004)
 * Name change due NoA request!
