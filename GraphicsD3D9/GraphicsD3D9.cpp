@@ -49,6 +49,8 @@
 					- Improvement: Branched GraphicsD3D9.dll from GraphicsD3D8.dll
 			    September 14, 2004
 					- Bug Fix:  Added only square textures and power of 2 textures support.
+			    Jul 6, 2005
+					- Improvement: Increased the precision on the SetWorldPosition for screen resizing a little.
 	\author		Kronuz
 	\remarks	Known bugs:
 				Take the next scenario. There is an open map (being displayed), the
@@ -1082,7 +1084,8 @@ void CGraphicsD3D9::SetWorldPosition(const POINT *Point_)
 	HWND hWnd = m_hWnd;
 	if(Point_) {
 		OffsetRect(&m_RectView, -m_RectView.left, -m_RectView.top);
-		OffsetRect(&m_RectView, (int)((float)Point_->x*m_Zoom + 0.5f), (int)((float)Point_->y*m_Zoom + 0.5f));
+		//This offset is NOT exact, however this will probably not be noticable as long as SetWorldPosition is regularly updated.
+		OffsetRect(&m_RectView, (int)((float)Point_->x*m_Zoom + 0.5f), (int)((float)Point_->y*m_Zoom + 0.4925f));
 
 		RECT rcWorldView = {
 			(int)((float)m_RectView.left / m_Zoom + 0.5f), 
