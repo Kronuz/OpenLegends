@@ -51,18 +51,18 @@ extern CBString g_sHomeDir;
 #define ReadStringFromFile(string, file) \
 	((file).GetLine(buff, sizeof(buff))==NULL) ? (string="[eof]") : (m_nLines++, string=buff, string.Trim())
 
-#define WriteStringToFile(file) {\
+#define WriteStringToFile(file) { \
 	(file).Write(buff, (int)strlen(buff)); \
 	(file).Write("\n", 1);\
 	}
 
-#define WriteFloatToFile(value, file) {
+#define WriteFloatToFile(value, file) { \
 	CHAR buff[100]; \
 	sprintf(buff, "%f", value); \
 	WriteStringToFile(file); \
 	}
 
-#define WriteLongToFile(value, file) {
+#define WriteLongToFile(value, file) { \
 	CHAR buff[100]; \
 	sprintf(buff, "%ld", value); \
 	WriteStringToFile(file); \
