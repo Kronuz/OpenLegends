@@ -20,6 +20,7 @@
 /*! \file		WorldManager.cpp
 	\brief		Implementation of the CGameManager class.
 	\date		April 28, 2003
+				July 7, 2005 + Added ForEachMapGroup to CWorld.
 
 	This file implements the classes that manage a world in the game,
 	this includes the methods to create a new world, maps for that
@@ -454,4 +455,18 @@ CMapGroup* CWorld::BuildMapGroup(int x, int y, int width, int height)
 	m_MapGroups.push_back(retmap);
 
 	return retmap;
+}
+
+int CWorld::ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam)
+{
+	int cnt = 0;
+	std::vector<CMapGroup*>::iterator Iterator = m_MapGroups.begin();
+	while(Iterator != m_MapGroups.end()) {
+		ASSERT(*Iterator);
+		int aux = ForEach((LPVOID)(*Iterator), lParam);
+		if(aux < 0) return aux-cnt;
+		cnt += aux;
+		Iterator++;
+	}
+	return cnt;
 }
