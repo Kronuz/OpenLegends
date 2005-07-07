@@ -192,6 +192,7 @@ public:
 	\author		Kronuz
 	\version	1.0
 	\date		April 28, 2003
+				July 7, 2005 + Added ForEachMapGroup
 
 	This class Is the one that manages everything in the project,
 	from the sprite sheets list and the sounds list, to the world and
@@ -215,6 +216,7 @@ public:
 
 	CMapGroup* FindMapGroup(int x, int y) const;
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
+	int ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam);
 };
 
 
