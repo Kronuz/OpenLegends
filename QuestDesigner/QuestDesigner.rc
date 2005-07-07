@@ -547,8 +547,8 @@ IDD_PROPERTIES_NOTIMPLEMENTED DIALOGEX 0, 0, 250, 170
 STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    CTEXT           "Properties sheet under construction.",IDC_STATIC_INFO2,
-                    0,76,250,8
+    CTEXT           "Properties sheet under construction.",IDC_STATIC_INFO,0,
+                    76,250,8
 END
 
 IDD_ACK DIALOGEX 0, 0, 268, 253

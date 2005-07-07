@@ -123,6 +123,7 @@
 #define IDC_EDIT3                       1031
 #define IDC_ACK_EDIT                    1031
 #define IDC_BUTTON7                     1032
+#define IDC_SCROLLBAR1                  1032
 #define IDC_EDIT4                       1035
 #define IDC_BUTTON4                     1036
 #define IDC_BUTTON3                     1037
@@ -263,7 +264,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        277
 #define _APS_NEXT_COMMAND_VALUE         32433
-#define _APS_NEXT_CONTROL_VALUE         1032
+#define _APS_NEXT_CONTROL_VALUE         1033
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif
