@@ -19,10 +19,15 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		FilePath.h 
 	\brief		Interface of the classes that maintain filenames and paths.
-	\date		April 28, 2003
-				September 24, 2003: Zip files greatly support improved
-				July 6, 2005: +Added WriteLine as define, takes input from buff.(renamed: WriteStringToFile)
-							  +Also added the WriteLongToFile & WriteFloatToFile defines.
+	\date		April 28, 2003:
+					* First release.
+				September 24, 2003: 
+					+ Zip files support greatly improved.
+				July 6, 2005: 
+					+ Added WriteLine as define, takes input from buff.(renamed: WriteStringToFile)
+					+ Also added the WriteLongToFile & WriteFloatToFile defines.
+				July 8, 2005:
+					+ Added ZIP file comments support.
 
 	This file implements the CVFile to handle filenames and paths. Also
 	contains the path to the home directory of the game files.
@@ -38,6 +43,18 @@
 #define DIR_SEP '\\'
 #define VBUFFER_SIZE (16*1024)
 #define MAXFILENAME (256)
+
+const BYTE basicZip[] = {
+	0x50,0x4B,0x03,0x04,0x0A,0x00,0x00,0x00,0x00,0x00,0x2F,0x68,0xE8,0x32,0x00,0x00, // PK......../hè2..
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x00,0x00,0x00,0x2E,0x6F, // ...............o
+	0x6C,0x50,0x4B,0x01,0x02,0x14,0x00,0x0A,0x00,0x00,0x00,0x00,0x00,0x2F,0x68,0xE8, // lPK........../hè
+	0x32,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x00,0x00, // 2...............
+	0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x23,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x2E, // .......#........
+	0x6F,0x6C,0x50,0x4B,0x05,0x06,0x00,0x00,0x00,0x00,0x01,0x00,0x01,0x00,0x31,0x00, // olPK..........1.
+	0x00,0x00,0x21,0x00,0x00,0x00,0x0C,0x00,0x4F,0x70,0x65,0x6E,0x20,0x4C,0x65,0x67, // ..!.....Open Leg
+	0x65,0x6E,0x64,0x73                                                              // ends
+};
+const int basicZipSize = 0x76;
 
 extern CBString g_sHomeDir;
 
@@ -94,6 +111,7 @@ class CVFile
 	mutable bool m_bOpenFile;
 	mutable char m_szMode[7];
 	mutable bool m_bChanges;
+	mutable bool m_bTempFile;
 
 	bool m_bRelative;
 	bool m_bVirtual;
@@ -106,17 +124,18 @@ class CVFile
 	CBString m_sExt;			// file name extension
 
 	CBString m_sDesc;			// file description is the file tile until changed.
+	CBString m_sComment;		// file comment
 
 	FILETIME* GetFileDate(LPCSTR lpFileName) const;
 	bool FileExists(LPCSTR lpFileName) const;
 	bool FindVirtual();
 
-	bool OpenVirtual(LPCSTR mode) const;
+	bool OpenVirtual(LPCSTR mode);
 	bool CloseVirtual(bool bDeleteTemps) const;
 	int ReadVirtual(LPVOID buffer, long buffsize);
 
 	int RenameVirtual(CVFile &vFile);
-	int DeleteVirtual(bool bKeep = false) const;
+	int DeleteVirtual(bool bKeep = false);
 	int WriteVirtual(LPCVOID buffer, long buffsize);
 	int SeekVirtual(long offset, int origin);
 	long TellVirtual() const;
@@ -144,7 +163,9 @@ public:
 	CBString GetAbsFilePath() const;
 	CBString GetFilePath() const;
 	CBString GetFileDesc() const;
+	CBString GetFileComment() const;
 
+	void SetFileComment(LPCSTR szNewComment);
 	void SetFileDesc(LPCSTR szNewDesc);
 	void SetFilePath(LPCSTR szNewName, bool bGlobalize = false);
 	void SetFileTitle(LPCSTR szNewName);
@@ -153,9 +174,22 @@ public:
 	bool IsDirectory() const;
 	bool FileExists() const;
 
+	static bool CreateVirtual(LPCSTR szNewName) {
+		CVFile tmp(szNewName);
+		if(tmp.FileExists()) return false;
+		if(tmp.m_bVirtual) return false;
+		FILE *aux = fopen(szNewName, "wb");
+		if(aux) {
+			fwrite(basicZip, 1, basicZipSize, aux);
+			fclose(aux);
+			return true;
+		}
+		return false;
+	}
+
 // Operations with the files:
 	bool Flush() const;
-	bool Open(LPCSTR mode) const;
+	bool Open(LPCSTR mode);
 	bool Close(bool bFreeBuffer = true, bool bDeleteTemps = true) const;
 
 	int ForEachFile(FILESPROC ForEach, LPARAM lParam);
@@ -173,6 +207,7 @@ public:
 	FILETIME* GetFileDate() const;
 	long GetFileSize() const;
 };
+
 inline FILETIME* CVFile::GetFileDate(LPCSTR lpFileName) const
 {
 	m_dwFileAttributes = 0;
@@ -185,13 +220,14 @@ inline FILETIME* CVFile::GetFileDate(LPCSTR lpFileName) const
 	}
 	return NULL;
 }
+
 inline bool CVFile::FileExists(LPCSTR lpFileName) const 
 {
 	if(m_dwFileAttributes == -1) return false;
 	if(m_dwFileAttributes == 0) {
 		if(GetFileDate(lpFileName)==NULL) return false;
 	}
-	if((m_dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)!= FILE_ATTRIBUTE_DIRECTORY) return true;
+	if((m_dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != FILE_ATTRIBUTE_DIRECTORY) return true;
 
 	return false;
 }
@@ -227,18 +263,22 @@ inline bool CVFile::FindVirtual()
 	}
 	return false;
 }
+
 inline CBString CVFile::GetFileTitle() const 
 { 
 	return m_sTitle; 
 }
+
 inline CBString CVFile::GetFileExt() const 
 { 
 	return m_sExt; 
 }
+
 inline CBString CVFile::GetFileName() const 
 { 
 	return m_sTitle + m_sExt; 
 }
+
 inline CBString CVFile::GetHomeFile() const
 {
 	if(m_bVirtual) {
@@ -248,6 +288,7 @@ inline CBString CVFile::GetHomeFile() const
 	}
 	return GetFilePath();
 }
+
 inline CBString CVFile::GetPath() const 
 { 
 	if(!m_bVirtual && m_bRelative)
@@ -255,23 +296,48 @@ inline CBString CVFile::GetPath() const
 
 	return m_sPath;
 }
+
 inline CBString CVFile::GetFilePath() const 
 { 
 	return GetPath() + GetFileName();
 }
+
 inline CBString CVFile::GetAbsFilePath() const 
 { 
 	if(m_bVirtual) return GetHomeFile() + "\\" + GetFilePath();
 	return GetFilePath();
 }
+
 inline CBString CVFile::GetFileDesc() const 
 {
 	return m_sDesc;
 }
+
+inline CBString CVFile::GetFileComment() const 
+{
+	if(!m_bOpenFile) {
+		((CVFile*)this)->Open("rb");
+		Close();
+	}
+	return m_sComment;
+}
+
+inline void CVFile::SetFileComment(LPCSTR szNewComment) 
+{
+	if(!m_bOpenFile) {
+		Open("wb");
+		m_sComment = szNewComment;
+		Close();
+	} else {
+		m_sComment = szNewComment;
+	}
+}
+
 inline void CVFile::SetFileDesc(LPCSTR szNewDesc) 
 {
 	m_sDesc = szNewDesc;
 }
+
 inline void CVFile::SetFilePath(LPCSTR szNewName, bool bGlobalize) 
 {
 	ASSERT(szNewName);
@@ -375,7 +441,7 @@ inline FILETIME* CVFile::GetVirtualFileDate() const
 	return NULL;
 }
 
-inline int CVFile::DeleteVirtual(bool bKeep) const
+inline int CVFile::DeleteVirtual(bool bKeep)
 {
 	// make a temporary file to copy data from:
 	CBString sFile = GetHomeFile();
@@ -399,6 +465,24 @@ inline int CVFile::DeleteVirtual(bool bKeep) const
 		return -1;
 	}
 
+	// get global commentary
+	m_sComment.Empty();
+	unz_global_info glob_info;
+	if(unzGetGlobalInfo(ufile, &glob_info) == UNZ_OK) {
+		LPSTR szComment = NULL;
+		if(glob_info.size_comment > 0) {
+			szComment = new CHAR[glob_info.size_comment + 1];
+			if(szComment) {
+				if(unzGetGlobalComment(ufile, szComment, glob_info.size_comment + 1) != glob_info.size_comment) {
+					delete []szComment;
+					szComment = NULL;
+				}
+			}
+		}
+		if(szComment) m_sComment = szComment;
+		delete []szComment;
+	}
+
 	LPBYTE pBuffer = new BYTE[VBUFFER_SIZE];
 
 	// loop through all the existent files:
@@ -410,14 +494,21 @@ inline int CVFile::DeleteVirtual(bool bKeep) const
 
 	CBString sSkipFile = GetFilePath();
 
+	int nDeleted = 0;
+	int nCmpLen = 0;
+	// If the file to be deleted is a directory:
+	if(sSkipFile.Right(1) == "/") nCmpLen = sSkipFile.GetLength();
+
 	while(err == UNZ_OK) {
 		char szCurrentFileName[MAX_PATH];
 		err = unzGetCurrentFileInfo(ufile, &file_info,
 							szCurrentFileName, MAX_PATH-1,
 							NULL, 0, NULL, 0);
 		if(err == UNZ_OK) {
-			if(sSkipFile == szCurrentFileName) {
+			if(nCmpLen && sSkipFile.CompareNoCase(szCurrentFileName, nCmpLen)==0 ||
+			   sSkipFile.CompareNoCase(szCurrentFileName)==0 ) {
 				err = unzGoToNextFile(ufile);
+				nDeleted++;
 				continue;
 			}
 
@@ -443,7 +534,7 @@ inline int CVFile::DeleteVirtual(bool bKeep) const
 			while(err == ZIP_OK && lSize > 0) {
 				long lToRead = min(VBUFFER_SIZE, lSize);
 				long lBuffRead = unzReadCurrentFile(ufile, pBuffer, lToRead);
-				if(lBuffRead < lToRead) if(unzeof(ufile) == 0) {
+				if(lBuffRead < lToRead && unzeof(ufile) == 0) {
 					err = Z_ERRNO;
 				}
 	
@@ -464,29 +555,191 @@ inline int CVFile::DeleteVirtual(bool bKeep) const
 		}
 	}
 	unzClose(ufile);
-	zipClose(zfile, NULL);
+	zipClose(zfile, m_sComment.IsEmpty() ? NULL : (LPCSTR)m_sComment);
 
 	delete []pBuffer;
 
-	if(err != UNZ_END_OF_LIST_OF_FILE) {
-		unlink(sTmpFile);
-		return -1;
-	}
-
 	// delete the temporary file:
 	if(!bKeep) {
+		if(!nDeleted || err!=UNZ_END_OF_LIST_OF_FILE) {
+			unlink(sTmpFile);
+			return -1;
+		}
 		unlink(sFile);
 		if(rename(sTmpFile, sFile) != 0) return -1;
 	}
 
+	if(!nDeleted || err!=UNZ_END_OF_LIST_OF_FILE) return -1;
 	return 0;
 }
 
+extern int ZEXPORT QunzReadCurrentFile OF((unzFile file,
+                      voidp buf,
+                      unsigned len));
+
+// if both files are virtual, this is used:
 inline int CVFile::RenameVirtual(CVFile &vFile)
 {
-	ASSERT(!*"Rename() is not yet supported on virtual files...");
-	return -1;
+	// make a temporary file to copy data from:
+	CBString sFile = GetHomeFile();
+	if(sFile.IsEmpty()) return -1;
+
+	CBString sTmpFile = sFile + "~";
+
+	if(GetFileDate(sTmpFile) && !m_bChanges) {
+		unlink(sFile);
+		if(rename(sTmpFile, sFile) != 0) return -1;
+		return 0;
+	} else unlink(sTmpFile);
+
+	CBString sDstFile = vFile.GetHomeFile();
+	if(sDstFile.IsEmpty()) return -1;
+
+	CBString sComment = vFile.GetFileComment();
+
+	// open source and destiny files:
+	unzFile ufile = unzOpen(sFile);
+	if(ufile == NULL) return -1;
+
+	zipFile zfile = zipOpen(sTmpFile, 0);
+	if(zfile == NULL) {
+		unzClose(ufile);
+		return -1;
+	}
+
+	zipFile zfile2 = NULL;
+	if(sDstFile != sFile) {
+		zfile2 = zipOpen(sDstFile, APPEND_STATUS_ADDINZIP);
+		if(zfile2 == NULL) {
+			zipClose(zfile, NULL);
+			unzClose(ufile);
+			unlink(sTmpFile);
+			return -1;
+		}
+	}
+
+	// get global commentary
+	m_sComment.Empty();
+	unz_global_info glob_info;
+	if(unzGetGlobalInfo(ufile, &glob_info) == UNZ_OK) {
+		LPSTR szComment = NULL;
+		if(glob_info.size_comment > 0) {
+			szComment = new CHAR[glob_info.size_comment + 1];
+			if(szComment) {
+				if(unzGetGlobalComment(ufile, szComment, glob_info.size_comment + 1) != glob_info.size_comment) {
+					delete []szComment;
+					szComment = NULL;
+				}
+			}
+		}
+		if(szComment) m_sComment = szComment;
+		delete []szComment;
+	}
+
+	// loop through all the existent files:
+	int err = unzGoToFirstFile(ufile);
+
+	int method, level;
+	unz_file_info file_info;
+	zip_fileinfo zfile_info;
+
+	CBString sOldName = GetFilePath();
+	CBString sNewName = vFile.GetFilePath();
+
+	int nRenamed = 0;
+	int nCmpLen = 0;
+	// If the file to be deleted is a directory:
+	if(sOldName.Right(1) == "/") nCmpLen = sOldName.GetLength();
+	if(nCmpLen && sNewName.Right(1) != "/") {
+		zipClose(zfile, NULL);
+		zipClose(zfile2, sComment);
+		unzClose(ufile);
+		return -1;
+	}
+
+	LPBYTE pBuffer = new BYTE[VBUFFER_SIZE];
+
+	while(err == UNZ_OK) {
+		char szCurrentFileName[MAX_PATH];
+		err = unzGetCurrentFileInfo(ufile, &file_info,
+							szCurrentFileName, MAX_PATH-1,
+							NULL, 0, NULL, 0);
+		if(err == UNZ_OK) {
+			long lSize = file_info.compressed_size;
+
+			zfile_info.external_fa = file_info.external_fa;
+			zfile_info.internal_fa = file_info.internal_fa;
+			zfile_info.dosDate = file_info.dosDate;
+			zfile_info.tmz_date.tm_sec  = file_info.tmu_date.tm_sec; 
+			zfile_info.tmz_date.tm_min  = file_info.tmu_date.tm_min; 
+			zfile_info.tmz_date.tm_hour = file_info.tmu_date.tm_hour;
+			zfile_info.tmz_date.tm_mday = file_info.tmu_date.tm_mday;
+			zfile_info.tmz_date.tm_mon  = file_info.tmu_date.tm_mon; 
+			zfile_info.tmz_date.tm_year = file_info.tmu_date.tm_year;
+
+			// open the raw files:
+			if(unzOpenCurrentFile2(ufile, &method, &level, 1) != UNZ_OK) break;
+
+			zipFile zfileDst;
+			char szNewFileName[MAX_PATH];
+			if(nCmpLen && sOldName.CompareNoCase(szCurrentFileName, nCmpLen)==0 ||
+			   sOldName.CompareNoCase(szCurrentFileName)==0 ) {
+				nRenamed++;
+				zfileDst = zfile2?zfile2:zfile;
+				strcpy(szNewFileName, sNewName);
+				if(nCmpLen) strcat(szNewFileName, szCurrentFileName+nCmpLen);
+			} else {
+				zfileDst = zfile;
+				strcpy(szNewFileName, szCurrentFileName);
+
+			}
+
+			if(zipOpenNewFileInZip2(zfileDst, szNewFileName, &zfile_info,
+								NULL, 0, NULL, 0, NULL,
+								method,
+								level, 1) != ZIP_OK) break;
+
+			while(err == ZIP_OK && lSize > 0) {
+				long lToRead = min(VBUFFER_SIZE, lSize);
+				long lBuffRead = unzReadCurrentFile(ufile, pBuffer, lToRead);
+				if(lBuffRead < lToRead && unzeof(ufile) == 0) {
+					err = Z_ERRNO;
+				}
+	
+				if(lBuffRead > 0 && err == ZIP_OK) {
+					if(zipWriteInFileInZip(zfileDst, pBuffer, lBuffRead) < 0) {
+						err = Z_ERRNO;
+					}
+				}
+				lSize -= lBuffRead;
+			} 
+
+			unzCloseCurrentFile(ufile);
+			zipCloseFileInZipRaw(zfileDst, file_info.uncompressed_size, file_info.crc);
+
+			if(err != ZIP_OK) break;
+
+			err = unzGoToNextFile(ufile);
+		}
+	}
+	unzClose(ufile);
+	zipClose(zfile, m_sComment.IsEmpty() ? NULL : (LPCSTR)m_sComment);
+	if(zfile2) zipClose(zfile2, sComment.IsEmpty() ? NULL : (LPCSTR)sComment);
+
+	delete []pBuffer;
+
+	// delete the temporary file:
+	if(!nRenamed || err!=UNZ_END_OF_LIST_OF_FILE) {
+		unlink(sTmpFile);
+		return -1;
+	}
+	unlink(sFile);
+	if(rename(sTmpFile, sFile) != 0) return -1;
+
+	if(!nRenamed || err!=UNZ_END_OF_LIST_OF_FILE) return -1;
+	return 0;
 }
+
 inline int CVFile::ReadVirtual(LPVOID buffer, long buffsize)
 {
 	if(m_vzFile && m_pBuffer && m_BuffLen!=-1) {
@@ -498,6 +751,7 @@ inline int CVFile::ReadVirtual(LPVOID buffer, long buffsize)
 	if(m_vFile == NULL) return 0;
 	return unzReadCurrentFile(m_vFile, buffer, (long)buffsize);
 }
+
 inline int CVFile::WriteVirtual(LPCVOID buffer, long buffsize)
 {
 	if(m_vzFile == NULL) return 0;
@@ -518,12 +772,14 @@ inline int CVFile::WriteVirtual(LPCVOID buffer, long buffsize)
 	m_BuffLen = offset;
 	return buffsize;
 }
+
 inline long CVFile::TellVirtual() const
 {
 	if(m_vzFile && m_BuffOffset!=-1) return m_BuffOffset;
 	if(m_vFile) return (long)unztell(m_vFile);
 	return 0;
 }
+
 inline int CVFile::SeekVirtual(long offset, int origin)
 {
 	ASSERT(m_vFile != NULL || m_vzFile != NULL);
@@ -586,7 +842,8 @@ inline int CVFile::SeekVirtual(long offset, int origin)
 
 	return 0;
 }
-inline bool CVFile::OpenVirtual(LPCSTR mode) const
+
+inline bool CVFile::OpenVirtual(LPCSTR mode)
 {
 	CBString sFile = GetHomeFile();
 	if(sFile.IsEmpty()) return false;
@@ -594,6 +851,7 @@ inline bool CVFile::OpenVirtual(LPCSTR mode) const
 	CBString sTmpFile = sFile + "~";
 	unlink(sTmpFile); // delete any temporary file
 	m_bChanges = false;
+	m_bTempFile = true;
 
 	try {
 		ASSERT(m_vFile == NULL);
@@ -601,7 +859,8 @@ inline bool CVFile::OpenVirtual(LPCSTR mode) const
 
 		// Open Zip file (for reading and writing if needed):
 		if(strchr(mode, 'w') || strchr(mode, 'a')) {
-			DeleteVirtual(true); // Create a temporary zip file without the current file.
+			// Create a temporary zip file without the current file.
+			DeleteVirtual(true);
 			m_vzFile = zipOpen(sTmpFile, APPEND_STATUS_ADDINZIP);
 			if(!m_vzFile) throw 0;
 		}
@@ -610,6 +869,24 @@ inline bool CVFile::OpenVirtual(LPCSTR mode) const
 
 		m_vFile = unzOpen(sFile);
 		if(!m_vFile) throw 0;
+
+		// get global commentary
+		m_sComment.Empty();
+		unz_global_info glob_info;
+		if(unzGetGlobalInfo(m_vFile, &glob_info) == UNZ_OK) {
+			LPSTR szComment = NULL;
+			if(glob_info.size_comment > 0) {
+				szComment = new CHAR[glob_info.size_comment + 1];
+				if(szComment) {
+					if(unzGetGlobalComment(m_vFile, szComment, glob_info.size_comment + 1) != glob_info.size_comment) {
+						delete []szComment;
+						szComment = NULL;
+					}
+				}
+			}
+			if(szComment) m_sComment = szComment;
+			delete []szComment;
+		}
 
 		if(FileExists()) { // This call also fills the m_RawCRC if using Raw Mode.
 			CBString sFile = GetFilePath();
@@ -671,10 +948,11 @@ inline bool CVFile::OpenVirtual(LPCSTR mode) const
 		}
 		if(err >= 1) unzCloseCurrentFile(m_vFile);
 		if(m_vFile) unzClose(m_vFile); m_vFile = NULL;
-		if(m_vzFile) zipClose(m_vzFile, NULL); m_vzFile = NULL;
+		if(m_vzFile) zipClose(m_vzFile, m_sComment.IsEmpty() ? NULL : (LPCSTR)m_sComment); m_vzFile = NULL;
 	}
 	return false;
 }
+
 inline bool CVFile::CloseVirtual(bool bDeleteTemps) const
 {
 	if(m_vzFile) {
@@ -682,7 +960,7 @@ inline bool CVFile::CloseVirtual(bool bDeleteTemps) const
 
 		if(m_bRawMode) zipCloseFileInZipRaw(m_vzFile, m_RawSize, m_RawCRC);
 		else zipCloseFileInZip(m_vzFile);
-		if(zipClose(m_vzFile, NULL) != ZIP_OK) return false;
+		if(zipClose(m_vzFile, m_sComment.IsEmpty() ? NULL : (LPCSTR)m_sComment) != ZIP_OK) return false;
 		m_vzFile = NULL;
 	}
 	if(m_vFile) {
@@ -698,13 +976,18 @@ inline bool CVFile::CloseVirtual(bool bDeleteTemps) const
 
 	CBString sFile = GetHomeFile();
 	ASSERT(!sFile.IsEmpty());
-	if(m_bChanges) {
+	if(m_bTempFile && m_bChanges) {
 		m_bChanges = false;
 		unlink(sFile);
 		if(rename(sFile + "~", sFile) != 0) return false;
-	} else if(bDeleteTemps) unlink(sFile + "~");
+	}
+	if(bDeleteTemps) {
+		m_bTempFile = false;
+		unlink(sFile + "~");
+	}
 	return true;
 }
+
 inline LPSTR CVFile::GetLineVirtual(LPSTR string, int n)
 {
 	int total = 0;
@@ -740,6 +1023,7 @@ inline LPSTR CVFile::GetLineVirtual(LPSTR string, int n)
 	if(total) return string;
 	return NULL;
 }
+
 inline long CVFile::GetVirtualFileSize() const
 {
 	char filename_inzip[MAXFILENAME] = {0};
@@ -761,11 +1045,31 @@ inline long CVFile::GetVirtualFileSize() const
 	}
 	return 0;
 }
+
 /////////////////////////////////////////////////////////////////////
 // Real interface:
-inline bool CVFile::Open(LPCSTR mode) const
+/*! \brief Opens a file (virtual or not)
+	
+	\param mode Type of access permitted.
+	
+	\return Returns true if the file was opened.
+	
+	\remarks
+	If the file is already open it will always return true.
+	The character string mode specifies the type of access requested for the file, as follows: 
+	  "r" Opens for reading. 
+	  "w" Opens for both reading and writing. 
+	  t Open in text (translated) mode.
+	  b Open in binary (untranslated) mode. (this is the default mode)
+
+	If the file does not exist or cannot be found the file is created.
+
+*/
+inline bool CVFile::Open(LPCSTR mode)
 {
 	if(m_bOpenFile) return true;
+
+	m_sComment.Empty();
 
 	if(!FileExists() && !strchr(mode, 'w') && !strchr(mode, 'a')) return false;
 
@@ -780,6 +1084,7 @@ inline bool CVFile::Open(LPCSTR mode) const
 
 	strncpy(m_szMode, mode, 4);
 	m_szMode[4] = '\0';
+	
 	if(FileExists() && !strchr(m_szMode, '+') && !m_bReadOnly) strcat(m_szMode, "+");
 	if(!strchr(m_szMode, 'b')) strcat(m_szMode, "b");
 
@@ -861,7 +1166,10 @@ inline int CVFile::Write(LPCVOID buffer, long buffsize)
 	bool wasOpen = m_bOpenFile;
 	if(!m_bOpenFile) {
 		if(!Open("wb")) return -1;
-		if(m_bReadOnly) return -1;
+		if(m_bReadOnly) {
+			Close(false, false);
+			return -1;
+		}
 	}
 
 	if(!Flush()) return -1;
@@ -878,6 +1186,7 @@ inline int CVFile::Write(LPCVOID buffer, long buffsize)
 	if(!wasOpen) Close(false, false);
 	return ret;
 }
+
 inline int CVFile::Delete()
 {
 	// If the file does not exists, error:
@@ -891,17 +1200,23 @@ inline int CVFile::Delete()
 	CBString sFile = GetHomeFile();
 	if(sFile.IsEmpty()) return -1;
 
+	//FIXME We yet need to implement the "delete directory" for real files
 	return (unlink(sFile)==0)?0:-1;
 }
 
 inline int CVFile::Rename(CVFile &vFile)
 {
-	if(vFile.FileExists()) return -1;
+	if(vFile.FileExists()) return -1; // The destiny already exists
 
 	if(m_bOpenFile) if(!Close(true, true)) return -1;
 	if(vFile.m_bOpenFile) if(!vFile.Close(true, true)) return -1;
 
 	int ret = -1;
+
+	// both files are virtual:
+	if(m_bVirtual && vFile.m_bVirtual) {
+		return RenameVirtual(vFile);
+	}
 
 	// both files are not virtual:
 	if(!m_bVirtual && !vFile.m_bVirtual) {
@@ -913,7 +1228,7 @@ inline int CVFile::Rename(CVFile &vFile)
 		return ret;
 	}
 
-	m_bRawMode = true;
+	// FIXME Still is needed to implement the recursive rename between virtual/real directories
 	if(!Open("rb")) return -1;
 	long size = GetFileSize();
 	LPBYTE pBuffer = new BYTE[size];
@@ -931,7 +1246,7 @@ inline int CVFile::Rename(CVFile &vFile)
 	// Close the file:
 	Close(true, true);
 
-	// Get the size of the uncompressed file (if compressed)
+	// Get the size of the file:
 	vFile.m_RawSize = GetFileSize();
 
 	if(pBuffer) {
@@ -939,14 +1254,6 @@ inline int CVFile::Rename(CVFile &vFile)
 		if(!vFile.Open("ab")) return -1;
 		if(vFile.Write(pBuffer, size) == size) ret = 0;
 		vFile.Close(true, true);
-	}
-
-	// Ensure the Raw mode does not stay active (in case of errors).
-	vFile.m_bRawMode = false;
-
-	if(ret == -1) { // probably it's a directory, so try renaming:
-		if(m_bVirtual || vFile.m_bVirtual) ret = RenameVirtual(vFile);
-		else ret = (rename(GetHomeFile(), vFile.GetHomeFile())==0)?0:-1;
 	}
 
 	delete []pBuffer;
@@ -966,6 +1273,7 @@ inline long CVFile::Tell() const
 	ASSERT(m_File);
 	return ftell(m_File);
 }
+
 inline int CVFile::Seek(long offset, int origin)
 {
 	if(!m_bOpenFile) return -1;
@@ -974,6 +1282,7 @@ inline int CVFile::Seek(long offset, int origin)
 	ASSERT(m_File);
 	return (int)fseek(m_File, offset, origin);
 }
+
 inline LPSTR CVFile::GetLine(LPSTR string, int n)
 {
 	if(!m_bOpenFile) return NULL;
@@ -982,10 +1291,11 @@ inline LPSTR CVFile::GetLine(LPSTR string, int n)
 	ASSERT(m_File);
 	return fgets(string, n, m_File);
 }
+
 inline long CVFile::GetFileSize() const
 {
 	bool wasOpen = m_bOpenFile;
-	if(!m_bOpenFile) if(!Open("r")) return -1;
+	if(!m_bOpenFile) if(!((CVFile*)this)->Open("r")) return -1;
 	long ret = -1;
 
 	if(m_bVirtual) {
@@ -1001,6 +1311,7 @@ inline long CVFile::GetFileSize() const
 	if(!wasOpen) Close(false, false);
 	return ret;
 }
+
 inline LPCVOID CVFile::ReadFile()
 {
 	bool wasOpen = m_bOpenFile;
@@ -1030,6 +1341,7 @@ inline LPCVOID CVFile::ReadFile()
 
 	return m_pBuffer;
 }
+
 inline FILETIME* CVFile::GetFileDate() const
 {
 	if(m_bVirtual) return GetVirtualFileDate();
@@ -1038,6 +1350,7 @@ inline FILETIME* CVFile::GetFileDate() const
 	if(sFile.IsEmpty()) return NULL;
 	return GetFileDate(sFile);
 }
+
 inline bool CVFile::IsDirectory() const
 {
 	if(m_dwFileAttributes == -1) return false;
@@ -1048,6 +1361,7 @@ inline bool CVFile::IsDirectory() const
 
 	return false;
 }
+
 inline bool CVFile::FileExists() const 
 {
 	if(m_dwFileAttributes == -1) return false;
