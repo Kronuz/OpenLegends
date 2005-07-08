@@ -450,7 +450,7 @@ CMapGroup* CWorld::BuildMapGroup(int x, int y, int width, int height)
 	retmap->SetWorld(this);
 	retmap->SetMapGroupSize(CSize(width, height));
 	retmap->MoveMapGroupTo(x, y);
-//	retmap->Load();
+	retmap->Load();
 
 	m_MapGroups.push_back(retmap);
 
