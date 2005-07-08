@@ -628,6 +628,25 @@
 						RelativePath="libs\tabctrls\TabbedMDI.h">
 					</File>
 				</Filter>
+				<Filter
+					Name="Zlib"
+					Filter="">
+					<File
+						RelativePath="..\libs\zlib\ioapi.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\unzip.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\zconf.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\zip.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\zlib.h">
+					</File>
+				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
