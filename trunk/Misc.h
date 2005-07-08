@@ -532,6 +532,9 @@ public:
 	int Compare(LPCSTR lpsz) const;         // straight character
 	int CompareNoCase(LPCSTR lpsz) const;   // ignore case
 
+	int Compare(LPCSTR lpsz, int nCount) const;         // straight character
+	int CompareNoCase(LPCSTR lpsz, int nCount) const;   // ignore case
+
 	// simple sub-string extraction
 	CBString Mid(int nFirst, int nCount) const;
 	CBString Mid(int nFirst) const;
@@ -697,6 +700,11 @@ inline int CBString::Compare(LPCSTR lpsz) const
 	{ return strcmp(m_pchData, lpsz); }    // MBCS/Unicode aware
 inline int CBString::CompareNoCase(LPCSTR lpsz) const
 	{ return stricmp(m_pchData, lpsz); }   // MBCS/Unicode aware
+
+inline int CBString::Compare(LPCSTR lpsz, int nCount) const
+	{ return strncmp(m_pchData, lpsz, nCount); }    // MBCS/Unicode aware
+inline int CBString::CompareNoCase(LPCSTR lpsz, int nCount) const
+	{ return strnicmp(m_pchData, lpsz, nCount); }   // MBCS/Unicode aware
 
 inline char CBString::GetAt(int nIndex) const
 {
