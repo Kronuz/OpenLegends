@@ -31,7 +31,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="fmodvc.lib zlib.lib amxexec.obj"
+				AdditionalDependencies="fmodvc.lib amxexec.obj zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
@@ -83,7 +83,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="fmodvc.lib zlib.lib amxexec.obj"
+				AdditionalDependencies="fmodvc.lib amxexec.obj zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
@@ -141,7 +141,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="fmodvc.lib zlib.lib amxexec.obj"
+				AdditionalDependencies="fmodvc.lib amxexec.obj zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
@@ -408,6 +408,29 @@
 				<File
 					RelativePath="..\Net.h">
 				</File>
+			</Filter>
+			<Filter
+				Name="Libs"
+				Filter="">
+				<Filter
+					Name="ZLib"
+					Filter="">
+					<File
+						RelativePath="..\libs\zlib\ioapi.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\unzip.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\zconf.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\zip.h">
+					</File>
+					<File
+						RelativePath="..\libs\zlib\zlib.h">
+					</File>
+				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
