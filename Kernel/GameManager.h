@@ -44,7 +44,7 @@
 
 #include "Kernel.h"
 
-#include "../Interfaces.h"
+#include <Interfaces.h>
 
 #include "SpriteManager.h"
 #include "SoundManager.h"

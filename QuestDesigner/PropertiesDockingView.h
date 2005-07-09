@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "../IGame.h"
+#include <IGame.h>
 #include "SuperCombo.h"
 
 #include <PropertyList.h>

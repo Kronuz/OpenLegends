@@ -27,7 +27,7 @@
 
 #include "FoldersTreeBox.h"
 
-#include "../Console.h"
+#include "Console.h"
 
 const WORD IGraphics::Version = 0x0410;
 CGraphicsFactory *CGraphicsFactory::_instance = NULL;

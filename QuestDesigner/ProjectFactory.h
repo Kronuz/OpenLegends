@@ -25,7 +25,7 @@
 #pragma once
 
 #include "SCompiler.h"
-#include "../IGame.h"
+#include <IGame.h>
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CProjectFactory

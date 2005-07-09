@@ -26,7 +26,7 @@
 */
 
 #include "stdafx.h"
-#include "FilePath.h"
+#include <FilePath.h>
 
 CBString g_sHomeDir;
 

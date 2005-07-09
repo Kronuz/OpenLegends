@@ -36,7 +36,7 @@
 
 #include "ScriptEditorFrm.h"
 
-#include "../Net.h"
+#include <Net.h>
 
 int CALLBACK Request(SOCKET s);
 int CALLBACK Dispatch(SOCKET s);

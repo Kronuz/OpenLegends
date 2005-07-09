@@ -25,7 +25,7 @@
 */
 
 #pragma once
-#include "../IConsole.h"
+#include <IConsole.h>
 
 enum _ftype { t_printf, t_error };
 struct InfoStruct {

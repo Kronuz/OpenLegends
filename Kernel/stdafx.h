@@ -12,8 +12,8 @@
 
 #include <amx.h>
 
-#include "../Misc.h"
-#include "../IConsole.h"
+#include <Misc.h>
+#include <IConsole.h>
 extern IConsole *g_pConsole;
 
 #ifdef _DEBUG

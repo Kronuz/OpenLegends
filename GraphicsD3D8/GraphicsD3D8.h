@@ -38,7 +38,7 @@
 #include <vector>
 #include <string>
 
-#include "../IGraphics.h"
+#include <IGraphics.h>
 
 #include <D3d8.h>
 #include <D3d8types.h>

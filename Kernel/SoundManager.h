@@ -33,8 +33,8 @@
 
 #include "WorldManager.h"
 
-#include "../IArchiver.h"
-#include "../IGame.h"
+#include <IArchiver.h>
+#include <IGame.h>
 
 // each sound or music is a CSound
 class CSound :

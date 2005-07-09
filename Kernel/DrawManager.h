@@ -52,10 +52,10 @@
 
 #pragma once
 
-#include "../IGraphics.h"
-#include "../IConsole.h"
+#include <IGraphics.h>
+#include <IConsole.h>
 
-#include "../Core.h"
+#include <Core.h>
 
 #include <vector>
 #include <map>

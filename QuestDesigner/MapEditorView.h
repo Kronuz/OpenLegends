@@ -27,9 +27,9 @@
 #include "GEditorView.h"
 #include "SuperCombo.h"
 
-#include "../IGraphics.h"
-#include "../IGame.h"
-#include "../Core.h"
+#include <IGraphics.h>
+#include <IGame.h>
+#include <Core.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations

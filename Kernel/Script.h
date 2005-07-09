@@ -26,7 +26,7 @@
 
 #include "WorldManager.h"
 
-#include "../IArchiver.h"
-#include "../IGame.h"
+#include <IArchiver.h>
+#include <IGame.h>
 
 void RegisterNatives(AMX *amx);

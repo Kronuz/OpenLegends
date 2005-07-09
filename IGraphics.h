@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "../IConsole.h"
+#include <IConsole.h>
 
 #define GFX_NORMAL		0x00
 #define GFX_MIRRORED	0x01

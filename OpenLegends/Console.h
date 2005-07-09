@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "../IConsole.h"
+#include <IConsole.h>
 
 class CConsole : public IConsole
 {

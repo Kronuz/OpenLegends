@@ -25,8 +25,8 @@ Modified and improved by Kronuz. July 29, 2003
 #include <atlmisc.h>
 #include <shlobj.h>
 
-#include "../Core.h"
-#include "../FilePath.h"
+#include <Core.h>
+#include <FilePath.h>
 
 const UINT WM_POPULATE_TREE = WM_APP + 1;
 const UINT WM_ITEM_SELECTED = WM_APP + 2;

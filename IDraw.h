@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "Core.h"
+#include <Core.h>
 
-#include "IGraphics.h"
+#include <IGraphics.h>
 
 interface IDrawableContext 
 {
