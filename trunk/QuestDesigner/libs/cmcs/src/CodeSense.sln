@@ -1,0 +1,36 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CodeSense", "CodeSense.vcproj", "{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		ActiveX Debug = ActiveX Debug
+		ActiveX Release = ActiveX Release
+		Debug = Debug
+		Profile = Profile
+		Release = Release
+		Unicode Debug = Unicode Debug
+		Unicode Release = Unicode Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.ActiveX Debug.ActiveCfg = ActiveX Debug|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.ActiveX Debug.Build.0 = ActiveX Debug|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.ActiveX Release.ActiveCfg = ActiveX Release|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.ActiveX Release.Build.0 = ActiveX Release|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Debug.ActiveCfg = Debug|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Debug.Build.0 = Debug|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Profile.ActiveCfg = Profile|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Profile.Build.0 = Profile|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Release.ActiveCfg = Release|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Release.Build.0 = Release|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Unicode Debug.ActiveCfg = Unicode Debug|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Unicode Debug.Build.0 = Unicode Debug|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Unicode Release.ActiveCfg = Unicode Release|Win32
+		{3D959E22-656E-4CF9-B4F0-3D3D4C17C167}.Unicode Release.Build.0 = Unicode Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal

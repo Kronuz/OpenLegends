@@ -1,0 +1,20 @@
+HKCR
+{
+	CodeSense.Rect = s 'Rect Class'
+	{
+		CLSID = s '{7F4BD1FA-4142-4C14-BCEC-5563E7F66E9B}'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {7F4BD1FA-4142-4C14-BCEC-5563E7F66E9B} = s 'Rect Class'
+		{
+			ProgID = s 'CodeSense.Rect'
+			VersionIndependentProgID = s 'CodeSense.Rect'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+		}
+	}
+}
