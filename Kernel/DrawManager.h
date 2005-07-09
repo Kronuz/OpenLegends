@@ -30,6 +30,8 @@
 						    CDrawableContext class.
 				September 06, 2003: 
 						+ Object sorting added for selections. (Object map was changed for vector)
+				July 08, 2005:
+						* Reorganized the file.
 
 	The interface CDrawableObject represents an object that can, somehow, be draw on
 	the screen. This drawing is done using a flyweight pool of "drawable" objects to save
@@ -424,238 +426,6 @@ public:
 	}
 
 };
-enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
-
-struct SObjProp :
-	public IPropertyEnabled
-{
-	CDrawableSelection *pSelection;
-	CDrawableContext *pContext;
-
-	vector<int> C; // This is the list of group children the object has.
-
-	int nGroup; // what group does it belong to? (0 = no group, its group number if it's a group)
-	bool bSubselected;
-	CRect rcRect;
-	_Chain eXChain;
-	_Chain eYChain;
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), nGroup(nGroup_) {}
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {}
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {
-		if(pContext) pContext->GetAbsFinalRect(rcRect);
-		else ASSERT(0); // You should provide Rect_ for groups.;
-	}
-	virtual bool isFlagged();
-	virtual void Flag(bool bFlag);
-	virtual bool GetInfo(SInfo *pI) const;
-	virtual bool GetProperties(SPropertyList *pPL) const;
-	virtual bool SetProperties(SPropertyList &PL);
-	virtual void Commit() const;
-	virtual void Cancel();
-};
-/////////////////////////////////////////////////////////////////////////////
-/*! \interface	CDrawableSelection
-	\brief		Interface for selected objects.
-	\author		Kronuz
-	\version	1.0
-	\date		May 31, 2003
-
-	CDrawableSelection is used to provide a selection class. This class
-	manages selections of the objects, as well as changes in their size
-	and location. Many objects can be selected at the same time,
-	and this class can maintain each of them.
-
-	\sa CDrawableContext, CDrawableObject
-*/
-class CDrawableSelection
-{
-	friend SObjProp;
-
-	void EndSubSelBox(bool bAdd, const CPoint &point_, int Chains);
-	void SubSelPoint(bool bAdd, const CPoint &point_, int Chains);
-
-	IPropertyEnabled* SelPointAdd(const CPoint &point_, int Chains);
-	void SelPointRemove(const CPoint &point_);
-
-protected:
-	const struct ObjPropContextEqual : 
-	public binary_function<SObjProp, const CDrawableContext*, bool> {
-		bool operator()(const SObjProp &a, const CDrawableContext *b) const;
-	} m_equalContext;
-
-	const struct ObjPropGroupEqual : 
-	public binary_function<SObjProp, int, bool> {
-		bool operator()(const SObjProp &a, int b) const;
-	} m_equalGroup;
-
-	const struct ObjPropLayerEqual : 
-	public binary_function<SObjProp, int, bool> {
-		bool operator()(const SObjProp &a, const int &b) const;
-	} m_equalLayer;
-
-	const struct SelectionCompare : 
-	public binary_function<SObjProp, SObjProp, bool> {
-		bool operator()(const SObjProp &a, const SObjProp &b) const;
-	} m_cmpSelection;
-
-	BITMAP *m_pBitmap;
-
-	CURSOR m_CurrentCursor;
-	enum _CurrentState { eNone, eSelecting, eMoving, eResizing } 
-		m_eCurrentState;
-
-	bool m_bAllowMultiLayerSel;
-
-	bool m_bCursorLeft;
-	bool m_bCursorTop;
-	bool m_bCursorRight;
-	bool m_bCursorBottom;
-
-	bool m_bShowGrid;
-	int m_nSnapSize;
-	int m_nLayer;
-
-	bool m_bChanged;
-	bool m_bModified;
-	bool m_bFloating;
-	bool m_bCanResize;
-	bool m_bCanMove;
-
-	bool m_bHoldSelection;
-
-	CRect m_rcClip;
-	ARGBCOLOR m_rgbClipColor;
-
-	CRect m_rcSelection;
-	CPoint m_ptInitialPoint;
-	CDrawableContext **m_ppMainDrawable;
-
-	bool m_bLockedLayers[MAX_LAYERS]; // keeps the locked layers
-
-	CDrawableContext *m_pLastSelected; // Last context selected.
-	typedef vector<SObjProp> vectorObject;
-	vectorObject::iterator m_CurrentSel;
-
-	struct SGroup {
-		string Name; // This is the name of the group. (It's either a regular name or a relative path to a sprite set)
-		vectorObject O; // This is the actual vector of objects.
-		int P; // This is the address to the parent group.
-		SGroup() : P(0) {}
-	};
-
-	int m_nPasteGroup;
-	int m_nCurrentGroup;
-	vector<SGroup> m_Groups;
-
-	int GetBoundingRect(CRect *pRect_, int nGroup_ = 0);
-	int FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_);
-
-	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
-	virtual void BuildRealSelectionBounds() = 0;
-
-	void SortSelection();
-	int SetLayerSelection(int nLayer, int nGroup_);
-	int DeleteSelection(int nGroup_);
-
-	bool BeginPaint(IGraphics *pGraphicsI, WORD wFlags = 0);
-	bool DrawAll(IGraphics *pGraphicsI);
-	bool EndPaint(IGraphics *pGraphicsI);
-
-	void SetInitialMovingPoint(const CPoint &point_);
-
-	bool SelectGroup(int nGroup_, bool bSelectContext = true);
-	bool SelectGroupWith(const CDrawableContext *pDrawableContext);
-	bool SelectGroupWithIn(const CRect &rect_, const CDrawableContext *pDrawableContext);
-	void DeleteInGroups(const CDrawableContext *pDrawableContext);
-
-public:
-	CDrawableSelection(CDrawableContext **ppDrawableContext_);
-	virtual ~CDrawableSelection() {
-		delete []m_pBitmap;
-	}
-
-	// Interface Definition:
-	virtual void CleanPasteGroups();
-	virtual int SetNextPasteGroup(LPCSTR szGroupName, int nNew = -1);
-
-	virtual LPCSTR GetSelectionName(LPSTR szName, int size) = 0;
-	virtual void SetSelectionName(LPCSTR szName) = 0;
-
-	virtual SObjProp* GetFirstSelection();
-	virtual SObjProp* GetNextSelection();
-
-	virtual CDrawableContext* GetLastSelected() { return m_pLastSelected; }
-
-	virtual void HoldSelection(bool bHold = true) { if(bHold) SortSelection(); m_bHoldSelection = bHold; }
-	virtual bool isHeld() { return m_bHoldSelection; }
-	
-	virtual void LockLayer(int nLayer, bool bLock = true);
-	virtual bool isLocked(int nLayer);
-	
-	// returns true if the object has been modified from its initial state.
-	virtual bool IsModified() { return m_bModified; }
-
-	// returns whether or not the object has changed since last call to hasChanged()
-	virtual bool HasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }
-
-	virtual bool SelectedAt(const CPoint &point_); // Is there a selected object at this point?
-
-	virtual void StartResizing(const CPoint &point_);
-	virtual void ResizeTo(const CPoint &point_);
-	virtual void EndResizing(const CPoint &point_);
-
-	virtual void StartMoving(const CPoint &point_);
-	virtual void MoveTo(const CPoint &point_);
-	virtual void EndMoving(const CPoint &point_);
-	
-	virtual void HoldOperation();
-
-	virtual void StartSelBox(const CPoint &point_);
-	virtual void CancelSelBox();
-	virtual void SizeSelBox(const CPoint &point_);
-	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains);
-	virtual void EndSelBoxRemove(const CPoint &point_);
-
-	virtual void GetSelBounds(CRect *pRect_);
-	virtual void SetLayerSelection(int nLayer);
-	virtual int DeleteSelection();
-	virtual void Cancel();
-
-	virtual void CleanSelection();
-
-	virtual void SetSnapSize(int nSnapSize_, bool bShowGrid_);
-	virtual void SetLayer(int nLayer_);
-	virtual int GetLayer();
-
-	virtual bool isResizing();
-	virtual bool isMoving();
-	virtual bool isSelecting();
-	virtual bool isFloating();
-	virtual bool isGroup();
-
-	virtual int Count();
-
-	virtual bool GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor);
-
-	// Make abstract methods:
-	virtual bool Draw(const IGraphics *pGraphics_) = 0; 
-	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false) = 0;
-	virtual bool Paste(LPCVOID pBuffer, const CPoint &point_) = 0;
-
-	virtual bool FastPaste(LPCVOID pBuffer, const CPoint &point_) = 0;
-	virtual bool GetPastedSize(LPCVOID pBuffer, SIZE *pSize) = 0;
-
-	virtual bool SetClip(const CRect *pRect, ARGBCOLOR rgbColor = COLOR_ARGB(0,0,0,0));
-	virtual bool Paint(IGraphics *pGraphicsI, WORD wFlags); // render the map group to the screen
-	virtual BITMAP* Capture(IGraphics *pGraphicsI, float zoom); // creates a new BITMAP with the map group
-	virtual BITMAP* CaptureSelection(IGraphics *pGraphicsI, float zoom); // creates a new BITMAP with the selection
-
-	virtual BITMAP* GetThumbnail() const { return m_pBitmap; }
-	virtual void SetThumbnail(BITMAP *pBitmap) { 
-		delete []m_pBitmap;
-		m_pBitmap = pBitmap; 
-	}
-};
 
 // Implementations:
 inline const CBString& CDrawableContext::GetObjName() const
@@ -949,3 +719,241 @@ inline ARGBCOLOR CDrawableContext::GetBkColor() const
 { 
 	return m_rgbBkColor; 
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// FROM HERE ON THE CLASSES AND FUNCTIONS ARE FOR ADVANCED DRAWING FUNCTIONALITY (SUCH AS SELECTIONS)
+// (Probably everything below this point should be in other file)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
+
+struct SObjProp :
+	public IPropertyEnabled
+{
+	CDrawableSelection *pSelection;
+	CDrawableContext *pContext;
+
+	vector<int> C; // This is the list of group children the object has.
+
+	int nGroup; // what group does it belong to? (0 = no group, its group number if it's a group)
+	bool bSubselected;
+	CRect rcRect;
+	_Chain eXChain;
+	_Chain eYChain;
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), nGroup(nGroup_) {}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {
+		if(pContext) pContext->GetAbsFinalRect(rcRect);
+		else ASSERT(0); // You should provide Rect_ for groups.;
+	}
+	virtual bool isFlagged();
+	virtual void Flag(bool bFlag);
+	virtual bool GetInfo(SInfo *pI) const;
+	virtual bool GetProperties(SPropertyList *pPL) const;
+	virtual bool SetProperties(SPropertyList &PL);
+	virtual void Commit() const;
+	virtual void Cancel();
+};
+/////////////////////////////////////////////////////////////////////////////
+/*! \interface	CDrawableSelection
+	\brief		Interface for selected objects.
+	\author		Kronuz
+	\version	1.0
+	\date		May 31, 2003
+
+	CDrawableSelection is used to provide a selection class. This class
+	manages selections of the objects, as well as changes in their size
+	and location. Many objects can be selected at the same time,
+	and this class can maintain each of them.
+
+	\sa CDrawableContext, CDrawableObject
+*/
+class CDrawableSelection
+{
+	friend SObjProp;
+
+	void EndSubSelBox(bool bAdd, const CPoint &point_, int Chains);
+	void SubSelPoint(bool bAdd, const CPoint &point_, int Chains);
+
+	IPropertyEnabled* SelPointAdd(const CPoint &point_, int Chains);
+	void SelPointRemove(const CPoint &point_);
+
+protected:
+	const struct ObjPropContextEqual : 
+	public binary_function<SObjProp, const CDrawableContext*, bool> {
+		bool operator()(const SObjProp &a, const CDrawableContext *b) const;
+	} m_equalContext;
+
+	const struct ObjPropGroupEqual : 
+	public binary_function<SObjProp, int, bool> {
+		bool operator()(const SObjProp &a, int b) const;
+	} m_equalGroup;
+
+	const struct ObjPropLayerEqual : 
+	public binary_function<SObjProp, int, bool> {
+		bool operator()(const SObjProp &a, const int &b) const;
+	} m_equalLayer;
+
+	const struct SelectionCompare : 
+	public binary_function<SObjProp, SObjProp, bool> {
+		bool operator()(const SObjProp &a, const SObjProp &b) const;
+	} m_cmpSelection;
+
+	BITMAP *m_pBitmap;
+
+	CURSOR m_CurrentCursor;
+	enum _CurrentState { eNone, eSelecting, eMoving, eResizing } 
+		m_eCurrentState;
+
+	bool m_bAllowMultiLayerSel;
+
+	bool m_bCursorLeft;
+	bool m_bCursorTop;
+	bool m_bCursorRight;
+	bool m_bCursorBottom;
+
+	bool m_bShowGrid;
+	int m_nSnapSize;
+	int m_nLayer;
+
+	bool m_bChanged;
+	bool m_bModified;
+	bool m_bFloating;
+	bool m_bCanResize;
+	bool m_bCanMove;
+
+	bool m_bHoldSelection;
+
+	CRect m_rcClip;
+	ARGBCOLOR m_rgbClipColor;
+
+	CRect m_rcSelection;
+	CPoint m_ptInitialPoint;
+	CDrawableContext **m_ppMainDrawable;
+
+	bool m_bLockedLayers[MAX_LAYERS]; // keeps the locked layers
+
+	CDrawableContext *m_pLastSelected; // Last context selected.
+	typedef vector<SObjProp> vectorObject;
+	vectorObject::iterator m_CurrentSel;
+
+	struct SGroup {
+		string Name; // This is the name of the group. (It's either a regular name or a relative path to a sprite set)
+		vectorObject O; // This is the actual vector of objects.
+		int P; // This is the address to the parent group.
+		SGroup() : P(0) {}
+	};
+
+	int m_nPasteGroup;
+	int m_nCurrentGroup;
+	vector<SGroup> m_Groups;
+
+	int GetBoundingRect(CRect *pRect_, int nGroup_ = 0);
+	int FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_);
+
+	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
+	virtual void BuildRealSelectionBounds() = 0;
+
+	void SortSelection();
+	int SetLayerSelection(int nLayer, int nGroup_);
+	int DeleteSelection(int nGroup_);
+
+	bool BeginPaint(IGraphics *pGraphicsI, WORD wFlags = 0);
+	bool DrawAll(IGraphics *pGraphicsI);
+	bool EndPaint(IGraphics *pGraphicsI);
+
+	void SetInitialMovingPoint(const CPoint &point_);
+
+	bool SelectGroup(int nGroup_, bool bSelectContext = true);
+	bool SelectGroupWith(const CDrawableContext *pDrawableContext);
+	bool SelectGroupWithIn(const CRect &rect_, const CDrawableContext *pDrawableContext);
+	void DeleteInGroups(const CDrawableContext *pDrawableContext);
+
+public:
+	CDrawableSelection(CDrawableContext **ppDrawableContext_);
+	virtual ~CDrawableSelection() {
+		delete []m_pBitmap;
+	}
+
+	// Interface Definition:
+	virtual void CleanPasteGroups();
+	virtual int SetNextPasteGroup(LPCSTR szGroupName, int nNew = -1);
+
+	virtual LPCSTR GetSelectionName(LPSTR szName, int size) = 0;
+	virtual void SetSelectionName(LPCSTR szName) = 0;
+
+	virtual SObjProp* GetFirstSelection();
+	virtual SObjProp* GetNextSelection();
+
+	virtual CDrawableContext* GetLastSelected() { return m_pLastSelected; }
+
+	virtual void HoldSelection(bool bHold = true) { if(bHold) SortSelection(); m_bHoldSelection = bHold; }
+	virtual bool isHeld() { return m_bHoldSelection; }
+	
+	virtual void LockLayer(int nLayer, bool bLock = true);
+	virtual bool isLocked(int nLayer);
+	
+	// returns true if the object has been modified from its initial state.
+	virtual bool IsModified() { return m_bModified; }
+
+	// returns whether or not the object has changed since last call to hasChanged()
+	virtual bool HasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }
+
+	virtual bool SelectedAt(const CPoint &point_); // Is there a selected object at this point?
+
+	virtual void StartResizing(const CPoint &point_);
+	virtual void ResizeTo(const CPoint &point_);
+	virtual void EndResizing(const CPoint &point_);
+
+	virtual void StartMoving(const CPoint &point_);
+	virtual void MoveTo(const CPoint &point_);
+	virtual void EndMoving(const CPoint &point_);
+	
+	virtual void HoldOperation();
+
+	virtual void StartSelBox(const CPoint &point_);
+	virtual void CancelSelBox();
+	virtual void SizeSelBox(const CPoint &point_);
+	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains);
+	virtual void EndSelBoxRemove(const CPoint &point_);
+
+	virtual void GetSelBounds(CRect *pRect_);
+	virtual void SetLayerSelection(int nLayer);
+	virtual int DeleteSelection();
+	virtual void Cancel();
+
+	virtual void CleanSelection();
+
+	virtual void SetSnapSize(int nSnapSize_, bool bShowGrid_);
+	virtual void SetLayer(int nLayer_);
+	virtual int GetLayer();
+
+	virtual bool isResizing();
+	virtual bool isMoving();
+	virtual bool isSelecting();
+	virtual bool isFloating();
+	virtual bool isGroup();
+
+	virtual int Count();
+
+	virtual bool GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor);
+
+	// Make abstract methods:
+	virtual bool Draw(const IGraphics *pGraphics_) = 0; 
+	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false) = 0;
+	virtual bool Paste(LPCVOID pBuffer, const CPoint &point_) = 0;
+
+	virtual bool FastPaste(LPCVOID pBuffer, const CPoint &point_) = 0;
+	virtual bool GetPastedSize(LPCVOID pBuffer, SIZE *pSize) = 0;
+
+	virtual bool SetClip(const CRect *pRect, ARGBCOLOR rgbColor = COLOR_ARGB(0,0,0,0));
+	virtual bool Paint(IGraphics *pGraphicsI, WORD wFlags); // render the map group to the screen
+	virtual BITMAP* Capture(IGraphics *pGraphicsI, float zoom); // creates a new BITMAP with the map group
+	virtual BITMAP* CaptureSelection(IGraphics *pGraphicsI, float zoom); // creates a new BITMAP with the selection
+
+	virtual BITMAP* GetThumbnail() const { return m_pBitmap; }
+	virtual void SetThumbnail(BITMAP *pBitmap) { 
+		delete []m_pBitmap;
+		m_pBitmap = pBitmap; 
+	}
+};

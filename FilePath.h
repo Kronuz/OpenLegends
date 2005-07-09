@@ -20,14 +20,15 @@
 /*! \file		FilePath.h 
 	\brief		Interface of the classes that maintain filenames and paths.
 	\date		April 28, 2003:
-					* First release.
-				September 24, 2003: 
-					+ Zip files support greatly improved.
-				July 6, 2005: 
-					+ Added WriteLine as define, takes input from buff.(renamed: WriteStringToFile)
-					+ Also added the WriteLongToFile & WriteFloatToFile defines.
-				July 8, 2005:
-					+ Added ZIP file comments support.
+						* First release.
+				September 24, 2003:
+						+ Zip files support greatly improved.
+				July 06, 2005 by Littlebuddy:
+						+ Added WriteLine as define, takes input from buff.(renamed: WriteStringToFile)
+						+ Also added the WriteLongToFile & WriteFloatToFile defines.
+				July 08, 2005 by Kronuz:
+						+ Added ZIP file comments support.
+						+ Improved Rename support.
 
 	This file implements the CVFile to handle filenames and paths. Also
 	contains the path to the home directory of the game files.
@@ -44,7 +45,8 @@
 #define VBUFFER_SIZE (16*1024)
 #define MAXFILENAME (256)
 
-const BYTE basicZip[] = {
+// This is an empty Zip file with a comment (well, not entirely empty, for compatibility it has the file .ol):
+const BYTE basicZip[0x76] = {
 	0x50,0x4B,0x03,0x04,0x0A,0x00,0x00,0x00,0x00,0x00,0x2F,0x68,0xE8,0x32,0x00,0x00, // PK......../hè2..
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x03,0x00,0x00,0x00,0x2E,0x6F, // ...............o
 	0x6C,0x50,0x4B,0x01,0x02,0x14,0x00,0x0A,0x00,0x00,0x00,0x00,0x00,0x2F,0x68,0xE8, // lPK........../hè
@@ -54,7 +56,6 @@ const BYTE basicZip[] = {
 	0x00,0x00,0x21,0x00,0x00,0x00,0x0C,0x00,0x4F,0x70,0x65,0x6E,0x20,0x4C,0x65,0x67, // ..!.....Open Leg
 	0x65,0x6E,0x64,0x73                                                              // ends
 };
-const int basicZipSize = 0x76;
 
 extern CBString g_sHomeDir;
 
@@ -180,7 +181,7 @@ public:
 		if(tmp.m_bVirtual) return false;
 		FILE *aux = fopen(szNewName, "wb");
 		if(aux) {
-			fwrite(basicZip, 1, basicZipSize, aux);
+			fwrite(basicZip, 1, sizeof(basicZip), aux);
 			fclose(aux);
 			return true;
 		}
