@@ -19,8 +19,10 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		WorldManager.cpp
 	\brief		Implementation of the CGameManager class.
-	\date		April 28, 2003
-				July 7, 2005 + Added ForEachMapGroup to CWorld.
+	\date		April 28, 2003:
+						* First release.
+				July 07, 2005 by Littlebuddy:
+						+ Added ForEachMapGroup to CWorld.
 
 	This file implements the classes that manage a world in the game,
 	this includes the methods to create a new world, maps for that

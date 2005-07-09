@@ -191,8 +191,10 @@ public:
 	\brief		CWorld class.
 	\author		Kronuz
 	\version	1.0
-	\date		April 28, 2003
-				July 7, 2005 + Added ForEachMapGroup
+	\date		April 28, 2003:
+						* First release.
+				July 07, 2005 by Littlebuddy:
+						+ Added ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam).
 
 	This class Is the one that manages everything in the project,
 	from the sprite sheets list and the sounds list, to the world and

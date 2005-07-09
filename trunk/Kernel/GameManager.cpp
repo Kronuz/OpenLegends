@@ -19,8 +19,10 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		GameManager.cpp
 	\brief		Implementation of the CGameManager class.
-	\date		April 16, 2003
-				July 7, 2005 + Linked ForEachMapGroup to it's corresponding CWorld function.
+	\date		April 16, 2003:
+						* First release.
+				July 07, 2005 by Littlebuddy:
+						+ Linked ForEachMapGroup to it's corresponding CWorld function.
 
 	This file implements all the classes that manage the project,
 	this includes the methods to write and read from the 
