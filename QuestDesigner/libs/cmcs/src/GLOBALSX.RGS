@@ -1,0 +1,20 @@
+HKCR
+{
+	CodeSense.Globals = s 'Globals Class'
+	{
+		CLSID = s '{5DFD0E0D-A13D-4B57-9A3C-FBB7B4072BE1}'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {5DFD0E0D-A13D-4B57-9A3C-FBB7B4072BE1} = s 'Globals Class'
+		{
+			ProgID = s 'CodeSense.Globals'
+			VersionIndependentProgID = s 'CodeSense.Globals'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+		}
+	}
+}

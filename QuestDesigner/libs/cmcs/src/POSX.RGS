@@ -1,0 +1,20 @@
+HKCR
+{
+	CodeSense.Position = s 'Position Class'
+	{
+		CLSID = s '{96621C91-00F2-424A-B62F-C426B7FD9BD0}'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {96621C91-00F2-424A-B62F-C426B7FD9BD0} = s 'Position Class'
+		{
+			ProgID = s 'CodeSense.Position'
+			VersionIndependentProgID = s 'CodeSense.Position'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+		}
+	}
+}

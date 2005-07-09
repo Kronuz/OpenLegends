@@ -1,0 +1,20 @@
+HKCR
+{
+	CodeSense.Language = s 'Language Class'
+	{
+		CLSID = s '{5C5486F3-CE41-4EC6-B658-0155CE8836A1}'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {5C5486F3-CE41-4EC6-B658-0155CE8836A1} = s 'Language Class'
+		{
+			ProgID = s 'CodeSense.Language'
+			VersionIndependentProgID = s 'CodeSense.Language'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+		}
+	}
+}

@@ -1,0 +1,20 @@
+HKCR
+{
+	CodeSense.Range = s 'Range Class'
+	{
+		CLSID = s '{94D8D56F-73D3-4F3A-B1C0-F77EF1B2CB63}'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {94D8D56F-73D3-4F3A-B1C0-F77EF1B2CB63} = s 'Range Class'
+		{
+			ProgID = s 'CodeSense.Range'
+			VersionIndependentProgID = s 'CodeSense.Range'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+		}
+	}
+}

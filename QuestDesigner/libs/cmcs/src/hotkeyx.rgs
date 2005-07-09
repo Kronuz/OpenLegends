@@ -1,0 +1,20 @@
+HKCR
+{
+	CodeSense.HotKey = s 'HotKey Class'
+	{
+		CLSID = s '{BE2A73A9-BE2C-420E-86A4-818E48E3F29C}'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {BE2A73A9-BE2C-420E-86A4-818E48E3F29C} = s 'HotKey Class'
+		{
+			ProgID = s 'CodeSense.HotKey'
+			VersionIndependentProgID = s 'CodeSense.HotKey'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+		}
+	}
+}
