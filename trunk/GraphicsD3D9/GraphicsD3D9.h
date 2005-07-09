@@ -30,7 +30,7 @@
 #include <vector>
 #include <string>
 
-#include "../IGraphics.h"
+#include <IGraphics.h>
 
 #include <D3d9.h>
 #include <D3d9types.h>

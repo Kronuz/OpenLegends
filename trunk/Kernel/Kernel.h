@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "../IGame.h"
+#include <IGame.h>
 
 #define MODULE_ID 0xca95af31
 BOOL WINAPI DllEntryPoint(HINSTANCE hDll, DWORD fdwReason, LPVOID lpvRserved);

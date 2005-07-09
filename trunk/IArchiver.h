@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "Core.h"
-#include "FilePath.h"
+#include <Core.h>
+#include <FilePath.h>
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IArchive

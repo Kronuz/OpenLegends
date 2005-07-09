@@ -14,8 +14,8 @@
 #define ASSERT assert
 #define interface struct
 
-#include "../Misc.h"
-#include "../IConsole.h"
+#include <Misc.h>
+#include <IConsole.h>
 extern IConsole *g_pConsole;
 
 #ifdef _DEBUG

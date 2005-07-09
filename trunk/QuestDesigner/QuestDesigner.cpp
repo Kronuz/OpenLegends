@@ -104,7 +104,7 @@
 
 #include "stdafx.h"
 #include "QuestDesigner.h"
-#include "../Net.h"
+#include <Net.h>
 
 #include <list>
 #include <string>

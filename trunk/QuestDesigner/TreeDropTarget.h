@@ -8,7 +8,7 @@
 #ifndef __TREEDROPTARGET_H__
 #define __TREEDROPTARGET_H__
 
-#include "../IGame.h"
+#include <IGame.h>
 
 class CTreeDropTarget : public CIDropTarget
 {

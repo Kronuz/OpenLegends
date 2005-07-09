@@ -34,7 +34,7 @@
 #include "DrawManager.h"
 #include "SpriteManager.h"
 
-#include "../IGame.h"
+#include <IGame.h>
 
 bool SObjProp::isFlagged() {
 	return bSubselected;

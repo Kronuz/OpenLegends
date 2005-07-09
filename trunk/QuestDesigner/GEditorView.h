@@ -27,9 +27,9 @@
 
 #include "ChildView.h"
 
-#include "../IGraphics.h"
-#include "../IGame.h"
-#include "../Core.h"
+#include <IGraphics.h>
+#include <IGame.h>
+#include <Core.h>
 
 #include "WindowDropTarget.h"
 

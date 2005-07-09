@@ -28,13 +28,13 @@
 
 #pragma once
 
-#include "../IGraphics.h"
-#include "../IGame.h"
-#include "../IConsole.h"
-#include "../IArchiver.h"
+#include <IGraphics.h>
+#include <IGame.h>
+#include <IConsole.h>
+#include <IArchiver.h>
 
-#include "../Core.h"
-#include "../Misc.h"
+#include <Core.h>
+#include <Misc.h>
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IScriptableObject

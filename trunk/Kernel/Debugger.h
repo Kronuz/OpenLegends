@@ -32,7 +32,7 @@
 #include <string>
 using namespace std;
 
-#include "../Net.h"
+#include <Net.h>
 
 struct CDebugFile;
 ///////////////////////////////////////////////////////////////////////////////////

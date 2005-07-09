@@ -34,8 +34,8 @@
 */
 #pragma once
 
-#include "../IArchiver.h"
-#include "../IConsole.h"
+#include <IArchiver.h>
+#include <IConsole.h>
 
 class CLayer;
 class CGameManager;

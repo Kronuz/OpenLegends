@@ -28,8 +28,8 @@
 
 #include <vector>
 
-#include "../IGame.h"
-#include "../Core.h"
+#include <IGame.h>
+#include <Core.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations

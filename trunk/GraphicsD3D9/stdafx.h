@@ -13,7 +13,7 @@
 #define ASSERT assert
 #define interface struct
 
-#include "../IConsole.h"
+#include <IConsole.h>
 extern IConsole *g_pConsole;
 
 #ifdef _DEBUG

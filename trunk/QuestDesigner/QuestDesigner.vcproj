@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs"
+				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -81,7 +81,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs"
+				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -147,7 +147,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs"
+				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -223,7 +223,7 @@
 				RelativePath="..\Misc.cpp">
 			</File>
 			<File
-				RelativePath=".\Net.cpp">
+				RelativePath="..\Net.cpp">
 			</File>
 			<File
 				RelativePath="ProjectFactory.cpp">

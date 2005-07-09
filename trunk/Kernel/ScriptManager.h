@@ -30,8 +30,8 @@
 
 #include "WorldManager.h"
 
-#include "../IArchiver.h"
-#include "../IGame.h"
+#include <IArchiver.h>
+#include <IGame.h>
 
 #define S_SCRIPT_OK			0
 #define E_SCRIPT_NOT_FOUND	-1

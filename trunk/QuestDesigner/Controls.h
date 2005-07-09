@@ -18,7 +18,7 @@
 #include "StaticDropTarget.h"
 #include "TreeDropTarget.h"
 
-#include "../IGame.h"
+#include <IGame.h>
 /*
 class CEditBox : public CWindowImpl<CEditBox, WTL::CEdit>, public WTL::CEditCommands<CEditBox>
 {
