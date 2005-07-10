@@ -19,8 +19,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\"
-				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG"
+				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG;_OL"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -81,8 +81,8 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\"
-				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG"
+				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="3"
@@ -147,8 +147,8 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\"
-				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG"
+				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="3"
@@ -214,6 +214,27 @@
 				RelativePath="Console.cpp">
 			</File>
 			<File
+				RelativePath="..\FilePath.cpp">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseDeb|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="GraphicsFactory.cpp">
 			</File>
 			<File
@@ -221,6 +242,24 @@
 			</File>
 			<File
 				RelativePath="..\Misc.cpp">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseDeb|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\Net.cpp">
@@ -327,9 +366,6 @@
 			<Filter
 				Name="Libs"
 				Filter="">
-				<File
-					RelativePath="..\FilePath.cpp">
-				</File>
 				<Filter
 					Name="dragdrop"
 					Filter="">
@@ -341,7 +377,7 @@
 					Name="filetree"
 					Filter="">
 					<File
-						RelativePath="libs\filetree\FileFind.cpp">
+						RelativePath=".\libs\filetree\FileFind.cpp">
 					</File>
 					<File
 						RelativePath="libs\filetree\WtlFileTreeCtrl.cpp">
@@ -357,6 +393,9 @@
 			</File>
 			<File
 				RelativePath="Console.h">
+			</File>
+			<File
+				RelativePath="..\FilePath.h">
 			</File>
 			<File
 				RelativePath="GraphicsFactory.h">
@@ -496,9 +535,6 @@
 				</File>
 				<File
 					RelativePath="libs\DlgContainer.h">
-				</File>
-				<File
-					RelativePath="..\FilePath.h">
 				</File>
 				<File
 					RelativePath="libs\ssfiledialog.h">

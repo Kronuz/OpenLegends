@@ -25,7 +25,6 @@
 	file system. Also contains the path to the home directory of the game files.
 */
 
-#include "stdafx.h"
 #include <FilePath.h>
 
 CBString g_sHomeDir;

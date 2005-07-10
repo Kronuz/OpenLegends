@@ -278,6 +278,11 @@ LRESULT CScriptEditorView::OnEditUntabify(WORD /*wNotifyCode*/, WORD /*wID*/, HW
 	UnTabifySelection();
 	return 0;
 }
+LRESULT CScriptEditorView::OnEditBeautify(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	BeautifyCode();
+	return 0;
+}
 LRESULT CScriptEditorView::OnShowWhiteSpace(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	// toggle white space
@@ -500,6 +505,8 @@ void CScriptEditorView::UIUpdateMenuItems()
 	pUpdateUI->UIEnable(ID_SCRIPTED_LOWERCASE, (bSelection && !bColumnSelection));
 	pUpdateUI->UIEnable(ID_SCRIPTED_TABIFY, bSelection);
 	pUpdateUI->UIEnable(ID_SCRIPTED_UNTABIFY, bSelection);
+
+	pUpdateUI->UIEnable(ID_SCRIPTED_BEAUTIFY, TRUE);
 
 	// retrive the number of bookmarks
 	int nCount = GetAllBookmarks(NULL);

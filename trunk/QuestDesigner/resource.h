@@ -220,8 +220,8 @@
 #define ID_DBG_PROFILER                 32427
 #define ID_DBG_BREAKPOINT               32428
 #define ID_DBG_CONTINUE                 32431
-#define ID_BUTTON32432                  32432
 #define ID_MAPED_SELDHOLD               32432
+#define ID_SCRIPTED_BEAUTIFY            32433
 #define ID_APP_SAVE                     57603
 #define ID_APP_SAVE_AS                  57604
 #define ID_ERASE                        57632
@@ -263,8 +263,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        277
-#define _APS_NEXT_COMMAND_VALUE         32433
-#define _APS_NEXT_CONTROL_VALUE         1033
+#define _APS_NEXT_COMMAND_VALUE         32434
+#define _APS_NEXT_CONTROL_VALUE         1032
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif

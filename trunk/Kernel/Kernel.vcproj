@@ -19,8 +19,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;__STL_DEBUG"
+				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\;.\"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;__STL_DEBUG;_OL"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -72,8 +72,8 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS"
+				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\;.\"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="2"
@@ -130,8 +130,8 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS"
+				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\;.\"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="2"
@@ -186,6 +186,27 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm">
 			<File
+				RelativePath="..\FilePath.cpp">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseDeb|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="GameManager.cpp">
 			</File>
 			<File
@@ -196,6 +217,24 @@
 			</File>
 			<File
 				RelativePath="..\Misc.cpp">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseDeb|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\Net.cpp">
@@ -275,9 +314,6 @@
 				<File
 					RelativePath="ArchiveText.cpp">
 				</File>
-				<File
-					RelativePath="..\FilePath.cpp">
-				</File>
 			</Filter>
 			<Filter
 				Name="Sound"
@@ -292,6 +328,9 @@
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
 				RelativePath="..\Core.h">
+			</File>
+			<File
+				RelativePath="..\FilePath.h">
 			</File>
 			<File
 				RelativePath="GameManager.h">
@@ -393,9 +432,6 @@
 				</File>
 				<File
 					RelativePath="ArchiveText.h">
-				</File>
-				<File
-					RelativePath="..\FilePath.h">
 				</File>
 				<File
 					RelativePath="..\IArchiver.h">
