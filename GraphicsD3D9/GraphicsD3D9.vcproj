@@ -19,8 +19,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;GRAPHICSD3D9_EXPORTS;__STL_DEBUG"
+				AdditionalIncludeDirectories="..\;.\"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;GRAPHICSD3D9_EXPORTS;__STL_DEBUG;_OL"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -71,8 +71,8 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;GRAPHICSD3D9_EXPORTS"
+				AdditionalIncludeDirectories="..\;.\"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;GRAPHICSD3D9_EXPORTS;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="3"
@@ -125,8 +125,8 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="..\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;GRAPHICSD3D9_EXPORTS"
+				AdditionalIncludeDirectories="..\;.\"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;GRAPHICSD3D9_EXPORTS;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="3"

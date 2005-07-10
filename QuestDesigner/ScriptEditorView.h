@@ -156,6 +156,7 @@ public:
 		COMMAND_ID_HANDLER(ID_SCRIPTED_LOWERCASE, OnEditLowercase)
 		COMMAND_ID_HANDLER(ID_SCRIPTED_TABIFY, OnEditTabify)
 		COMMAND_ID_HANDLER(ID_SCRIPTED_UNTABIFY, OnEditUntabify)
+		COMMAND_ID_HANDLER(ID_SCRIPTED_BEAUTIFY, OnEditBeautify)
 		COMMAND_ID_HANDLER(ID_SCRIPTED_SHOW_WHITE_SPACE, OnShowWhiteSpace)
 		
 		COMMAND_ID_HANDLER(ID_SCRIPTED_TOGGLE_BOOKMARK, OnEditToggleBookmark)
@@ -211,6 +212,7 @@ public:
 	LRESULT OnEditLowercase(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnEditTabify(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnEditUntabify(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnEditBeautify(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnShowWhiteSpace(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	
 	// Bookmark functions

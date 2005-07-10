@@ -17,7 +17,8 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "stdafx.h"
+#include <stdafx.h>
+
 #include <Net.h>
 
 #pragma comment ( lib, "Ws2_32.lib" )
