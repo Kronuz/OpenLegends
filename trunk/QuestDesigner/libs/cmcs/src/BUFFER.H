@@ -8,6 +8,7 @@
 #define TOKEN_TEXT( x ) ( x + 2 )
 
 class CUndoAction;
+class CVFile;
 
 class CLine
 {
@@ -156,6 +157,7 @@ public:
 
 	BOOL PASCAL GetText( int nStartRow, int nStartCol, int nEndRow, int nEndCol, HGLOBAL &hMem, BOOL bCopyLineIfEmpty, BOOL bForceCR = FALSE ) const;
 	BOOL PASCAL GetText( HANDLE hFile ) const;
+	BOOL PASCAL GetText( CVFile &vFile ) const;
 	void PASCAL GetText( LPTSTR pszBuff ) const;
 	void NormalizeLineTextCase( int nLine );
 	BOOL NormalizeCase() const { return m_bNormalizeCase; }

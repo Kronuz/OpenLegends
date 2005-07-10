@@ -152,7 +152,8 @@ WORD g_wCmds[] =
 	CMD_OVERTYPEOFF,
 	CMD_CODELIST,
 	CMD_CODETIP,
-	CMD_DESTROYCODETIP
+	CMD_DESTROYCODETIP,
+	CMD_BEAUTIFY,
 };
 
 void CEdit::GetCommandString( WORD wCmd, BOOL bDescription, LPTSTR psz, int cb )

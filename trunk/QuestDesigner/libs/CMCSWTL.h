@@ -886,6 +886,8 @@ public:
 	{ return ExecuteCmd ( CMD_UPPERCASESELECTION ); }
 	LRESULT UnTabifySelection ()
 	{ return ExecuteCmd ( CMD_UNTABIFYSELECTION ); }	
+	LRESULT BeautifyCode ()
+	{ return ExecuteCmd ( CMD_BEAUTIFY ); }	
 	LRESULT UnIndentSelection ()
 	{ return ExecuteCmd ( CMD_UNINDENTSELECTION ); }	
 	LRESULT UndoChanges ()

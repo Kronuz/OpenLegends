@@ -16,7 +16,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Inglés (Estados Unidos) resources
+// English (U.S.) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -440,6 +440,16 @@ END
 
 STRINGTABLE 
 BEGIN
+    CMD_OVERTYPEON          "Turns on overtype mode"
+    CMD_OVERTYPEOFF         "Turns off overtype mode"
+    CMD_CODELIST            "Activates the CodeList control"
+    CMD_CODETIP             "Activates the CodeTip control"
+    CMD_DESTROYCODETIP      "Destroys the CodeTip control"
+    CMD_BEAUTIFY            "Gives format to the code"
+END
+
+STRINGTABLE 
+BEGIN
     CMD_LINEDELETE          "Deletes the selected line"
     CMD_LINECUT             "Deletes the selected lines and places the text on the clipboard"
     CMD_INDENTTOPREV        "Indents to the position of the next text on the previous line"
@@ -540,15 +550,6 @@ END
 
 STRINGTABLE 
 BEGIN
-    CMD_OVERTYPEON          "Turns on overtype mode"
-    CMD_OVERTYPEOFF         "Turns off overtype mode"
-    CMD_CODELIST            "Activates the CodeList control"
-    CMD_CODETIP             "Activates the CodeTip control"
-	CMD_DESTROYCODETIP      "Destroys the CodeTip control"
-END
-
-STRINGTABLE 
-BEGIN
     IDS_PLAYBACK_CANCELED   "Macro could not be completed."
     IDS_MACRO_ERROR         "Macro Error"
     IDS_MENU_CUT            "Cut"
@@ -628,9 +629,10 @@ BEGIN
     IDS_PRINT_JOB_TITLE     "Source Code"
     IDS_PAGENUM_OF          "Page %d of %d"
     IDS_FMT_CODETIP_MULTIFUNC "%d of %d"
+    IDS_MENU_BEAUTIFY       "Beautify Code"
 END
 
-#endif    // Inglés (Estados Unidos) resources
+#endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

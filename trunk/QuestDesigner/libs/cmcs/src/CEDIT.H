@@ -744,6 +744,7 @@ class CEdit
 		void PageDownExtend();
 		void PageDown();
 		void LowerCaseSelection();
+		void CodeBeautify();
 		void LineUpExtend();
 		void LineUp();
 		void LineTranspose();

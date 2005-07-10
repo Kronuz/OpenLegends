@@ -1253,6 +1253,7 @@ CME_CODE CEdit::ExecuteCommand( WORD wCmd, DWORD dwData, BOOL bApplyDefaultParam
 							case CMD_REDO:							Redo(); break;
 							case CMD_PASTE:							Paste(); break;
 							case CMD_LOWERCASESELECTION:			LowerCaseSelection(); break;
+							case CMD_BEAUTIFY:                      CodeBeautify(); break;
 							case CMD_LINETRANSPOSE:					LineTranspose(); break;
 							case CMD_LINEOPENBELOW:					LineOpenBelow(); break;
 							case CMD_LINEOPENABOVE:					LineOpenAbove(); break;
@@ -1872,6 +1873,7 @@ void CEdit::ShowRightClickMenu( int x, int y )
 		{ CMD_TOGGLEWHITESPACEDISPLAY, IDS_MENU_TOGGLEWHITESPACEDISPLAY, TRUE, m_bDisplayWhitespace },
 		{ CMD_UPPERCASESELECTION, IDS_MENU_UPPERCASESELECTION, bHasSelection && !bColumnSel, FALSE },
 		{ CMD_LOWERCASESELECTION, IDS_MENU_LOWERCASESELECTION, bHasSelection && !bColumnSel, FALSE },
+		{ CMD_BEAUTIFY, IDS_MENU_BEAUTIFY, TRUE, FALSE },
 		{ ( UINT ) -1, NULL, FALSE, FALSE },
 		{ CMD_UNDO, IDS_MENU_UNDO, m_Buffer.CanUndo(), FALSE },
 		{ CMD_REDO, IDS_MENU_REDO, m_Buffer.CanRedo(), FALSE },

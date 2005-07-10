@@ -409,7 +409,8 @@
 #define CMD_CODELIST                    ( CMD_FIRST + 142 )
 #define CMD_CODETIP                     ( CMD_FIRST + 143 )
 #define CMD_DESTROYCODETIP              ( CMD_FIRST + 144 )
-#define CMD_LAST                        ( CMD_FIRST + 144 )
+#define CMD_BEAUTIFY                    ( CMD_FIRST + 145 )
+#define CMD_LAST                        ( CMD_FIRST + 145 )
 
 // all register commands must be at or higher than CMD_USER_BASE
 #define CMD_USER_BASE                   ( CMD_FIRST + 900 )

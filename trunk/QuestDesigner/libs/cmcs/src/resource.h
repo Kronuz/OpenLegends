@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Developer Studio generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by CodeSense.rc
 //
 #define IDS_PLAYBACK_CANCELED           1
@@ -67,6 +67,7 @@
 #define IDS_PRINT_JOB_TITLE             64
 #define IDS_PAGENUM_OF                  65
 #define IDS_FMT_CODETIP_MULTIFUNC       66
+#define IDS_MENU_BEAUTIFY               67
 #define IDD_GOTO_LINE                   102
 #define IDR_HSPLIT                      103
 #define IDR_VSPLIT                      104
