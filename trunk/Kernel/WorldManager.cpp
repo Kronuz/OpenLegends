@@ -279,9 +279,10 @@ bool CMapGroup::Close()
 		pLayer = static_cast<CLayer *>(GetChild(i));
 		pLayer->Clean();
 	}
-	m_bLoaded = false;			// Map group not loaded.
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 	m_pBitmap = m_pOriginalBitmap;
+
+	m_bLoaded = false;			// Map group not loaded.
 	return true;
 }
 
@@ -289,7 +290,7 @@ bool CMapGroup::Save()
 {
 	return false;
 
-	// Save here:
+	//FIXME needs to be implemented
 
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pOriginalBitmap;
 	m_pOriginalBitmap = m_pBitmap;
@@ -427,7 +428,11 @@ CWorld::CWorld(LPCSTR szName) :
 }
 CWorld::~CWorld()
 {
-	if(m_MapGroups.size()) CONSOLE_PRINTF("\tFreeing World Maps...\n");
+	Clean();
+}
+void CWorld::Clean()
+{
+	if(m_MapGroups.size()) CONSOLE_PRINTF("Closing World Maps...\n");
 	for(UINT i=0; i<m_MapGroups.size(); i++) {
 		delete m_MapGroups[i];
 		m_MapGroups[i] = NULL;

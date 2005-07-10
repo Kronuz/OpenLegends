@@ -389,7 +389,7 @@ interface IScript
 
 */
 interface IGame :
-	public CDocumentObject
+	public CDocumentObject	// Projects can be loaded from a file.
 {
 	virtual ~IGame() {} // Virtual destructor. (needed when the objects are deleted indirectly through the interface)
 

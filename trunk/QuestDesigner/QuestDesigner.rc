@@ -203,10 +203,18 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&New\tCtrl+N",                ID_APP_NEW
-        MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
-        MENUITEM "&Close",                      ID_APP_CLOSE
+        MENUITEM "&Load Game Set...\tCtrl+L",   32400
+        MENUITEM "Load Quest",                  ID_FILE_LOADQUEST
+        POPUP "Open"
+        BEGIN
+            MENUITEM "&Open Script...\tCtrl+O",     ID_APP_OPEN
+            MENUITEM "Open &Map...\tCtrl+M",        ID_OPEN_OPENMAP
+            MENUITEM "Open &Sprite Sheet\tCtrl+S",  ID_OPEN_OPEN
+        END
+        MENUITEM "&Close All",                  ID_APP_CLOSE
+        MENUITEM "Close Quest",                 ID_FILE_CLOSEQUEST
         MENUITEM SEPARATOR
-        MENUITEM "Preferences...",              32885
+        MENUITEM "Preferences...",              ID_FILE_PREFERENCES
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -245,9 +253,18 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&New\tCtrl+N",                ID_APP_NEW
+        MENUITEM "&Load Game Set...\tCtrl+L",   32400
         MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
-        MENUITEM "Reload",                      ID_APP_RELOAD
-        MENUITEM "&Save\tCtrl+S",               ID_APP_SAVE
+        POPUP "Open"
+        BEGIN
+            MENUITEM "&Open Script...\tCtrl+O",     ID_APP_OPEN
+            MENUITEM "Open &Map...\tCtrl+M",        32435
+            MENUITEM "Open &Sprite Sheet...\tCtrl+S", 
+                                                    ID_OPEN_OPENSPRITESHEET32440
+
+        END
+        MENUITEM "&Reload Script\tCtrl+R",      ID_APP_RELOAD
+        MENUITEM "&Save Script\tCtrl+S",        ID_APP_SAVE
         MENUITEM "Save A&ll",                   ID_APP_SAVE_ALL
         MENUITEM "Save &As...",                 ID_APP_SAVE_AS
         MENUITEM SEPARATOR
@@ -308,6 +325,18 @@ BEGIN
         MENUITEM "Map Editor",                  ID_APP_MAPED
         MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
         MENUITEM SEPARATOR
+        POPUP "Other Windows"
+        BEGIN
+            MENUITEM "Project Explorer",            506
+            MENUITEM "Quest Explorer",              507
+            MENUITEM "Sprite Set Explorer",         508
+            MENUITEM SEPARATOR
+            MENUITEM "Things To Do",                500
+            MENUITEM "Project Description",         501
+            MENUITEM "Output Window",               502
+            MENUITEM SEPARATOR
+            MENUITEM "Properties",                  505
+        END
     END
     POPUP "&Window"
     BEGIN
@@ -326,13 +355,18 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&New\tCtrl+N",                ID_APP_NEW
+        MENUITEM "&Load Game Set...\tCtrl+L",   32400
         MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
-        MENUITEM "Reload",                      ID_APP_RELOAD
-        MENUITEM "&Save\tCtrl+S",               ID_APP_SAVE
-        MENUITEM "Save A&ll",                   ID_APP_SAVE_ALL
-        MENUITEM SEPARATOR
-        MENUITEM "&Print...\tCtrl+P",           ID_APP_PRINT
-        MENUITEM "P&rint Setup...",             ID_APP_PRINT_SETUP
+        POPUP "Open"
+        BEGIN
+            MENUITEM "&Open Script...\tCtrl+Alt+O", ID_APP_OPEN
+            MENUITEM "Open &Map...\tCtrl+Alt+M",    32435
+            MENUITEM "Open &Sprite Sheet...\tCtrl+Alt+S", 
+                                                    ID_OPEN_OPENSPRITESHEET
+        END
+        MENUITEM "&Reload Map\tCtrl+R",         ID_APP_RELOAD
+        MENUITEM "&Save Map\tCtrl+S",           ID_APP_SAVE
+        MENUITEM "Save A&ll\tCtrl+L",           ID_APP_SAVE_ALL
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -357,6 +391,18 @@ BEGIN
         MENUITEM "Map Editor",                  ID_APP_MAPED
         MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
         MENUITEM SEPARATOR
+        POPUP "Other Windows"
+        BEGIN
+            MENUITEM "Project Explorer",            506
+            MENUITEM "Quest Explorer",              507
+            MENUITEM "Sprite Set Explorer",         508
+            MENUITEM SEPARATOR
+            MENUITEM "Things To Do",                500
+            MENUITEM "Project Description",         501
+            MENUITEM "Output Window",               502
+            MENUITEM SEPARATOR
+            MENUITEM "Properties",                  505
+        END
     END
     POPUP "&Window"
     BEGIN
@@ -375,14 +421,20 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&New\tCtrl+N",                ID_APP_NEW
+        MENUITEM "&Load Game Set...\tCtrl+L",   32400
         MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
-        MENUITEM "Reload",                      ID_APP_RELOAD
-        MENUITEM "&Save\tCtrl+S",               ID_APP_SAVE
+        POPUP "Open"
+        BEGIN
+            MENUITEM "&Open Script...\tCtrl+O",     ID_APP_OPEN
+            MENUITEM "Open &Map...\tCtrl+M",        32435
+            MENUITEM "Open &Sprite Sheet...\tCtrl+S", 
+                                                    ID_OPEN_OPENSPRITESHEET32441
+
+        END
+        MENUITEM "&Reload Quest\tCtrl+R",       ID_APP_RELOAD
+        MENUITEM "&Save Quest\tCtrl+S",         ID_APP_SAVE
         MENUITEM "Save A&ll",                   ID_APP_SAVE_ALL
         MENUITEM "Save &As...",                 ID_APP_SAVE_AS
-        MENUITEM SEPARATOR
-        MENUITEM "&Print...\tCtrl+P",           ID_APP_PRINT
-        MENUITEM "P&rint Setup...",             ID_APP_PRINT_SETUP
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_APP_EXIT
     END
@@ -438,6 +490,84 @@ BEGIN
         MENUITEM "Map Editor",                  ID_APP_MAPED
         MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
         MENUITEM SEPARATOR
+        POPUP "Other Windows"
+        BEGIN
+            MENUITEM "Project Explorer",            506
+            MENUITEM "Quest Explorer",              507
+            MENUITEM "Sprite Set Explorer",         508
+            MENUITEM SEPARATOR
+            MENUITEM "Things To Do",                500
+            MENUITEM "Project Description",         501
+            MENUITEM "Output Window",               502
+            MENUITEM SEPARATOR
+            MENUITEM "Properties",                  505
+        END
+    END
+    POPUP "&Window"
+    BEGIN
+        MENUITEM "&Cascade",                    ID_WINDOW_CASCADE
+        MENUITEM "&Tile",                       ID_WINDOW_TILE_HORZ
+        MENUITEM "Arrange &Icons",              ID_WINDOW_ARRANGE
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About QuestDesigner...",     ID_APP_ABOUT
+    END
+END
+
+IDR_MDISPRITEED MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_APP_NEW
+        MENUITEM "&Load Game Set...\tCtrl+L",   32400
+        MENUITEM "&Open...\tCtrl+O",            ID_APP_OPEN
+        POPUP "Open"
+        BEGIN
+            MENUITEM "&Open Script...\tCtrl+Alt+O", ID_APP_OPEN
+            MENUITEM "Open &Map...\tCtrl+Alt+M",    32435
+            MENUITEM "Open &Sprite Sheet...\tCtrl+Alt+S", 
+                                                    ID_OPEN_OPENSPRITESHEET
+        END
+        MENUITEM "&Reload Map\tCtrl+R",         ID_APP_RELOAD
+        MENUITEM "&Save Map\tCtrl+S",           ID_APP_SAVE
+        MENUITEM "Save A&ll\tCtrl+L",           ID_APP_SAVE_ALL
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",               ID_UNDO
+        MENUITEM "&Redo\tCtrl+Y",               ID_REDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                ID_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_PASTE
+        MENUITEM "&Delete\tDel",                ID_ERASE
+        MENUITEM "Select &All\tCtrl+A",         ID_MAPED_SELECT_ALL
+        MENUITEM SEPARATOR
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Toolbar",                    ID_APP_TOOLBAR
+        MENUITEM "&Status Bar",                 ID_APP_STATUS_BAR
+        MENUITEM SEPARATOR
+        MENUITEM "World Editor",                ID_APP_WORLDED
+        MENUITEM "Map Editor",                  ID_APP_MAPED
+        MENUITEM "Sprite Editor",               ID_APP_SPTSHTED
+        MENUITEM SEPARATOR
+        POPUP "Other Windows"
+        BEGIN
+            MENUITEM "Project Explorer",            506
+            MENUITEM "Quest Explorer",              507
+            MENUITEM "Sprite Set Explorer",         508
+            MENUITEM SEPARATOR
+            MENUITEM "Things To Do",                500
+            MENUITEM "Project Description",         501
+            MENUITEM "Output Window",               502
+            MENUITEM SEPARATOR
+            MENUITEM "Properties",                  505
+        END
     END
     POPUP "&Window"
     BEGIN
@@ -708,8 +838,8 @@ BEGIN
     VK_BACK,        ID_UNDO,                VIRTKEY, ALT, NOINVERT
     "Z",            ID_UNDO,                VIRTKEY, CONTROL, NOINVERT
     "Y",            ID_REDO,                VIRTKEY, CONTROL, NOINVERT
-	"B",            ID_SCRIPTED_BEAUTIFY,   VIRTKEY, CONTROL, NOINVERT
-	"A",            ID_SCRIPTED_SELECT_ALL, VIRTKEY, CONTROL, NOINVERT
+    "B",            ID_SCRIPTED_BEAUTIFY,   VIRTKEY, CONTROL, NOINVERT
+    "A",            ID_SCRIPTED_SELECT_ALL, VIRTKEY, CONTROL, NOINVERT
 END
 
 
@@ -876,12 +1006,17 @@ BEGIN
     ID_CUT                  "Cut the selection and put it on the Clipboard.\nCut"
     ID_SCRIPTED_FIND        "Find the specified text.\nFind"
     ID_PASTE                "Insert Clipboard contents.\nPaste"
-    ID_SCRIPTED_BEAUTIFY    "Gives format to the code.\nBeautifies the code"
     ID_SCRIPTED_REPEAT      "Repeat the last action.\nRepeat"
     ID_SCRIPTED_REPLACE     "Replace specific text with different text.\nReplace"
     ID_SCRIPTED_SELECT_ALL  "Select the entire document.\nSelect All"
     ID_UNDO                 "Undo the last action\nUndo"
     ID_REDO                 "Redo the previously undone action.\nRedo"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_MAPED_SELDHOLD       "Exit in-place edition/Exit the current in-place edition one level.\nExit in-place edition"
+    ID_SCRIPTED_BEAUTIFY    "Gives format to the code.\nBeautifies the code"
 END
 
 STRINGTABLE 
@@ -1042,11 +1177,6 @@ BEGIN
     ID_DBG_PROFILER         "Show Profiler.\nShow Profiler"
     ID_DBG_BREAKPOINT       "Toggle a breakpoint.\nToggle Breakpoint"
     ID_DBG_CONTINUE         "Continue debugging.\nContinue"
-END
-
-STRINGTABLE 
-BEGIN
-    ID_MAPED_SELDHOLD       "Exit in-place edition/Exit the current in-place edition one level.\nExit in-place edition"
 END
 
 #endif    // English (U.S.) resources
