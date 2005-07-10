@@ -216,6 +216,8 @@ public:
 	CWorld(LPCSTR szName);
 	~CWorld();
 
+	void Clean();
+
 	CMapGroup* FindMapGroup(int x, int y) const;
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
 	int ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam);

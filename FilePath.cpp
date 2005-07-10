@@ -19,7 +19,10 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		FilePath.cpp
 	\brief		Implementation of the file manager classes.
-	\date		April 28, 2003
+	\date		April 28, 2003:
+						* First release.
+				July 10, 2005:
+						+ Directory globalization improved.
 
 	This file implements the CVFile to handle filenames, paths, and the virtual 
 	file system. Also contains the path to the home directory of the game files.
@@ -40,7 +43,8 @@ CVFile::CVFile() :
 	m_bRawMode(false),
 	m_nMethod(Z_DEFLATED),
 	m_nLevel(Z_DEFAULT_COMPRESSION),
-	m_dwFileAttributes(0)
+	m_dwFileAttributes(0),
+	m_sHomeDir(g_sHomeDir)
 {
 	m_BuffStart = NULL;
 	m_BuffLen = -1;
@@ -57,7 +61,8 @@ CVFile::CVFile(LPCSTR szNewName, bool bGlobalize) :
 	m_bRawMode(false),
 	m_nMethod(Z_DEFLATED),
 	m_nLevel(Z_DEFAULT_COMPRESSION),
-	m_dwFileAttributes(0)
+	m_dwFileAttributes(0),
+	m_sHomeDir(g_sHomeDir)
 {
 	SetFilePath(szNewName, bGlobalize);
 }

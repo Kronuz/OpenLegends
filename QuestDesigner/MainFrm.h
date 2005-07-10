@@ -398,6 +398,9 @@ public:
 	int MapFileOpen(CPoint &Point);
 	int SptShtFileOpen(CSpriteSheet *pSpriteSheet, LPCSTR lpszSprite);
 
+	int CloseWorld();
+	int Close();
+
 	void UIUpdateMenuItems();
 	void UIEnableToolbar(BOOL bEnable = TRUE);
 

@@ -29,6 +29,8 @@
 				July 08, 2005 by Kronuz:
 						+ Added ZIP file comments support.
 						+ Improved Rename support.
+				July 10, 2005 by Kronuz:
+						+ Directory globalization improved.
 
 	This file implements the CVFile to handle filenames and paths. Also
 	contains the path to the home directory of the game files.
@@ -119,6 +121,7 @@ class CVFile
 
 	// HomeFile is not used if the file is not virtual (i.e. compressed)
 	CBString m_sHomeFile;		// initial home directory (for compressed files)
+	CBString m_sHomeDir;		// globalized home directory with which the object was started.
 
 	CBString m_sPath;			// path inside home (without the file name)
 	CBString m_sTitle;			// filename (without extension)
@@ -246,7 +249,7 @@ inline bool CVFile::FindVirtual()
 		bool bExists = false;
 		// try to open path as a compressed file
 		if(m_bRelative) {
-			bExists = (FileExists(g_sHomeDir + szPath) != NULL);
+			bExists = (FileExists(m_sHomeDir + szPath) != NULL);
 		} else {
 			bExists = (FileExists(szPath) != NULL);
 		}
@@ -284,7 +287,7 @@ inline CBString CVFile::GetHomeFile() const
 {
 	if(m_bVirtual) {
 		if(m_bRelative)
-			return g_sHomeDir + m_sHomeFile; 
+			return m_sHomeDir + m_sHomeFile; 
 		return m_sHomeFile;
 	}
 	return GetFilePath();
@@ -293,7 +296,7 @@ inline CBString CVFile::GetHomeFile() const
 inline CBString CVFile::GetPath() const 
 { 
 	if(!m_bVirtual && m_bRelative)
-		return g_sHomeDir + m_sPath; 
+		return m_sHomeDir + m_sPath; 
 
 	return m_sPath;
 }
@@ -360,15 +363,15 @@ inline void CVFile::SetFilePath(LPCSTR szNewName, bool bGlobalize)
 	sPath += szPath;
 
 	if(bGlobalize) {
-		ASSERT(g_sHomeDir.IsEmpty());
 		g_sHomeDir = sPath;
+		m_sHomeDir = g_sHomeDir; // changed the globalized path for the current file
 	}
 
 	if(*szNewName != DIR_SEP && *(szNewName+1) != ':') {
 		m_sPath = sPath;
 		m_bRelative = true;
-	} else if(sPath.Find(g_sHomeDir)!=-1 && !g_sHomeDir.IsEmpty()) {
-		m_sPath = sPath.Mid(g_sHomeDir.GetLength());
+	} else if(sPath.Find(m_sHomeDir)!=-1 && !m_sHomeDir.IsEmpty()) {
+		m_sPath = sPath.Mid(m_sHomeDir.GetLength());
 		m_bRelative = true;
 	} else {
 		m_sPath = sPath;
@@ -1229,7 +1232,7 @@ inline int CVFile::Rename(CVFile &vFile)
 		return ret;
 	}
 
-	// FIXME Still is needed to implement the recursive rename between virtual/real directories
+	//FIXME Still is needed to implement the recursive rename between virtual/real directories
 	if(!Open("rb")) return -1;
 	long size = GetFileSize();
 	LPBYTE pBuffer = new BYTE[size];

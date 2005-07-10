@@ -57,7 +57,8 @@ CGameManager *CGameManager::_instance = NULL;
 
 CGameManager::CGameManager() :
 	m_World("New Quest"),
-	m_pDummyDebug(NULL)
+	m_pDummyDebug(NULL),
+	m_bLoaded(false)
 {
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
@@ -357,7 +358,7 @@ void CGameManager::Clean()
 	if(m_Sounds.size()) CONSOLE_PRINTF("Freeing Sounds...\n");
 	while(m_Sounds.size()) {
 		delete m_Sounds.begin()->second;
-		m_UndefSprites.erase(m_UndefSprites.begin());
+		m_Sounds.erase(m_Sounds.begin());
 	}
 }
 int CALLBACK RemoveMask(LPVOID sprite, LPARAM lParam)
@@ -411,8 +412,34 @@ int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPA
 
 	return 1;
 }
+
+bool CGameManager::Close(bool bForce) 
+{ 
+	if(!m_bLoaded) return true;
+
+	if(m_sProjectName!="" && !bForce) return false;
+
+	if(!CloseWorld(bForce)) return false;
+
+	Clean();
+
+	CONSOLE_PRINTF("Project closed: '%s'.\n", m_sProjectName);
+
+	m_sProjectName = "";
+
+	m_bLoaded = false;	// Project not loaded
+	return true; 
+}
+
+bool CGameManager::Save(CVFile &vfFile)
+{
+	return false; //FIXME needs to be implemented
+}
+
 bool CGameManager::Load(CVFile &vfFile)
 {
+	if(m_bLoaded) return false;	// loaded projects can not be loaded again.
+
 	// this is to print how long did it take to load
 	DWORD dwInitTicks = GetTickCount();
 
@@ -453,13 +480,14 @@ bool CGameManager::Load(CVFile &vfFile)
 
 	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 
-	//CSound *pSound = new CSound;
-	//pSound->LoadFile(CVFile("C:\\qd\\Quest Designer 2.1.4\\sounds\\forest.it"));
-	//pSound->LoadFile(CVFile("C:\\qd\\Quest Designer 2.1.4\\sounds\\rain.wav"));
-	//pSound->LoadFile(CVFile("C:\\qk\\bi.mp3"));
-	//pSound->Loop();
-	//pSound->Play();
+	m_bLoaded = true;	// Project loaded
+	return true;
+}
 
+bool CGameManager::CloseWorld(bool bForce) 
+{ 
+	if(!m_World.Close(bForce)) return false;
+	m_World.Clean();
 	return true;
 }
 

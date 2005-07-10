@@ -538,6 +538,8 @@ LRESULT CMainFrame::OnFileNew()
 
 LRESULT CMainFrame::OnFileOpen()
 {
+	if(!CloseWorld()) return 0;
+
 	static TCHAR szFilter[] = "OL Quest files (*.qss;*.qsz)|*.qss; *.qsz|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
@@ -644,18 +646,7 @@ BOOL BrowseForFolder(HWND hwnd, // parent window.
 
 LRESULT CMainFrame::OnProjectOpen()
 {
-	if(!m_pOLKernel->Close()) {
-		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
-		if(nChoice == IDYES) {
-			if(!m_pOLKernel->Save()) {
-				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
-				return 0;
-			}
-		} else if(nChoice == IDCANCEL) {
-			return 0;
-		}
-		m_pOLKernel->Close(true);
-	} 
+	if(!Close()) return 0; // closes the project (and the world if it's open)
 
 	UIEnableToolbar(FALSE);
 	// Update all the toolbar items
@@ -1038,7 +1029,24 @@ void CMainFrame::StatusBar(LPCSTR szMessage, UINT Icon)
 	DeleteObject(hIcon);
 }
 
-int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
+int CMainFrame::Close()
+{
+	if(!m_pOLKernel->Close()) {
+		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
+		if(nChoice == IDYES) {
+			if(!m_pOLKernel->Save()) {
+				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
+				return 0;
+			}
+		} else if(nChoice == IDCANCEL) {
+			return 0;
+		}
+		m_pOLKernel->Close(true);
+	} 
+	return 1;
+}
+
+int CMainFrame::CloseWorld()
 {
 	if(!m_pOLKernel->CloseWorld()) {
 		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
@@ -1052,18 +1060,23 @@ int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 		}
 		m_pOLKernel->CloseWorld(true);
 	} 
+	return 1;
+}
+
+int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
+{
     StatusBar("Loading...", IDI_ICO_WAIT);
 	g_sQuestFile = szFilename;
 	if(!m_pOLKernel->LoadWorld(g_sQuestFile)) {
 	    StatusBar("Couldn't load quest!", IDI_ICO_ERROR);
-		return 1;
+		return 0;
 	}
 
 	m_bQuestLoaded = true;
 
 	if(Select(_T("World Editor"), 0)) {
 	    StatusBar("Couldn't open the World editor window!", IDI_ICO_ERROR);
-		return 1;
+		return 0;
 	}
 
 	CWorldEditorFrame *pChild = new CWorldEditorFrame(this);

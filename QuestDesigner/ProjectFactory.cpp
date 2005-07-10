@@ -222,10 +222,11 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					return 1;
 				}
 				if(NewStatus->SpriteSheet.eInfoReason == irDeleted) {
+					pTreeInfo = new CTreeInfo('*', NewStatus->SpriteSheet.lpszString);
 					SendMessage(_this->m_hWnd, 
 						WMGP_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo('*', NewStatus->SpriteSheet.lpszString, NULL)
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}
@@ -247,10 +248,11 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					return 1;
 				}
 				if(NewStatus->Sprite.eInfoReason == irDeleted) {
+					pTreeInfo = new CTreeInfo('*', NewStatus->Sprite.lpszString);
 					SendMessage(_this->m_hWnd, 
 						WMGP_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo('*', NewStatus->Sprite.lpszString, NULL)
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}
@@ -269,10 +271,11 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					return 1;
 				}
 				if(NewStatus->Sound.eInfoReason == irDeleted) {
+					pTreeInfo = new CTreeInfo('*', NewStatus->Sound.lpszString);
 					SendMessage(_this->m_hWnd, 
 						WMQ_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo('*', NewStatus->Sound.lpszString, NULL)
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}
@@ -291,10 +294,11 @@ int CALLBACK CProjectFactory::StatusChanged(GameInfo *NewStatus, LPARAM lParam)
 					return 1;
 				}
 				if(NewStatus->Script.eInfoReason == irDeleted) {
+					pTreeInfo = new CTreeInfo('*', NewStatus->Script.lpszString);
 					SendMessage(_this->m_hWnd, 
 						WMGP_DELTREE, 
 						0, 
-						(LPARAM)new CTreeInfo('*', NewStatus->Script.lpszString, NULL)
+						(LPARAM)pTreeInfo
 					);
 					return 1;
 				}

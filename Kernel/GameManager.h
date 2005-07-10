@@ -86,6 +86,8 @@ class CGameManager :
 	CBString m_sProjectName;
 	CSoundManager *m_pSoundManager;
 
+	bool m_bLoaded;
+
 	static float ms_fDelta;
 	static DWORD ms_dwLastTick;
 
@@ -203,9 +205,9 @@ public:
 
 	// Loading/Saving methods:
 	bool Load(CVFile &vfFile); //!< Loads the project from a file
-	bool Save(CVFile &vfFile) { return false; } //!< Saves the project to a file
-	bool Save() { return false; }
-	bool Close(bool bForce) { return(m_sProjectName==""); } //!< Closes the project
+	bool Save(CVFile &vfFile); //!< Saves the project to a file
+	bool Save() { return false; } //!< Saves the project to the same file it was loaded from
+	bool Close(bool bForce); //!< Closes the project
 
 	bool Load(LPCSTR szFile) { return Load(CVFile(szFile, true)); }
 	bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
@@ -213,7 +215,7 @@ public:
 	bool LoadWorld(CVFile &vfFile) { return m_World.Load(vfFile); }
 	bool SaveWorld(CVFile &vfFile) { return m_World.Save(vfFile); }
 	bool SaveWorld() { return false; }
-	bool CloseWorld(bool bForce) { return m_World.Close(bForce); }
+	bool CloseWorld(bool bForce);
 
 	bool LoadWorld(LPCSTR szFile) { return LoadWorld(CVFile(szFile)); }
 	bool SaveWorld(LPCSTR szFile) { return SaveWorld(CVFile(szFile)); }
