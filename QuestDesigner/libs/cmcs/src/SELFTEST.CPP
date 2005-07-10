@@ -365,9 +365,9 @@ void CEdit::DoSelfTest()
 	*szLang = 1;
 	ASSERT( CM_GetLanguage( m_hWndTest, szLang ) == CME_SUCCESS );
 	ASSERT( !*szLang );
-	ASSERT( CM_SetLanguage( m_hWndTest, CMLANG_PASCAL ) == CME_SUCCESS );
-	ASSERT( CM_GetLanguage( m_hWndTest, szLang ) == CME_SUCCESS );
-	ASSERT( _tcscmp( szLang, CMLANG_PASCAL ) == 0 );
+	//ASSERT( CM_SetLanguage( m_hWndTest, CMLANG_PASCAL ) == CME_SUCCESS );
+	//ASSERT( CM_GetLanguage( m_hWndTest, szLang ) == CME_SUCCESS );
+	//ASSERT( _tcscmp( szLang, CMLANG_PASCAL ) == 0 );
 
 	TCHAR szText2[ 100 ];
 	ASSERT(SendMessage(m_hWndTest, WM_SETTEXT, 0, (LPARAM)_T("123")) == TRUE);
@@ -498,6 +498,7 @@ void CEdit::DoSelfTest()
 	ASSERT( ( int ) cmCmdPageDownExtend			==	CMD_PAGEDOWNEXTEND );
 	ASSERT( ( int ) cmCmdPageDown				==	CMD_PAGEDOWN );
 	ASSERT( ( int ) cmCmdLowercaseSelection		==	CMD_LOWERCASESELECTION );
+	ASSERT( ( int ) cmCmdBeautify				==	CMD_BEAUTIFY );
 	ASSERT( ( int ) cmCmdLineUpExtend			==	CMD_LINEUPEXTEND );
 	ASSERT( ( int ) cmCmdLineUp					==	CMD_LINEUP );
 	ASSERT( ( int ) cmCmdLineTranspose			==	CMD_LINETRANSPOSE );

@@ -2,6 +2,7 @@
 #include "regexp.h"
 #include "undo.h"
 #include "buffer.h"
+#include "FilePath.h"
 
 CBuffer::CBuffer()
 {
@@ -1087,6 +1088,48 @@ BOOL CBuffer::GetText( HANDLE hFile ) const
 								  cbEOLN,
 								  &dwWritten,
 								  NULL );
+		}
+	}
+
+	return bSuccess;
+}
+
+BOOL CBuffer::GetText( CVFile &vFile ) const
+{
+	char szEOLN[ 3 ];
+	if ( m_bWantCarriageReturn )
+	{
+		szEOLN[ 0 ] = _T('\r');
+		szEOLN[ 1 ] = _T('\n');
+		szEOLN[ 2 ] = _T('\0');
+	}
+	else
+	{
+		szEOLN[ 0 ] = _T('\n');
+		szEOLN[ 1 ] = _T('\0');
+	}
+	int cbEOLN = m_bWantCarriageReturn ? 2 : 1;
+	BOOL bSuccess = TRUE;
+	for ( int nRow = 0; bSuccess && nRow < m_nLineCount; nRow++ )
+	{
+		int nLen = GetLineLength( nRow );
+
+#ifdef _UNICODE
+		LPSTR pszLine = new char[ nLen + 1 ];
+		WideCharToMultiByte( CP_ACP, 0, GetLineText( nRow ), nLen + 1, pszLine, nLen + 1, NULL, NULL );
+		DWORD dwWritten;
+		dwWritten = vFile.Write(pszLine, nLen);
+		bSuccess = (dwWritten == nLen);
+		delete [] pszLine;
+#else
+		DWORD dwWritten;
+		dwWritten = vFile.Write(GetLineText( nRow ), nLen);
+		bSuccess = (dwWritten == nLen);
+#endif
+		if ( bSuccess && ( nRow < m_nLineCount - 1 ) )
+		{
+			dwWritten = vFile.Write(szEOLN, cbEOLN);
+			bSuccess = (dwWritten == nLen);
 		}
 	}
 

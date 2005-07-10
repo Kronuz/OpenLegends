@@ -8,6 +8,7 @@
 
 #include "CodeTipCtrl.h"
 #include "CodeListCtrl.h"
+#include <FilePath.h>
 
 LRESULT CEdit::OnCreate( HWND hWnd, WPARAM /* wParam */, LPARAM lParam )
 {
@@ -1331,8 +1332,58 @@ LRESULT CEdit::OnInsertFile( WPARAM wParam, LPARAM lParam )
 		lResult = CME_FAILURE;
 
 		LPCTSTR pszFile = ( LPCTSTR ) lParam;
-		// create a memory mapped file so it can be treated as regular old text
+		CVFile vFile(pszFile);
+		if(vFile.Open("rt")) {
+			int cbFile = vFile.GetFileSize();
+			if(cbFile) {
+				LPCSTR pszText = new CHAR[cbFile];
+				if (pszText) 
+				{
+					vFile.Read((LPVOID)pszText, cbFile);
+					vFile.Close();
 
+					// presize the buffer to prevent too many reallocs
+					m_Buffer.EnsureLineArraySize( cbFile / 30 );	// figure 30 characters per line (just a guess)
+					#ifdef _UNICODE
+					// must convert ASCII file contents to Unicode
+					LPTSTR pszWText = new TCHAR[ cbFile + 1 ];
+					if ( pszWText )
+					{
+						MultiByteToWideChar( CP_ACP, 0, pszText, cbFile, pszWText, cbFile );
+						pszWText[ cbFile ] = _T('\0');
+						GuessCRLFStateFromText( pszWText );
+						lResult = OnInsertText( wParam, ( LPARAM ) pszWText );
+						delete [] pszWText;
+					}
+					else
+					{
+						lResult = CME_FAILURE;
+					}
+					#else
+					/////////////////////////////////////////////////////////////////////
+					// we cannot trust the MapViewOfFile() function
+					// to properly null-terminate the file image string if the file
+					// was previously mapped into memory, and must make a copy of 
+					// the file contents in memory and terminate the copy.
+					/////////////////////////////////////////////////////////////////////
+					LPTSTR pszImage = new TCHAR[ cbFile + 1 ];
+					if ( pszImage )
+					{
+						strncpy( pszImage, pszText, cbFile );
+						pszImage[ cbFile ] = '\0';
+						GuessCRLFStateFromText( pszImage );
+						lResult = OnInsertText( wParam, ( LPARAM ) pszImage );
+						delete [] pszImage;
+					}
+					#endif
+					// trim any buffer space that was overly-preallocated
+					m_Buffer.FlushExtraLines();
+					delete [] pszText;
+				}
+			}
+		}
+/*
+		// create a memory mapped file so it can be treated as regular old text
 		HANDLE hFile = CreateFile( pszFile, 
 								   GENERIC_READ,
 								   FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -1409,6 +1460,7 @@ LRESULT CEdit::OnInsertFile( WPARAM wParam, LPARAM lParam )
 			}
 			VERIFY( CloseHandle( hFile ) );
 		}
+*/
 	}
 
 	return lResult;
@@ -1726,6 +1778,34 @@ LRESULT CEdit::OnSaveFile( WPARAM wParam, LPARAM lParam )
 	if ( lParam )
 	{
 		CHourGlass wait( this );
+
+		LPCTSTR pszFile = ( LPCTSTR ) lParam;
+		CVFile vFile(pszFile);
+		if(vFile.Open("wt")) 
+		{
+			BOOL bSuccess = m_Buffer.GetText( vFile );
+			vFile.Close();
+
+			if ( bSuccess )
+			{
+				if ( wParam != 0 )
+				{
+					m_Buffer.ClearRedoChain( TRUE );
+				}
+				CEditTransaction trans( this );
+				m_Buffer.SetModified( FALSE );
+			}
+			return bSuccess ? CME_SUCCESS : CME_FAILURE;
+		}
+
+		return CME_FAILURE;
+	}
+	return CME_BADARGUMENT;
+
+/*
+	if ( lParam )
+	{
+		CHourGlass wait( this );
 		HANDLE hFile = CreateFile( ( LPCTSTR ) lParam, 
 		                           GENERIC_WRITE,
 							 	   0,
@@ -1753,6 +1833,7 @@ LRESULT CEdit::OnSaveFile( WPARAM wParam, LPARAM lParam )
 		return CME_FAILURE;
 	}
 	return CME_BADARGUMENT;
+*/
 }
 
 LRESULT CEdit::OnGetTextLength( WPARAM wParam, LPARAM lParam )

@@ -2,6 +2,10 @@
 #include "editdlgs.h"
 #include "cedit.h"
 
+#include "astyle\compiler_defines.h"
+#include "astyle\astyle.h"
+using namespace astyle;
+
 extern BOOL g_bCopyColumn;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -32,6 +36,102 @@ void CEdit::UpperCaseSelection()
 void CEdit::LowerCaseSelection()
 {
 	ChangeCaseOfSelection( FALSE );
+}
+
+
+class ASStreamIterator :
+            public ASSourceIterator
+{
+    public:
+        ASStreamIterator(LPCSTR in);
+        virtual ~ASStreamIterator();
+        bool hasMoreLines() const;
+        string nextLine();
+
+    private:
+        LPCSTR inString;
+        char buffer[2048];
+};
+
+ASStreamIterator::ASStreamIterator(LPCSTR in)
+{
+    inString = in;
+}
+
+ASStreamIterator::~ASStreamIterator()
+{
+}
+
+bool ASStreamIterator::hasMoreLines() const
+{
+    if(*inString) return true;
+    else return false;
+}
+
+string ASStreamIterator::nextLine()
+{
+	LPSTR filterPtr = buffer;
+	while(*inString) {
+		if(*inString == '\n') {
+			inString++;
+			break;
+		}
+		if(*inString != '\r')
+			*filterPtr++ = *inString;
+		inString++;
+	}
+	*filterPtr = '\0';
+	while(*inString =='\r') inString++;
+    return string(buffer);
+}
+/**/
+void CEdit::CodeBeautify()
+{
+	BOOL bSelected = FALSE;
+	int nStartCol, nStartRow, nEndCol, nEndRow;
+	if ( m_Selection.IsEmpty() ) {
+		nStartRow = 0;
+		nStartCol = 0;
+		nEndRow = m_Buffer.GetLineCount()-1;
+		nEndCol = m_Buffer.GetLineLength(nEndRow);
+	} else {
+		bSelected = TRUE;
+		m_Selection.GetNormalizedBufferSelection( nStartCol, nStartRow, nEndCol, nEndRow );
+		nStartCol = 0;
+		nEndCol = m_Buffer.GetLineLength(nEndRow);
+	}
+	m_Selection.SetExtendedSelection( nStartCol, nStartRow, nEndCol, nEndRow );
+
+	m_Buffer.BeginEdit(nEndRow, nEndCol);
+	HGLOBAL hMem = GetSelectionText();
+	if ( hMem ) {
+		string output;
+		LPTSTR pszText = ( LPTSTR ) GlobalLock( hMem );
+		if ( pszText && *pszText ) {
+			output.reserve(strlen(pszText)*4/3); // 33% larger
+
+			ASFormatter formatter;
+			formatter.setCStyle();
+			formatter.setBracketIndent(false);
+			formatter.setTabIndentation(4, false);
+			formatter.setBracketFormatMode(BDAC_MODE);
+			formatter.setClassIndent(false);
+			formatter.setSwitchIndent(false);
+			formatter.setNamespaceIndent(false);
+
+			formatter.init( new ASStreamIterator(pszText) );
+			while(formatter.hasMoreLines()) {
+				output += formatter.nextLine();
+				if(formatter.hasMoreLines())
+					output += '\n';
+
+			}
+		}
+		GlobalUnlock( hMem );
+		GlobalFree( hMem );
+		ReplaceSelection( output.c_str(), FALSE, FALSE, bSelected);
+	}
+	m_Buffer.EndEdit( nEndRow, nEndCol );
 }
 
 void CEdit::WordCapitalize()

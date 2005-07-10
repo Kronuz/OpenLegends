@@ -22,8 +22,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="include;..\..\libs\zlib;..\..\"
-				PreprocessorDefinitions="NDEBUG;_WINDOWS;WIN32"
+				AdditionalIncludeDirectories="include;..\..\..\..\libs\zlib;..\..\..\..\"
+				PreprocessorDefinitions="NDEBUG;_WINDOWS;WIN32;_CODEMAX"
 				StringPooling="TRUE"
 				RuntimeLibrary="4"
 				EnableFunctionLevelLinking="TRUE"
@@ -45,7 +45,7 @@
 				OutputFile="Release/cmcs21.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\..\libs\zlib"
+				AdditionalLibraryDirectories="..\..\..\..\libs\zlib"
 				ModuleDefinitionFile=".\CodeSense.def"
 				ProgramDatabaseFile=".\Release/cmcs21.pdb"
 				SubSystem="2"
@@ -92,8 +92,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="include;..\..\libs\zlib;..\..\"
-				PreprocessorDefinitions="_DEBUG;_WINDOWS;WIN32"
+				AdditionalIncludeDirectories="include;..\..\..\..\libs\zlib;..\..\..\..\"
+				PreprocessorDefinitions="_DEBUG;_WINDOWS;WIN32;_CODEMAX"
 				RuntimeLibrary="5"
 				UsePrecompiledHeader="3"
 				PrecompiledHeaderThrough="precomp.h"
@@ -114,7 +114,7 @@
 				OutputFile="Profile\cmcs21.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\..\libs\zlib"
+				AdditionalLibraryDirectories="..\..\..\..\libs\zlib"
 				ModuleDefinitionFile=".\CodeSense.def"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile=".\Profile/cmcs21.pdb"
@@ -162,8 +162,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="include;..\..\libs\zlib;..\..\"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
+				AdditionalIncludeDirectories="include;..\..\..\..\libs\zlib;..\..\..\..\"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_CODEMAX"
 				RuntimeLibrary="5"
 				UsePrecompiledHeader="3"
 				PrecompiledHeaderThrough="precomp.h"
@@ -183,7 +183,7 @@
 				OutputFile="UnicodeDbg/cmcs21ud.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\..\libs\zlib"
+				AdditionalLibraryDirectories="..\..\..\..\libs\zlib"
 				ModuleDefinitionFile=".\CodeSense.def"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile=".\UnicodeDbg/cmcs21u.pdb"
@@ -232,8 +232,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="include;..\..\libs\zlib;..\..\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
+				AdditionalIncludeDirectories="include;..\..\..\..\libs\zlib;..\..\..\..\"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CODEMAX"
 				StringPooling="TRUE"
 				RuntimeLibrary="4"
 				EnableFunctionLevelLinking="TRUE"
@@ -255,7 +255,7 @@
 				OutputFile="UnicodeRel/cmcs21u.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\..\libs\zlib"
+				AdditionalLibraryDirectories="..\..\..\..\libs\zlib"
 				ModuleDefinitionFile=".\CodeSense.def"
 				ProgramDatabaseFile=".\UnicodeRel/cmcs21u.pdb"
 				SubSystem="2"
@@ -302,8 +302,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="include;..\..\libs\zlib;..\..\"
-				PreprocessorDefinitions="_DEBUG;_WINDOWS_USRDLL;_ACTIVEX;WIN32"
+				AdditionalIncludeDirectories="include;..\..\..\..\libs\zlib;..\..\..\..\"
+				PreprocessorDefinitions="_DEBUG;_WINDOWS_USRDLL;_ACTIVEX;WIN32;_CODEMAX"
 				RuntimeLibrary="5"
 				UsePrecompiledHeader="3"
 				PrecompiledHeaderThrough="precomp.h"
@@ -329,7 +329,7 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 				OutputFile="XDebug/cmcs21d.ocx"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\..\libs\zlib"
+				AdditionalLibraryDirectories="..\..\..\..\libs\zlib"
 				ModuleDefinitionFile=".\CodeSenseX.def"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile=".\XDebug/cmcs21.pdb"
@@ -377,8 +377,8 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="include;..\..\libs\zlib;..\..\"
-				PreprocessorDefinitions="_DEBUG;_WINDOWS;WIN32"
+				AdditionalIncludeDirectories="include;..\..\..\..\libs\zlib;..\..\..\..\"
+				PreprocessorDefinitions="_DEBUG;_WINDOWS;WIN32;_CODEMAX"
 				RuntimeLibrary="5"
 				UsePrecompiledHeader="3"
 				PrecompiledHeaderThrough="precomp.h"
@@ -399,7 +399,7 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 				OutputFile="Debug/cmcs21d.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\..\libs\zlib"
+				AdditionalLibraryDirectories="..\..\..\..\libs\zlib"
 				ModuleDefinitionFile=".\CodeSense.def"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile=".\Debug/cmcs21.pdb"
@@ -448,8 +448,8 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 				Name="VCCLCompilerTool"
 				Optimization="1"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="include;..\..\libs\zlib;..\..\"
-				PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;_ACTIVEX;WIN32"
+				AdditionalIncludeDirectories="include;..\..\..\..\libs\zlib;..\..\..\..\"
+				PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;_ACTIVEX;WIN32;_CODEMAX"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="TRUE"
@@ -476,7 +476,7 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 				OutputFile="XRelease/cmcs21.ocx"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories="..\..\libs\zlib"
+				AdditionalLibraryDirectories="..\..\..\..\libs\zlib"
 				ModuleDefinitionFile=".\CodeSenseX.def"
 				SubSystem="2"
 				ImportLibrary=".\XRelease/cmcs21.lib"
@@ -3523,6 +3523,239 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 						PreprocessorDefinitions="NDEBUG;_WINDOWS;_USRDLL;_ACTIVEX;WIN32;_MBCS;$(NoInherit)"/>
 				</FileConfiguration>
 			</File>
+			<Filter
+				Name="astyle"
+				Filter="">
+				<File
+					RelativePath=".\astyle\ASBeautifier.cpp">
+					<FileConfiguration
+						Name="Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Profile|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\astyle\ASFormatter.cpp">
+					<FileConfiguration
+						Name="Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Profile|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\astyle\ASResource.cpp">
+					<FileConfiguration
+						Name="Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Profile|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+				</File>
+			</Filter>
+			<Filter
+				Name="FilePath"
+				Filter="">
+				<File
+					RelativePath="..\..\..\..\FilePath.cpp">
+					<FileConfiguration
+						Name="Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Profile|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath="..\..\..\..\Misc.cpp">
+					<FileConfiguration
+						Name="Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Profile|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Unicode Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="ActiveX Release|Win32">
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"/>
+					</FileConfiguration>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -3543,7 +3776,7 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 				RelativePath="CodeListCtrl.h">
 			</File>
 			<File
-				RelativePath="..\include\CodeSense.h">
+				RelativePath=".\CodeSense.h">
 			</File>
 			<File
 				RelativePath="CodeTipCtrl.h">
@@ -3653,6 +3886,26 @@ echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;
 			<File
 				RelativePath="Wnd.inl">
 			</File>
+			<Filter
+				Name="astyle"
+				Filter="">
+				<File
+					RelativePath=".\astyle\astyle.h">
+				</File>
+				<File
+					RelativePath=".\astyle\compiler_defines.h">
+				</File>
+			</Filter>
+			<Filter
+				Name="FilePath"
+				Filter="">
+				<File
+					RelativePath="..\..\..\..\FilePath.h">
+				</File>
+				<File
+					RelativePath="..\..\..\..\Misc.h">
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"

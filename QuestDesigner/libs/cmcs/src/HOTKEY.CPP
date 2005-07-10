@@ -32,6 +32,7 @@ _defhotkeyrec CEdit::g_DefHotKeys[] =
 		{ CMD_PAGEDOWNEXTEND,				HOTKEYF_SHIFT,						VK_NEXT		,0,0 },
 		{ CMD_PAGEDOWN,						0,									VK_NEXT		,0,0 },
 		{ CMD_LOWERCASESELECTION,			HOTKEYF_CONTROL,					_T('U')		,0,0 },
+		{ CMD_BEAUTIFY,						HOTKEYF_CONTROL,					_T('B')		,0,0 },
 		{ CMD_LINEUPEXTEND,					HOTKEYF_SHIFT,						VK_UP		,0,0 },
 		{ CMD_LINEUP,						0,									VK_UP		,0,0 },
 		{ CMD_LINEOPENABOVE,				HOTKEYF_CONTROL | HOTKEYF_SHIFT,	_T('N')		,0,0 },
