@@ -374,8 +374,40 @@ int CMapTxtArch::ReadTile(CVFile &vfFile)
 
 bool CMapTxtArch::WriteObject(CVFile &vfFile)
 {
+	/*We retrieve all sprite contexts for the current group and
+	  store the backgrounds as tiles and the sprites and entities
+	  as sprites.
+	  All coordinates are based on screen coordinates, interval: 0,0 -> 640,480
+	  */
+	/*
+	spritecount
+	loop
+		x
+		y
+		spritename
+		entityid
+	endloop
+	tilecount
+	loop
+		left
+		top
+		bottom
+		right
+		spritename
+	endloop
+	*/
 	//We gotta count all the sprites in the current screen
 	//m_pLayer->GetParent()->GetSize(szSize);
+	/*CRect Rect;
+	CMapGroup MapGroup = static_cast<CMapGroup*>(m_pLayer->GetParent());
+
+	for(int i=0; i < Rect.Width(); i++)
+	{
+		for(int j=0; j < Rect.Height(); i++)
+		{
+		
+		}
+	}*/
 	/*//Save a screen...
 	int i=0;
 	CPoint Point(0,0);
@@ -521,7 +553,7 @@ int CALLBACK WriteScreens(LPVOID mapgroup, LPARAM lParam)
 	CVFile &vfFile = *(static_cast<CVFile*>((LPVOID)lParam));
 	for(int i=0; i < Rect.Width(); i++)
 	{
-		for(int j=0; i < Rect.Height(); j++)
+		for(int j=0; j < Rect.Height(); j++)
 		{
 			WriteLongToFile(Rect.left+i, vfFile);
 			WriteLongToFile(Rect.top+j, vfFile);
