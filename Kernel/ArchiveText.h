@@ -22,6 +22,9 @@
 	\author		Kronuz
 	\version	1.0
 	\date		April 28, 2003
+				July 11, 2005 + Implemented CWorldTxtArch::Save(CVFile);
+							  * Added a commented version of the temporary save function
+							  for the QD in CMapTxtArch::Save(CVFile);
 
 	ArchiveText.h provides the interfaces for reading and writing objects
 	in text mode. Every object loaded or saved through this
