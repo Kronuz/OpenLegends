@@ -374,142 +374,137 @@ int CMapTxtArch::ReadTile(CVFile &vfFile)
 
 bool CMapTxtArch::WriteObject(CVFile &vfFile)
 {
-	/*We retrieve all sprite contexts for the current group and
-	  store the backgrounds as tiles and the sprites and entities
-	  as sprites.
-	  All coordinates are based on screen coordinates, interval: 0,0 -> 640,480
-	  */
-	/*
-	spritecount
-	loop
-		x
-		y
-		spritename
-		entityid
-	endloop
-	tilecount
-	loop
-		left
-		top
-		bottom
-		right
-		spritename
-	endloop
-	*/
-	//We gotta count all the sprites in the current screen
-	//m_pLayer->GetParent()->GetSize(szSize);
-	/*CRect Rect;
-	CMapGroup MapGroup = static_cast<CMapGroup*>(m_pLayer->GetParent());
+	//Current mapgroup
+	CMapGroup *MapGroup = static_cast<CMapGroup*>(m_pLayer->GetParent());
 
-	for(int i=0; i < Rect.Width(); i++)
-	{
-		for(int j=0; j < Rect.Height(); i++)
-		{
-		
-		}
-	}*/
-	/*//Save a screen...
-	int i=0;
-	CPoint Point(0,0);
-	CSize szSize(Point);
-	int nSprites = 0;
-	int nTiles = 0;
-	
-	//Count all the sprites and tiles in the group
-	do{
-		//Retrieve sprite context
-		CSpriteContext *pSpriteContext = static_cast<CSpriteContext *>(m_pLayer->GetChild(i));
-		if(pSpriteContext == NULL)
-			break;
-		if(pSpriteContext->isTiled())
-			nTiles++;
-		else
-			nSprites++;
-		// Debug stuff, prints all the sprites to the console output. =p
-		//	CDrawableObject *pDrawableObject = pSpriteContext->GetDrawableObj();
-		//	pSpriteContext->GetPosition(Point);
-		//	CONSOLE_PRINTF("Reading sprite: '%s' with entityID: %s. at position '%d, %d'\n", pDrawableObject->GetName(), pSpriteContext->GetName(), Point.x, Point.y);
+	//Folder setup
+	CBString sFile;
+	CBString CurrentFile = MapGroup->GetWorld()->GetFile().GetFileTitle();
+	CBString sPath = "questdata\\" + CurrentFile + "\\screens\\"; // relative by default
 
-		i++;
-	}while(1);
-	i=0;
-	
+	//For helper macros
 	CHAR buff[100];
-	//Store the sprite count in the group
-	itoa(nSprites, buff, 10);
-	WriteLine(vfFile);
 	
-	//Save all sprites in the group
-	do{
-		//Retrieve Sprite Context
-		CSpriteContext *pSpriteContext = static_cast<CSpriteContext *>(m_pLayer->GetChild(i));
-		
-		if(pSpriteContext == NULL)
-			break;
-		if(pSpriteContext->isTiled())
-		{	i++;
-			continue;
-		}
-		//Retrieve "what pSpriteContext draws"
-		CDrawableObject *pDrawableObject = pSpriteContext->GetDrawableObj();
-		//Retrieve pSpriteContext position
-		pSpriteContext->GetPosition(Point);
-		
-		//Store positions
-		ltoa(Point.x, buff, 10);
-		WriteLine(vfFile);
-
-		ltoa(Point.y, buff, 10);
-		WriteLine(vfFile);
-
-		strcpy(buff, pDrawableObject->GetName());	//Append name in buffer
-		WriteLine(vfFile);
-		strcpy(buff, pSpriteContext->GetName());	//Append entityID in buffer
-		WriteLine(vfFile);
-
-		i++;
-	}while(1);	//This loop will go over all sprites until pSpriteContext is NULL.
-	i=0;
-	//Store the tile count in the group
-	itoa(nTiles, buff, 10);
-	WriteLine(vfFile);
-
-	//Store the tiles in the group
-	do{
-		//Retrieve Sprite Context
-		CSpriteContext *pSpriteContext = static_cast<CSpriteContext *>(m_pLayer->GetChild(i));
-		
-		if(pSpriteContext == NULL)
-			break;
-		if(!pSpriteContext->isTiled())
-		{	i++;
-			continue;
-		}
-		//Retrieve "what pSpriteContext draws"
-		CDrawableObject *pDrawableObject = pSpriteContext->GetDrawableObj();
-		//Retrieve pSpriteContext position
-		pSpriteContext->GetPosition(Point);
-		//Retrieve tile size
-		pSpriteContext->GetSize(szSize);
-
-		//Store positions
-		//Store positions
-		ltoa(Point.x, buff, 10);
-		WriteLine(vfFile);
-		ltoa(Point.y, buff, 10);
-		WriteLine(vfFile);
-		ltoa(Point.x+szSize.cx, buff, 10);
-		WriteLine(vfFile);
-		ltoa(Point.y+szSize.cy, buff, 10);
-		WriteLine(vfFile);
-		strcpy(buff, pDrawableObject->GetName());	//Append name in buffer
-		WriteLine(vfFile);
-		i++;
+	//Stores sprite locations
+	CPoint Point;
 	
-	}while(1);
+	//Stores current group borders
+	CRect Rect;
+	MapGroup->GetRect(Rect);
 
-	return true;*/
-	return false;
+	//Size of a screen
+	CRect ScreenRect(0, 0, 640, 480);	
+
+	for(int i=0; i < Rect.Width(); i++){
+		for(int j=0; j < Rect.Height(); i++){
+			sFile.Format("%d-%d.lnd", Rect.left + i, Rect.top + j);
+			vfFile.SetFilePath(sPath + sFile);
+			vfFile.Open("wb+");
+
+			//Write the CMapGroup data for the current screen
+
+			int nSprites = 0;
+			int nTiles = 0;
+			int k = 0;
+
+			while(true){
+				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
+				if(!pSpriteContext) break;
+				
+				pSpriteContext->GetPosition(Point);
+				
+				//We need to check if the sprite is inside the rectangle we're working with currently
+				Point.Offset(-(i*640),-(j*480));
+				if(!ScreenRect.PtInRect(Point)){k++; continue;}
+
+				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
+
+				//Is it placed on the background sublayer?
+				if(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1)) nTiles++;
+				else nSprites++;
+				
+				k++;
+			}
+			if(k == 0) continue;	//No sprites were loaded, the screen doesn't exist or has no data, in which case it's useless.
+				
+			//Write the sprite count to the file.
+			WriteLongToFile(nSprites, vfFile);
+			
+			k=0;
+			while(true){
+				CPoint Point;
+				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
+				if(!pSpriteContext) break;
+				
+				pSpriteContext->GetPosition(Point);
+				
+				//We need to check if the sprite is inside the rectangle we're working with currently
+				Point.Offset(-(i*640),-(j*480));
+				if(!ScreenRect.PtInRect(Point)){k++; continue;}
+
+				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
+
+				//Is it placed on the background sublayer?
+				if(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1)) {k++; continue;}
+				
+				//x
+				WriteLongToFile((long)Point.x, vfFile);
+				//y
+				WriteLongToFile((long)Point.y, vfFile);
+				//spritename
+				strcpy(buff, pSpriteContext->GetName());
+				WriteStringToFile(vfFile);
+				//entityid
+				strcpy(buff, pSprite->GetName());
+				WriteStringToFile(vfFile);
+
+				k++;
+			}
+
+			//Write the tile count to the file.
+			WriteLongToFile(nTiles, vfFile);
+			
+			k=0;
+			while(true){
+				CPoint Point;
+				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
+				if(!pSpriteContext) break;
+				
+				pSpriteContext->GetPosition(Point);
+				
+				//We need to check if the sprite is inside the rectangle we're working with currently
+				Point.Offset(-(i*640),-(j*480));
+				if(!ScreenRect.PtInRect(Point)){k++; continue;}
+
+				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
+
+				//Is it placed on the background sublayer?
+				if(!(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1))){k++; continue;}
+				
+				CRect Rect;
+				pSpriteContext->GetRect(Rect);
+				Rect.OffsetRect(-(i*640),-(j*480));
+
+				//left
+				WriteLongToFile((long)Rect.left, vfFile);
+				//top
+				WriteLongToFile((long)Rect.top, vfFile);
+				//right
+				WriteLongToFile((long)Rect.right, vfFile);
+				//bottom
+				WriteLongToFile((long)Rect.bottom, vfFile);
+				//spritename
+				strcpy(buff, pSprite->GetName());
+				WriteStringToFile(vfFile);
+
+				k++;
+			}
+
+			vfFile.Close();
+		}
+	}
+	
+	return true;
 }
 
 bool CWorldTxtArch::ReadObject(CVFile &vfFile)
