@@ -374,9 +374,111 @@ int CMapTxtArch::ReadTile(CVFile &vfFile)
 
 bool CMapTxtArch::WriteObject(CVFile &vfFile)
 {
+	//We gotta count all the sprites in the current screen
+	//m_pLayer->GetParent()->GetSize(szSize);
+	/*//Save a screen...
+	int i=0;
+	CPoint Point(0,0);
+	CSize szSize(Point);
+	int nSprites = 0;
+	int nTiles = 0;
+	
+	//Count all the sprites and tiles in the group
+	do{
+		//Retrieve sprite context
+		CSpriteContext *pSpriteContext = static_cast<CSpriteContext *>(m_pLayer->GetChild(i));
+		if(pSpriteContext == NULL)
+			break;
+		if(pSpriteContext->isTiled())
+			nTiles++;
+		else
+			nSprites++;
+		// Debug stuff, prints all the sprites to the console output. =p
+		//	CDrawableObject *pDrawableObject = pSpriteContext->GetDrawableObj();
+		//	pSpriteContext->GetPosition(Point);
+		//	CONSOLE_PRINTF("Reading sprite: '%s' with entityID: %s. at position '%d, %d'\n", pDrawableObject->GetName(), pSpriteContext->GetName(), Point.x, Point.y);
+
+		i++;
+	}while(1);
+	i=0;
+	
+	CHAR buff[100];
+	//Store the sprite count in the group
+	itoa(nSprites, buff, 10);
+	WriteLine(vfFile);
+	
+	//Save all sprites in the group
+	do{
+		//Retrieve Sprite Context
+		CSpriteContext *pSpriteContext = static_cast<CSpriteContext *>(m_pLayer->GetChild(i));
+		
+		if(pSpriteContext == NULL)
+			break;
+		if(pSpriteContext->isTiled())
+		{	i++;
+			continue;
+		}
+		//Retrieve "what pSpriteContext draws"
+		CDrawableObject *pDrawableObject = pSpriteContext->GetDrawableObj();
+		//Retrieve pSpriteContext position
+		pSpriteContext->GetPosition(Point);
+		
+		//Store positions
+		ltoa(Point.x, buff, 10);
+		WriteLine(vfFile);
+
+		ltoa(Point.y, buff, 10);
+		WriteLine(vfFile);
+
+		strcpy(buff, pDrawableObject->GetName());	//Append name in buffer
+		WriteLine(vfFile);
+		strcpy(buff, pSpriteContext->GetName());	//Append entityID in buffer
+		WriteLine(vfFile);
+
+		i++;
+	}while(1);	//This loop will go over all sprites until pSpriteContext is NULL.
+	i=0;
+	//Store the tile count in the group
+	itoa(nTiles, buff, 10);
+	WriteLine(vfFile);
+
+	//Store the tiles in the group
+	do{
+		//Retrieve Sprite Context
+		CSpriteContext *pSpriteContext = static_cast<CSpriteContext *>(m_pLayer->GetChild(i));
+		
+		if(pSpriteContext == NULL)
+			break;
+		if(!pSpriteContext->isTiled())
+		{	i++;
+			continue;
+		}
+		//Retrieve "what pSpriteContext draws"
+		CDrawableObject *pDrawableObject = pSpriteContext->GetDrawableObj();
+		//Retrieve pSpriteContext position
+		pSpriteContext->GetPosition(Point);
+		//Retrieve tile size
+		pSpriteContext->GetSize(szSize);
+
+		//Store positions
+		//Store positions
+		ltoa(Point.x, buff, 10);
+		WriteLine(vfFile);
+		ltoa(Point.y, buff, 10);
+		WriteLine(vfFile);
+		ltoa(Point.x+szSize.cx, buff, 10);
+		WriteLine(vfFile);
+		ltoa(Point.y+szSize.cy, buff, 10);
+		WriteLine(vfFile);
+		strcpy(buff, pDrawableObject->GetName());	//Append name in buffer
+		WriteLine(vfFile);
+		i++;
+	
+	}while(1);
+
+	return true;*/
 	return false;
 }
-
 
 bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 {
@@ -402,9 +504,101 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 	vfFile.Close();
 	return bRet;
 }
+
+int CALLBACK CountScreens(LPVOID mapgroup, LPARAM lParam)
+{
+	CSize Size;
+	static_cast<CMapGroup*>(mapgroup)->GetSize(Size);
+	*((int*)lParam) += Size.cx * Size.cy;
+
+	return 1;
+}
+
+int CALLBACK WriteScreens(LPVOID mapgroup, LPARAM lParam)
+{
+	CRect Rect;
+	static_cast<CMapGroup*>(mapgroup)->GetMapGroupRect(Rect);
+	CVFile &vfFile = *(static_cast<CVFile*>((LPVOID)lParam));
+	for(int i=0; i < Rect.Width(); i++)
+	{
+		for(int j=0; i < Rect.Height(); j++)
+		{
+			WriteLongToFile(Rect.left+i, vfFile);
+			WriteLongToFile(Rect.top+j, vfFile);
+		}
+	}
+	return 1;
+}
+
+struct GroupID{
+	long ID;
+	CVFile vfFile;
+};
+
+int CALLBACK WriteGroups(LPVOID mapgroup, LPARAM lParam)
+{
+	CRect Rect;
+	static_cast<CMapGroup*>(mapgroup)->GetMapGroupRect(Rect);
+	GroupID &TempID = *(static_cast<GroupID*>((LPVOID)lParam));
+	
+	CHAR buff[100];
+	WriteLongToFile(TempID.ID, TempID.vfFile);
+	WriteLongToFile(Rect.left*128, TempID.vfFile);
+	WriteLongToFile(Rect.top*96, TempID.vfFile);
+	WriteLongToFile(Rect.right*128, TempID.vfFile);
+	WriteLongToFile(Rect.bottom*96, TempID.vfFile);
+	WriteLongToFile(0, TempID.vfFile);
+
+	static_cast<CMapGroup*>(mapgroup)->GetMusic()->GetSoundFileName(buff, sizeof(buff));
+	WriteStringToFile(TempID.vfFile);
+
+	return 1;
+}
+
 bool CWorldTxtArch::WriteObject(CVFile &vfFile)
 {
-	return false;
+	if(!vfFile.Open("wb+")) return false;
+	if(CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle(), NULL))
+	{
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\screens\\", NULL))
+			return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\", NULL))
+			return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\group\\", NULL))
+			return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\main\\", NULL))
+			return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\screen\\", NULL))
+			return false;
+		CONSOLE_PRINTF("Folders created, saving quest...\n");
+	}
+	else
+		CONSOLE_PRINTF("Saving quest...\n");
+	
+	CHAR buff[100];	//Allows usage of the macro functions.
+	strcpy(buff, "Open Zelda Quest Designer Map File");
+	WriteStringToFile(vfFile);
+	
+	int nScreens = 0;
+	int nGroups = m_pWorld->ForEachMapGroup(CountScreens, (LPARAM)&nScreens);
+
+	WriteLongToFile(nScreens, vfFile);	//Write the number of screens in the quest.
+	m_pWorld->ForEachMapGroup(WriteScreens, (LPARAM)&vfFile);
+	
+	GroupID TempID;
+	TempID.ID = 0;
+	TempID.vfFile = vfFile;
+	WriteLongToFile(nGroups, vfFile);
+	m_pWorld->ForEachMapGroup(WriteGroups, (LPARAM)&TempID);
+
+	WriteLongToFile(/*START LOCATION X*/0, vfFile); //FIXME
+	WriteLongToFile(/*START LOCATION Y*/0, vfFile); //FIXME
+	strcpy(buff, "Legacy Saved Quest");	//Quest name for quests saved in compatibility mode.
+	WriteStringToFile(vfFile);
+	WriteLongToFile(/*FINAL VERSION*/1, vfFile);
+	WriteLongToFile(/*INCLUDE SOUND*/1, vfFile);
+
+	return true;
 }
 
 bool CWorldTxtArch::ReadMaps(CVFile &vfFile)
@@ -542,3 +736,4 @@ bool CWorldTxtArch::ReadProperties(CVFile &vfFile)
 
 	return true;
 }
+
