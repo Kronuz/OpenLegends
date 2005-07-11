@@ -120,6 +120,7 @@ public:
 	\author		Kronuz
 	\version	1.0
 	\date		May 31, 2003
+				July 11, 2005 + Added CWorld* GetWorld() to CMapGroup.
 
 	MapGroup children are Maps.
 */
@@ -143,6 +144,8 @@ public:
 	void SetWorld(const CWorld *pWorld) {
 		m_pWorld = pWorld;
 	}
+
+	const CWorld* GetWorld() const { return m_pWorld; }
 
 	virtual bool isFlagged();
 	virtual void Flag(bool bFlag = true);
