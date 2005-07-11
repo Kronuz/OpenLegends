@@ -79,14 +79,13 @@ struct SUndefSprite {
 	sprites, sounds, scripts, etc. for the project.
 */
 class CGameManager :
-	public IGame
+	public IGame,
+	public CDocumentObject	// Projects can be loaded from a file.
 {
 	static CGameManager *_instance;
 	CDebugScript *m_pDummyDebug;
 	CBString m_sProjectName;
 	CSoundManager *m_pSoundManager;
-
-	bool m_bLoaded;
 
 	static float ms_fDelta;
 	static DWORD ms_dwLastTick;
@@ -116,12 +115,14 @@ protected:
 
 public:
 	static int CALLBACK LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam);
+	void CleanUndefs();
+
+	// CDocumentObject override:
+	bool Clean(bool bForce = true); //!< Frees all allocated memory and cleans the object.
 
 	// Construction/Destruction:
 	CGameManager();
 	~CGameManager();
-
-	void Clean(); //!< Frees all allocated memory and cleans the object.
 
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
@@ -154,6 +155,7 @@ public:
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
 
+	void SetProjectName(LPCSTR szName);
 	LPCSTR GetProjectName() const;
 	int CountScripts() const;
 	const IScript* GetScript(int idx) const;
@@ -203,22 +205,17 @@ public:
 	bool isDebugging();
 	float UpdateFPS(float fpsLock = -1.0f);
 
-	// Loading/Saving methods:
-	bool Load(CVFile &vfFile); //!< Loads the project from a file
-	bool Save(CVFile &vfFile); //!< Saves the project to a file
-	bool Save() { return false; } //!< Saves the project to the same file it was loaded from
-	bool Close(bool bForce); //!< Closes the project
+	// World Loading/Saving methods:
+	bool LoadProject(LPCSTR szFile) { return Load(CVFile(szFile, true)); }
+	bool SaveProject(LPCSTR szFile) { return Save(szFile); }
+	bool SaveProject() { return Save(); }
+	bool CloseProject(bool bForce) { return Close(bForce); }
 
-	bool Load(LPCSTR szFile) { return Load(CVFile(szFile, true)); }
-	bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
-
-	bool LoadWorld(CVFile &vfFile) { return m_World.Load(vfFile); }
-	bool SaveWorld(CVFile &vfFile) { return m_World.Save(vfFile); }
-	bool SaveWorld() { return false; }
-	bool CloseWorld(bool bForce);
-
-	bool LoadWorld(LPCSTR szFile) { return LoadWorld(CVFile(szFile)); }
-	bool SaveWorld(LPCSTR szFile) { return SaveWorld(CVFile(szFile)); }
+	// World Loading/Saving methods:
+	bool LoadWorld(LPCSTR szFile) { return m_World.Load(szFile); }
+	bool SaveWorld(LPCSTR szFile) { return m_World.Save(szFile); }
+	bool SaveWorld() { return m_World.Save(); }
+	bool CloseWorld(bool bForce) { return m_World.Close(bForce); }
 
 	CSpriteSelection* CreateSpriteSelection(CDrawableContext **ppDrawableContext_);
 	void DeleteSpriteSelection(CSpriteSelection *pSelection);

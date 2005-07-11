@@ -246,7 +246,27 @@ bool CSpriteSheetTxtArch::WriteObject(CVFile &vfFile)
 
 bool CProjectTxtArch::ReadObject(CVFile &vfFile)
 {
-	return false;
+	// this is to print how long did it take to load
+	DWORD dwInitTicks = GetTickCount();
+
+	CBString sProjectName = vfFile.GetFileDesc();
+	if(sProjectName == "") sProjectName = "Untitled Project";
+
+	CONSOLE_PRINTF("Loading project: '%s' at %s...\n", sProjectName, vfFile.GetPath());
+
+    ASSERT(g_sHomeDir != "");
+	CVFile vfn = g_sHomeDir + "Sprite Sheets\\*.spt";
+	if(vfn.ForEachFile(CGameManager::LoadSheet, (LPARAM)m_pGameManager) == 0) {
+		CONSOLE_PRINTF("No sprites found, probably wrong directory. Nothing has been loaded!\n");
+		return false;
+	}
+
+	m_pGameManager->SetProjectName(sProjectName);
+	m_pGameManager->CleanUndefs(); // Clean undefined sprites
+
+	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+
+	return true;
 }
 bool CProjectTxtArch::WriteObject(CVFile &vfFile)
 {
@@ -395,8 +415,8 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 	//Size of a screen
 	CRect ScreenRect(0, 0, 640, 480);	
 
-	for(int i=0; i < Rect.Width(); i++){
-		for(int j=0; j < Rect.Height(); j++){
+	for(int i=0; i < Rect.Width(); i++) {
+		for(int j=0; j < Rect.Height(); i++) {
 			sFile.Format("%d-%d.lnd", Rect.left + i, Rect.top + j);
 			vfFile.SetFilePath(sPath + sFile);
 			vfFile.Delete();
@@ -408,7 +428,7 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 			int nTiles = 0;
 			int k = 0;
 
-			while(true){
+			while(true) {
 				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
 				if(!pSpriteContext) break;
 				
@@ -416,7 +436,7 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 				
 				//We need to check if the sprite is inside the rectangle we're working with currently
 				Point.Offset(-(i*640),-(j*480));
-				if(!ScreenRect.PtInRect(Point)){k++; continue;}
+				if(!ScreenRect.PtInRect(Point)) { k++; continue; }
 
 				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
 
@@ -432,7 +452,7 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 			WriteLongToFile(nSprites, vfFile);
 			
 			k=0;
-			while(true){
+			while(true) {
 				CPoint Point;
 				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
 				if(!pSpriteContext) break;
@@ -441,7 +461,7 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 				
 				//We need to check if the sprite is inside the rectangle we're working with currently
 				Point.Offset(-(i*640),-(j*480));
-				if(!ScreenRect.PtInRect(Point)){k++; continue;}
+				if(!ScreenRect.PtInRect(Point)) { k++; continue; }
 
 				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
 
@@ -452,11 +472,11 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 				pSpriteContext->GetSize(szContext);
 				CSize szSprite;
 				pSprite->GetSize(szSprite);
-				if(szSprite == szContext){
+				if(szSprite == szContext) {
 					//x
-					WriteLongToFile((long)Point.x, vfFile);
+					WriteLongToFile(Point.x, vfFile);
 					//y
-					WriteLongToFile((long)Point.y, vfFile);
+					WriteLongToFile(Point.y, vfFile);
 					//spritename
 					strcpy(buff, pSprite->GetName());
 					WriteStringToFile(vfFile);
@@ -473,12 +493,12 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 				szCount.cx /= szSprite.cx;
 				szCount.cy /= szSprite.cy;
 				int m=0;
-				for(int l=0; l < szCount.cx; l++){
+				for(int l=0; l < szCount.cx; l++) {
 					if((Point.x+l*szSprite.cx) > 640 || Point.y+m*szSprite.cy > 480) break;
-					for(m=0; m < szCount.cy; m++){
+					for(m=0; m < szCount.cy; m++) {
 						if(Point.y+m*szSprite.cy > 480) break;
-						WriteLongToFile((long)(Point.x+l*szSprite.cx), vfFile);
-						WriteLongToFile((long)(Point.y+m*szSprite.cy), vfFile);
+						WriteLongToFile(Point.x+l*szSprite.cx, vfFile);
+						WriteLongToFile(Point.y+m*szSprite.cy, vfFile);
 						strcpy(buff, pSprite->GetName());
 						WriteStringToFile(vfFile);
 						strcpy(buff, " ");	//A resized sprite can't be an entity.
@@ -492,7 +512,7 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 			WriteLongToFile(nTiles, vfFile);
 			
 			k=0;
-			while(true){
+			while(true) {
 				CPoint Point;
 				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
 				if(!pSpriteContext) break;
@@ -501,25 +521,25 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 				
 				//We need to check if the sprite is inside the rectangle we're working with currently
 				Point.Offset(-(i*640),-(j*480));
-				if(!ScreenRect.PtInRect(Point)){k++; continue;}
+				if(!ScreenRect.PtInRect(Point)) { k++; continue; }
 
 				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
 
 				//Is it placed on the background sublayer?
-				if(!(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1))){k++; continue;}
+				if(!(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1))) { k++; continue; }
 				
 				CRect Rect;
 				pSpriteContext->GetRect(Rect);
 				Rect.OffsetRect(-(i*640),-(j*480));
 
 				//left
-				WriteLongToFile((long)Rect.left, vfFile);
+				WriteLongToFile(Rect.left, vfFile);
 				//top
-				WriteLongToFile((long)Rect.top, vfFile);
+				WriteLongToFile(Rect.top, vfFile);
 				//right
-				WriteLongToFile((long)Rect.right, vfFile);
+				WriteLongToFile(Rect.right, vfFile);
 				//bottom
-				WriteLongToFile((long)Rect.bottom, vfFile);
+				WriteLongToFile(Rect.bottom, vfFile);
 				//spritename
 				strcpy(buff, pSprite->GetName());
 				WriteStringToFile(vfFile);
@@ -532,6 +552,45 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 	}
 	
 	return true;
+}
+
+bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
+{
+	// For now, there is only one layer availible in the worlds the default layer:
+	CLayer *pLayer = static_cast<CLayer *>(m_pMapGroup->GetChild(DEFAULT_LAYER));
+	ASSERT(pLayer);
+	
+	CVFile vfFile2;
+	CBString sFile;
+
+	const CWorld *pWorld = m_pMapGroup->GetWorld();
+	CBString sPath = "questdata\\" + pWorld->GetFile().GetFileTitle(); // relative by default
+
+	CRect MapGroupRect;
+	m_pMapGroup->GetMapGroupRect(MapGroupRect);
+	// for each map in the group, we load it in the ground layer:
+	for(int j=0; j<MapGroupRect.Height(); j++) {
+		for(int i=0; i<MapGroupRect.Width(); i++) {
+			sFile.Format("\\screens\\%d-%d.lnd", MapGroupRect.left + i, MapGroupRect.top + j);
+			vfFile2.SetFilePath(sPath + sFile);
+
+			pLayer->SetLoadPoint(pWorld->m_szMapSize.cx*i, pWorld->m_szMapSize.cy*j);
+			if(!pLayer->Load(vfFile2)) {
+				CONSOLE_PRINTF("Map error in '%s': Couldn't find the screen!\n", vfFile2.GetFileName());
+			}
+			pLayer->LoadMore(); // more screens to load...
+		}
+	}
+	pLayer->Loaded(); // se the layer as a fully loaded layer (no more screens to load)
+
+	m_pMapGroup->SettleOriginalBitmap();
+
+	return true;
+}
+
+bool CMapGroupTxtArch::WriteObject(CVFile &vfFile)
+{
+	return false;
 }
 
 bool CWorldTxtArch::ReadObject(CVFile &vfFile)
@@ -671,6 +730,7 @@ bool CWorldTxtArch::ReadMaps(CVFile &vfFile)
 	}
 	return true;
 }
+
 bool CWorldTxtArch::ReadMapGroups(CVFile &vfFile)
 {
 	CHAR buff[100];

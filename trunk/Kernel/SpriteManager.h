@@ -409,6 +409,9 @@ public:
 
 	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
 
+	// CDocumentObject override:
+	bool Clean(bool bForce = true) { return true; }
+
 	// Interface:
 	virtual LPCSTR GetFilePath(LPSTR szPath, size_t buffsize) const
 	{

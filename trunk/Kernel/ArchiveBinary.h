@@ -21,7 +21,10 @@
 	\brief		Archive binary mode operations classes.
 	\author		Kronuz
 	\version	1.0
-	\date		April 28, 2003
+	\date		April 28, 2003:
+						* Initial release.
+				July 11, 2005 by Kronuz:
+						+ Added the CMapGroupBinArch class
 
 	ArchiveText.h provides the interfaces for reading and writing objects
 	in text mode. Every object loaded or saved through this
@@ -38,6 +41,7 @@
 #include <IConsole.h>
 
 class CLayer;
+class CMapGroup;
 class CGameManager;
 class CSpriteSheet;
 class CWorld;
@@ -61,6 +65,19 @@ public:
 	CProjectBinArch(CGameManager *pGameManager) : m_pGameManager(pGameManager) {}
 private:
 	CGameManager *m_pGameManager;
+public:
+	bool ReadObject(CVFile &vfFile);
+	bool WriteObject(CVFile &vfFile);
+};
+
+class CMapGroupBinArch :
+	public IArchive
+{
+public:
+	CMapGroupBinArch(CMapGroup *pMapGroup) : m_pMapGroup(pMapGroup) {}
+private:
+	int m_nLines;
+	CMapGroup *m_pMapGroup;
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);

@@ -38,6 +38,7 @@ CVFile::CVFile() :
 	m_File(NULL), 
 	m_pBuffer(NULL),
 	m_bOpenFile(false), 
+	m_bEmpty(true), 
 	m_bRelative(false), 
 	m_bVirtual(false),
 	m_bRawMode(false),

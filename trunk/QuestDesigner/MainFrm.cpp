@@ -667,7 +667,7 @@ LRESULT CMainFrame::OnProjectOpen()
 	::SendMessage(m_GameProject, WM_SETREDRAW, FALSE, 0);
 	g_sHomeDir = taux;
 
-	if(!m_pOLKernel->Load(g_sHomeDir)) {
+	if(!m_pOLKernel->LoadProject(g_sHomeDir)) {
 		return 0;
 	}
 	::SendMessage(m_GameProject, WM_SETREDRAW, TRUE, 0);
@@ -1031,17 +1031,17 @@ void CMainFrame::StatusBar(LPCSTR szMessage, UINT Icon)
 
 int CMainFrame::Close()
 {
-	if(!m_pOLKernel->Close()) {
+	if(!m_pOLKernel->CloseProject()) {
 		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
-			if(!m_pOLKernel->Save()) {
+			if(!m_pOLKernel->SaveProject()) {
 				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
 			return 0;
 		}
-		m_pOLKernel->Close(true);
+		m_pOLKernel->CloseProject(true);
 	} 
 	return 1;
 }

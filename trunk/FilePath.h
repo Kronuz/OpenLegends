@@ -116,6 +116,7 @@ class CVFile
 	mutable bool m_bChanges;
 	mutable bool m_bTempFile;
 
+	bool m_bEmpty;
 	bool m_bRelative;
 	bool m_bVirtual;
 
@@ -175,6 +176,7 @@ public:
 	void SetFileTitle(LPCSTR szNewName);
 	void SetFileExt(LPCSTR szNewExt);
 
+	bool IsEmpty() const { return m_bEmpty; }
 	bool IsDirectory() const;
 	bool FileExists() const;
 
@@ -344,7 +346,7 @@ inline void CVFile::SetFileDesc(LPCSTR szNewDesc)
 
 inline void CVFile::SetFilePath(LPCSTR szNewName, bool bGlobalize) 
 {
-	ASSERT(szNewName);
+	m_bEmpty = !(szNewName && *szNewName);
 	if(!*szNewName) return;
 	
 	// First we close the file, in case it's open:

@@ -272,6 +272,7 @@ bool CEntity::Run(const CDrawableContext &context, RUNACTION action)
 // Srite Sheets
 CSpriteSheet::CSpriteSheet(CGameManager *pGameManager) :
 	CNamedObj(""),
+	CDocumentObject(),
 	m_pGameManager(pGameManager),
 	m_pTexture(NULL),
 	m_dwLastTry(0)
