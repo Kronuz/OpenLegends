@@ -390,16 +390,17 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 	
 	//Stores current group borders
 	CRect Rect;
-	MapGroup->GetRect(Rect);
+	MapGroup->GetMapGroupRect(Rect);
 
 	//Size of a screen
 	CRect ScreenRect(0, 0, 640, 480);	
 
 	for(int i=0; i < Rect.Width(); i++){
-		for(int j=0; j < Rect.Height(); i++){
+		for(int j=0; j < Rect.Height(); j++){
 			sFile.Format("%d-%d.lnd", Rect.left + i, Rect.top + j);
 			vfFile.SetFilePath(sPath + sFile);
-			vfFile.Open("wb+");
+			vfFile.Delete();
+			vfFile.Open("wb");
 
 			//Write the CMapGroup data for the current screen
 
@@ -447,17 +448,43 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 				//Is it placed on the background sublayer?
 				if(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1)) {k++; continue;}
 				
-				//x
-				WriteLongToFile((long)Point.x, vfFile);
-				//y
-				WriteLongToFile((long)Point.y, vfFile);
-				//spritename
-				strcpy(buff, pSpriteContext->GetName());
-				WriteStringToFile(vfFile);
-				//entityid
-				strcpy(buff, pSprite->GetName());
-				WriteStringToFile(vfFile);
-
+				CSize szContext;
+				pSpriteContext->GetSize(szContext);
+				CSize szSprite;
+				pSprite->GetSize(szSprite);
+				if(szSprite == szContext){
+					//x
+					WriteLongToFile((long)Point.x, vfFile);
+					//y
+					WriteLongToFile((long)Point.y, vfFile);
+					//spritename
+					strcpy(buff, pSprite->GetName());
+					WriteStringToFile(vfFile);
+					//entityid
+					strcpy(buff, pSpriteContext->GetName());
+					WriteStringToFile(vfFile);
+					k++;
+					continue;
+				}
+				//FIXME UNTESTED:
+				//The sprite has been resized.
+				CSize szCount;
+				szCount = szContext;
+				szCount.cx /= szSprite.cx;
+				szCount.cy /= szSprite.cy;
+				int m=0;
+				for(int l=0; l < szCount.cx; l++){
+					if((Point.x+l*szSprite.cx) > 640 || Point.y+m*szSprite.cy > 480) break;
+					for(m=0; m < szCount.cy; m++){
+						if(Point.y+m*szSprite.cy > 480) break;
+						WriteLongToFile((long)(Point.x+l*szSprite.cx), vfFile);
+						WriteLongToFile((long)(Point.y+m*szSprite.cy), vfFile);
+						strcpy(buff, pSprite->GetName());
+						WriteStringToFile(vfFile);
+						strcpy(buff, " ");	//A resized sprite can't be an entity.
+						WriteStringToFile(vfFile);
+					}
+				}
 				k++;
 			}
 
@@ -582,9 +609,10 @@ int CALLBACK WriteGroups(LPVOID mapgroup, LPARAM lParam)
 	return 1;
 }
 
-bool CWorldTxtArch::WriteObject(CVFile &vfFile)
+bool CWorldTxtArch::WriteObject(CVFile &vfFile)	//TODO: test this file.
 {
-	if(!vfFile.Open("wb+")) return false;
+	vfFile.Delete();
+	if(!vfFile.Open("wb")) return false;
 	if(CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle(), NULL))
 	{
 		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\screens\\", NULL))
