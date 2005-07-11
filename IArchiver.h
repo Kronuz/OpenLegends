@@ -73,9 +73,12 @@ interface CDocumentObject
 		\sa Save()
 	*/
 	virtual bool Load(CVFile &vfFile) {
+		bool bRet = true;
 		ASSERT(m_ArchiveIn);
+		if(m_bLoaded && !vfFile.IsEmpty()) return false;
 		m_fnFile = vfFile;
-		return m_ArchiveIn->ReadObject(vfFile);
+		if((bRet=m_ArchiveIn->ReadObject(vfFile))) m_bLoaded = true;
+		return bRet;
 	}
 
 	/*! \brief Saves the object to the IArchive.
@@ -86,6 +89,7 @@ interface CDocumentObject
 	virtual bool Save(CVFile &vfFile) {
 		ASSERT(m_ArchiveOut);
 		m_fnFile = vfFile;
+		if(!m_bLoaded) return true;
 		return m_ArchiveOut->WriteObject(vfFile);
 	}
 	/*! \brief Saves the object to the IArchive.
@@ -97,21 +101,31 @@ interface CDocumentObject
 	*/
 	virtual bool Save() {
 		ASSERT(m_ArchiveOut);
+		if(!m_bLoaded) return true;
 		return m_ArchiveOut->WriteObject(m_fnFile);
 	}
 
 	virtual bool Close(bool bForce = false) {
-		if(bForce) return true;
-		return !IsModified();
+		bool bRet = true;
+		if(!m_bLoaded) return true;
+		if(IsModified() && !bForce) return false;
+		if((bRet = Clean())) m_bLoaded = false;
+		return bRet;
 	}
 
+	virtual bool Load(LPCSTR szFile = "") { return Load(CVFile(szFile)); }
+	virtual bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
+
+	virtual bool Clean(bool bForce = true) = 0; //!< Cleans the object when it's closed.
 
 protected:
+	bool m_bLoaded;
 	bool m_hasChanged;
-	CDocumentObject() : m_ArchiveIn(NULL), m_ArchiveOut(NULL), m_hasChanged(false) {}
 	IArchive *m_ArchiveIn;
 	IArchive *m_ArchiveOut;
 	CVFile m_fnFile;
+
+	CDocumentObject() : m_ArchiveIn(NULL), m_ArchiveOut(NULL), m_hasChanged(false), m_bLoaded(false) {}
 public:
 	void Touch() { m_hasChanged = true; }
 	bool IsModified() { return m_hasChanged; }

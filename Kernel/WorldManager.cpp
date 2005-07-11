@@ -36,8 +36,8 @@
 #include "SoundManager.h"
 
 CLayer::CLayer() :
-	CDocumentObject(),
 	CDrawableContext(),
+	CDocumentObject(),
 	m_ptLoadPoint(0,0)
 {
 	m_ArchiveIn = new CMapTxtArch(this);
@@ -72,15 +72,18 @@ void CThumbnails::CleanThumbnails()
 
 CMapGroup::CMapGroup() :
 	CDrawableContext(),
+	CDocumentObject(),
 	m_pWorld(NULL),
 	m_pBitmap(NULL),
 	m_pOriginalBitmap(NULL),
 	m_rcPosition(0,0,0,0),
 	m_sMapID("New Map Group"),
-	m_bLoaded(false),
 	m_bFlagged(false),
 	m_pMusic(NULL)
 {
+	m_ArchiveIn = new CMapGroupTxtArch(this);
+	m_ArchiveOut = m_ArchiveIn;
+
 	// Build all layers for the map:
 	CLayer *pLayer = NULL;
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
@@ -239,7 +242,7 @@ void CMapGroup::Commit() const
 void CMapGroup::Cancel()
 {
 }
-
+/*
 bool CMapGroup::Load()
 {
 	if(m_bLoaded) return true;	// loaded map groups can not be loaded again.
@@ -269,10 +272,9 @@ bool CMapGroup::Load()
 	m_bLoaded = true;			// Map group loaded.
 	return true;
 }
-bool CMapGroup::Close()
+*/
+bool CMapGroup::Clean(bool bForce)
 {
-	if(!m_bLoaded) return true;
-
 	// Clean all layers of the map:
 	CLayer *pLayer = NULL;
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
@@ -282,20 +284,13 @@ bool CMapGroup::Close()
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 	m_pBitmap = m_pOriginalBitmap;
 
-	m_bLoaded = false;			// Map group not loaded.
 	return true;
 }
 
-bool CMapGroup::Save()
+void CMapGroup::SettleOriginalBitmap()
 {
-	return false;
-
-	//FIXME needs to be implemented
-
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pOriginalBitmap;
 	m_pOriginalBitmap = m_pBitmap;
-
-	return true;
 }
 
 LPCSTR CMapGroup::GetMapGroupID() const
@@ -430,7 +425,7 @@ CWorld::~CWorld()
 {
 	Clean();
 }
-void CWorld::Clean()
+bool CWorld::Clean(bool bForce)
 {
 	if(m_MapGroups.size()) CONSOLE_PRINTF("Closing World Maps...\n");
 	for(UINT i=0; i<m_MapGroups.size(); i++) {
@@ -438,6 +433,7 @@ void CWorld::Clean()
 		m_MapGroups[i] = NULL;
 	}
 	m_MapGroups.clear();
+	return true;
 }
 CMapGroup* CWorld::FindMapGroup(int x, int y) const
 {

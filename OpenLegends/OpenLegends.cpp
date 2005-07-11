@@ -447,7 +447,7 @@ HRESULT LoadGame(LPCSTR szQuest)
 		CProjectFactory::Interface(g_hWnd)->Configure(&g_pGraphicsI, g_bDebug);
 	}
 
-	if(!CProjectFactory::Interface(g_hWnd)->Load(g_szHomeDir)) return E_FAIL;
+	if(!CProjectFactory::Interface(g_hWnd)->LoadProject(g_szHomeDir)) return E_FAIL;
 
 	if(!CProjectFactory::Interface()->LoadWorld(szQuest)) return E_FAIL;
 	if((g_pMapGroupI = CProjectFactory::Interface()->FindMapGroup(2, 2))==NULL) return E_FAIL;

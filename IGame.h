@@ -388,8 +388,7 @@ interface IScript
 	\date		June 27, 2003
 
 */
-interface IGame :
-	public CDocumentObject	// Projects can be loaded from a file.
+interface IGame
 {
 	virtual ~IGame() {} // Virtual destructor. (needed when the objects are deleted indirectly through the interface)
 
@@ -401,12 +400,12 @@ interface IGame :
 	virtual void StopWaiting() = 0;
 	virtual bool isDebugging() = 0;
 
-	// CDocumentObject override:
-	virtual bool Load(LPCSTR szFile) = 0;
-	virtual bool Save(LPCSTR szFile) = 0;
-	virtual bool Save() = 0;
-	virtual bool Close(bool bForce = false) = 0;
+	virtual bool LoadProject(LPCSTR szFile) = 0;
+	virtual bool SaveProject(LPCSTR szFile) = 0;
+	virtual bool SaveProject() = 0;
+	virtual bool CloseProject(bool bForce = false) = 0;
 
+	// World Archive interface:
 	virtual bool LoadWorld(LPCSTR szFile) = 0;
 	virtual bool SaveWorld(LPCSTR szFile) = 0;
 	virtual bool SaveWorld() = 0;

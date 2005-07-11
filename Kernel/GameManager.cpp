@@ -56,9 +56,9 @@ IGraphics **CGameManager::ms_ppGraphicsI = NULL;
 CGameManager *CGameManager::_instance = NULL;
 
 CGameManager::CGameManager() :
+	CDocumentObject(),
 	m_World("New Quest"),
-	m_pDummyDebug(NULL),
-	m_bLoaded(false)
+	m_pDummyDebug(NULL)
 {
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
@@ -334,8 +334,11 @@ void CGameManager::DeleteSprite(LPCSTR szName)
 	}
 }
 
-void CGameManager::Clean()
+bool CGameManager::Clean(bool bForce)
 {
+	if(!CloseWorld(bForce)) return false;
+	CONSOLE_PRINTF("Cleaning project: '%s'.\n", m_sProjectName);
+
 	if(m_SpriteSheets.size()) CONSOLE_PRINTF("Freeing Sprite Sheets...\n");
 	while(m_SpriteSheets.size()) {
 		DeleteSpriteSheet(0);
@@ -360,7 +363,11 @@ void CGameManager::Clean()
 		delete m_Sounds.begin()->second;
 		m_Sounds.erase(m_Sounds.begin());
 	}
+
+	m_sProjectName = "";
+	return true;
 }
+
 int CALLBACK RemoveMask(LPVOID sprite, LPARAM lParam)
 {
 	CSprite *pSprite = static_cast<CSprite*>(sprite);
@@ -391,6 +398,7 @@ CSpriteSheet* CGameManager::MakeSpriteSheet(CSpriteSheet *pSpriteSheet)
 
 	return pSpriteSheet;
 }
+
 int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam)
 {
 	CGameManager *pGameManager = reinterpret_cast<CGameManager*>(lParam);
@@ -413,49 +421,8 @@ int CALLBACK CGameManager::LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPA
 	return 1;
 }
 
-bool CGameManager::Close(bool bForce) 
-{ 
-	if(!m_bLoaded) return true;
-
-	if(m_sProjectName!="" && !bForce) return false;
-
-	if(!CloseWorld(bForce)) return false;
-
-	Clean();
-
-	CONSOLE_PRINTF("Project closed: '%s'.\n", m_sProjectName);
-
-	m_sProjectName = "";
-
-	m_bLoaded = false;	// Project not loaded
-	return true; 
-}
-
-bool CGameManager::Save(CVFile &vfFile)
+void CGameManager::CleanUndefs()
 {
-	return false; //FIXME needs to be implemented
-}
-
-bool CGameManager::Load(CVFile &vfFile)
-{
-	if(m_bLoaded) return false;	// loaded projects can not be loaded again.
-
-	// this is to print how long did it take to load
-	DWORD dwInitTicks = GetTickCount();
-
-	m_sProjectName = vfFile.GetFileDesc();
-	if(m_sProjectName == "") m_sProjectName = "Untitled Project";
-
-	CONSOLE_PRINTF("Loading project: '%s' at %s...\n", m_sProjectName, vfFile.GetPath());
-
-    ASSERT(g_sHomeDir != "");
-	CVFile vfn = g_sHomeDir + "Sprite Sheets\\*.spt";
-	if(vfn.ForEachFile(CGameManager::LoadSheet, (LPARAM)this) == 0) {
-		CONSOLE_PRINTF("No sprites found, probably wrong directory. Nothing has been loaded!\n");
-		m_sProjectName = "";
-		return false;
-	}
-
 	if(m_UndefSprites.size()) {
 		CONSOLE_PRINTF("\nReferenced but undefined sprites:\n");
 	}
@@ -477,18 +444,6 @@ bool CGameManager::Load(CVFile &vfFile)
 		Iterator++;
 	}
 	m_UndefSprites.clear();
-
-	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
-
-	m_bLoaded = true;	// Project loaded
-	return true;
-}
-
-bool CGameManager::CloseWorld(bool bForce) 
-{ 
-	if(!m_World.Close(bForce)) return false;
-	m_World.Clean();
-	return true;
 }
 
 bool CGameManager::WaitScripts()
@@ -500,10 +455,12 @@ void CGameManager::StopWaiting()
 {
 	CScript::StopWaiting();
 }
+
 bool CGameManager::isDebugging()
 {
 	return CScript::isDebugging();
 }
+
 float CGameManager::UpdateFPS(float fpsLock)
 {
 	// Perform Timing calculations
@@ -733,6 +690,10 @@ bool CGameManager::Configure(IGraphics **ppGraphicsI, bool bDebug)
 LPCSTR CGameManager::GetProjectName() const
 {
 	return m_sProjectName;
+}
+void CGameManager::SetProjectName(LPCSTR szName)
+{
+	m_sProjectName = szName;
 }
 ISoundManager* CGameManager::GetSoundManager() const
 {

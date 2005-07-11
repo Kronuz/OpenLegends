@@ -83,17 +83,23 @@ const char g_szSubLayerNames[MAX_SUBLAYERS][30] = {
 	children are Sprites.
 */
 class CLayer :
-	public CDocumentObject,		// Maps can be loaded from a file into a layer.
-	public CDrawableContext		// Layers can be painted on the screen.
+	public CDrawableContext,	// Layers can be painted on the screen.
+	public CDocumentObject		// Maps can be loaded from a file into a layer.
 {
 	CPoint m_ptLoadPoint;
 
 public:
-	void SetLoadPoint(int x, int y);
-	void SetLoadPoint(const CPoint &point_);
+	// CDocumentObject override:
+	bool Clean(bool bForce = true) { return true; }
+
 	CLayer();
 	~CLayer();
 
+	void LoadMore() { m_bLoaded = false; }
+	void Loaded() { m_bLoaded = true; }
+
+	void SetLoadPoint(int x, int y);
+	void SetLoadPoint(const CPoint &point_);
 	bool AddSpriteContext(CSpriteContext *pSpriteContext, bool bAllowDups_ = true);
 };
 
@@ -120,12 +126,14 @@ public:
 	\author		Kronuz
 	\version	1.0
 	\date		May 31, 2003
-				July 11, 2005 + Added CWorld* GetWorld() to CMapGroup.
+				July 11, 2005:
+						+ Added CWorld* GetWorld() to CMapGroup.
 
 	MapGroup children are Maps.
 */
 class CMapGroup :
-	public CDrawableContext
+	public CDrawableContext,
+	public CDocumentObject
 {
 	bool m_bFlagged;
 
@@ -134,10 +142,14 @@ class CMapGroup :
 	const CWorld *m_pWorld;
 	BITMAP *m_pOriginalBitmap;
 	BITMAP *m_pBitmap;
-	bool m_bLoaded;
 	ISound *m_pMusic;
 
 public:
+	void SettleOriginalBitmap();
+
+	// CDocumentObject override:
+	bool Clean(bool bForce = true);
+
 	CMapGroup();
 	~CMapGroup();
 
@@ -156,10 +168,6 @@ public:
 	virtual void Cancel();
 
 	// Interface:
-	virtual bool Load();
-	virtual bool Close();
-	virtual bool Save();
-
 	virtual void CalculateParallax(RECT *ViewRect);
 	virtual void ShowLayer(int nLayer, bool bShow = true);
 	virtual bool isVisible(int nLayer);
@@ -216,10 +224,11 @@ public:
 	CSize m_szWorldSize;
 	CSize m_szMapSize;
 
+	// CDocumentObject override:
+	bool Clean(bool bForce = true);
+
 	CWorld(LPCSTR szName);
 	~CWorld();
-
-	void Clean();
 
 	CMapGroup* FindMapGroup(int x, int y) const;
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
