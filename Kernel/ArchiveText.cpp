@@ -30,7 +30,7 @@ bool CSpriteSheetTxtArch::ReadObject(CVFile &vfFile)
 	m_nLines = 0;
 	CHAR buff[100];
 
-	if(!vfFile.Open("r")) return false;
+	if(!vfFile.Open("rt")) return false;
 
 	CONSOLE_DEBUG("Loading %s (%d bytes)...\n", vfFile.GetFileName(), vfFile.GetFileSize());
 
@@ -275,7 +275,7 @@ bool CProjectTxtArch::WriteObject(CVFile &vfFile)
 
 bool CMapTxtArch::ReadObject(CVFile &vfFile)
 {
-	if(!vfFile.Open("r")) return false; // Couldn't open file.
+	if(!vfFile.Open("rt")) return false; // Couldn't open file.
 
 	int nObjects;
 	m_nLines = 0;
@@ -400,7 +400,7 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 	//Current layer
 	int nLayer = m_pLayer->GetObjSubLayer();
 	CBString sLayer = "";
-	if(nLayer != DEFAULT_LAYER){
+	if(nLayer != DEFAULT_LAYER) {
 		if(nLayer > DEFAULT_LAYER) sLayer.Format("+%d", nLayer-DEFAULT_LAYER); //= "+" + (nLayer-DEFAULT_LAYER);
 		else sLayer.Format("-%d", DEFAULT_LAYER-nLayer); //= "-" + (DEFAULT_LAYER-nLayer);
 	}
@@ -564,10 +564,13 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 
 bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
 {	
+	// this is to print how long did it take to load
+	DWORD dwInitTicks = GetTickCount();
+	CONSOLE_PRINTF("Loading map: '%s'...\n", m_pMapGroup->GetMapGroupID());
 
 	const CWorld *pWorld = m_pMapGroup->GetWorld();
 	CBString sPath = "questdata\\" + pWorld->GetFile().GetFileTitle(); // relative by default
-	for(int h=0; h < MAX_LAYERS; h++){
+	for(int h=0; h < MAX_LAYERS; h++) {
 		CVFile vfFile2;
 		CBString sFile;
 		
@@ -577,7 +580,7 @@ bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
 
 		CBString sLayer = "";
 		int nLayer = pLayer->GetObjSubLayer();
-		if(nLayer != DEFAULT_LAYER){
+		if(nLayer != DEFAULT_LAYER) {
 			if(nLayer > DEFAULT_LAYER) sLayer.Format("+%d", nLayer-DEFAULT_LAYER);//sLayer = "+" + (nLayer-DEFAULT_LAYER);
 			else sLayer.Format("-%d", DEFAULT_LAYER-nLayer); //sLayer = "-" + (DEFAULT_LAYER-nLayer);
 		}
@@ -592,22 +595,23 @@ bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
 
 				pLayer->SetLoadPoint(pWorld->m_szMapSize.cx*i, pWorld->m_szMapSize.cy*j);
 				if(!pLayer->Load(vfFile2)) {
-					CONSOLE_PRINTF("Map error in '%s': Couldn't find the screen!\n", vfFile2.GetFileName());
+					CONSOLE_PRINTF("Map error in '%s': Couldn't load the screen!\n", vfFile2.GetFileName());
+				} else {
+					pLayer->LoadMore(); // more screens to load...
 				}
-				pLayer->LoadMore(); // more screens to load...
 			}
 		}
 		pLayer->Loaded(); // se the layer as a fully loaded layer (no more screens to load)
 	}
 	m_pMapGroup->SettleOriginalBitmap();
 
+	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 	return true;
 }
 
 bool CMapGroupTxtArch::WriteObject(CVFile &vfFile)
 {
-	for(int i=0; i < MAX_LAYERS; i++)
-	{
+	for(int i=0; i < MAX_LAYERS; i++) {
 		CLayer *pLayer = static_cast<CLayer *>(m_pMapGroup->GetChild(i));
 		ASSERT(pLayer);
 		pLayer->Save(vfFile);
@@ -617,9 +621,12 @@ bool CMapGroupTxtArch::WriteObject(CVFile &vfFile)
 
 bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 {
+	// this is to print how long did it take to load
+	DWORD dwInitTicks = GetTickCount();
+
 	bool bRet = true;
 
-	if(!vfFile.Open("r")) return false;
+	if(!vfFile.Open("rt")) return false;
 	CONSOLE_DEBUG("Loading %s (%d bytes)...\n", vfFile.GetFileName(), vfFile.GetFileSize());
 
 	m_nLines = 0;
@@ -637,98 +644,9 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 	} else bRet = false;
 
 	vfFile.Close();
+
+	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 	return bRet;
-}
-
-int CALLBACK CountScreens(LPVOID mapgroup, LPARAM lParam)
-{
-	CSize Size;
-	static_cast<CMapGroup*>(mapgroup)->GetSize(Size);
-	*((int*)lParam) += Size.cx * Size.cy;
-
-	return 1;
-}
-
-int CALLBACK WriteScreens(LPVOID mapgroup, LPARAM lParam)
-{
-	CRect Rect;
-	static_cast<CMapGroup*>(mapgroup)->GetMapGroupRect(Rect);
-	CVFile &vfFile = *(static_cast<CVFile*>((LPVOID)lParam));
-	for(int i=0; i < Rect.Width(); i++)
-	{
-		for(int j=0; j < Rect.Height(); j++)
-		{
-			WriteLongToFile(Rect.left+i, vfFile);
-			WriteLongToFile(Rect.top+j, vfFile);
-		}
-	}
-	return 1;
-}
-
-struct GroupID{
-	long ID;
-	CVFile vfFile;
-};
-
-int CALLBACK WriteGroups(LPVOID mapgroup, LPARAM lParam)
-{
-	CRect Rect;
-	static_cast<CMapGroup*>(mapgroup)->GetMapGroupRect(Rect);
-	GroupID &TempID = *(static_cast<GroupID*>((LPVOID)lParam));
-	
-	CHAR buff[100];
-	WriteLongToFile(TempID.ID, TempID.vfFile);
-	WriteLongToFile(Rect.left*128, TempID.vfFile);
-	WriteLongToFile(Rect.top*96, TempID.vfFile);
-	WriteLongToFile(Rect.right*128, TempID.vfFile);
-	WriteLongToFile(Rect.bottom*96, TempID.vfFile);
-	WriteLongToFile(0, TempID.vfFile);
-
-	static_cast<CMapGroup*>(mapgroup)->GetMusic()->GetSoundFileName(buff, sizeof(buff));
-	WriteStringToFile(TempID.vfFile);
-
-	return 1;
-}
-
-bool CWorldTxtArch::WriteObject(CVFile &vfFile)	//TODO: test this file.
-{
-	vfFile.Delete();
-	if(!vfFile.Open("wt")) return false;
-	if(CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle(), NULL)){
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\screens\\", NULL))return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\", NULL))return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\group\\", NULL))return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\main\\", NULL))return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\screen\\", NULL))return false;
-		CONSOLE_PRINTF("Folders created, saving quest...\n");
-	}
-	else
-		CONSOLE_PRINTF("Saving quest...\n");
-	
-	CHAR buff[100];	//Allows usage of the macro functions.
-	strcpy(buff, "Open Zelda Quest Designer Map File");
-	WriteStringToFile(vfFile);
-	
-	int nScreens = 0;
-	int nGroups = m_pWorld->ForEachMapGroup(CountScreens, (LPARAM)&nScreens);
-
-	WriteLongToFile(nScreens, vfFile);	//Write the number of screens in the quest.
-	m_pWorld->ForEachMapGroup(WriteScreens, (LPARAM)&vfFile);
-	
-	GroupID TempID;
-	TempID.ID = 0;
-	TempID.vfFile = vfFile;
-	WriteLongToFile(nGroups, vfFile);
-	m_pWorld->ForEachMapGroup(WriteGroups, (LPARAM)&TempID);
-
-	WriteLongToFile(/*START LOCATION X*/0, vfFile); //FIXME
-	WriteLongToFile(/*START LOCATION Y*/0, vfFile); //FIXME
-	strcpy(buff, "Legacy Saved Quest");	//Quest name for quests saved in compatibility mode.
-	WriteStringToFile(vfFile);
-	WriteLongToFile(/*FINAL VERSION*/1, vfFile);
-	WriteLongToFile(/*INCLUDE SOUND*/1, vfFile);
-
-	return true;
 }
 
 bool CWorldTxtArch::ReadMaps(CVFile &vfFile)
@@ -738,9 +656,9 @@ bool CWorldTxtArch::ReadMaps(CVFile &vfFile)
 	int nMaps = ReadLongFromFile(vfFile);
 	for(int i=0; i<nMaps; i++) {
 		// x position
-		ReadLongFromFile(vfFile);
+		int x = ReadLongFromFile(vfFile);
 		// y position
-		ReadLongFromFile(vfFile);
+		int y = ReadLongFromFile(vfFile);
 		// indoors
 		int nIndoors = ReadLongFromFile(vfFile);
 	}
@@ -781,6 +699,134 @@ bool CWorldTxtArch::ReadMapGroups(CVFile &vfFile)
 
 	return true;
 }
+
+bool CWorldTxtArch::ReadProperties(CVFile &vfFile)
+{
+	CHAR buff[100];
+	CBString sQuestName;
+
+	int lStartX = ReadLongFromFile(vfFile);
+	int lStartY = ReadLongFromFile(vfFile);
+	ReadStringFromFile(sQuestName, vfFile);
+	bool bFinalVersion = (ReadLongFromFile(vfFile)==1);
+	bool bSaveSounds = (ReadLongFromFile(vfFile)==1);
+
+	CPoint Point(lStartX, lStartY);
+	if(m_pWorld->m_StartPosition.SetAbsPosition(Point) == -1) {
+		CONSOLE_PRINTF("World error: invalid start location...\n");
+	}
+
+	return true;
+}
+
+int CALLBACK CountScreens(LPVOID mapgroup, LPARAM lParam)
+{
+	CSize Size;
+	static_cast<CMapGroup*>(mapgroup)->GetMapGroupSize(Size);
+	*((int*)lParam) += Size.cx * Size.cy;
+
+	return 1;
+}
+
+int CALLBACK WriteScreens(LPVOID mapgroup, LPARAM lParam)
+{
+	CRect Rect;
+	static_cast<CMapGroup*>(mapgroup)->GetMapGroupRect(Rect);
+	CVFile &vfFile = *(static_cast<CVFile*>((LPVOID)lParam));
+	for(int x=Rect.left; x < Rect.right; x++) {
+		for(int y=Rect.top; y < Rect.bottom; y++) {
+			int nIndoors = 0;
+			WriteLongToFile(x, vfFile);
+			WriteLongToFile(y, vfFile);
+			WriteLongToFile(nIndoors, vfFile);
+		}
+	}
+	return 1;
+}
+
+struct GroupID{
+	long ID;
+	CVFile vfFile;
+};
+
+int CALLBACK WriteGroups(LPVOID mapgroup, LPARAM lParam)
+{
+	CRect Rect;
+	static_cast<CMapGroup*>(mapgroup)->GetMapGroupRect(Rect);
+	GroupID &TempID = *(static_cast<GroupID*>((LPVOID)lParam));
+	
+	CHAR buff[100];
+	WriteLongToFile(TempID.ID++, TempID.vfFile);
+	WriteLongToFile(Rect.left*128, TempID.vfFile);
+	WriteLongToFile(Rect.top*96, TempID.vfFile);
+	WriteLongToFile(Rect.right*128, TempID.vfFile);
+	WriteLongToFile(Rect.bottom*96, TempID.vfFile);
+	WriteLongToFile(0, TempID.vfFile);
+
+	static_cast<CMapGroup*>(mapgroup)->GetMusic()->GetSoundFileName(buff, sizeof(buff));
+	WriteStringToFile(TempID.vfFile);
+
+	return 1;
+}
+
+bool CWorldTxtArch::WriteObject(CVFile &vfFile)	//TODO: test this file.
+{
+	bool bRet = true;
+	// this is to print how long did it take to load
+	DWORD dwInitTicks = GetTickCount();
+
+	if(CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle(), NULL)) {
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\screens\\", NULL)) bRet = false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\", NULL)) bRet = false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\group\\", NULL)) bRet = false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\main\\", NULL)) bRet = false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\screen\\", NULL)) bRet = false;
+		if(!bRet) {
+			CONSOLE_PRINTF("Can't create folder structure for the quest...\n");
+			return false;
+		} else {
+			CONSOLE_PRINTF("Folders created, saving quest...\n");
+		}
+	} else {
+		CONSOLE_PRINTF("Saving quest...\n");
+	}
+	
+	//vfFile.Delete(); //FIXME Delete(); is buggy.
+	if(!vfFile.Open("wt")) return false;
+
+	CHAR buff[100];	//Allows usage of the macro functions.
+	strcpy(buff, "Open Zelda Quest Designer Map File");
+	WriteStringToFile(vfFile);
+	
+	int nScreens = 0;
+	int nGroups = m_pWorld->ForEachMapGroup(CountScreens, (LPARAM)&nScreens);
+
+	WriteLongToFile(nScreens, vfFile);	//Write the number of screens in the quest.
+	m_pWorld->ForEachMapGroup(WriteScreens, (LPARAM)&vfFile);
+	
+	GroupID TempID;
+	TempID.ID = 0;
+	TempID.vfFile = vfFile;
+	WriteLongToFile(nGroups, vfFile);
+	m_pWorld->ForEachMapGroup(WriteGroups, (LPARAM)&TempID);
+
+	CPoint Point(0,0);
+	if(m_pWorld->m_StartPosition.GetAbsPosition(Point) == -1) {
+		CONSOLE_PRINTF("World error: invalid or non existent start location...\n");
+	}
+
+	WriteLongToFile(Point.x, vfFile);
+	WriteLongToFile(Point.y, vfFile);
+	strcpy(buff, "Legacy Saved Quest");	//Quest name for quests saved in compatibility mode.
+	WriteStringToFile(vfFile);
+	WriteLongToFile(/*FINAL VERSION*/1, vfFile);
+	WriteLongToFile(/*INCLUDE SOUND*/1, vfFile);
+
+	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+	vfFile.Close();
+	return true;
+}
+
 bool CWorldTxtArch::LoadThumbnail(CMapGroup *pMapGroup)
 {
 	CRect rcPosition;
@@ -813,7 +859,7 @@ bool CWorldTxtArch::LoadThumbnail(CMapGroup *pMapGroup)
 		for(int i=0; i<rcPosition.Width(); i++) {
 			sFile.Format("\\screens\\%d-%d.bmp", rcPosition.left + i, rcPosition.top + j);
 			vfFile.SetFilePath(sPath + sFile);
-			if(vfFile.Open("r")) {
+			if(vfFile.Open("rt")) {
 				int m_nLines = 0; // to use the helpers, we need this.
 				CHAR buff[100]; // to use the helpers, we need this buffer
 
@@ -853,18 +899,3 @@ bool CWorldTxtArch::LoadThumbnail(CMapGroup *pMapGroup)
 
 	return true;
 }
-
-bool CWorldTxtArch::ReadProperties(CVFile &vfFile)
-{
-	CHAR buff[100];
-	CBString sQuestName;
-
-	int lStartX = ReadLongFromFile(vfFile);
-	int lStartY = ReadLongFromFile(vfFile);
-	ReadStringFromFile(sQuestName, vfFile);
-	bool bFinalVersion = (ReadLongFromFile(vfFile)==1);
-	bool bSaveSounds = (ReadLongFromFile(vfFile)==1);
-
-	return true;
-}
-
