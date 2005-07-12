@@ -27,7 +27,8 @@
 #include "MainFrm.h"
 
 CWorldEditorFrame::CWorldEditorFrame(CMainFrame *pMainFrame) :
-	CChildFrame(pMainFrame, tWorldEditor),
+	CGEditorFrame(pMainFrame, tMapEditor),
+//	CChildFrame(pMainFrame, tWorldEditor),
 	m_pWorldEditorView(NULL)
 { 
 }	
@@ -57,7 +58,7 @@ LRESULT CWorldEditorFrame::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 	m_sChildName = _T("World Editor");
 	SetTitle(m_sChildName);
 
-	m_pChildView = m_pWorldEditorView;
+	m_pGEditorView = m_pWorldEditorView;
 
 	CChildFrame::Register(tWorldEditor);
 	bHandled = FALSE;

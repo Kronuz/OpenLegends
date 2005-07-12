@@ -77,11 +77,13 @@ LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 	}
 
 	// Now close:
-	if(m_SelectionI && m_pMapGroupI) {
+	if(m_SelectionI) {
 		m_SelectionI->Cancel();
 		m_SelectionI->CleanSelection();
 		m_SelectionI->CleanPasteGroups();
-		if(!m_pMapGroupI->Close()) return false;
+	}
+	if(m_pMapGroupI) {
+		m_pMapGroupI->Close(true);
 	}
 
 	OnChangeSel(OCS_AUTO);
@@ -186,6 +188,7 @@ LRESULT CMapEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 		if(m_SelectionI->HasChanged()) {
 			BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f); // (1/4 the size)
 			m_pMapGroupI->SetThumbnail(pBitmap);
+			m_pMapGroupI->SettleOriginalBitmap();
 		}
 	}
 	return 0;
@@ -253,7 +256,7 @@ bool CMapEditorView::DoFileClose()
 {
 	if(hasChanged()) {
 		CString sSave;
-		sSave.Format("Save Changes to %s?", GetTitle());
+		sSave.Format("Save Changes to '%s'?", GetTitle());
 		int ret = MessageBox(sSave, _T("Quest Designer"), MB_YESNOCANCEL|MB_ICONWARNING);
 		switch(ret) {
 			case IDCANCEL: 
@@ -270,8 +273,14 @@ bool CMapEditorView::DoFileClose()
 }
 bool CMapEditorView::DoFileSave(LPCTSTR lpszFilePath)
 {
-	if(m_sFilePath.IsEmpty()) return DoFileSaveAs();
-	return m_pMapGroupI->Save();
+	bool bRet = m_pMapGroupI->Save();
+	if(bRet) {
+		m_SelectionI->WasSaved(); // Let the Selection know it was saved
+		// Capture the MapGroup (to update the world editor)
+		BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f); // (1/4 the size)
+		m_pMapGroupI->SetThumbnail(pBitmap);
+	}
+	return bRet;
 }
 bool CMapEditorView::DoFileSaveAs()
 {

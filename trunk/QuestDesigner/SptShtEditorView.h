@@ -61,7 +61,6 @@ private:
 
 //////////////////////////////////
 public:
-
 	// Construction/Destruction
 	CSptShtEditorView(CSptShtEditorFrame *pParentFrame);
 
@@ -126,8 +125,6 @@ public:
 	void OnParallax();
 	void OnSound();
 
-	void OnZoom();
-
 	BOOL CanUndo();
 	BOOL CanRedo();
 	BOOL CanCut();
@@ -142,6 +139,9 @@ public:
 	virtual bool hasChanged();
 
 	virtual HWND SetFocus() { return ::SetFocus(m_hWnd); }
+
+	void SpriteStep(LPCSTR szSprite);
+
 //////////////////////
 	virtual void ViewToWorld(CPoint *_pPoint);
 
@@ -187,9 +187,8 @@ public:
 	virtual void Render(WPARAM wParam);
 	virtual void UpdateView();
 
-	void SpriteStep(LPCSTR szSprite);
-
 	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL);
+	virtual void OnZoom();
 
 	virtual bool DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle = _T("Untitled"), WPARAM wParam = NULL, LPARAM lParam = NULL);
 	virtual bool DoFileClose();

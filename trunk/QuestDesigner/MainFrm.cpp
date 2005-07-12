@@ -506,22 +506,20 @@ LRESULT CMainFrame::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 	return 0;
 }
 
-LRESULT CMainFrame::OnFileExit()
+void CMainFrame::OnFileExit()
 {
 	PostMessage(WM_CLOSE);
-	return 0;
 }
-LRESULT CMainFrame::OnScriptFileNew()
+void CMainFrame::OnScriptFileNew()
 {
 	// create a new MDI child window
 //	CreateNewChildWnd();
 
 	// TODO: add code to initialize document
 
-	return 0;
 }
 
-LRESULT CMainFrame::OnScriptFileOpen()
+void CMainFrame::OnScriptFileOpen()
 {
 	static TCHAR szFilter[] = "OL Script files (*.zes;*.inc)|*.zes; *.inc|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
@@ -529,16 +527,11 @@ LRESULT CMainFrame::OnScriptFileOpen()
 	if(IDOK == wndFileDialog.DoModal()) {
 		ScriptFileOpen(wndFileDialog.m_ofn.lpstrFile, 0, (wndFileDialog.m_ofn.Flags&OFN_READONLY)?TRUE:FALSE);
 	}
-	return TRUE;
-}
-LRESULT CMainFrame::OnFileNew()
-{
-	return 0;
 }
 
-LRESULT CMainFrame::OnFileOpen()
+void CMainFrame::OnQuestOpen()
 {
-	if(!CloseWorld()) return 0;
+	if(!CloseWorld()) return;
 
 	static TCHAR szFilter[] = "OL Quest files (*.qss;*.qsz)|*.qss; *.qsz|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
@@ -546,7 +539,6 @@ LRESULT CMainFrame::OnFileOpen()
 	if(IDOK == wndFileDialog.DoModal()) {
 		FileOpen(wndFileDialog.m_ofn.lpstrFile, 0, (wndFileDialog.m_ofn.Flags&OFN_READONLY)?TRUE:FALSE);
 	}
-	return 0;
 }
 
 /****************************************************************
@@ -644,9 +636,9 @@ BOOL BrowseForFolder(HWND hwnd, // parent window.
 }
 /***************************************************************/
 
-LRESULT CMainFrame::OnProjectOpen()
+void CMainFrame::OnProjectOpen()
 {
-	if(!Close()) return 0; // closes the project (and the world if it's open)
+	if(!Close()) return; // closes the project (and the world if it's open)
 
 	UIEnableToolbar(FALSE);
 	// Update all the toolbar items
@@ -659,7 +651,7 @@ LRESULT CMainFrame::OnProjectOpen()
 
 	TCHAR taux[_MAX_PATH];
 	if(!BrowseForFolder(m_hWnd, 0, g_sHomeDir, taux, "Please select the folder where the game files are:", 0)) {
-		return 0;
+		return;
 	}
 
     StatusBar("Loading...", IDI_ICO_WAIT);
@@ -668,7 +660,7 @@ LRESULT CMainFrame::OnProjectOpen()
 	g_sHomeDir = taux;
 
 	if(!m_pOLKernel->LoadProject(g_sHomeDir)) {
-		return 0;
+		return;
 	}
 	::SendMessage(m_GameProject, WM_SETREDRAW, TRUE, 0);
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
@@ -686,11 +678,9 @@ LRESULT CMainFrame::OnProjectOpen()
 	UIEnableToolbar(TRUE);
 
     StatusBar("Ready", IDI_ICO_OK);
-
-	return 0;
 }
 
-LRESULT CMainFrame::OnViewToolBar()
+void CMainFrame::OnViewToolBar()
 {
 	static BOOL bVisible = TRUE;	// initially visible
 	bVisible = !bVisible;
@@ -699,15 +689,14 @@ LRESULT CMainFrame::OnViewToolBar()
 	rebar.ShowBand(nBandIndex, bVisible);
 	UISetCheck(ID_APP_TOOLBAR, bVisible);
 	UpdateLayout();
-	return 0;
 }
-LRESULT CMainFrame::OnViewStatusBar()
+
+void CMainFrame::OnViewStatusBar()
 {
 	BOOL bVisible = !::IsWindowVisible(m_hWndStatusBar);
 	::ShowWindow(m_hWndStatusBar, bVisible ? SW_SHOWNOACTIVATE : SW_HIDE);
 	UISetCheck(ID_APP_STATUS_BAR, bVisible);
 	UpdateLayout();
-	return 0;
 }
 
 HWND CMainFrame::GetOldFocus(_child_type ChildType)
@@ -748,7 +737,7 @@ CChildFrame* CMainFrame::FindChild(LPCSTR lpszName)
 	return NULL;
 }
 
-LRESULT CMainFrame::OnSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled)
+void CMainFrame::OnSound()
 {
 	m_bAllowSounds = !m_bAllowSounds;
 	OnIdle(); // Force idle processing to update the toolbar.
@@ -759,31 +748,19 @@ LRESULT CMainFrame::OnSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/
 		ISoundManager *pSoundManager = CProjectFactory::Interface()->GetSoundManager();
 		if(pSoundManager) pSoundManager->SwitchMusic(NULL, 0, false);
 	}
-
-	bHandled = FALSE;
-
-	return 0;
 }
-LRESULT CMainFrame::OnAnim(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled)
+void CMainFrame::OnAnim()
 {
 	m_bAllowAnimations = !m_bAllowAnimations;
 	OnIdle(); // Force idle processing to update the toolbar.
-
-	bHandled = FALSE;
-
-	return 0;
 }
-LRESULT CMainFrame::OnParallax(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled)
+void CMainFrame::OnParallax()
 {
 	m_bAllowParallax = !m_bAllowParallax;
 	OnIdle(); // Force idle processing to update the toolbar.
-
-	bHandled = FALSE;
-
-	return 0;
 }
 
-LRESULT CMainFrame::OnViewWorldEditor()
+void CMainFrame::OnViewWorldEditor()
 {
 	if(CountChilds(tWorldEditor)) {
 		CChildFrame *pChild = FindChild(_T("World Editor"));
@@ -797,56 +774,67 @@ LRESULT CMainFrame::OnViewWorldEditor()
 		ATLASSERT(::IsWindow(hChildWnd));
 	}
 	OnIdle(); // Force idle processing to update the toolbar.
-	return 0;
 }
-LRESULT CMainFrame::OnViewMapEditor()
+void CMainFrame::OnViewMapEditor()
 {
-	MapCreate(CPoint(0,0));
-	return 0;
+//	MapCreate(CPoint(0,0));
 }
-LRESULT CMainFrame::OnViewSpriteEditor()
+void CMainFrame::OnViewSpriteEditor()
 {
 //	SptShtFileOpen("C:\\newHouseOut.png");
-	return 0;
 }
-LRESULT CMainFrame::OnViewScriptEditor()
+void CMainFrame::OnViewScriptEditor()
 {
-	return 0;
 }
-LRESULT CMainFrame::OnAppHelp()
+
+void CMainFrame::OnSaveAs()
+{
+}
+void CMainFrame::OnSave()
+{
+}
+void CMainFrame::OnClose()
+{
+}
+void CMainFrame::OnQuestClose()
+{
+}
+void CMainFrame::OnQuestNew()
+{
+}
+void CMainFrame::OnProjectClose()
+{
+}
+void CMainFrame::OnProjectNew()
+{
+}
+
+void CMainFrame::OnAppHelp()
 {
 	ShowHelp(m_hWnd);
-	return 0;
 }
-LRESULT CMainFrame::OnAppAbout()
+void CMainFrame::OnAppAbout()
 {
 	CAboutDlg dlg;
 	dlg.DoModal();
-	return 0;
 }
-LRESULT CMainFrame::OnAppConfig()
+void CMainFrame::OnAppConfig()
 {
 	CPropertiesDlg dlg(0);
 	int result = dlg.DoModal();
-
-	return 0;
 }
-LRESULT CMainFrame::OnWindowCascade()
+void CMainFrame::OnWindowCascade()
 {
 	MDICascade();
-	return 0;
 }
-LRESULT CMainFrame::OnWindowTile()
+void CMainFrame::OnWindowTile()
 {
 	MDITile();
-	return 0;
 }
-LRESULT CMainFrame::OnWindowArrangeIcons()
+void CMainFrame::OnWindowArrangeIcons()
 {
 	MDIIconArrange();
-	return 0;
 }
-
 HRESULT CMainFrame::OnStopBuild()
 {
 	m_pProjectFactory->CancelBuild();
@@ -855,6 +843,10 @@ HRESULT CMainFrame::OnStopBuild()
 }
 
 HRESULT CMainFrame::OnRunProject()
+{
+	return E_FAIL;
+}
+HRESULT CMainFrame::OnDebugProject()
 {
 	if(Connected()) return E_FAIL;
 
@@ -911,7 +903,7 @@ HRESULT CMainFrame::OnRunProject()
 HRESULT CMainFrame::OnBuildProject(bool bForce)
 {
 //	m_InfoFrame.DisplayTab(m_OutputBox.m_hWnd);
-	int nSaved = OnSaveAll();
+	int nSaved = (int)OnSaveAll();
 	if(nSaved<0) return E_FAIL;
 	if(nSaved > 0 || bForce) m_pProjectFactory->StartBuild();
 	OnIdle(); // Force idle processing to update the toolbar.
