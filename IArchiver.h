@@ -108,9 +108,9 @@ interface CDocumentObject
 
 	virtual bool Close(bool bForce = false) {
 		bool bRet = true;
-		if(!m_bLoaded) return true;
+		if(!m_bLoaded && !bForce) return true;
 		if(IsModified() && !bForce) return false;
-		if((bRet = Clean())) m_bLoaded = false;
+		if((bRet = _Close(bForce))) m_bLoaded = false;
 		return bRet;
 	}
 
@@ -118,9 +118,9 @@ interface CDocumentObject
 	virtual bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
 	virtual bool IsLoaded() {return m_bLoaded;}
 
-	virtual bool Clean(bool bForce = true) = 0; //!< Cleans the object when it's closed.
-
 protected:
+	virtual bool _Close(bool bForce) = 0; //!< Cleans the object when it's closed.
+
 	bool m_bLoaded;
 	bool m_hasChanged;
 	IArchive *m_ArchiveIn;

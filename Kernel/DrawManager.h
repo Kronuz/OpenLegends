@@ -64,9 +64,10 @@
 
 using namespace std;
 
-#define MAX_SUBLAYERS	10	// Maximum Sublayers
-#define MAX_LAYERS		10	// Maximum Layers
-#define DEFAULT_LAYER	3	// Default layer
+#define MAX_SUBLAYERS		10	// Maximum Sublayers
+#define MAX_LAYERS			10	// Maximum Layers
+#define DEFAULT_LAYER		3	// Default layer
+#define DEFAULT_SUBLAYER	1	// Default sublayer
 
 #define CONTEXT_BUFFERS 2
 /////////////////////////////////////////////////////////////////////////////
@@ -893,8 +894,9 @@ public:
 	virtual void LockLayer(int nLayer, bool bLock = true);
 	virtual bool isLocked(int nLayer);
 	
-	// returns true if the object has been modified from its initial state.
+	// returns true if the object has been modified since the last save or its initial state.
 	virtual bool IsModified() { return m_bModified; }
+	virtual void WasSaved() { m_bModified = false; }
 
 	// returns whether or not the object has changed since last call to hasChanged()
 	virtual bool HasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }

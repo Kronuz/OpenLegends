@@ -398,6 +398,9 @@ protected:
 	mapSprite m_Sprites; //!< Flyweight pool of sprites.
 	/**/
 
+	// CDocumentObject override:
+	bool _Close(bool bForce) { return true; }
+
 	//! No one but the Project Manager is alowed to create Sprite Sheets
 	CSpriteSheet(CGameManager *pGameManager);
 	~CSpriteSheet();
@@ -408,9 +411,6 @@ public:
 	const CBString& GetName() const { return CNamedObj::GetName(); }
 
 	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
-
-	// CDocumentObject override:
-	bool Clean(bool bForce = true) { return true; }
 
 	// Interface:
 	virtual LPCSTR GetFilePath(LPSTR szPath, size_t buffsize) const
