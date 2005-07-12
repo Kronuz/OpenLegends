@@ -242,55 +242,25 @@ void CMapGroup::Commit() const
 void CMapGroup::Cancel()
 {
 }
-/*
-bool CMapGroup::Load()
+
+bool CMapGroup::_Close(bool bForce)
 {
-	if(m_bLoaded) return true;	// loaded map groups can not be loaded again.
+	CONSOLE_PRINTF("Closing map: '%s'...\n", m_sMapID);
 
-	// For now, there is only one layer availible in the worlds the default layer:
-	CLayer *pLayer = static_cast<CLayer *>(GetChild(DEFAULT_LAYER));
-	ASSERT(pLayer);
-	
-	CVFile vfFile;
-	CBString sFile;
-	CBString sPath = "questdata\\" + m_pWorld->GetFile().GetFileTitle(); // relative by default
-
-	// for each map in the group, we load it in the ground layer:
-	for(int j=0; j<m_rcPosition.Height(); j++) {
-		for(int i=0; i<m_rcPosition.Width(); i++) {
-			sFile.Format("\\screens\\%d-%d.lnd", m_rcPosition.left + i, m_rcPosition.top + j);
-			vfFile.SetFilePath(sPath + sFile);
-
-			pLayer->SetLoadPoint(m_pWorld->m_szMapSize.cx*i, m_pWorld->m_szMapSize.cy*j);
-			pLayer->Load(vfFile);
-		}
-	}
-
-	if(m_pBitmap != m_pOriginalBitmap) delete []m_pOriginalBitmap;
-	m_pOriginalBitmap = m_pBitmap;
-
-	m_bLoaded = true;			// Map group loaded.
-	return true;
-}
-*/
-bool CMapGroup::Clean(bool bForce)
-{
-	// Clean all layers of the map:
+	Clean();
+	// Build all layers for the map:
 	CLayer *pLayer = NULL;
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
-		pLayer = static_cast<CLayer *>(GetChild(i));
-		pLayer->Clean();
+		pLayer = new CLayer;
+		pLayer->SetName(g_szLayerNames[i]);
+		pLayer->SetObjSubLayer(i);	// tell the newly created layer what layer it is.
+		AddChild(pLayer);			// add the new layer to the map group
 	}
+
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 	m_pBitmap = m_pOriginalBitmap;
 
 	return true;
-}
-
-void CMapGroup::SettleOriginalBitmap()
-{
-	if(m_pBitmap != m_pOriginalBitmap) delete []m_pOriginalBitmap;
-	m_pOriginalBitmap = m_pBitmap;
 }
 
 LPCSTR CMapGroup::GetMapGroupID() const
@@ -412,22 +382,211 @@ bool CMapGroup::isMapGroupHead(int x, int y) const
 	return (m_rcPosition.left==x && m_rcPosition.top==y);
 }
 
+CWorld *CMapPos::ms_pWorld = NULL;
+
+CMapPos::CMapPos() : 
+	m_nLayer(-1), m_nSubLayer(-1) 
+{ 
+	ASSERT(ms_pWorld); 
+}
+
+CMapPos::CMapPos(CWorld *pWorld) : 
+	m_nLayer(-1), m_nSubLayer(-1) 
+{ 
+	// Warning C4355: THIS CONSTRUCTOR MUST NEVER MAKE ACCESS ANY MEMBERS OF pWorld
+	ms_pWorld = pWorld;
+	ASSERT(ms_pWorld); 
+	// Warning C4355: THIS CONSTRUCTOR MUST NEVER MAKE ACCESS ANY MEMBERS OF pWorld
+}
+
+int CMapPos::GetAbsPosition(CPoint &_Point) const 
+{
+	if(m_sMapID.IsEmpty()) return -1;
+	int x = m_LocalPoint.x / ms_pWorld->m_szMapSize.cx;
+	int y = m_LocalPoint.y / ms_pWorld->m_szMapSize.cy;
+	CMapGroup *pMapGroup = ms_pWorld->FindMapGroup(x, y);
+	if(!pMapGroup) return -1;
+	CRect rcMap;
+	pMapGroup->GetMapGroupRect(rcMap);
+	_Point.x = m_LocalPoint.x + rcMap.left * ms_pWorld->m_szMapSize.cx;
+	_Point.y = m_LocalPoint.y + rcMap.top * ms_pWorld->m_szMapSize.cy;
+	return m_nLayer;
+}
+
+int CMapPos::SetAbsPosition(const CPoint &_Point, int _nLayer, int _nSubLayer) 
+{
+	CPoint LocalPoint;
+	m_sMapID.Empty();
+	int x = _Point.x / ms_pWorld->m_szMapSize.cx;
+	int y = _Point.y / ms_pWorld->m_szMapSize.cy;
+	CMapGroup *pMapGroup = ms_pWorld->FindMapGroup(x, y);
+	if(!pMapGroup) return -1;
+	CRect rcMap;
+	pMapGroup->GetMapGroupRect(rcMap);
+
+	LocalPoint.x = _Point.x - rcMap.left * ms_pWorld->m_szMapSize.cx;
+	LocalPoint.y = _Point.y - rcMap.top * ms_pWorld->m_szMapSize.cy;
+	if(LocalPoint.x < 0) return -1;
+	if(LocalPoint.y < 0) return -1;
+	if(LocalPoint.x > rcMap.Width() * ms_pWorld->m_szMapSize.cx) return -1;
+	if(LocalPoint.y > rcMap.Height() * ms_pWorld->m_szMapSize.cy) return -1;
+
+	if(_nLayer == -1) _nLayer = (m_nLayer==-1)?DEFAULT_LAYER:m_nLayer;
+	if(_nSubLayer == -1) _nSubLayer = (m_nSubLayer==-1)?DEFAULT_SUBLAYER:m_nSubLayer;
+	if(_nLayer < 0 || _nLayer > MAX_LAYERS) return -1;
+	if(_nSubLayer < 0 || _nSubLayer > MAX_SUBLAYERS) return -1;
+
+	m_nLayer = _nLayer;
+	m_nSubLayer = _nSubLayer;
+	m_LocalPoint = LocalPoint;
+	m_sMapID = pMapGroup->GetMapGroupID();
+	return m_nLayer;
+}
+
+int CMapPos::GetPosition(CPoint &_Point) const 
+{
+	if(m_sMapID.IsEmpty()) return -1;
+	CMapGroup *pMapGroup = ms_pWorld->FindMapGroup(m_sMapID);
+	if(!pMapGroup) {
+		m_sMapID.Empty();
+		return -1;
+	}
+	CRect rcMap;
+	pMapGroup->GetMapGroupRect(rcMap);
+
+	if(m_LocalPoint.x < 0) m_LocalPoint.x = 0;
+	if(m_LocalPoint.y < 0) m_LocalPoint.y = 0;
+	if(m_LocalPoint.x > rcMap.Width() * ms_pWorld->m_szMapSize.cx)
+		m_LocalPoint.x = rcMap.Width() * ms_pWorld->m_szMapSize.cx;
+	if(m_LocalPoint.y > rcMap.Height() * ms_pWorld->m_szMapSize.cy)
+		m_LocalPoint.y = rcMap.Height() * ms_pWorld->m_szMapSize.cy;
+	_Point = m_LocalPoint;
+	return m_nLayer;
+}
+
+int CMapPos::GetMapGroup(CMapGroup **_ppMapGroup) const 
+{
+	if(m_sMapID.IsEmpty()) return -1;
+	CMapGroup *pMapGroup = ms_pWorld->FindMapGroup(m_sMapID);
+	if(!pMapGroup) {
+		m_sMapID.Empty();
+		return -1;
+	}
+	*_ppMapGroup = pMapGroup;
+	return m_nLayer;
+}
+
+int CMapPos::GetLayer() const 
+{
+	if(m_sMapID.IsEmpty()) return -1;
+	CMapGroup *pMapGroup = ms_pWorld->FindMapGroup(m_sMapID);
+	if(!pMapGroup) {
+		m_sMapID.Empty();
+		return -1;
+	}
+	return m_nLayer;
+}
+
+int CMapPos::GetSubLayer() const 
+{
+	if(m_sMapID.IsEmpty()) return -1;
+	CMapGroup *pMapGroup = ms_pWorld->FindMapGroup(m_sMapID);
+	if(!pMapGroup) {
+		m_sMapID.Empty();
+		return -1;
+	}
+	return m_nSubLayer;
+}
+
+int CMapPos::SetPosition(const CMapGroup *_pMapGroup, const CPoint &_Point, int _nLayer, int _nSubLayer) 
+{
+	int tmp_nLayer = m_nLayer;
+	int tmp_nSubLayer = m_nSubLayer;
+	CPoint tmp_LocalPoint = m_LocalPoint;
+	CBString tmp_sMapID = m_sMapID;
+
+	int bError = false;
+	if(SetMapGroup(_pMapGroup) == -1) bError = true;
+	else if(SetPosition(_Point) == -1)  bError = true;
+	else if(SetLayer(_nLayer) == -1)  bError = true;
+	else if(SetSubLayer(_nSubLayer) == -1)  bError = true;
+	if(bError) {
+		m_nLayer = tmp_nLayer;
+		m_nSubLayer = tmp_nSubLayer;
+		m_LocalPoint = tmp_LocalPoint;
+		m_sMapID = tmp_sMapID;
+		return -1;
+	}
+	return m_nLayer;
+}
+
+int CMapPos::SetMapGroup(const CMapGroup *_pMapGroup) 
+{
+	if(!_pMapGroup) return -1;
+	m_sMapID = _pMapGroup->GetMapGroupID();
+	return GetLayer();
+}
+
+int CMapPos::SetPosition(const CPoint &_Point) 
+{
+	if(m_sMapID.IsEmpty()) return -1;
+	CMapGroup *pMapGroup = ms_pWorld->FindMapGroup(m_sMapID);
+	if(!pMapGroup) {
+		m_sMapID.Empty();
+		return -1;
+	}
+	CRect rcMap;
+	pMapGroup->GetMapGroupRect(rcMap);
+
+	if(_Point.x < 0) return -1;
+	if(_Point.y < 0) return -1;
+	if(_Point.x > rcMap.Width() * ms_pWorld->m_szMapSize.cx) return -1;
+	if(_Point.y > rcMap.Height() * ms_pWorld->m_szMapSize.cy) return -1;
+
+	m_LocalPoint = _Point;
+	return m_nLayer;
+}
+
+int CMapPos::SetLayer(int _nLayer) 
+{
+	if(_nLayer == -1) return m_nLayer;
+	if(m_sMapID.IsEmpty()) return -1;
+	if(_nLayer < 0 || _nLayer > MAX_LAYERS) return -1;
+	m_nLayer = _nLayer;
+	return GetLayer();
+}
+
+int CMapPos::SetSubLayer(int _nSubLayer) 
+{
+	if(_nSubLayer == -1) return m_nSubLayer;
+	if(m_sMapID.IsEmpty()) return -1;
+	if(_nSubLayer < 0 || _nSubLayer > MAX_SUBLAYERS) return -1;
+	m_nSubLayer = _nSubLayer;
+	return GetSubLayer();
+}
+
+#pragma warning (push)
+#pragma warning(disable : 4355) // ignore the C4355 warning
 CWorld::CWorld(LPCSTR szName) : 
  	CNamedObj(szName),
 	CDocumentObject(),
 	m_szMapSize(DEF_MAPSIZEX, DEF_MAPSIZEY),
-	m_szWorldSize(DEF_MAXMAPSX, DEF_MAXMAPSY)
+	m_szWorldSize(DEF_MAXMAPSX, DEF_MAXMAPSY),
+	m_StartPosition(this) // Warning C4355: CMapPos constructor isn't calling any members of 'this')
 {
 	m_ArchiveIn = new CWorldTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 }
+#pragma warning (pop)
+
 CWorld::~CWorld()
 {
-	Clean();
+	Close(true);
 }
-bool CWorld::Clean(bool bForce)
+
+bool CWorld::_Close(bool bForce)
 {
-	if(m_MapGroups.size()) CONSOLE_PRINTF("Closing World Maps...\n");
+	if(m_MapGroups.size()) CONSOLE_PRINTF("Closing World...\n");
 	for(UINT i=0; i<m_MapGroups.size(); i++) {
 		delete m_MapGroups[i];
 		m_MapGroups[i] = NULL;
@@ -446,6 +605,17 @@ CMapGroup* CWorld::FindMapGroup(int x, int y) const
 	return NULL;
 }
 
+CMapGroup* CWorld::FindMapGroup(LPCSTR szMapID) const
+{
+	std::vector<CMapGroup*>::const_iterator Iterator = m_MapGroups.begin();
+	while(Iterator != m_MapGroups.end()) {
+		if(!strcmp(szMapID, (*Iterator)->GetMapGroupID())) return *Iterator;
+		Iterator++;
+	}
+
+	return NULL;
+}
+
 CMapGroup* CWorld::BuildMapGroup(int x, int y, int width, int height)
 {
 	CMapGroup *retmap = new CMapGroup;
@@ -453,7 +623,7 @@ CMapGroup* CWorld::BuildMapGroup(int x, int y, int width, int height)
 	retmap->SetWorld(this);
 	retmap->SetMapGroupSize(CSize(width, height));
 	retmap->MoveMapGroupTo(x, y);
-	retmap->Load();
+//	retmap->Load();
 
 	m_MapGroups.push_back(retmap);
 

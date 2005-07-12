@@ -88,10 +88,11 @@ class CLayer :
 {
 	CPoint m_ptLoadPoint;
 
-public:
+protected:
 	// CDocumentObject override:
-	bool Clean(bool bForce = true) { return true; }
+	bool _Close(bool bForce) { Clean(); return true; }
 
+public:
 	CLayer();
 	~CLayer();
 
@@ -144,12 +145,11 @@ class CMapGroup :
 	BITMAP *m_pBitmap;
 	ISound *m_pMusic;
 
-public:
-	void SettleOriginalBitmap();
-
+protected:
 	// CDocumentObject override:
-	bool Clean(bool bForce = true);
+	bool _Close(bool bForce);
 
+public:
 	CMapGroup();
 	~CMapGroup();
 
@@ -186,6 +186,10 @@ public:
 	virtual void MoveMapGroupTo(int x, int y);
 	virtual void OffsetMapGroup(int x, int y);
 
+	virtual void SettleOriginalBitmap() {
+		if(m_pBitmap != m_pOriginalBitmap) delete []m_pOriginalBitmap;
+		m_pOriginalBitmap = m_pBitmap;
+	}
 	virtual void SetThumbnail(BITMAP *pBitmap) { 
 		if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 		m_pBitmap = pBitmap; 
@@ -195,6 +199,41 @@ public:
 
 	virtual void SetMusic(ISound *pSound);
 	virtual ISound* GetMusic() const;
+};
+
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CMapPos
+	\brief		CMapPos class.
+	\author		Kronuz
+	\version	1.0
+	\date		July 12, 2005
+
+	This class keeps map positions and returns either absolute or 
+	local positions for maps.
+	Members return -1 when on error, or the current MapPos layer otherwise.
+*/
+class CMapPos {
+	static CWorld *ms_pWorld;
+	int m_nLayer;
+	int m_nSubLayer;
+	mutable CPoint m_LocalPoint;
+	mutable CBString m_sMapID;
+protected:
+	friend CWorld;
+	CMapPos(CWorld *pWorld);
+public:
+	CMapPos();
+	int GetAbsPosition(CPoint &_Point) const;
+	int SetAbsPosition(const CPoint &_Point, int _nLayer = -1, int _nSubLayer = -1);
+	int GetPosition(CPoint &_Point) const;
+	int GetMapGroup(CMapGroup **_ppMapGroup) const;
+	int GetLayer() const;
+	int GetSubLayer() const;
+	int SetPosition(const CMapGroup *_pMapGroup, const CPoint &_Point, int _nLayer = -1, int _nSubLayer = -1);
+	int SetMapGroup(const CMapGroup *_pMapGroup);
+	int SetPosition(const CPoint &_Point);
+	int SetLayer(int _nLayer);
+	int SetSubLayer(int _nSubLayer);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -220,16 +259,19 @@ class CWorld :
 	typedef std::vector<CMapGroup*>::iterator iterMapGroup;
 	std::vector<CMapGroup*> m_MapGroups;
 
+protected:
+	// CDocumentObject override:
+	bool _Close(bool bForce);
+
 public:
+	CMapPos m_StartPosition;
 	CSize m_szWorldSize;
 	CSize m_szMapSize;
-
-	// CDocumentObject override:
-	bool Clean(bool bForce = true);
 
 	CWorld(LPCSTR szName);
 	~CWorld();
 
+	CMapGroup* FindMapGroup(LPCSTR szMapID) const;
 	CMapGroup* FindMapGroup(int x, int y) const;
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
 	int ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam);
