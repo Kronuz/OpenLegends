@@ -250,29 +250,33 @@ public:
 		
 		MESSAGE_HANDLER(WM_USER, OnDebugCommand);
 
+		MENU_COMMAND_HANDLER(ID_PROJECT_NEW, OnProjectNew)
 		MENU_COMMAND_HANDLER(ID_PROJECT_OPEN, OnProjectOpen)
+		//MENU_COMMAND_HANDLER(ID_PROJECT_SAVE, OnProjectSave)
+		//MENU_COMMAND_HANDLER(ID_PROJECT_SAVEAS, OnProjectSaveAs)
+		MENU_COMMAND_HANDLER(ID_PROJECT_CLOSE, OnProjectClose)
 
-		MENU_COMMAND_HANDLER(ID_QUEST_NEW, OnFileNew)
-		MENU_COMMAND_HANDLER(ID_QUEST_OPEN, OnFileOpen)
+		MENU_COMMAND_HANDLER(ID_QUEST_NEW, OnQuestNew)
+		MENU_COMMAND_HANDLER(ID_QUEST_OPEN, OnQuestOpen)
+		//MENU_COMMAND_HANDLER(ID_QUEST_SAVE, OnQuestSave)
+		//MENU_COMMAND_HANDLER(ID_QUEST_SAVEAS, OnQuestSaveAs)
+		MENU_COMMAND_HANDLER(ID_QUEST_CLOSE, OnQuestClose)
 
-		MENU_COMMAND_HANDLER(ID_DBG_STEPIN, OnStepInto)
-		MENU_COMMAND_HANDLER(ID_DBG_STEPOUT, OnStepOut)
-		MENU_COMMAND_HANDLER(ID_DBG_STEPOVER, OnStepOver)
-		MENU_COMMAND_HANDLER(ID_DBG_PAUSE, OnDbgBreak)
-		MENU_COMMAND_HANDLER(ID_DBG_STOP, OnDbgStop)
-		MENU_COMMAND_HANDLER(ID_DBG_NEXT, OnShowNext)
-		MENU_COMMAND_HANDLER(ID_DBG_CONTINUE, OnContinue)
+		MENU_COMMAND_HANDLER(ID_SCRIPT_NEW, OnScriptFileNew)
+		MENU_COMMAND_HANDLER(ID_SCRIPT_OPEN, OnScriptFileOpen)
 
-		MENU_COMMAND_HANDLER(ID_APP_NEW, OnScriptFileNew)
-		MENU_COMMAND_HANDLER(ID_APP_OPEN, OnScriptFileOpen)
+		//MENU_COMMAND_HANDLER(ID_APP_CLOSE, OnClose)
+		//MENU_COMMAND_HANDLER(ID_APP_SAVE, OnSave)
+		MENU_COMMAND_HANDLER(ID_APP_SAVE_ALL, OnSaveAll)
+		//MENU_COMMAND_HANDLER(ID_APP_SAVE_AS, OnSaveAs)
 
 		MENU_COMMAND_HANDLER(ID_APP_TOOLBAR, OnViewToolBar)
 		MENU_COMMAND_HANDLER(ID_APP_STATUS_BAR, OnViewStatusBar)
 		MENU_COMMAND_HANDLER(ID_APP_EXIT, OnFileExit)
 
-		COMMAND_ID_HANDLER(ID_APP_SOUND, OnSound)
-		COMMAND_ID_HANDLER(ID_APP_ANIM, OnAnim)
-		COMMAND_ID_HANDLER(ID_APP_PARALLAX, OnParallax)
+		MENU_COMMAND_HANDLER(ID_APP_SOUND, OnSound)
+		MENU_COMMAND_HANDLER(ID_APP_ANIM, OnAnim)
+		MENU_COMMAND_HANDLER(ID_APP_PARALLAX, OnParallax)
 
 		MENU_COMMAND_HANDLER(ID_APP_WORLDED, OnViewWorldEditor)
 		MENU_COMMAND_HANDLER(ID_APP_MAPED, OnViewMapEditor)
@@ -282,7 +286,23 @@ public:
 		MENU_COMMAND_HANDLER(ID_APP_BUILD, OnBuildProject)
 		MENU_COMMAND_HANDLER(ID_APP_STOPBUILD, OnStopBuild)
 
-		MENU_COMMAND_HANDLER(ID_DBG_DEBUG, OnRunProject)
+		MENU_COMMAND_HANDLER(ID_DBG_DEBUG, OnDebugProject)
+		MENU_COMMAND_HANDLER(ID_DBG_RUN, OnRunProject)
+		MENU_COMMAND_HANDLER(ID_DBG_STEPIN, OnStepInto)
+		MENU_COMMAND_HANDLER(ID_DBG_STEPOUT, OnStepOut)
+		MENU_COMMAND_HANDLER(ID_DBG_STEPOVER, OnStepOver)
+		MENU_COMMAND_HANDLER(ID_DBG_PAUSE, OnDbgBreak)
+		MENU_COMMAND_HANDLER(ID_DBG_STOP, OnDbgStop)
+		MENU_COMMAND_HANDLER(ID_DBG_NEXT, OnShowNext)
+		MENU_COMMAND_HANDLER(ID_DBG_CONTINUE, OnContinue)
+
+		MENU_COMMAND_HANDLER(ID_APP_HELP, OnAppHelp)
+		MENU_COMMAND_HANDLER(ID_APP_ABOUT, OnAppAbout)
+		MENU_COMMAND_HANDLER(ID_APP_PREFERENCES, OnAppConfig)
+
+		MENU_COMMAND_HANDLER(ID_WINDOW_CASCADE, OnWindowCascade)
+		MENU_COMMAND_HANDLER(ID_WINDOW_TILE_HORZ, OnWindowTile)
+		MENU_COMMAND_HANDLER(ID_WINDOW_ARRANGE, OnWindowArrangeIcons)
 
 		//MESSAGE_HANDLER(WMQD_BEGIN, ??)
 		MESSAGE_HANDLER(WMQD_MESSAGE, m_OutputBox.OnWriteMsg)
@@ -307,13 +327,6 @@ public:
 			m_PaneWindows[LOWORD(wParam) - ID_VIEW_PANEFIRST]->Toggle();
 		}
 
-		MENU_COMMAND_HANDLER(ID_APP_HELP, OnAppHelp)
-		MENU_COMMAND_HANDLER(ID_APP_ABOUT, OnAppAbout)
-		MENU_COMMAND_HANDLER(ID_APP_PREFERENCES, OnAppConfig)
-		MENU_COMMAND_HANDLER(ID_WINDOW_CASCADE, OnWindowCascade)
-		MENU_COMMAND_HANDLER(ID_WINDOW_TILE_HORZ, OnWindowTile)
-		MENU_COMMAND_HANDLER(ID_WINDOW_ARRANGE, OnWindowArrangeIcons)
-
 		// Pass all unhandled WM_COMMAND messages to the active child window
 		CHAIN_MDI_CHILD_COMMANDS()
 		CHAIN_MSG_MAP(CUpdateUI<CMainFrame>)
@@ -328,58 +341,59 @@ public:
 //	LRESULT CommandHandler(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 //	LRESULT NotifyHandler(int /*idCtrl*/, LPNMHDR /*pnmh*/, BOOL& /*bHandled*/)
 
+	void InitializeDefaultPanes();
+
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled);
 
 	LRESULT OnDebugCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 
-	void InitializeDefaultPanes();
 	LRESULT OnInitialize(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
-	LRESULT OnAnim(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
-	LRESULT OnParallax(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
-	LRESULT OnSound(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL &bHandled);
-
-	LRESULT OnFileExit();
-	LRESULT OnFileNew();
-	LRESULT OnFileOpen();
-
-	LRESULT OnProjectOpen();
-	
-	LRESULT OnScriptFileNew();
-	LRESULT OnScriptFileOpen();
-
-	LRESULT OnViewToolBar();
-	LRESULT OnViewStatusBar();
-	
-	LRESULT OnViewWorldEditor();
-	LRESULT OnViewMapEditor();
-	LRESULT OnViewSpriteEditor();
-	LRESULT OnViewScriptEditor();
-
-	LRESULT OnViewInformationWindow();
-	LRESULT OnViewPropertiesWindow();
-
-	LRESULT OnAppHelp();
-	LRESULT OnAppAbout();
-	LRESULT OnAppConfig();
-	LRESULT OnWindowCascade();
-	LRESULT OnWindowTile();
-	LRESULT OnWindowArrangeIcons();
-
-	int OnSaveAll();
+	void OnProjectNew();
+	void OnProjectOpen();
+	void OnProjectSave();
+	void OnProjectSaveAs();
+	void OnProjectClose();
+	void OnQuestNew();
+	void OnQuestOpen();
+	void OnQuestSave();
+	void OnQuestSaveAs();
+	void OnQuestClose();
+	void OnScriptFileNew();
+	void OnScriptFileOpen();
+	void OnClose();
+	void OnSave();
+	int  OnSaveAll();
+	void OnSaveAs();
+	void OnViewToolBar();
+	void OnViewStatusBar();
+	void OnFileExit();
+	void OnSound();
+	void OnAnim();
+	void OnParallax();
+	void OnViewWorldEditor();
+	void OnViewMapEditor();
+	void OnViewScriptEditor();
+	void OnViewSpriteEditor();
 	HRESULT OnBuildProject(bool bForce = true);
-	HRESULT OnRunProject();
 	HRESULT OnStopBuild();
-
-	void OnDbgBreak();
-	void OnDbgStop();
-	void OnShowNext();
+	HRESULT OnDebugProject();
+	HRESULT OnRunProject();
 	void OnStepInto();
 	void OnStepOut();
 	void OnStepOver();
+	void OnDbgBreak();
+	void OnDbgStop();
+	void OnShowNext();
 	void OnContinue();
+	void OnAppHelp();
+	void OnAppAbout();
+	void OnAppConfig();
+	void OnWindowCascade();
+	void OnWindowTile();
+	void OnWindowArrangeIcons();
 
 	HWND CreatePane(HWND hWndClient, LPCTSTR sName, HICON hIcon, CRect& rcDock, HWND hDockTo, dockwins::CDockingSide side);
 public:

@@ -24,7 +24,8 @@
 
 #pragma once
 
-#include "ChildFrm.h"
+//#include "ChildFrm.h"
+#include "GEditorFrm.h"
 #include "WorldEditorView.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -34,7 +35,8 @@ class CMainFrame;
 /////////////////////////////////////////////////////////////////////////////
 // This class manages the script editor frame
 class CWorldEditorFrame :
-	public CChildFrame
+	public CGEditorFrame
+//	public CChildFrame
 {
 protected:
 public:
@@ -50,7 +52,8 @@ public:
 		
 		//MESSAGE_HANDLER(UWM_MDICHILDSHOWTABCONTEXTMENU, OnShowTabContextMenu)
 
-		CHAIN_MSG_MAP(CChildFrame)
+//		CHAIN_MSG_MAP(CChildFrame)
+		CHAIN_MSG_MAP(CGEditorFrame)
 
 	END_MSG_MAP()
 

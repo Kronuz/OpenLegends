@@ -86,115 +86,6 @@ LRESULT CSptShtEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lPar
 	return 0;
 }
 
-
-void CSptShtEditorView::OnParallax()
-{
-}
-void CSptShtEditorView::OnAnim()
-{
-}
-void CSptShtEditorView::OnSound()
-{
-}
-
-bool CSptShtEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam)
-{
-	if(!DoFileClose()) return false;
-
-	bool bRet = false;
-
-	CSpriteSheet *pSpriteSheet = (CSpriteSheet *)wParam;
-
-	char szFilePath[MAX_PATH];
-	pSpriteSheet->GetFilePath(szFilePath, sizeof(szFilePath));
-
-	m_fnFile = pSpriteSheet->GetFile();
-	m_fScale = 1.0f;
-	m_fnFile.SetFileExt(".png");
-	if(!m_fnFile.FileExists()) {
-		m_fScale = 2.0f;
-		m_fnFile.SetFileExt(".bmp");
-		if(!m_fnFile.FileExists()) {
-			return false;
-		}
-	}
-	int filesize = m_fnFile.GetFileSize();
-	LPCVOID pData = m_fnFile.ReadFile();
-	if(!pData) return false;
-
-	LoadImage(&m_Image, pData, filesize);
-
-	m_szSptSht.SetSize(m_Image.GetWidth(), m_Image.GetHeight());
-
-	// Save file name for later
-	m_sFilePath = szFilePath;
-
-	// Save the title for later
-	m_sTitle = lpszTitle;
-	m_pSpriteSheet = pSpriteSheet;
-
-	m_pParentFrame->m_sChildName = m_sFilePath;
-	m_pParentFrame->SetTitle(m_sFilePath);
-	m_pParentFrame->SetTabText(m_sTitle);
-
-	CalculateLimits();
-	SetScrollSize(m_rcScrollLimits.Size());
-
-	SpriteStep((LPCSTR)lParam);
-
-	return true;
-}
-
-CSprite* CSptShtEditorView::LocateInitSprite()
-{
-	CSprite *pSprite = m_pSpriteSheet->FindSprite(m_sInitSprite);
-	if(pSprite) {
-		CRect rcClient;
-		pSprite->GetBaseRect(rcClient);
-		CPoint WorldPoint = rcClient.CenterPoint();
-
-		GetClientRect(&rcClient);
-
-		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-rcClient.CenterPoint().x, (int)((float)WorldPoint.y*m_Zoom)-rcClient.CenterPoint().y);
-	}
-	return pSprite;
-}
-// must return true if the file was truly closed, false otherwise.
-bool CSptShtEditorView::DoFileClose()
-{
-	if(hasChanged()) {
-		CString sSave;
-		sSave.Format("Save Changes to %s?", GetTitle());
-		int ret = MessageBox(sSave, _T("Quest Designer"), MB_YESNOCANCEL|MB_ICONWARNING);
-		switch(ret) {
-			case IDCANCEL: 
-				return false;
-			case IDYES: 
-				if(!OnFileSave()) { 
-					MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR); 
-					return false; 
-				}
-			case IDNO: 
-				return true;
-		}
-	}
-	return true;
-}
-bool CSptShtEditorView::DoFileSave(LPCTSTR lpszFilePath)
-{
-	if(m_sFilePath.IsEmpty()) return DoFileSaveAs();
-
-	return false;
-}
-bool CSptShtEditorView::DoFileSaveAs()
-{
-	return false;
-}
-bool CSptShtEditorView::DoFileReload()
-{
-	return false;
-}
-
 LRESULT CSptShtEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	return 0;
@@ -221,36 +112,6 @@ void CSptShtEditorView::UIUpdateMenuItems()
 	pMainFrm->UIEnable(ID_ERASE, IsSelection());
 
 }
-BOOL CSptShtEditorView::CanUndo()
-{
-	return FALSE;
-}
-BOOL CSptShtEditorView::CanRedo()
-{
-	return FALSE;
-}
-BOOL CSptShtEditorView::CanCut()
-{
-	return FALSE;
-}
-BOOL CSptShtEditorView::CanCopy()
-{
-	return FALSE;
-}
-BOOL CSptShtEditorView::CanPaste()
-{
-	return FALSE;
-}
-
-BOOL CSptShtEditorView::IsSelection()
-{
-	return FALSE;
-}
-BOOL CSptShtEditorView::IsReadOnly()
-{
-	return FALSE;
-}
-
 // Called to do idle processing
 BOOL CSptShtEditorView::OnIdle()
 {
@@ -282,27 +143,13 @@ bool CSptShtEditorView::hasChanged()
 	return false;
 }
 
-void CSptShtEditorView::SpriteStep(LPCSTR szSprite)
-{
-	m_sInitSprite = szSprite;
-
-	CSprite *pSprite = LocateInitSprite();
-	m_Sprites.clear();
-	if(pSprite) m_Sprites.push_back(pSprite);
-
-	OnChangeSel(OCS_RENEW);
-
-	UpdateView();
-	Invalidate();
-}
-
 void CSptShtEditorView::ViewToWorld(CPoint *_pPoint) 
 { 
 	_pPoint->x += GetScrollPos(SB_HORZ);
 	_pPoint->y += GetScrollPos(SB_VERT);
 
-	_pPoint->x = (int)((float)_pPoint->x / m_Zoom);
-	_pPoint->y = (int)((float)_pPoint->y / m_Zoom);
+	_pPoint->x = (int)((float)_pPoint->x / m_Zoom + 0.5f);
+	_pPoint->y = (int)((float)_pPoint->y / m_Zoom + 0.5f);
 }
 
 void CSptShtEditorView::HoldOperation()
@@ -413,16 +260,6 @@ BITMAP* CSptShtEditorView::CaptureSelection(float _fZoom)
 	return NULL;
 }
 
-void CSptShtEditorView::OnZoom()
-{
-	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
-	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
-
-	CString sText;
-	sText.Format(_T("%4d%%"), (int)(100.0f * m_Zoom));
-	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
-}
-
 void CSptShtEditorView::CleanSelection()
 {
 }
@@ -464,16 +301,16 @@ void CSptShtEditorView::Render(WPARAM wParam)
 	static DWORD dwOldTicks = 0;
 	DWORD dwTicks = GetTickCount();
 
-	CMemDC memdc( wParam ? (HDC)wParam : GetDC(), NULL );
+	CMemDC dcMem( wParam ? (HDC)wParam : GetDC(), NULL );
 
 	CRect rcSrc (0, 0, m_szSptSht.cx, m_szSptSht.cy);
 	CRect rcDst(m_rcScrollLimits);
 	if(!wParam) rcDst.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
 
 	// Background:
-	memdc.FillSolidRect(&memdc.m_rc, ::GetSysColor(COLOR_APPWORKSPACE));
+	dcMem.FillSolidRect(&dcMem.m_rc, ::GetSysColor(COLOR_APPWORKSPACE));
 
-	// Draw the squares for transparency:
+	// Draw the chess-like squares to have as the transparency background:
 	RECT rc = {0,0,0,0};
 	for(int i=m_rcScrollLimits.top; i<m_rcScrollLimits.bottom; i+=m_nStep) {
 		rc.top = rc.bottom;
@@ -486,12 +323,12 @@ void CSptShtEditorView::Render(WPARAM wParam)
 			color++;
 			if(rc.right > m_rcScrollLimits.right) rc.right = m_rcScrollLimits.right;
 			if(rc.bottom > m_rcScrollLimits.bottom) rc.bottom = m_rcScrollLimits.bottom;
-			if( (color&1)==1 ) memdc.FillRect(&rc, (HBRUSH)::GetStockObject(WHITE_BRUSH));
-			else memdc.FillRect(&rc, (HBRUSH)::GetStockObject(LTGRAY_BRUSH));
+			if( (color&1)==1 ) dcMem.FillRect(&rc, (HBRUSH)::GetStockObject(WHITE_BRUSH));
+			else dcMem.FillRect(&rc, (HBRUSH)::GetStockObject(LTGRAY_BRUSH));
 		}
 	}
 	// Alpha blend the sprite sheet:
-	m_Image.AlphaBlend(memdc, rcDst, rcSrc);
+	m_Image.AlphaBlend(dcMem, rcDst, rcSrc);
 
 	vectorSprite::iterator Iterator = m_Sprites.begin();
 	while(Iterator!=m_Sprites.end()) {
@@ -506,7 +343,7 @@ void CSptShtEditorView::Render(WPARAM wParam)
 		);
 		if(!wParam) Rects.OffsetRect(-GetScrollPos(SB_HORZ), -GetScrollPos(SB_VERT));
 
-		SelectionBox(memdc, Rects, RGB(anim,anim,128));
+		SelectionBox(dcMem, Rects, RGB(anim,anim,128));
 		Iterator++;
 	}
 
@@ -517,6 +354,148 @@ void CSptShtEditorView::Render(WPARAM wParam)
 		else if(animq<0 && anim<=128) {anim=128;animq*=-1;}
 	}
 }
+void CSptShtEditorView::UpdateView()
+{
+	// We need to recalculate the window's size and position:
+	CRect rcClient, rcClip;
+	GetClientRect(&rcClient);
+	rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
+
+	rcClip.SetRect(0, 0, m_szSptSht.cx, m_szSptSht.cy);
+	// and we do nothing :P
+}
+
+void CSptShtEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
+{
+	HWND hWnd = GetMainFrame()->m_hWnd;
+	::SendMessage(hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
+}
+
+// Called after a zooming:
+void CSptShtEditorView::OnZoom()
+{
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("%4d%%"), (int)(100.0f * m_Zoom));
+	pStatusBar->SetPaneText(ID_OVERTYPE_PANE, sText);
+}
+
+
+bool CSptShtEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam)
+{
+	if(!DoFileClose()) return false;
+
+	bool bRet = false;
+
+	CSpriteSheet *pSpriteSheet = (CSpriteSheet *)wParam;
+
+	char szFilePath[MAX_PATH];
+	pSpriteSheet->GetFilePath(szFilePath, sizeof(szFilePath));
+
+	m_fnFile = pSpriteSheet->GetFile();
+	m_fScale = 1.0f;
+	m_fnFile.SetFileExt(".png");
+	if(!m_fnFile.FileExists()) {
+		m_fScale = 2.0f;
+		m_fnFile.SetFileExt(".bmp");
+		if(!m_fnFile.FileExists()) {
+			return false;
+		}
+	}
+	int filesize = m_fnFile.GetFileSize();
+	LPCVOID pData = m_fnFile.ReadFile();
+	if(!pData) return false;
+
+	LoadImage(&m_Image, pData, filesize);
+
+	m_szSptSht.SetSize(m_Image.GetWidth(), m_Image.GetHeight());
+
+	// Save file name for later
+	m_sFilePath = szFilePath;
+
+	// Save the title for later
+	m_sTitle = lpszTitle;
+	m_pSpriteSheet = pSpriteSheet;
+
+	m_pParentFrame->m_sChildName = m_sFilePath;
+	m_pParentFrame->SetTitle(m_sFilePath);
+	m_pParentFrame->SetTabText(m_sTitle);
+
+	CalculateLimits();
+	SetScrollSize(m_rcScrollLimits.Size());
+
+	SpriteStep((LPCSTR)lParam);
+
+	return true;
+}
+// must return true if the file was truly closed, false otherwise.
+bool CSptShtEditorView::DoFileClose()
+{
+	if(hasChanged()) {
+		CString sSave;
+		sSave.Format("Save Changes to %s?", GetTitle());
+		int ret = MessageBox(sSave, _T("Quest Designer"), MB_YESNOCANCEL|MB_ICONWARNING);
+		switch(ret) {
+			case IDCANCEL: 
+				return false;
+			case IDYES: 
+				if(!OnFileSave()) { 
+					MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR); 
+					return false; 
+				}
+			case IDNO: 
+				return true;
+		}
+	}
+	return true;
+}
+bool CSptShtEditorView::DoFileSave(LPCTSTR lpszFilePath)
+{
+	if(m_sFilePath.IsEmpty()) return DoFileSaveAs();
+
+	return false;
+}
+bool CSptShtEditorView::DoFileSaveAs()
+{
+	return false;
+}
+bool CSptShtEditorView::DoFileReload()
+{
+	return false;
+}
+
+LRESULT CSptShtEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+{
+	CGEditorView::OnMouseMove(uMsg, wParam, lParam, bHandled);
+
+	CPoint Point(lParam);
+	ViewToWorld(&Point);
+
+	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
+
+	CString sText;
+	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
+	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
+
+	if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
+
+	return 0;
+}
+
+void CSptShtEditorView::OnParallax()
+{
+}
+void CSptShtEditorView::OnAnim()
+{
+}
+void CSptShtEditorView::OnSound()
+{
+}
+
+// HELPER FUNCTIONS:
 void CSptShtEditorView::SelectionBox(HDC hDC, const CRect &rectDest, COLORREF rgbColor)
 {
 	CDC dc;
@@ -575,37 +554,62 @@ void CSptShtEditorView::SelectionBox(HDC hDC, const CRect &rectDest, COLORREF rg
 
 	dc.Detach();
 }
-void CSptShtEditorView::UpdateView()
-{
-	// We need to recalculate the window's size and position:
-	CRect rcClient, rcClip;
-	GetClientRect(&rcClient);
-	rcClient.OffsetRect(GetScrollPos(SB_HORZ), GetScrollPos(SB_VERT));
 
-	rcClip.SetRect(0, 0, m_szSptSht.cx, m_szSptSht.cy);
+CSprite* CSptShtEditorView::LocateInitSprite()
+{
+	CSprite *pSprite = m_pSpriteSheet->FindSprite(m_sInitSprite);
+	if(pSprite) {
+		CRect rcClient;
+		pSprite->GetBaseRect(rcClient);
+		CPoint WorldPoint = rcClient.CenterPoint();
+
+		GetClientRect(&rcClient);
+
+		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-rcClient.CenterPoint().x, (int)((float)WorldPoint.y*m_Zoom)-rcClient.CenterPoint().y);
+	}
+	return pSprite;
 }
 
-void CSptShtEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
+void CSptShtEditorView::SpriteStep(LPCSTR szSprite)
 {
-	HWND hWnd = GetMainFrame()->m_hWnd;
-	::SendMessage(hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
+	m_sInitSprite = szSprite;
+
+	CSprite *pSprite = LocateInitSprite();
+	m_Sprites.clear();
+	if(pSprite) m_Sprites.push_back(pSprite);
+
+	OnChangeSel(OCS_RENEW);
+
+	UpdateView();
+	Invalidate();
 }
 
-LRESULT CSptShtEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+BOOL CSptShtEditorView::CanUndo()
 {
-	CGEditorView::OnMouseMove(uMsg, wParam, lParam, bHandled);
+	return FALSE;
+}
+BOOL CSptShtEditorView::CanRedo()
+{
+	return FALSE;
+}
+BOOL CSptShtEditorView::CanCut()
+{
+	return FALSE;
+}
+BOOL CSptShtEditorView::CanCopy()
+{
+	return FALSE;
+}
+BOOL CSptShtEditorView::CanPaste()
+{
+	return FALSE;
+}
 
-	CPoint Point(lParam);
-	ViewToWorld(&Point);
-
-	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
-	CMultiPaneStatusBarCtrl *pStatusBar = pMainFrm->GetMultiPaneStatusBarCtrl();
-
-	CString sText;
-	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
-	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
-
-	if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
-
-	return 0;
+BOOL CSptShtEditorView::IsSelection()
+{
+	return FALSE;
+}
+BOOL CSptShtEditorView::IsReadOnly()
+{
+	return FALSE;
 }

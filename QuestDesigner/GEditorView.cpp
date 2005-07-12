@@ -36,6 +36,8 @@
 CGEditorView::CGEditorView(CGEditorFrame *pParentFrame) :
 	CChildView(pParentFrame),
 	m_Zoom(1.0f),
+	m_MaxZoom(10.0f),
+	m_MinZoom(0.10f),
 	m_nSnapSize(16),
 	m_DragState(tNone),
 	m_CursorStatus(eIDC_ARROW),
@@ -43,6 +45,7 @@ CGEditorView::CGEditorView(CGEditorFrame *pParentFrame) :
 	m_pDropTarget(NULL),
 	m_pDropSource(NULL),
 
+	m_bAllowAnimate(true),
 	m_bAllowAutoScroll(true),
 	m_bAllowSnapOverride(true),
 	m_bAllowMulSelection(true),
@@ -124,7 +127,7 @@ LRESULT CGEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BO
 	::BringWindowToTop(GetParent());
 
 	// start the animations
-	SetTimer(1, 1000/30);
+	if(m_bAllowAnimate) SetTimer(1, 1000/30);
 
 	OnZoom(); // called to update the zoom information (perhaps in the status bar)
 
@@ -167,11 +170,12 @@ LRESULT CGEditorView::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL 
 {
 	if(wParam == 1) { // Render stuf:
 		// check if we are still the topmost window in the MDI frame, if we don't, we kill the timer:
-		if(GetMainFrame() && GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
+		if(!m_bAllowAnimate || GetMainFrame() && GetParentFrame()->m_hWnd != GetMainFrame()->m_tabbedClient.GetTopWindow()) {
 			KillTimer(1); 
+		} else {
+			DoFrame();
+			Render(NULL); // Animation
 		}
-		DoFrame();
-		Render(NULL); // Animation
 	} else if(wParam == 2) { // Drag and drop stuff:
 		// cancel this timer
 		KillTimer(2);
@@ -211,7 +215,7 @@ bool CGEditorView::OnFileOpen()
 }
 bool CGEditorView::OnFileClose()
 {
-	return DoFileClose();
+	return (::SendMessage(GetParent(), WM_CLOSE, 0, 0)==0);
 }
 bool CGEditorView::OnFileReload()
 {
@@ -296,7 +300,7 @@ LRESULT CGEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 
 	UpdateView();
 
-	CURSOR Cursor;
+	CURSOR Cursor = eIDC_ARROW;
 	CPoint Point(lParam);
 	ScreenToClient(&Point);
 	GetMouseStateAt(Point, &Cursor);
@@ -1004,9 +1008,8 @@ bool CGEditorView::Zoom(float zoom)
 
 	m_Zoom = (float)(int)(m_Zoom+0.5);
 	if(flip) m_Zoom = 1.0f/m_Zoom;
-
-	if(m_Zoom>10.0f) m_Zoom = 10.0f;
-	if(m_Zoom<0.10f) m_Zoom = 0.10f;
+	if(m_Zoom>m_MaxZoom) m_Zoom = m_MaxZoom;
+	if(m_Zoom<m_MinZoom) m_Zoom = m_MinZoom;
 
 	OnZoom();
 	if(oldZoom == m_Zoom) return false;
@@ -1020,8 +1023,8 @@ bool CGEditorView::Zoom(float zoom)
 	// Don't know why this is needed, I think there's a bug in the Windows XP scrolling bar system:
 	CRect rcClient;
 	GetClientRect(&rcClient);
-	ShowScrollBar(SB_HORZ, m_rcScrollLimits.Width() > rcClient.Width());
-	ShowScrollBar(SB_VERT, m_rcScrollLimits.Height() > rcClient.Height());
+//	ShowScrollBar(SB_HORZ, m_rcScrollLimits.Width() > rcClient.Width());
+//	ShowScrollBar(SB_VERT, m_rcScrollLimits.Height() > rcClient.Height());
 
 	return true;
 }

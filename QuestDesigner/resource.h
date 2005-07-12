@@ -57,7 +57,6 @@
 #define IDI_DOC_SPRITE                  264
 #define IDB_BITMAP1                     264
 #define IDB_CAMARA                      264
-#define IDR_MDIMAPED1                   264
 #define IDR_MDISPRITEED                 264
 #define IDI_DOC_SPTSHT                  265
 #define IDI_DOC_SPTSET                  266
@@ -226,13 +225,20 @@
 #define ID_SCRIPTED_BEAUTIFY            32433
 #define ID_FILE_OPEN32434               32434
 #define ID_OPEN_OPENMAP                 32435
-#define ID_OPEN_OPEN                    32436
-#define ID_FILE_CLOSEQUEST              32437
-#define ID_FILE_PREFERENCES             32438
 #define ID_OPEN_OPENSPRITESHEET         32439
 #define ID_OPEN_OPENSPRITESHEET32440    32440
 #define ID_OPEN_OPENSPRITESHEET32441    32441
-#define ID_FILE_LOADQUEST               32442
+#define ID_QUEST_CLOSE                  32443
+#define ID_PROJECT_CLOSE                32444
+#define ID_OPEN_SPRITESHEET             32446
+#define ID_PROJECT_NEW                  32461
+#define ID_DBG_RUN                      32464
+#define ID_WORLDED_SELECT_ALL           32467
+#define ID_APP_ADDNEWITEM               32468
+#define ID_APP_ADDEXISTINGITEM          32469
+#define ID_SCRIPT_OPEN                  32470
+#define ID_SCRIPT_NEW                   32471
+#define ID_SELECT_ALL                   32472
 #define ID_APP_SAVE                     57603
 #define ID_APP_SAVE_AS                  57604
 #define ID_ERASE                        57632
@@ -274,7 +280,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        277
-#define _APS_NEXT_COMMAND_VALUE         32443
+#define _APS_NEXT_COMMAND_VALUE         32473
 #define _APS_NEXT_CONTROL_VALUE         1032
 #define _APS_NEXT_SYMED_VALUE           105
 #endif

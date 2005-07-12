@@ -55,9 +55,12 @@ protected:
 
 	bool m_bModified;
 	float m_Zoom;
+	float m_MinZoom;
+	float m_MaxZoom;
 	int m_nSnapSize;
 	enum { tNone, tToDrag, tWaiting, tDragging } m_DragState;
 
+	bool m_bAllowAnimate;
 	bool m_bAllowAutoScroll;
 	bool m_bAllowSnapOverride;
 	bool m_bAllowMulSelection;
