@@ -28,6 +28,7 @@
 	\author		Kronuz
 	\version	1.0
 	\date		April 28, 2003
+				July 12, 2005 + Added IsLoaded()
 
 	IArchive Interface to implement disk read/write operations of specific
 	objects. It is an abstract class that must be implemented in any
@@ -115,6 +116,7 @@ interface CDocumentObject
 
 	virtual bool Load(LPCSTR szFile = "") { return Load(CVFile(szFile)); }
 	virtual bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
+	virtual bool IsLoaded() {return m_bLoaded;}
 
 	virtual bool Clean(bool bForce = true) = 0; //!< Cleans the object when it's closed.
 
