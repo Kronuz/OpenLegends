@@ -61,6 +61,9 @@ Global
 		{8606DEA8-2B95-46FA-BC48-18D6A1DE0165}.ReleaseDeb.ActiveCfg = ReleaseDeb|Win32
 		{8606DEA8-2B95-46FA-BC48-18D6A1DE0165}.ReleaseDeb.Build.0 = ReleaseDeb|Win32
 	EndGlobalSection
+	GlobalSection(SolutionItems) = postSolution
+		TODO.txt = TODO.txt
+	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
 	GlobalSection(ExtensibilityAddIns) = postSolution

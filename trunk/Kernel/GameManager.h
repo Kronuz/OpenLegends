@@ -113,12 +113,12 @@ protected:
 	void DeleteMap(int nIndex);
 	void DeleteSound(int nIndex);
 
+	// CDocumentObject override:
+	bool _Close(bool bForce); //!< Frees all allocated memory and cleans the object.
+
 public:
 	static int CALLBACK LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam);
 	void CleanUndefs();
-
-	// CDocumentObject override:
-	bool Clean(bool bForce = true); //!< Frees all allocated memory and cleans the object.
 
 	// Construction/Destruction:
 	CGameManager();
@@ -233,6 +233,7 @@ public:
 
 	CSprite *FindSprite(CPoint MapPoint, LPCSTR Layer="Any"); //!< Finds the sprite at a specific location.
 
+	CMapGroup* FindMapGroup(LPCSTR szMapID) const;
 	CMapGroup *FindMapGroup(int x, int y) const; //!< Get the map group at location (x,y)
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
 	CThumbnails* GetThumbnails() {

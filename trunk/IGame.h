@@ -425,7 +425,8 @@ interface IGame
 	virtual CSound *FindSound(LPCSTR szName) = 0; //!< Finds a sound using its name.
 	virtual CScript *FindScript(LPCSTR szName) = 0; //!< Finds a script using its name.
 
-	virtual CMapGroup *FindMapGroup(int x, int y) const = 0; //!< Get the mapgroup at location (x,y)
+	virtual CMapGroup* FindMapGroup(LPCSTR szMapID) const = 0;
+	virtual CMapGroup* FindMapGroup(int x, int y) const = 0; //!< Get the mapgroup at location (x,y)
 	virtual CMapGroup* BuildMapGroup(int x, int y, int width, int height) = 0;
 
 	virtual CThumbnails* GetThumbnails() = 0;

@@ -53,6 +53,8 @@ IGraphics **CGameManager::ms_ppGraphicsI = NULL;
 		##funct.Callback(&Info, ##funct.lParam); \
 	}
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 CGameManager *CGameManager::_instance = NULL;
 
 CGameManager::CGameManager() :
@@ -67,7 +69,7 @@ CGameManager::CGameManager() :
 
 CGameManager::~CGameManager()
 {
-	Clean();
+	Close(true);
 	delete m_pDummyDebug;
 }
 
@@ -334,10 +336,11 @@ void CGameManager::DeleteSprite(LPCSTR szName)
 	}
 }
 
-bool CGameManager::Clean(bool bForce)
+bool CGameManager::_Close(bool bForce)
 {
 	if(!CloseWorld(bForce)) return false;
-	CONSOLE_PRINTF("Cleaning project: '%s'.\n", m_sProjectName);
+
+	CONSOLE_PRINTF("Closing project: '%s'...\n", m_sProjectName);
 
 	if(m_SpriteSheets.size()) CONSOLE_PRINTF("Freeing Sprite Sheets...\n");
 	while(m_SpriteSheets.size()) {
@@ -345,20 +348,20 @@ bool CGameManager::Clean(bool bForce)
 	}
 
 	// Now we delete all undefined sprites (referred, but never really created)
-	if(m_UndefSprites.size()) CONSOLE_PRINTF("Freeing Unreferred Sprites...\n");
+	if(m_UndefSprites.size()) CONSOLE_PRINTF("Cleaning Unreferred Sprites...\n");
 	while(m_UndefSprites.size()) {
 		delete m_UndefSprites.begin()->second.pSprite;
 		m_UndefSprites.erase(m_UndefSprites.begin());
 	}
 
 	// Delete all loaded scripts
-	if(m_Scripts.size()) CONSOLE_PRINTF("Freeing Scripts...\n");
+	if(m_Scripts.size()) CONSOLE_PRINTF("Cleaning Scripts...\n");
 	while(m_Scripts.size()) {
 		DeleteScript(0);
 	}
 
 	// Delete all loaded sounds
-	if(m_Sounds.size()) CONSOLE_PRINTF("Freeing Sounds...\n");
+	if(m_Sounds.size()) CONSOLE_PRINTF("Cleaning Sounds...\n");
 	while(m_Sounds.size()) {
 		delete m_Sounds.begin()->second;
 		m_Sounds.erase(m_Sounds.begin());
@@ -581,6 +584,10 @@ void CGameManager::SetWorldSize(const CSize &worldSize)
 CMapGroup* CGameManager::BuildMapGroup(int x, int y, int width, int height)
 {
 	return m_World.BuildMapGroup(x, y, width, height);
+}
+CMapGroup* CGameManager::FindMapGroup(LPCSTR szMapID) const
+{
+	return m_World.FindMapGroup(szMapID);
 }
 CMapGroup* CGameManager::FindMapGroup(int x, int y) const
 {
