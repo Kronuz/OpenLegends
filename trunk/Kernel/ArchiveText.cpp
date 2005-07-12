@@ -275,7 +275,7 @@ bool CProjectTxtArch::WriteObject(CVFile &vfFile)
 
 bool CMapTxtArch::ReadObject(CVFile &vfFile)
 {
-	vfFile.Open("r");
+	if(!vfFile.Open("r")) return false; // Couldn't open file.
 
 	int nObjects;
 	m_nLines = 0;
@@ -396,6 +396,14 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 {
 	//Current mapgroup
 	CMapGroup *MapGroup = static_cast<CMapGroup*>(m_pLayer->GetParent());
+	
+	//Current layer
+	int nLayer = m_pLayer->GetObjSubLayer();
+	CBString sLayer = "";
+	if(nLayer != DEFAULT_LAYER){
+		if(nLayer > DEFAULT_LAYER) sLayer.Format("+%d", nLayer-DEFAULT_LAYER); //= "+" + (nLayer-DEFAULT_LAYER);
+		else sLayer.Format("-%d", DEFAULT_LAYER-nLayer); //= "-" + (DEFAULT_LAYER-nLayer);
+	}
 
 	//Folder setup
 	CBString sFile;
@@ -416,11 +424,11 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 	CRect ScreenRect(0, 0, 640, 480);	
 
 	for(int i=0; i < Rect.Width(); i++) {
-		for(int j=0; j < Rect.Height(); i++) {
-			sFile.Format("%d-%d.lnd", Rect.left + i, Rect.top + j);
+		for(int j=0; j < Rect.Height(); j++) {
+			sFile.Format("%d-%d%s.lnd", Rect.left + i, Rect.top + j, sLayer);
 			vfFile.SetFilePath(sPath + sFile);
-			vfFile.Delete();
-			vfFile.Open("wb");
+//			vfFile.Delete();	//FIXME Delete(); is buggy.
+			vfFile.Open("wt");
 
 			//Write the CMapGroup data for the current screen
 
@@ -555,34 +563,42 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 }
 
 bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
-{
-	// For now, there is only one layer availible in the worlds the default layer:
-	CLayer *pLayer = static_cast<CLayer *>(m_pMapGroup->GetChild(DEFAULT_LAYER));
-	ASSERT(pLayer);
-	
-	CVFile vfFile2;
-	CBString sFile;
+{	
 
 	const CWorld *pWorld = m_pMapGroup->GetWorld();
 	CBString sPath = "questdata\\" + pWorld->GetFile().GetFileTitle(); // relative by default
+	for(int h=0; h < MAX_LAYERS; h++){
+		CVFile vfFile2;
+		CBString sFile;
+		
+		CLayer *pLayer = static_cast<CLayer *>(m_pMapGroup->GetChild(h));
+		ASSERT(pLayer);
+		if(pLayer->IsLoaded()) continue;
 
-	CRect MapGroupRect;
-	m_pMapGroup->GetMapGroupRect(MapGroupRect);
-	// for each map in the group, we load it in the ground layer:
-	for(int j=0; j<MapGroupRect.Height(); j++) {
-		for(int i=0; i<MapGroupRect.Width(); i++) {
-			sFile.Format("\\screens\\%d-%d.lnd", MapGroupRect.left + i, MapGroupRect.top + j);
-			vfFile2.SetFilePath(sPath + sFile);
-
-			pLayer->SetLoadPoint(pWorld->m_szMapSize.cx*i, pWorld->m_szMapSize.cy*j);
-			if(!pLayer->Load(vfFile2)) {
-				CONSOLE_PRINTF("Map error in '%s': Couldn't find the screen!\n", vfFile2.GetFileName());
-			}
-			pLayer->LoadMore(); // more screens to load...
+		CBString sLayer = "";
+		int nLayer = pLayer->GetObjSubLayer();
+		if(nLayer != DEFAULT_LAYER){
+			if(nLayer > DEFAULT_LAYER) sLayer.Format("+%d", nLayer-DEFAULT_LAYER);//sLayer = "+" + (nLayer-DEFAULT_LAYER);
+			else sLayer.Format("-%d", DEFAULT_LAYER-nLayer); //sLayer = "-" + (DEFAULT_LAYER-nLayer);
 		}
-	}
-	pLayer->Loaded(); // se the layer as a fully loaded layer (no more screens to load)
 
+		CRect MapGroupRect;
+		m_pMapGroup->GetMapGroupRect(MapGroupRect);
+		// for each map in the group, we load it in the ground layer:
+		for(int j=0; j<MapGroupRect.Height(); j++) {
+			for(int i=0; i<MapGroupRect.Width(); i++) {
+				sFile.Format("\\screens\\%d-%d%s.lnd", MapGroupRect.left + i, MapGroupRect.top + j, sLayer);
+				vfFile2.SetFilePath(sPath + sFile);	
+
+				pLayer->SetLoadPoint(pWorld->m_szMapSize.cx*i, pWorld->m_szMapSize.cy*j);
+				if(!pLayer->Load(vfFile2)) {
+					CONSOLE_PRINTF("Map error in '%s': Couldn't find the screen!\n", vfFile2.GetFileName());
+				}
+				pLayer->LoadMore(); // more screens to load...
+			}
+		}
+		pLayer->Loaded(); // se the layer as a fully loaded layer (no more screens to load)
+	}
 	m_pMapGroup->SettleOriginalBitmap();
 
 	return true;
@@ -590,7 +606,13 @@ bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
 
 bool CMapGroupTxtArch::WriteObject(CVFile &vfFile)
 {
-	return false;
+	for(int i=0; i < MAX_LAYERS; i++)
+	{
+		CLayer *pLayer = static_cast<CLayer *>(m_pMapGroup->GetChild(i));
+		ASSERT(pLayer);
+		pLayer->Save(vfFile);
+	}
+	return true;
 }
 
 bool CWorldTxtArch::ReadObject(CVFile &vfFile)
@@ -671,19 +693,13 @@ int CALLBACK WriteGroups(LPVOID mapgroup, LPARAM lParam)
 bool CWorldTxtArch::WriteObject(CVFile &vfFile)	//TODO: test this file.
 {
 	vfFile.Delete();
-	if(!vfFile.Open("wb")) return false;
-	if(CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle(), NULL))
-	{
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\screens\\", NULL))
-			return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\", NULL))
-			return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\group\\", NULL))
-			return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\main\\", NULL))
-			return false;
-		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\screen\\", NULL))
-			return false;
+	if(!vfFile.Open("wt")) return false;
+	if(CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle(), NULL)){
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\screens\\", NULL))return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\", NULL))return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\group\\", NULL))return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\main\\", NULL))return false;
+		if(!CreateDirectory(g_sHomeDir + "questdata\\" + vfFile.GetFileTitle() + "\\scripts\\screen\\", NULL))return false;
 		CONSOLE_PRINTF("Folders created, saving quest...\n");
 	}
 	else
