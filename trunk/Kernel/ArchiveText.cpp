@@ -177,7 +177,6 @@ retry:
 						rcRect.bottom *= 2;
 						rcRect.left *= 2;
 						rcRect.right *= 2;
-/**/
 						pSprite->AddRect(rcRect);
 					}
 						iFrame++;
@@ -413,146 +412,163 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 	//For helper macros
 	CHAR buff[100];
 	
-	//Stores sprite locations
-	CPoint Point;
-	
 	//Stores current group borders
-	CRect Rect;
-	MapGroup->GetMapGroupRect(Rect);
+	CRect MapRect;
+	MapGroup->GetMapGroupRect(MapRect);
 
 	//Size of a screen
 	CRect ScreenRect(0, 0, 640, 480);	
 
-	for(int i=0; i < Rect.Width(); i++) {
-		for(int j=0; j < Rect.Height(); j++) {
-			sFile.Format("%d-%d%s.lnd", Rect.left + i, Rect.top + j, sLayer);
+	for(int i=0; i < MapRect.Width(); i++) {
+		for(int j=0; j < MapRect.Height(); j++) {
+			sFile.Format("%d-%d%s.lnd", MapRect.left + i, MapRect.top + j, sLayer);
 			vfFile.SetFilePath(sPath + sFile);
 //			vfFile.Delete();	//FIXME Delete(); is buggy.
 			vfFile.Open("wt");
 
 			//Write the CMapGroup data for the current screen
-
 			int nSprites = 0;
 			int nTiles = 0;
 			int k = 0;
 
-			while(true) {
+			for(k=0;;k++) {
 				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
 				if(!pSpriteContext) break;
-				
-				pSpriteContext->GetPosition(Point);
-				
-				//We need to check if the sprite is inside the rectangle we're working with currently
-				Point.Offset(-(i*640),-(j*480));
-				if(!ScreenRect.PtInRect(Point)) { k++; continue; }
 
 				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
 
+				CRect Rect, RectInter;
+				pSpriteContext->GetRect(Rect);
+				Rect.OffsetRect(-(i*640), -(j*480));
+
+				//We need to check if the sprite is inside the rectangle we're working with currently
+				if(pSprite->GetSpriteType() == tEntity) {
+					if(!ScreenRect.PtInRect(Rect.TopLeft())) continue;
+				} else {
+					if(!RectInter.IntersectRect(ScreenRect, Rect)) continue;
+				}
+
 				//Is it placed on the background sublayer?
-				if(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1)) nTiles++;
-				else nSprites++;
-				
-				k++;
+				if(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1)) {
+					nTiles++;
+				} else {
+					// we need to know how many splitted sprites are actually going to be written:
+					CSize szContext;
+					pSpriteContext->GetSize(szContext);
+					CSize szSprite;
+					pSprite->GetSize(szSprite);
+					if(szSprite == szContext) {
+						nSprites++;
+					} else { // Count splitted sprites:
+						CSize szCount;
+						szCount = szContext;
+						szCount.cx /= szSprite.cx;
+						szCount.cy /= szSprite.cy;
+						for(int l=0; l<szCount.cx; l++) {
+							if(Rect.left+l*szSprite.cx > 640 || Rect.right+l*szSprite.cx < 0) continue;
+							for(int m=0; m<szCount.cy; m++) {
+								if(Rect.top+m*szSprite.cy > 480 || Rect.bottom+m*szSprite.cy < 0 ) continue;
+								nSprites++;
+							}
+						}
+					}
+				}
 			}
 			if(k == 0) continue;	//No sprites were loaded, the screen doesn't exist or has no data, in which case it's useless.
 				
 			//Write the sprite count to the file.
 			WriteLongToFile(nSprites, vfFile);
 			
-			k=0;
-			while(true) {
-				CPoint Point;
+			for(k=0;;k++) {
 				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
 				if(!pSpriteContext) break;
-				
-				pSpriteContext->GetPosition(Point);
-				
-				//We need to check if the sprite is inside the rectangle we're working with currently
-				Point.Offset(-(i*640),-(j*480));
-				if(!ScreenRect.PtInRect(Point)) { k++; continue; }
 
 				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
 
 				//Is it placed on the background sublayer?
-				if(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1)) {k++; continue;}
-				
+				if(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1)) continue;
+
+				CRect Rect, RectInter;
+				pSpriteContext->GetRect(Rect);
+				Rect.OffsetRect(-(i*640), -(j*480));
+
+				//We need to check if the sprite is inside the rectangle we're working with currently
+				if(pSprite->GetSpriteType() == tEntity) {
+					if(!ScreenRect.PtInRect(Rect.TopLeft())) continue;
+				} else {
+					if(!RectInter.IntersectRect(ScreenRect, Rect)) continue;
+				}
+
 				CSize szContext;
 				pSpriteContext->GetSize(szContext);
 				CSize szSprite;
 				pSprite->GetSize(szSprite);
 				if(szSprite == szContext) {
 					//x
-					WriteLongToFile(Point.x, vfFile);
+					WriteLongToFile(Rect.left, vfFile);
 					//y
-					WriteLongToFile(Point.y, vfFile);
+					WriteLongToFile(Rect.top, vfFile);
 					//spritename
 					strcpy(buff, pSprite->GetName());
 					WriteStringToFile(vfFile);
 					//entityid
 					strcpy(buff, pSpriteContext->GetName());
 					WriteStringToFile(vfFile);
-					k++;
-					continue;
-				}
-				//FIXME UNTESTED:
-				//The sprite has been resized.
-				CSize szCount;
-				szCount = szContext;
-				szCount.cx /= szSprite.cx;
-				szCount.cy /= szSprite.cy;
-				int m=0;
-				for(int l=0; l < szCount.cx; l++) {
-					if((Point.x+l*szSprite.cx) > 640 || Point.y+m*szSprite.cy > 480) break;
-					for(m=0; m < szCount.cy; m++) {
-						if(Point.y+m*szSprite.cy > 480) break;
-						WriteLongToFile(Point.x+l*szSprite.cx, vfFile);
-						WriteLongToFile(Point.y+m*szSprite.cy, vfFile);
-						strcpy(buff, pSprite->GetName());
-						WriteStringToFile(vfFile);
-						strcpy(buff, " ");	//A resized sprite can't be an entity.
-						WriteStringToFile(vfFile);
+				} else { // Split sprites:
+					//The sprite has been resized.
+					CSize szCount;
+					szCount = szContext;
+					szCount.cx /= szSprite.cx;
+					szCount.cy /= szSprite.cy;
+					if((szContext.cy % szSprite.cy) || (szContext.cx % szSprite.cx))
+						CONSOLE_PRINTF("Map saving warning in '%s': Merged sprite will be smaller. Not a submultiple of the original sprite's size.\n", sFile, pSprite->GetName()); 
+					//FIXME: still needs to save in the other screens if it goes beyond the current screen
+					//perhaps opening all screen files before actually start writing the sprites?
+					for(int l=0; l<szCount.cx; l++) {
+						if(Rect.left+l*szSprite.cx > 640 || Rect.right+l*szSprite.cx < 0) continue;
+						for(int m=0; m<szCount.cy; m++) {
+							if(Rect.top+m*szSprite.cy > 480 || Rect.bottom+m*szSprite.cy < 0 ) continue;
+							WriteLongToFile(Rect.left+l*szSprite.cx, vfFile);
+							WriteLongToFile(Rect.top+m*szSprite.cy, vfFile);
+							strcpy(buff, pSprite->GetName());
+							WriteStringToFile(vfFile);
+							strcpy(buff, " ");	//A resized sprite can't be an entity.
+							WriteStringToFile(vfFile);
+						}
 					}
 				}
-				k++;
 			}
 
 			//Write the tile count to the file.
 			WriteLongToFile(nTiles, vfFile);
 			
-			k=0;
-			while(true) {
-				CPoint Point;
+			for(k=0;;k++) {
 				CSpriteContext *pSpriteContext = static_cast<CSpriteContext*>(m_pLayer->GetChild(k));
 				if(!pSpriteContext) break;
-				
-				pSpriteContext->GetPosition(Point);
-				
-				//We need to check if the sprite is inside the rectangle we're working with currently
-				Point.Offset(-(i*640),-(j*480));
-				if(!ScreenRect.PtInRect(Point)) { k++; continue; }
 
 				CSprite *pSprite = static_cast<CSprite*>(pSpriteContext->GetDrawableObj());
 
 				//Is it placed on the background sublayer?
-				if(!(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1))) { k++; continue; }
-				
-				CRect Rect;
+				if(!(pSpriteContext->GetObjSubLayer() == (static_cast<CBackground *>(pSprite)->GetObjSubLayer()-1))) continue;
+
+				CRect Rect, RectInter;
 				pSpriteContext->GetRect(Rect);
-				Rect.OffsetRect(-(i*640),-(j*480));
+				Rect.OffsetRect(-(i*640), -(j*480));
+
+				//We need to check if the sprite is inside the rectangle we're working with currently
+				if(!RectInter.IntersectRect(ScreenRect, Rect)) continue;
 
 				//left
-				WriteLongToFile(Rect.left, vfFile);
+				WriteLongToFile(RectInter.left, vfFile);
 				//top
-				WriteLongToFile(Rect.top, vfFile);
+				WriteLongToFile(RectInter.top, vfFile);
 				//right
-				WriteLongToFile(Rect.right, vfFile);
+				WriteLongToFile(RectInter.right, vfFile);
 				//bottom
-				WriteLongToFile(Rect.bottom, vfFile);
+				WriteLongToFile(RectInter.bottom, vfFile);
 				//spritename
 				strcpy(buff, pSprite->GetName());
 				WriteStringToFile(vfFile);
-
-				k++;
 			}
 
 			vfFile.Close();

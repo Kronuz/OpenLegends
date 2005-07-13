@@ -356,10 +356,12 @@ void CMapEditorView::RunPopUpCmd(int nCmd)
 		}
 		case 14: {
 			m_SelectionI->SelectionToGroup();
+			OnChangeSel(OCS_AUTO);
 			break;
 		}
 		case 15: {
 			m_SelectionI->GroupToSelection();
+			OnChangeSel(OCS_AUTO);
 			break;
 		}
 	}
@@ -436,10 +438,12 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		menu.AppendMenu(MF_STRING, 9, "&Paste");
 		menu.AppendMenu(MF_SEPARATOR);
 		menu.AppendMenu(MF_STRING, 10, "De&lete");
-		menu.AppendMenu(MF_SEPARATOR);
-		menu.AppendMenu(MF_STRING, 11, "Select &None"); // Select None
+		if(SelectedCount()) {
+			menu.AppendMenu(MF_SEPARATOR);
+			menu.AppendMenu(MF_STRING, 11, "Select &None"); // Select None
+		}
 	}
-	if(SelectedCount() > 1) {
+	if(m_SelectionI->RealCount() > 1) {
 		if(m_SelectionI->isGroup())	menu.AppendMenu(MF_STRING, 15, "&Ungroup");
 		else menu.AppendMenu(MF_STRING, 14, "&Group");
 	}
@@ -516,7 +520,7 @@ void CMapEditorView::UIUpdateMenuItems()
 	pMapUpdateUI->UISetCheck(ID_MAPED_GRIDSNAP, m_bSnapToGrid?TRUE:FALSE);
 
 	int nSelection = 0;
-	if(m_SelectionI && !isFloating()) nSelection = m_SelectionI->Count();
+	if(m_SelectionI && !isFloating()) nSelection = m_SelectionI->RealCount();
 	if(m_SelectionI) pMapUpdateUI->UISetCheck(ID_MAPED_SELHOLD, m_SelectionI->isHeld());
 	pMapUpdateUI->UIEnable(ID_MAPED_SELHOLD, (nSelection>1)?TRUE:FALSE);
 

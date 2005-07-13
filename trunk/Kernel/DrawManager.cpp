@@ -490,7 +490,7 @@ bool CDrawableContext::KillChildEx(CDrawableContext *pDrawableContext_)
 	if(KillChild(pDrawableContext_)) {
 		return true;
 	}
-	// Propagate de search for the child:
+	// Propagate the search for the child:
 	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->KillChildEx(pDrawableContext_)) {
@@ -626,20 +626,24 @@ inline bool CDrawableSelection::ObjPropLayerEqual::operator()(const SObjProp &a,
 }
 inline bool CDrawableSelection::SelectionCompare::operator()(const SObjProp &a, const SObjProp &b) const
 {
-	ASSERT(a.pContext && a.pContext); // NEED TO FIX *** add compare for groups
-	ASSERT(a.pContext->GetParent() && b.pContext->GetParent());
+//	ASSERT(a.pContext && a.pContext); // NEED TO FIX *** add compare for groups
+	if(a.pContext && a.pContext) {
+		ASSERT(a.pContext->GetParent() && b.pContext->GetParent());
 
-	// check layer:
-	if(a.pContext->GetObjLayer() <  b.pContext->GetObjLayer()) return true;
-	if(a.pContext->GetObjLayer() >  b.pContext->GetObjLayer()) return false;
+		// check layer:
+		if(a.pContext->GetObjLayer() <  b.pContext->GetObjLayer()) return true;
+		if(a.pContext->GetObjLayer() >  b.pContext->GetObjLayer()) return false;
 
-	//check sublayer:
-	if(a.pContext->GetObjSubLayer() < b.pContext->GetObjSubLayer()) return true;
-	if(a.pContext->GetObjSubLayer() > b.pContext->GetObjSubLayer()) return false;
+		//check sublayer:
+		if(a.pContext->GetObjSubLayer() < b.pContext->GetObjSubLayer()) return true;
+		if(a.pContext->GetObjSubLayer() > b.pContext->GetObjSubLayer()) return false;
 
-	//check order:
-	if(a.pContext->GetObjOrder() < b.pContext->GetObjOrder()) return true;
-	//if(a.pContext->GetObjOrder() > b.pContext->GetObjOrder()) return false;
+		//check order:
+		if(a.pContext->GetObjOrder() < b.pContext->GetObjOrder()) return true;
+		//if(a.pContext->GetObjOrder() > b.pContext->GetObjOrder()) return false;
+	} else {
+		// it's a group.
+	}
 
 	return false;
 }
@@ -783,8 +787,11 @@ bool CDrawableSelection::SelectGroupWithIn(const CRect &rect_, const CDrawableCo
 			else m_nCurrentGroup = 0;
 
 			// Append a child group to the current selection:
+			CRect rcRect;
+			GetBoundingRect(&rcRect, nGroup);
 			// m_Groups[0].C.push_back(nGroup); NEED TO FIX *** select groups
-			// CONSOLE_DEBUG("The group '%s' has been selected. (%d)\n", (LPCSTR)m_Groups[nGroup].Name.c_str(), m_Groups[0].C.size());
+			m_Groups[0].O.push_back(SObjProp(this, NULL, nGroup, rcRect));
+			CONSOLE_DEBUG("The group '%s' has been selected. (%d)\n", (LPCSTR)m_Groups[nGroup].Name.c_str(), m_Groups[nGroup].O.size());
 
 			return SelectGroup(nGroup);
 		}
@@ -964,6 +971,16 @@ void CDrawableSelection::SetSnapSize(int nSnapSize_, bool bShowGrid_)
 	m_bShowGrid = bShowGrid_;
 	m_nSnapSize = nSnapSize_;
 }
+int CDrawableSelection::RealCount(int nGroup_)
+{
+	int nRet = 0;
+	vectorObject::const_iterator Iterator;
+	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
+		if(Iterator->pContext) nRet++;
+		else nRet += RealCount(Iterator->nGroup);
+	}
+	return nRet;
+}
 int CDrawableSelection::Count()
 {
 	return m_Groups[0].O.size();
@@ -1114,6 +1131,7 @@ int CDrawableSelection::DeleteSelection(int nGroup_)
 				nDeleted += DeleteSelection(nChild);
 			}
 		}
+		m_Groups[nGroup_].O.clear();
 	}
 
 	return nDeleted;

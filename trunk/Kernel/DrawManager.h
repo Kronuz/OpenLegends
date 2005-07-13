@@ -738,7 +738,7 @@ struct SObjProp :
 
 	int nGroup; // what group does it belong to? (0 = no group, its group number if it's a group)
 	bool bSubselected;
-	CRect rcRect;
+	CRect rcRect; // this must always be updated from Resizes and other position changes
 	_Chain eXChain;
 	_Chain eYChain;
 	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), nGroup(nGroup_) {}
@@ -853,7 +853,7 @@ protected:
 	int FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_);
 
 	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
-	virtual void BuildRealSelectionBounds() = 0;
+	virtual void BuildRealSelectionBounds(int nGroup_ = 0) = 0;
 
 	void SortSelection();
 	int SetLayerSelection(int nLayer, int nGroup_);
@@ -937,6 +937,7 @@ public:
 	virtual bool isGroup();
 
 	virtual int Count();
+	virtual int RealCount(int nGroup_ = 0);
 
 	virtual bool GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor);
 

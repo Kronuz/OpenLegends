@@ -567,19 +567,21 @@ CSpriteContext::CSpriteContext(LPCSTR szName) :
 	Tile(false);
 }
 
-void CSpriteSelection::BuildRealSelectionBounds()
+void CSpriteSelection::BuildRealSelectionBounds(int nGroup_)
 {
 	CRect RectTmp;
 	m_rcSelection.SetRectEmpty();
 	vectorObject::iterator Iterator;
 	// NEED TO FIX *** build from the current selection [m_nCurrentGroup] or from the main selection [0]??
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
+	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
 		if(Iterator->pContext) {
 			Iterator->pContext->GetAbsFinalRect(RectTmp);
 		} else {
+			BuildRealSelectionBounds(Iterator->nGroup);
 			GetBoundingRect(&RectTmp, Iterator->nGroup);
 		}
-		m_rcSelection.UnionRect(m_rcSelection, RectTmp);
+		// The main selection (nGroup_==0) updates the selection rect:
+		if(nGroup_ == 0) m_rcSelection.UnionRect(m_rcSelection, RectTmp);
 		// We need to keep the initial size and location of every selected object:
 		Iterator->rcRect = RectTmp;
 	}
@@ -877,6 +879,7 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 	}
 
 	ASSERT(Rect.right>Rect.left && Rect.bottom>Rect.top);
+	// Updating ObjProp_ is very important, otherwise groups won't get updated:
 	scontext->SetAbsFinalRect(Rect);
 }
 
