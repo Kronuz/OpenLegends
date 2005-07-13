@@ -574,7 +574,7 @@ class CSpriteSelection :
 	bool m_bHighlightOnly;
 
 	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
-	void BuildRealSelectionBounds();
+	void BuildRealSelectionBounds(int nGroup_ = 0);
 
 	// Pastes a buffer in the specified point, without selecting it, and returns a
 	// rect with the ending location of the pasted buffer (empty on fail)
