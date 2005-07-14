@@ -964,7 +964,9 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 	// Searching for an open child with the same file:
 	if(Select(szTitle, 0)) return 1;
 
-    StatusBar("Loading...", IDI_ICO_WAIT);
+	CBString strTmp;
+	strTmp.Format("Loading (%d, %d)...", Point.x, Point.y);
+    StatusBar(strTmp, IDI_ICO_WAIT);
 	if(!pMapGroupI->Load()) {
 	    StatusBar("Couldn't load the map group! (1)", IDI_ICO_ERROR);
 		return 0;
