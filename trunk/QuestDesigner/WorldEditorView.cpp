@@ -527,7 +527,7 @@ LRESULT CWorldEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 }
 LRESULT CWorldEditorView::OnLButtonDblClk(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
-	CPoint Point;
+	CPoint Point(lParam);
 	ViewToWorld(&Point);
 	UpdateMouse(Point);
 	GetMainFrame()->MapFileOpen(m_MapPoint);
