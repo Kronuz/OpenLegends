@@ -304,7 +304,7 @@ bool CThumbnailsBox::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 	m_pThumbnails->SetBkColor(COLOR_ARGB(255,255,255,255));
 
 	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pThumbnails)))) {
-		MessageBox("Couldn't load kernel, check kernel version.", "Quest Designer");
+		MessageBox("Couldn't load kernel, check kernel version.", QD_MSG_TITLE);
 		return false;
 	}
 	m_SelectionI->SetLayer(0);

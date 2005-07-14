@@ -69,7 +69,7 @@
 
 //////////////////////////////////////////////////////////////////////////////
 // Interface Version Definition:
-const WORD IGraphics::Version = 0x0410;
+const WORD IGraphics::Version = GRAPHICS_INTVER;
 
 //////////////////////////////////////////////////////////////////////////////
 // Needed Libraries:
@@ -985,7 +985,7 @@ bool CGraphicsD3D8::Initialize(HWND hWnd, bool bWindowed, int nScreenWidth, int 
 		D3DVERIFY(ms_pD3D->GetAdapterIdentifier(D3DADAPTER_DEFAULT, NULL, &D3DAdapterID));
 
 		// Output driver info
-		CONSOLE_PRINTF("Using plugin for Microsoft Direct3D Version 8.0 '%s' (v%d.%d)\n", D3DAdapterID.Driver, HIBYTE(Version), LOBYTE(Version));
+		CONSOLE_PRINTF("Using the " D3D8_FULLNAME " - '%s' (v%d.%d)\n", D3DAdapterID.Driver, HIBYTE(Version), LOBYTE(Version));
 		CONSOLE_PRINTF(" | Description: %s (%d)\n", D3DAdapterID.Description, HIWORD(D3DAdapterID.DriverVersion.HighPart));
 		CONSOLE_PRINTF(" | Version: %d.%d build %d\n", LOWORD(D3DAdapterID.DriverVersion.HighPart), HIWORD(D3DAdapterID.DriverVersion.LowPart), LOWORD(D3DAdapterID.DriverVersion.LowPart));
 		CONSOLE_LOG   (" | dwVendorId: 0x%08X\n", D3DAdapterID.VendorId);

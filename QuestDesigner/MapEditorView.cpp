@@ -215,7 +215,7 @@ bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 
 	m_pMapGroupI = (CMapGroup *)wParam;
 	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pMapGroupI)))) {
-		MessageBox("Couldn't load kernel, check kernel version.", "Quest Designer");
+		MessageBox("Couldn't load kernel, check kernel version.", QD_MSG_TITLE);
 		return false;
 	}
 
@@ -257,13 +257,13 @@ bool CMapEditorView::DoFileClose()
 	if(hasChanged()) {
 		CString sSave;
 		sSave.Format("Save Changes to '%s'?", GetTitle());
-		int ret = MessageBox(sSave, _T("Quest Designer"), MB_YESNOCANCEL|MB_ICONWARNING);
+		int ret = MessageBox(sSave, QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
 		switch(ret) {
 			case IDCANCEL: 
 				return false;
 			case IDYES: 
 				if(!OnFileSave()) { 
-					MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR); 
+					MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR); 
 					return false; 
 				}
 		}

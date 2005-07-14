@@ -19,8 +19,9 @@
 
 #pragma once
 
-#include <functional>
+#include "../Version.h"
 
+#include <functional>
 // Flags for the sprites and their transformations (higher byte of the status reserved):
 #define SNORMAL				GFX_NORMAL	
 #define SMIRRORED			GFX_MIRRORED
@@ -87,8 +88,6 @@ typedef _OpenLegendsFile *LPOLFILE;
 typedef const _OpenLegendsFile *LPCOLFILE;
 
 // List of valid file types, their IDs and Signatures:
-#define OL_NAME				"Open Legends"
-
 const char OLF_ID[]			= OL_NAME;
 const WORD OLF_SIGNATURE	= 0x4c4f; // OL
 
