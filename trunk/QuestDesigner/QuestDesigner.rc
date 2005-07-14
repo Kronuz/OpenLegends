@@ -37,7 +37,7 @@ END
 BEGIN
     "#include ""libs/wtl/atlres.h""\r\n"
     "#include ""QuestDesigner.rc2""\r\n"
-	"\0"
+    "\0"
 END
 
 3 TEXTINCLUDE 
@@ -45,7 +45,6 @@ BEGIN
     "CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST ""res\\\\QuestDesigner.exe.manifest""\r\n"
     "\0"
 END
-
 
 #endif    // APSTUDIO_INVOKED
 
@@ -254,6 +253,12 @@ BEGIN
             MENUITEM "Properties",                  ID_PANE_PROPERTIES
         END
     END
+    POPUP "&Build"
+    BEGIN
+        MENUITEM "&Build Quest\tCtrl+Shift+B",  ID_APP_BUILD
+        MENUITEM "&Rebuild Quest",              ID_APP_REBUILD
+        MENUITEM "Clean Quest",                 ID_APP_CLEANBUILD
+    END
     POPUP "&Debug"
     BEGIN
         MENUITEM "&Start\tF5",                  ID_DBG_DEBUG
@@ -293,7 +298,7 @@ BEGIN
             MENUITEM "&Quest...\tCtrl+O",           32400
             MENUITEM "&Script...",                  32470
         END
-        MENUITEM "&Close",                      32201
+        MENUITEM "&Close Script",               ID_APP_CLOSE
         MENUITEM "Close &Game Set",             32444
         MENUITEM SEPARATOR
         MENUITEM "Add Ne&w Item...\tCtrl+Shift+A", 32468
@@ -369,6 +374,12 @@ BEGIN
             MENUITEM "Properties",                  505
         END
     END
+    POPUP "&Build"
+    BEGIN
+        MENUITEM "&Build Quest\tCtrl+Shift+B",  32200
+        MENUITEM "&Rebuild Quest",              32482
+        MENUITEM "Clean Quest",                 ID_APP_CLEANBUILD
+    END
     POPUP "&Debug"
     BEGIN
         MENUITEM "&Start\tF5",                  32415
@@ -408,7 +419,7 @@ BEGIN
             MENUITEM "&Quest...\tCtrl+O",           32400
             MENUITEM "&Script...",                  32470
         END
-        MENUITEM "&Close",                      32201
+        MENUITEM "&Close Map",                  ID_APP_CLOSE
         MENUITEM "Close &Game Set",             ID_PROJECT_CLOSE
         MENUITEM SEPARATOR
         MENUITEM "Add Ne&w Item...\tCtrl+Shift+A", 32468
@@ -452,6 +463,12 @@ BEGIN
             MENUITEM "Properties",                  505
         END
     END
+    POPUP "&Build"
+    BEGIN
+        MENUITEM "&Build Quest\tCtrl+Shift+B",  32200
+        MENUITEM "&Rebuild Quest",              32482
+        MENUITEM "Clean Quest",                 ID_APP_CLEANBUILD
+    END
     POPUP "&Debug"
     BEGIN
         MENUITEM "&Start\tF5",                  32415
@@ -491,7 +508,7 @@ BEGIN
             MENUITEM "&Quest...\tCtrl+O",           32400
             MENUITEM "&Script...",                  32470
         END
-        MENUITEM "&Close",                      32201
+        MENUITEM "&Close World",                ID_APP_CLOSE
         MENUITEM "Close &Game Set",             32444
         MENUITEM SEPARATOR
         MENUITEM "Add Ne&w Item...\tCtrl+Shift+A", 32468
@@ -534,6 +551,12 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "Properties",                  505
         END
+    END
+    POPUP "&Build"
+    BEGIN
+        MENUITEM "&Build Quest\tCtrl+Shift+B",  32200
+        MENUITEM "&Rebuild Quest",              32482
+        MENUITEM "Clean Quest",                 32483
     END
     POPUP "&Debug"
     BEGIN
@@ -574,7 +597,7 @@ BEGIN
             MENUITEM "&Quest...\tCtrl+O",           32400
             MENUITEM "&Script...",                  32470
         END
-        MENUITEM "&Close",                      32201
+        MENUITEM "&Close Sprite Sheet",         ID_APP_CLOSE
         MENUITEM "Close &Game Set",             32444
         MENUITEM SEPARATOR
         MENUITEM "Add Ne&w Item...\tCtrl+Shift+A", 32468
@@ -617,6 +640,12 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "Properties",                  505
         END
+    END
+    POPUP "&Build"
+    BEGIN
+        MENUITEM "&Build Quest\tCtrl+Shift+B",  32200
+        MENUITEM "&Rebuild Quest",              32482
+        MENUITEM "Clean Quest",                 ID_APP_CLEANBUILD
     END
     POPUP "&Debug"
     BEGIN
@@ -668,6 +697,11 @@ IDI_DOC_MIDI            ICON                    "res\\QuestDesignerMidi.ico"
 IDI_FOLDER_LIB          ICON                    "res\\QuestDesignerLib.ico"
 IDI_FOLDER_PROJECT      ICON                    "res\\QuestDesignerProject.ico"
 IDI_DOC_WAV             ICON                    "res\\QuestDesignerWav.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
 
 IDD_PROPERTIES DIALOGEX 0, 0, 360, 206
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
@@ -797,18 +831,6 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO 
 BEGIN
-    IDD_ABOUTBOX, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 396
-        VERTGUIDE, 139
-        VERTGUIDE, 146
-        VERTGUIDE, 259
-        VERTGUIDE, 374
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 178
-    END
-
     IDD_ACK, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -870,6 +892,7 @@ BEGIN
     "B",            ID_SCRIPTED_BEAUTIFY,   VIRTKEY, CONTROL, NOINVERT
     "A",            ID_SCRIPTED_SELECT_ALL, VIRTKEY, CONTROL, NOINVERT
 END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
