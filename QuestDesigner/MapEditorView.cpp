@@ -86,7 +86,7 @@ LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 		m_pMapGroupI->Close(true);
 	}
 
-	OnChangeSel(OCS_AUTO);
+	::SendMessage(GetMainFrame()->m_hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
 
 	CProjectFactory::Delete(&m_SelectionI); m_SelectionI = NULL;
 	CGraphicsFactory::Delete(&m_pGraphicsI); m_pGraphicsI = NULL;
@@ -191,6 +191,9 @@ LRESULT CMapEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 			m_pMapGroupI->SettleOriginalBitmap();
 		}
 	}
+
+	::SendMessage(GetMainFrame()->m_hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
+
 	return 0;
 }
 

@@ -94,9 +94,7 @@
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
-				Name="VCPostBuildEventTool"
-				Description="UPX file compression"
-				CommandLine="upx -f $(SolutionDir)$(OutDir)/$(ProjectName).dll"/>
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

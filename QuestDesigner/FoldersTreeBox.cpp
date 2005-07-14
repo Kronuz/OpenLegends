@@ -125,7 +125,16 @@ LRESULT CFoldersTreeBox::OnDelTree(WPARAM wParam, LPARAM lParam)
 	CTreeInfo *pTreeInfo = (CTreeInfo *)lParam;
 	ATLASSERT(pTreeInfo);
 
-	hItem = pTreeInfo->m_hItem;
+	static char szFullPath[MAX_PATH];
+	LPCSTR szItemPath = pTreeInfo->GetItemPath();
+	LPCSTR szItemName = pTreeInfo->GetDisplayName();
+	strcpy(szFullPath, szItemPath);
+	strcat(szFullPath, "\\");
+	strcat(szFullPath, szItemName);
+
+	hItem = FindPath(NULL, szFullPath);
+
+	//hItem = pTreeInfo->m_hItem;
 	pTreeInfo->m_hWndParent = m_ctrlTree.m_hWnd;
 	while(hItem) {
 		hParentItem = m_ctrlTree.GetParentItem(hItem);

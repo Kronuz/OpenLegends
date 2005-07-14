@@ -343,7 +343,7 @@ bool CGameManager::_Close(bool bForce)
 
 	CONSOLE_PRINTF("Closing project: '%s'...\n", m_sProjectName);
 
-	if(m_SpriteSheets.size()) CONSOLE_PRINTF("Freeing Sprite Sheets...\n");
+	if(m_SpriteSheets.size()) CONSOLE_PRINTF("Cleaning Sprite Sheets...\n");
 	while(m_SpriteSheets.size()) {
 		DeleteSpriteSheet(0);
 	}

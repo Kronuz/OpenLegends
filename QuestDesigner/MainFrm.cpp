@@ -357,29 +357,8 @@ LRESULT CMainFrame::OnInitialize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPar
 
 LRESULT CMainFrame::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
-	bool bModified = true;
-	int nChild = 0;
-	CChildFrame *pChildFrame;
-	while(m_ChildList.GetSize()) {
-		if(nChild >= m_ChildList.GetSize()) {
-			bModified = false;
-			nChild = 0;
-		}
-		pChildFrame = m_ChildList[nChild++];
-		if(pChildFrame->hasChanged()) {
-			nChild = 0;
-			bModified = true;
-			pChildFrame->SetFocus();
-			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
-		} else if(bModified == false) {
-			nChild = 0;
-			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
-		}
-	}
-
 	bHandled=FALSE;
-	//m_stateMgr.Store();
-	return 0;
+	return OnClose();
 }
 
 int CMainFrame::OnSaveAll()
@@ -531,7 +510,7 @@ void CMainFrame::OnScriptFileOpen()
 
 void CMainFrame::OnQuestOpen()
 {
-	if(!CloseWorld()) return;
+	if(!OnQuestClose()) return;
 
 	static TCHAR szFilter[] = "OL Quest files (*.qss;*.qsz)|*.qss; *.qsz|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
@@ -638,7 +617,7 @@ BOOL BrowseForFolder(HWND hwnd, // parent window.
 
 void CMainFrame::OnProjectOpen()
 {
-	if(!Close()) return; // closes the project (and the world if it's open)
+	if(!OnProjectClose()) return; // closes the project (and the world if it's open)
 
 	UIEnableToolbar(FALSE);
 	// Update all the toolbar items
@@ -793,17 +772,41 @@ void CMainFrame::OnSaveAs()
 void CMainFrame::OnSave()
 {
 }
-void CMainFrame::OnClose()
+int CMainFrame::OnClose()
 {
+	//m_stateMgr.Store();
+	return OnProjectClose();
 }
-void CMainFrame::OnQuestClose()
+int CMainFrame::OnQuestClose()
 {
+	bool bModified = true;
+	int nChild = 0;
+	CChildFrame *pChildFrame;
+	while(m_ChildList.GetSize()) {
+		if(nChild >= m_ChildList.GetSize()) {
+			bModified = false;
+			nChild = 0;
+		}
+		pChildFrame = m_ChildList[nChild++];
+		if(pChildFrame->hasChanged()) {
+			nChild = 0;
+			bModified = true;
+			pChildFrame->SetFocus();
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+		} else if(bModified == false) {
+			nChild = 0;
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+		}
+	}
+	return CloseWorld();
 }
 void CMainFrame::OnQuestNew()
 {
 }
-void CMainFrame::OnProjectClose()
+int CMainFrame::OnProjectClose()
 {
+	if(!OnQuestClose()) return 0;
+	return Close();
 }
 void CMainFrame::OnProjectNew()
 {
@@ -1035,13 +1038,16 @@ int CMainFrame::Close()
 		}
 		m_pOLKernel->CloseProject(true);
 	} 
+	m_bProjectLoaded = false;
+	OnIdle(); // Force idle processing to update the toolbar.
+    StatusBar("Quest closed.", IDI_ICO_OK);
 	return 1;
 }
 
 int CMainFrame::CloseWorld()
 {
 	if(!m_pOLKernel->CloseWorld()) {
-		int nChoice = MessageBox("Save Changes to the game files?", QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
+		int nChoice = MessageBox("Save Changes to the quest files?", QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
 			if(!m_pOLKernel->SaveWorld()) {
 				MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR);
@@ -1051,7 +1057,10 @@ int CMainFrame::CloseWorld()
 			return 0;
 		}
 		m_pOLKernel->CloseWorld(true);
-	} 
+	}
+	m_bQuestLoaded = false;
+	OnIdle(); // Force idle processing to update the toolbar.
+    StatusBar("Quest closed.", IDI_ICO_OK);
 	return 1;
 }
 
@@ -1155,30 +1164,52 @@ void CMainFrame::UIUpdateMenuItems()
 		}
 	}
 
+	ASSERT(!(m_bQuestLoaded && !m_bProjectLoaded));
+
 	if(m_pProjectFactory->isBuilding()) {
+		ASSERT(m_bQuestLoaded);
 		UISetCheck(ID_APP_WORLDED, FALSE);
 		UISetCheck(ID_APP_SOUND, FALSE);
 		UISetCheck(ID_APP_ANIM, FALSE);
 		UISetCheck(ID_APP_PARALLAX, FALSE);
 
+		UIEnable(ID_PROJECT_NEW, FALSE);
 		UIEnable(ID_PROJECT_OPEN, FALSE);
+		UIEnable(ID_PROJECT_CLOSE, FALSE);
+
 		UIEnable(ID_QUEST_NEW, FALSE);
 		UIEnable(ID_QUEST_OPEN, FALSE);
-		UIEnable(ID_APP_SOUND, FALSE);
-		UIEnable(ID_APP_ANIM, FALSE);
-		UIEnable(ID_APP_PARALLAX, FALSE);
+		UIEnable(ID_QUEST_CLOSE, FALSE);
+
+		UIEnable(ID_APP_RELOAD, FALSE);
+		UIEnable(ID_APP_CLOSE, FALSE);
+		UIEnable(ID_APP_SAVE, FALSE);
+		UIEnable(ID_APP_SAVE_ALL, FALSE);
+		UIEnable(ID_APP_SAVE_AS, FALSE);
+
+		UIEnable(ID_APP_ADDNEWITEM, FALSE);
+		UIEnable(ID_APP_ADDEXISTINGITEM, FALSE);
+
+		UIEnable(ID_APP_PRINT, FALSE);
+		UIEnable(ID_APP_BUILD, FALSE);
+		UIEnable(ID_APP_REBUILD, FALSE);
+		UIEnable(ID_APP_CLEANBUILD, FALSE);
+		UIEnable(ID_APP_STOPBUILD, TRUE);
+
+		UIEnable(ID_APP_PREFERENCES, FALSE);
+
 		UIEnable(ID_APP_WORLDED, FALSE);
 		UIEnable(ID_APP_MAPED, FALSE);
 		UIEnable(ID_APP_SPTSHTED, FALSE);
 		UIEnable(ID_APP_SCRIPTED, FALSE);
-		UIEnable(ID_APP_BUILD, FALSE);
-		UIEnable(ID_APP_PREFERENCES, FALSE);
-		UIEnable(ID_APP_HELP, FALSE);
-		UIEnable(ID_APP_ABOUT, FALSE);
-		UIEnable(ID_APP_STOPBUILD, TRUE);
+
+		UIEnable(ID_APP_SOUND, FALSE);
+		UIEnable(ID_APP_ANIM, FALSE);
+		UIEnable(ID_APP_PARALLAX, FALSE);
 
 		// Debugging toolbar:
 		UIEnable(ID_DBG_DEBUG, FALSE);
+		UIEnable(ID_DBG_RUN, FALSE);
 		UIEnable(ID_DBG_PAUSE, FALSE);
 		UIEnable(ID_DBG_STOP, FALSE);
 		UIEnable(ID_DBG_NEXT, FALSE);
@@ -1189,51 +1220,56 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_DBG_BREAKPOINT, FALSE);
 		UIEnable(ID_DBG_CONTINUE, FALSE);
 	} else {
-		UISetCheck(ID_APP_WORLDED, CountChilds(tWorldEditor));
-		UISetCheck(ID_APP_SOUND, m_bAllowSounds );
-		UISetCheck(ID_APP_ANIM, m_bAllowAnimations );
-		UISetCheck(ID_APP_PARALLAX, m_bAllowParallax );
+		UISetCheck(ID_APP_WORLDED, m_bQuestLoaded && CountChilds(tWorldEditor));
+		UISetCheck(ID_APP_SOUND, m_bQuestLoaded && m_bAllowSounds);
+		UISetCheck(ID_APP_ANIM, m_bQuestLoaded && m_bAllowAnimations);
+		UISetCheck(ID_APP_PARALLAX, m_bQuestLoaded && m_bAllowParallax);
 
+		UIEnable(ID_PROJECT_NEW, TRUE);
 		UIEnable(ID_PROJECT_OPEN, TRUE);
-		UIEnable(ID_QUEST_NEW, TRUE);
-		UIEnable(ID_QUEST_OPEN, TRUE);
-		UIEnable(ID_APP_SOUND, TRUE);
-		UIEnable(ID_APP_ANIM, TRUE);
-		UIEnable(ID_APP_PARALLAX, TRUE);
-		UIEnable(ID_APP_WORLDED, TRUE);
-		UIEnable(ID_APP_MAPED, TRUE);
-		UIEnable(ID_APP_SPTSHTED, TRUE);
-		UIEnable(ID_APP_SCRIPTED, TRUE);
-		UIEnable(ID_APP_BUILD, TRUE);
-		UIEnable(ID_APP_PREFERENCES, TRUE);
-		UIEnable(ID_APP_HELP, TRUE);
-		UIEnable(ID_APP_ABOUT, TRUE);
+		UIEnable(ID_PROJECT_CLOSE, m_bProjectLoaded);
+
+		UIEnable(ID_QUEST_NEW, m_bProjectLoaded);
+		UIEnable(ID_QUEST_OPEN, m_bProjectLoaded);
+		UIEnable(ID_QUEST_CLOSE, m_bQuestLoaded);
+
+		UIEnable(ID_APP_RELOAD, FALSE);
+		UIEnable(ID_APP_CLOSE, CountChilds());
+		UIEnable(ID_APP_SAVE, m_bQuestLoaded);
+		UIEnable(ID_APP_SAVE_ALL, (nChanges>1));
+		UIEnable(ID_APP_SAVE_AS, FALSE);
+
+		UIEnable(ID_APP_ADDNEWITEM, m_bQuestLoaded);
+		UIEnable(ID_APP_ADDEXISTINGITEM, m_bQuestLoaded);
+
+		UIEnable(ID_APP_BUILD, m_bQuestLoaded);
+		UIEnable(ID_APP_REBUILD, m_bQuestLoaded);
+		UIEnable(ID_APP_CLEANBUILD, m_bQuestLoaded);
 		UIEnable(ID_APP_STOPBUILD, FALSE);
 
+		UIEnable(ID_APP_PREFERENCES, TRUE);
+
+		UIEnable(ID_APP_WORLDED, m_bQuestLoaded);
+		UIEnable(ID_APP_MAPED, m_bQuestLoaded);
+		UIEnable(ID_APP_SPTSHTED, m_bQuestLoaded);
+		UIEnable(ID_APP_SCRIPTED, m_bQuestLoaded);
+
+		UIEnable(ID_APP_SOUND, m_bQuestLoaded);
+		UIEnable(ID_APP_ANIM, m_bQuestLoaded);
+		UIEnable(ID_APP_PARALLAX, m_bQuestLoaded);
+
 		// Debugging toolbar:
-		if(Connected())	{
-			UIEnable(ID_DBG_DEBUG, FALSE);
-			UIEnable(ID_DBG_PAUSE, TRUE);
-			UIEnable(ID_DBG_STOP, TRUE);
-			UIEnable(ID_DBG_NEXT, TRUE);
-			UIEnable(ID_DBG_STEPIN, TRUE);
-			UIEnable(ID_DBG_STEPOVER, TRUE);
-			UIEnable(ID_DBG_STEPOUT, TRUE);
-			UIEnable(ID_DBG_PROFILER, TRUE);
-			UIEnable(ID_DBG_BREAKPOINT, TRUE);
-			UIEnable(ID_DBG_CONTINUE, TRUE);
-		} else {
-			UIEnable(ID_DBG_DEBUG, TRUE);
-			UIEnable(ID_DBG_PAUSE, FALSE);
-			UIEnable(ID_DBG_STOP, FALSE);
-			UIEnable(ID_DBG_NEXT, FALSE);
-			UIEnable(ID_DBG_STEPIN, FALSE);
-			UIEnable(ID_DBG_STEPOVER, FALSE);
-			UIEnable(ID_DBG_STEPOUT, FALSE);
-			UIEnable(ID_DBG_PROFILER, FALSE);
-			UIEnable(ID_DBG_BREAKPOINT, FALSE);
-			UIEnable(ID_DBG_CONTINUE, FALSE);
-		}
+		UIEnable(ID_DBG_DEBUG, !Connected());
+		UIEnable(ID_DBG_RUN, !Connected() && m_bQuestLoaded);
+		UIEnable(ID_DBG_PAUSE, Connected());
+		UIEnable(ID_DBG_STOP, Connected());
+		UIEnable(ID_DBG_NEXT, Connected());
+		UIEnable(ID_DBG_STEPIN, Connected());
+		UIEnable(ID_DBG_STEPOVER, Connected());
+		UIEnable(ID_DBG_STEPOUT, Connected());
+		UIEnable(ID_DBG_PROFILER, Connected());
+		UIEnable(ID_DBG_BREAKPOINT, Connected() && (ActiveChildType!=tScriptEditor));
+		UIEnable(ID_DBG_CONTINUE, Connected());
 	}
 	if( CScriptEditorView::ms_pCurrentScript == NULL &&
 		CScriptEditorView::ms_sCurrentFile == "" ) {
@@ -1248,48 +1284,8 @@ void CMainFrame::UIUpdateMenuItems()
 	}
 
 	if(ActiveChildType!=tScriptEditor) {
-		UIEnable(ID_DBG_BREAKPOINT, FALSE);
-	}
-
-	if(!m_bProjectLoaded) {
-		UIEnable(ID_QUEST_NEW, FALSE);
-		UIEnable(ID_QUEST_OPEN, FALSE);
-	}
-	if(!m_bQuestLoaded || !m_bProjectLoaded) {
-		UISetCheck(ID_APP_WORLDED, FALSE);
-		UISetCheck(ID_APP_SOUND, FALSE);
-		UISetCheck(ID_APP_ANIM, FALSE);
-		UISetCheck(ID_APP_PARALLAX, FALSE);
-
-		UIEnable(ID_APP_SOUND, FALSE);
-		UIEnable(ID_APP_ANIM, FALSE);
-		UIEnable(ID_APP_PARALLAX, FALSE);
-		UIEnable(ID_APP_WORLDED, FALSE);
-		UIEnable(ID_APP_MAPED, FALSE);
-		UIEnable(ID_APP_SPTSHTED, FALSE);
-		UIEnable(ID_APP_SCRIPTED, FALSE);
-		UIEnable(ID_APP_BUILD, FALSE);
-		UIEnable(ID_APP_STOPBUILD, FALSE);
-	}
-
-	if( (ActiveChildType!=tScriptEditor && 
-		 ActiveChildType!=tMapEditor) ||
-		m_pProjectFactory->isBuilding()) {
-
-		UIEnable(ID_APP_SAVE, FALSE);
-		UIEnable(ID_APP_SAVE_ALL, FALSE);
-		UIEnable(ID_APP_SAVE_AS, FALSE);
-
-		UIEnable(ID_APP_RELOAD, FALSE);
 		UIEnable(ID_APP_PRINT, FALSE);
 		UIEnable(ID_APP_PRINT_SETUP, FALSE);
-
-		UIEnable(ID_UNDO, FALSE);
-		UIEnable(ID_REDO, FALSE);	
-		UIEnable(ID_CUT, FALSE);
-		UIEnable(ID_COPY, FALSE);
-		UIEnable(ID_PASTE, FALSE);
-		UIEnable(ID_ERASE, FALSE);
 
 		UIEnable(ID_SCRIPTED_CODELIST, FALSE );
 		UIEnable(ID_SCRIPTED_CODETIP1, FALSE );
@@ -1316,14 +1312,16 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_SCRIPTED_GOTO_NEXT_BOOKMARK, FALSE);
 		UIEnable(ID_SCRIPTED_GOTO_PREV_BOOKMARK, FALSE);
 		UIEnable(ID_SCRIPTED_CLEAR_ALL_BOOKMARKS, FALSE);
-	} 
-
-	if(nChanges > 1) {
-		UIEnable(ID_APP_SAVE_ALL, TRUE);
-	} else {
-		UIEnable(ID_APP_SAVE_ALL, FALSE);
 	}
 
+	if(ActiveChildType==tAny) {
+		UIEnable(ID_UNDO, FALSE);
+		UIEnable(ID_REDO, FALSE);	
+		UIEnable(ID_CUT, FALSE);
+		UIEnable(ID_COPY, FALSE);
+		UIEnable(ID_PASTE, FALSE);
+		UIEnable(ID_ERASE, FALSE);
+	} 
 }
 void CMainFrame::UIEnableToolbar(BOOL bEnable)
 {

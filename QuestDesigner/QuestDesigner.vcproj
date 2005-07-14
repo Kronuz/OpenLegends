@@ -113,9 +113,7 @@
 				InterfaceIdentifierFileName="QuestDesigner_i.c"
 				ProxyFileName="QuestDesigner_p.c"/>
 			<Tool
-				Name="VCPostBuildEventTool"
-				Description="UPX file compression"
-				CommandLine="upx -f $(SolutionDir)$(OutDir)/$(ProjectName).exe"/>
+				Name="VCPostBuildEventTool"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool

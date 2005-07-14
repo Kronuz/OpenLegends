@@ -250,6 +250,7 @@ bool CProjectTxtArch::ReadObject(CVFile &vfFile)
 
 	CBString sProjectName = vfFile.GetFileDesc();
 	if(sProjectName == "") sProjectName = "Untitled Project";
+	m_pGameManager->SetProjectName(sProjectName);
 
 	CONSOLE_PRINTF("Loading project: '%s' at %s...\n", sProjectName, vfFile.GetPath());
 
@@ -260,7 +261,6 @@ bool CProjectTxtArch::ReadObject(CVFile &vfFile)
 		return false;
 	}
 
-	m_pGameManager->SetProjectName(sProjectName);
 	m_pGameManager->CleanUndefs(); // Clean undefined sprites
 
 	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
