@@ -27,7 +27,7 @@
 
 #include "FoldersTreeBox.h"
 
-const WORD IGame::Version = 0x0401;
+const WORD IGame::Version = GAME_INTVER;
 CProjectFactory *CProjectFactory::_instance = NULL;
 
 CProjectFactory::CProjectFactory() :
@@ -106,7 +106,7 @@ HRESULT CProjectFactory::New(IGame **pGameI, LPCSTR lpszIName)
 			CString sMsg = "Error loading up " + _instance->sIName;
 			::MessageBox(NULL,
 				sMsg,
-				"Quest Designer - Fatal Error",
+				QD_MSG_TITLE,
 				MB_OK | MB_ICONERROR);
 			return E_FAIL;
 		}

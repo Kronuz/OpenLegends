@@ -65,6 +65,7 @@ CGameManager::CGameManager() :
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 	m_pSoundManager = CSoundManager::Instance();
+	CONSOLE_PRINTF("Using the " KERNEL_FULLNAME "\n");
 }
 
 CGameManager::~CGameManager()

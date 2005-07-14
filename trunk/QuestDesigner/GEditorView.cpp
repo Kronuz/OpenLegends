@@ -222,7 +222,7 @@ bool CGEditorView::OnFileReload()
 	CString sMessage;
 	sMessage.LoadString(IDS_WARNING_RELOAD);
 
-	if(IDYES==MessageBox(sMessage, "Quest Designer", MB_YESNO|MB_ICONWARNING)) {
+	if(IDYES==MessageBox(sMessage, QD_MSG_TITLE, MB_YESNO|MB_ICONWARNING)) {
 		return DoFileReload();
 	}
 	return false;

@@ -66,15 +66,19 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 {
 	CenterWindow(GetParent());
 
+	SetWindowText("About " QD_NAME);
+	GetDlgItem(IDC_STATIC1).SetWindowText(QD_FULLNAME "\nfor " OL_NAME);
+	GetDlgItem(IDC_STATIC2).SetWindowText(OL_NAME " Website:");
+
 	// set-up the dialogs hyperlinks
 	m_wndHyperLinkURL1.SubclassWindow ( GetDlgItem ( IDC_URL1_STATIC ) );
-	m_wndHyperLinkURL1.SetHyperLink ( _T ("http://openlegends.sf.net/") );
+	m_wndHyperLinkURL1.SetHyperLink ( OL_WEBSITE );
 
 	m_wndHyperLinkEmail1.SubclassWindow ( GetDlgItem ( IDC_EMAIL1_STATIC ) );
-	m_wndHyperLinkEmail1.SetHyperLink ( _T ("mailto:kronuz@users.sourceforge.net") );
+	m_wndHyperLinkEmail1.SetHyperLink ( "mailto:" OL_EMAIL );
 
 	m_wndHyperLinkSupport1.SubclassWindow ( GetDlgItem ( IDC_SUPPORT1_STATIC ) );
-	m_wndHyperLinkSupport1.SetHyperLink ( _T ("https://www.paypal.com/xclick/business=kronuz%40hotmail.com") );
+	m_wndHyperLinkSupport1.SetHyperLink ( OL_DONATION_URL );
 
 	LPSTR szLicense;
 
@@ -90,24 +94,7 @@ LRESULT CAboutDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPara
 		memset(szLicense, 0, 20*1024);
 		fread(szLicense, 1, 20*1024-1, arch);
 		fclose(arch);
-	} else szLicense = _T("\
-Open Legends Project\r\n\
-Copyright (C) 2001-2004\r\n\
-\r\n\
-This program is free software; you can redistribute it and/or modify it \
-under the terms of the GNU General Public License as published by the Free \
-Software Foundation; either version 2 of the License, or (at your option) \
-any later version.\r\n\
-\r\n\
-This program is distributed in the hope that it will be useful, \
-but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY \
-or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more \
-details.\r\n\
-\r\n\
-You should have received a copy of the GNU General Public License along with this \
-program; if not, write to the Free Software Foundation, Inc., 59 Temple Place, \
-Suite 330, Boston, MA 02111-1307 USA");
-
+	} else szLicense = OL_LICENSE;
 	SetDlgItemText(IDC_GPL_EDIT, szLicense);
 	if(arch) delete []szLicense;
 
@@ -130,44 +117,8 @@ LRESULT CAckDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 {
 	CenterWindow(GetParent());
 
-	SetDlgItemText(IDC_ACK_EDIT, _T("\
-Code based in the conceptual design and original idea by Greg Denness.\r\n\
-Portions of this software use:\r\n\
-    CodeMax, Copyright 1997-2000 Barry Allyn,\r\n\
-    CodeSense, Copyright 2000-2003 Nathan Lewis, and\r\n\
-    Small Compiler, Copyright (c) 1997-2002 ITB CompuPhase.\r\n\
-    All rights reserved.\r\n\
-\r\n\
-All trademarks used are properties of their respective owners."));
-
-	SetDlgItemText(IDC_THANKS_EDIT, _T("\
-I want to give a very special thank you to those who have donated money to the cause:\r\n\
-      So far, only Tanner Christensen, thank you :)\r\n\
-\r\n\
-Also, I want to thank all people who helped me and collaborated in one way or the other and helped OpenLegends to become what it is today:\r\n\
-\r\n\
-      + GD for his magnificent idea and original design;\r\n\
-      + Strider for his support and all the new Sprite Sheets \r\n\
-          he is working on;\r\n\
-      + System Failure for the OpenGL plugin he is working on;\r\n\
-      + Fenris (a.k.a. Sk8erHacker) for testing and \r\n\
-          excellent support;\r\n\
-      + Hylian for his support and the Open Legends \r\n\
-          domain name;\r\n\
-      + Lukex for maintaining the official website and \r\n\
-          starting a very useful help file,\r\n\
-      + Menne for his great Z3C editor and its nice \r\n\
-          source code;\r\n\
-      + LittleBuddy for his support as a consultant and \r\n\
-          his scripting expertise;\r\n\
-      + KingOfHeart, for testing and support;\r\n\
-      + Alias Jargon;\r\n\
-      + HocusPocus;\r\n\
-      + GodGinrai;\r\n\
-      + and last, but not least, the guys at GU who have \r\n\
-          a great website (http://www.thegaminguniverse.com)\r\n\
-\r\n\
-If you feel I'm missing sombody, please tell me so I can add her/him/you to the list."));
+	SetDlgItemText(IDC_ACK_EDIT, OL_ACK);
+	SetDlgItemText(IDC_THANKS_EDIT, OL_THANKS);
 
 	return TRUE;
 }

@@ -25,8 +25,10 @@
 				July 20, 2003
 */
 
-#define APPNAME _T("Quest Designer")
-#define COMPANY _T("Open Legends")
+#include "../Version.h"
+
+#define APPNAME _T(QD_NAME)
+#define COMPANY _T(OL_NAME)
 
 #pragma once
 

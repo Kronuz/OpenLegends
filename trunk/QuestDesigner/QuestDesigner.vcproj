@@ -430,6 +430,9 @@
 			<File
 				RelativePath=".\SuperCombo.h">
 			</File>
+			<File
+				RelativePath="..\Version.h">
+			</File>
 			<Filter
 				Name="MDI"
 				Filter="">

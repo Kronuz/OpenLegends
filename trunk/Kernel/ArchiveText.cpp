@@ -650,8 +650,7 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 
 	CBString sID;
 	ReadStringFromFile(sID, vfFile);
-	if( sID == "Open Legends Quest Designer Map File" ||
-		sID == "Open Zelda Quest Designer Map File" ) {
+	if( sID == "Open Zelda Quest Designer Map File" ) {
 		if(ReadMaps(vfFile)) {
 			if(ReadMapGroups(vfFile)) {
 				if(!ReadProperties(vfFile)) bRet = false;

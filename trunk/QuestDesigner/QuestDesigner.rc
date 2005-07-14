@@ -8,6 +8,8 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "libs/wtl/atlres.h"
+#include "QuestDesigner.rc2"
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -33,7 +35,9 @@ END
 
 2 TEXTINCLUDE 
 BEGIN
-    "#include ""libs/wtl/atlres.h""\0"
+    "#include ""libs/wtl/atlres.h""\r\n"
+    "#include ""QuestDesigner.rc2""\r\n"
+	"\0"
 END
 
 3 TEXTINCLUDE 
@@ -41,6 +45,7 @@ BEGIN
     "CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST ""res\\\\QuestDesigner.exe.manifest""\r\n"
     "\0"
 END
+
 
 #endif    // APSTUDIO_INVOKED
 
@@ -664,37 +669,6 @@ IDI_FOLDER_LIB          ICON                    "res\\QuestDesignerLib.ico"
 IDI_FOLDER_PROJECT      ICON                    "res\\QuestDesignerProject.ico"
 IDI_DOC_WAV             ICON                    "res\\QuestDesignerWav.ico"
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_ABOUTBOX DIALOGEX 0, 0, 403, 185
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "About Quest Designer"
-FONT 8, "MS Sans Serif", 0, 0, 0x0
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,7,164,50,14
-    CTEXT           "Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)",
-                    IDC_STATIC,146,160,250,8
-    GROUPBOX        "GNU General Public License",IDC_STATIC,146,7,250,98
-    GROUPBOX        "Contact Information",IDC_STATIC,146,106,250,51
-    CTEXT           "Quest Designer v.0.8.5 (beta)\nfor Open Legends",
-                    IDC_STATIC,7,134,132,17,0,WS_EX_TRANSPARENT
-    EDITTEXT        IDC_GPL_EDIT,153,18,235,81,ES_MULTILINE | WS_VSCROLL
-    LTEXT           "kronuz@users.sourceforge.net",IDC_EMAIL1_STATIC,259,130,
-                    115,8
-    LTEXT           "Author e-mail:",IDC_STATIC,175,130,44,8
-    LTEXT           "Open Legends Website:",IDC_STATIC,175,119,68,8
-    LTEXT           "http://openlegends.sf.net/",IDC_URL1_STATIC,259,119,115,
-                    8
-    LTEXT           "Support the developers:",IDC_STATIC,175,141,76,8
-    LTEXT           "Make a Donation",IDC_SUPPORT1_STATIC,259,141,115,8
-    PUSHBUTTON      "Acknowledgments",IDC_ACK_BUTTON,69,164,70,14
-    CTEXT           "Copyright (C) 2001-2005. Open Legends's Project",
-                    IDC_STATIC,146,170,250,8
-END
-
 IDD_PROPERTIES DIALOGEX 0, 0, 360, 206
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Preferences"
@@ -896,48 +870,6 @@ BEGIN
     "B",            ID_SCRIPTED_BEAUTIFY,   VIRTKEY, CONTROL, NOINVERT
     "A",            ID_SCRIPTED_SELECT_ALL, VIRTKEY, CONTROL, NOINVERT
 END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Version
-//
-
-VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,8
- PRODUCTVERSION 1,0,0,8
- FILEFLAGSMASK 0x3fL
-#ifdef _DEBUG
- FILEFLAGS 0x1L
-#else
- FILEFLAGS 0x0L
-#endif
- FILEOS 0x4L
- FILETYPE 0x1L
- FILESUBTYPE 0x0L
-BEGIN
-    BLOCK "StringFileInfo"
-    BEGIN
-        BLOCK "040904b0"
-        BEGIN
-            VALUE "Comments", "Quest Designer is a tool to create quests for Open Legends. http://www.openlegends.com/"
-            VALUE "CompanyName", "by Kronuz"
-            VALUE "FileDescription", "Quest Designer v0.8.5 (beta)"
-            VALUE "FileVersion", "1, 0, 0, 8"
-            VALUE "InternalName", "QuestDesigner"
-            VALUE "LegalCopyright", "Copyright © 2003-2004 by Kronuz. All rights reserved."
-            VALUE "LegalTrademarks", "CodeMax, Small Compiler, ITB CompuPhase, Legends\r\n"
-            VALUE "OriginalFilename", "QuestDesigner.exe"
-            VALUE "ProductName", "Quest Designer for Open Legends"
-            VALUE "ProductVersion", "1, 0, 0, 8"
-        END
-    END
-    BLOCK "VarFileInfo"
-    BEGIN
-        VALUE "Translation", 0x409, 1200
-    END
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //

@@ -53,7 +53,7 @@ CConsole *CConsole::Instance() {
 		// Create and clean the logfile:
 		FILE *arch = ::fopen(ms_szLogFile, "w");
 		if(arch) {
-			::fprintf(arch, " --- Log started for Quest Designer --- \n");
+			::fprintf(arch, " --- Log started for "QD_NAME" --- \n");
 			::fclose(arch);
 		}
 	}

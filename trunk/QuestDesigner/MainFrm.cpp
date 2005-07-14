@@ -881,7 +881,7 @@ HRESULT CMainFrame::OnDebugProject()
 
 			// Try to load Open Legends:
 			if(_spawnl( _P_NOWAIT, szFilename, "1", "-d", szGame, szQuest, NULL) == -1) {
-				MessageBox("Couldn't launch Open Legends", "Quest Designer");
+				MessageBox("Couldn't launch "OL_NAME, QD_MSG_TITLE);
 			} else {
 				// wait for connection with the debugger.
 				for(int i=0; i<3; i++) {
@@ -890,8 +890,8 @@ HRESULT CMainFrame::OnDebugProject()
 					Sleep(100); // wait for the connection to stabilize
 				}
 				if(s == INVALID_SOCKET) {
-					CONSOLE_PRINTF("Debugger error: Couldn't connect with Open Legends's debugger!");
-					StatusBar("Couldn't connect with Open Legends's debugger!", IDI_ICO_ERROR);
+					CONSOLE_PRINTF("Debugger error: Couldn't connect with "OL_NAME"'s debugger!");
+					StatusBar("Couldn't connect with "OL_NAME"'s debugger!", IDI_ICO_ERROR);
 				}
 			}
 		}
@@ -1024,10 +1024,10 @@ void CMainFrame::StatusBar(LPCSTR szMessage, UINT Icon)
 int CMainFrame::Close()
 {
 	if(!m_pOLKernel->CloseProject()) {
-		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
+		int nChoice = MessageBox("Save Changes to the game files?", QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
 			if(!m_pOLKernel->SaveProject()) {
-				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
+				MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR);
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
@@ -1041,10 +1041,10 @@ int CMainFrame::Close()
 int CMainFrame::CloseWorld()
 {
 	if(!m_pOLKernel->CloseWorld()) {
-		int nChoice = MessageBox("Save Changes to the game files?", "Quest Designer", MB_YESNOCANCEL|MB_ICONWARNING);
+		int nChoice = MessageBox("Save Changes to the game files?", QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
 			if(!m_pOLKernel->SaveWorld()) {
-				MessageBox("Couldn't save!", "Quest Designer", MB_OK|MB_ICONERROR);
+				MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR);
 				return 0;
 			}
 		} else if(nChoice == IDCANCEL) {
