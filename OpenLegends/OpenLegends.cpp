@@ -195,7 +195,7 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_INITDIALOG:
 		SetWindowText(hDlg, "About " OL_NAME);
-		SetWindowText(GetDlgItem(hDlg, IDC_STATIC1), QD_FULLNAME);
+		SetWindowText(GetDlgItem(hDlg, IDC_STATIC1), OL_FULLNAME);
 		return TRUE;
 
 	case WM_COMMAND:
