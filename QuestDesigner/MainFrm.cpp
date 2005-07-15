@@ -109,6 +109,8 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	m_CmdBar.AttachMenu(GetMenu());
 	// load command bar images
 	m_CmdBar.LoadImages(IDR_MAINFRAME);
+	m_CmdBar.LoadImages(IDR_TB_MAIN);
+	m_CmdBar.LoadImages(IDR_TB_DEBUG);
 	// remove the old style menu
 	SetMenu(NULL);
 
@@ -1237,7 +1239,7 @@ void CMainFrame::UIUpdateMenuItems()
 
 		UIEnable(ID_APP_RELOAD, FALSE);
 		UIEnable(ID_APP_CLOSE, CountChilds());
-		UIEnable(ID_APP_SAVE, m_bQuestLoaded);
+		UIEnable(ID_APP_SAVE, FALSE);
 		UIEnable(ID_APP_SAVE_ALL, (nChanges>1));
 		UIEnable(ID_APP_SAVE_AS, FALSE);
 

@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG;_OL"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
@@ -81,7 +81,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				AdditionalIncludeDirectories=".\lib\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -145,7 +145,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				AdditionalIncludeDirectories=".\lib\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -379,6 +379,13 @@
 					</File>
 					<File
 						RelativePath="libs\filetree\WtlFileTreeCtrl.cpp">
+					</File>
+				</Filter>
+				<Filter
+					Name="MenuXP"
+					Filter="">
+					<File
+						RelativePath=".\libs\MenuXP\Draw.cpp">
 					</File>
 				</Filter>
 			</Filter>
@@ -682,6 +689,19 @@
 					</File>
 					<File
 						RelativePath="..\libs\zlib\zlib.h">
+					</File>
+				</Filter>
+				<Filter
+					Name="MenuXP"
+					Filter="">
+					<File
+						RelativePath=".\libs\MenuXP\Draw.h">
+					</File>
+					<File
+						RelativePath=".\libs\MenuXP\MenuXP.h">
+					</File>
+					<File
+						RelativePath=".\libs\MenuXP\Tools.h">
 					</File>
 				</Filter>
 			</Filter>
