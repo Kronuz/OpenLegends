@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -19,9 +19,12 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		GEditorView.cpp 
 	\brief		Implementation of the CGEditorView virtual base class.
-	\date		April 27, 2003
+	\author		Germán Méndez Bravo (Kronuz)
+	\date		April 27, 2003:
+						* Creation date.
 				September 02, 2003
-				September 15, 2003: fixed scrollbar bug in Windows XP
+				September 15, 2003: 
+						- Fixed scrollbar bug in Windows XP
 */
 
 #include "stdafx.h"

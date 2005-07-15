@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,9 +18,10 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		FilePath.h 
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Interface of the classes that maintain filenames and paths.
 	\date		April 28, 2003:
-						* First release.
+						* Creation date.
 				September 24, 2003:
 						+ Zip files support greatly improved.
 				July 06, 2005 by Littlebuddy:

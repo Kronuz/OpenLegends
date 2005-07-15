@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,6 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		DrawManager.h 
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Interface for CDrawableObject and CDrawableContext.
 	\date		April 28, 2003
 				September 06, 2003: 
@@ -104,7 +105,7 @@ typedef struct __RUNACTION {
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CDrawableContext
 	\brief		Flyweight drawable-objects context class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 28, 2003
 
@@ -364,7 +365,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	CDrawableObject
 	\brief		Interface for drawable objects.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		May 31, 2003
 
@@ -765,7 +766,7 @@ struct SObjProp :
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	CDrawableSelection
 	\brief		Interface for selected objects.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		May 31, 2003
 

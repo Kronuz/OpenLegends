@@ -2,7 +2,7 @@
 #define __SUPERCOMBO_H__
 
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
 
    Based on the drag and drop code by Leon Finker (Jan/2001)

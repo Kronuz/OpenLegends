@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,6 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		ProjectFactory.cpp
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the CProjectFactory class.
 	\date		June 26, 2003
 */
