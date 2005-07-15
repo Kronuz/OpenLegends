@@ -211,6 +211,30 @@ void CMapEditorView::OnSound()
 		if(m_pSoundManager && GetMainFrame()->m_bAllowSounds) m_pSoundManager->SwitchMusic(m_pMapGroupI->GetMusic(), 0);
 	}
 }
+void CMapEditorView::OnMerge()
+{
+	if(m_pMapGroupI) {
+		OnIdle();
+		GetMainFrame()->UIEnableToolbar(FALSE);
+		UpdateWindow();
+
+		int nObjects = m_pMapGroupI->CountObjects();
+	    GetMainFrame()->StatusBar("Merging objects...", IDI_ICO_WAIT);
+		SetCursor(LoadCursor(NULL, IDC_WAIT));
+		DWORD dwInitTicks = GetTickCount();
+		CONSOLE_PRINTF("Merging objects in the map...\n");
+		//FIXME: perhaps doing this in a separated thread:
+		int nMerged = m_pMapGroupI->MergeObjects();
+		
+		CONSOLE_PRINTF("Done! %d/%d objects merged (%0.02f%% compressed). (%d milliseconds)\n", nMerged, nObjects, 100.f*(1.0f-(float)nMerged/(float)nObjects), GetTickCount()-dwInitTicks);
+		
+		CleanSelection();
+
+		SetCursor(LoadCursor(NULL, IDC_ARROW));
+		GetMainFrame()->UIEnableToolbar(TRUE);
+	    GetMainFrame()->StatusBar("Ready", IDI_ICO_OK);
+	}
+}
 
 bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam) 
 {
@@ -432,8 +456,8 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		menu.AppendMenu(MF_STRING, 3, "&Rotate CW 90º");
 		menu.AppendMenu(MF_STRING, 4, "R&otate CCW 90º");
 		menu.AppendMenu(MF_SEPARATOR);
-		menu.AppendMenu(MF_STRING, 5, "Move &Top");
-		menu.AppendMenu(MF_STRING, 6, "Move &Bottom");
+		menu.AppendMenu(MF_STRING, 5, "Bring To &Top");
+		menu.AppendMenu(MF_STRING, 6, "Send To &Bottom");
 		menu.AppendMenu(MF_SEPARATOR);
 		menu.AppendMenu(MF_STRING, 7, "&Duplicate");
 		menu.AppendMenu(MF_SEPARATOR);
@@ -565,6 +589,8 @@ void CMapEditorView::UIUpdateMenuItems()
 	pMainFrm->UIEnable(ID_COPY, CanCopy());
 	pMainFrm->UIEnable(ID_PASTE, CanPaste());
 	pMainFrm->UIEnable(ID_ERASE, IsSelection());
+
+	pMainFrm->UIEnable(ID_MAPED_MERGE, TRUE);
 
 }
 BOOL CMapEditorView::CanUndo()
@@ -900,11 +926,14 @@ void CMapEditorView::OnZoom()
 void CMapEditorView::CleanSelection()
 {
 	m_SelectionI->CleanSelection();
+	OnChangeSel(OCS_AUTO);
 }
 
 int CMapEditorView::DeleteSelection()
 {
-	return m_SelectionI->DeleteSelection();
+	int nRet = m_SelectionI->DeleteSelection();
+	OnChangeSel(OCS_AUTO);
+	return nRet;
 }
 void CMapEditorView::HoldSelection(bool bHold)
 {
@@ -1011,7 +1040,8 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 		GetMainFrame()->m_ctrlLayers.SetItemState(nLayer, "1_Visible", bVisible?0:1);
 		GetMainFrame()->m_ctrlLayers.SetItemState(nLayer, "2_Locked", bLocked?1:0);
 	}
-	GetMainFrame()->m_ctrlLayers.SetCurSel(m_SelectionI->GetLayer());
+	nLayer = m_SelectionI->GetLayer();
+	if(nLayer!=-1) GetMainFrame()->m_ctrlLayers.SetCurSel(nLayer);
 
 	::SendMessage(hWnd, WMP_CLEAR, 0, (LPARAM)m_hWnd);
 

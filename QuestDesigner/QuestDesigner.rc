@@ -444,6 +444,8 @@ BEGIN
         MENUITEM "&Delete\tDel",                ID_ERASE
         MENUITEM SEPARATOR
         MENUITEM "Select &All\tCtrl+A",         ID_SELECT_ALL
+        MENUITEM SEPARATOR
+        MENUITEM "Merge Objects",               ID_MAPED_MERGE
     END
     POPUP "&View"
     BEGIN

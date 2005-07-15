@@ -185,6 +185,8 @@ private:
 	bool m_bValidMap;						//!< Indicates if the layers map is valid. (also if iterators are valid)
 	size_t m_nOrder;						//!< Number of siblings at the time of the creation.
 
+	int _MergeChildren(CDrawableContext *object);
+
 protected:
 	CDrawableObject *m_pDrawableObj;		//!< Drawable object for the context (if any)
 	ARGBCOLOR m_rgbBkColor;					//!< If there is no drawable object, a background color should exist
@@ -208,9 +210,12 @@ protected:
 	bool GetFirstChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
 
-	bool AddSibling(CDrawableContext *object, bool bAllowDups_=true);
-	bool AddChild(CDrawableContext *object, bool bAllowDups_=true);
+	int MergeChildren();
+	bool AddSibling(CDrawableContext *object);
+	bool AddChild(CDrawableContext *object);
 	bool InsertChild(CDrawableContext *object, int nInsertion = -1);
+
+	virtual bool CanMerge(CDrawableObject *object) { return true; }
 public:
 
 	mutable LPVOID m_pPtr;							//!< Multipurpose pointer for the drawable context.
@@ -331,6 +336,8 @@ public:
 	virtual bool SetProperties(SPropertyList &PL) { return false; }
 	virtual void Commit() const {};
 	virtual void Cancel() {};
+	virtual int MergeObjects() { return MergeChildren(); }
+	virtual int CountObjects() { return Objects(); }
 
 	virtual bool Draw(const IGraphics *pIGraphics=NULL);
 	virtual bool DrawSelected(const IGraphics *pIGraphics=NULL);

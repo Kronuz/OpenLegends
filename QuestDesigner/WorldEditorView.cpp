@@ -37,6 +37,7 @@ CWorldEditorView::CWorldEditorView(CWorldEditorFrame *pParentFrame) :
 	m_bWasModified(false),
 	m_szMap(0, 0),
 	m_pSelMapGroup(NULL),
+	m_pOldMapGroup(NULL),
 	m_hPenGrid(NULL),
 	m_hPenMapGroupSelected(NULL),
 	m_hPenMapGroupHover(NULL),
@@ -466,26 +467,37 @@ void CWorldEditorView::OnZoom()
 bool CWorldEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam)
 {
 	m_pSelMapGroup = NULL;
+	m_pOldMapGroup = NULL;
 	return false;
 }
 bool CWorldEditorView::DoFileClose()
 {
-	if(hasChanged()) {
-		CString sSave;
-		sSave.Format("Save Changes to %s?", GetTitle());
-		int ret = MessageBox(sSave, QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
-		switch(ret) {
-			case IDCANCEL: 
-				return false;
-			case IDYES: 
-				if(!OnFileSave()) { 
-					MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR); 
-					return false; 
-				}
-			case IDNO: 
-				return true;
+	static bool bClosing = false;
+	if(bClosing) {
+		if(hasChanged()) {
+			CString sSave;
+			sSave.Format("Save Changes to %s?", GetTitle());
+			int ret = MessageBox(sSave, QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
+			switch(ret) {
+				case IDCANCEL: 
+					return false;
+				case IDYES: 
+					if(!OnFileSave()) { 
+						MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR); 
+						return false; 
+					}
+				case IDNO: 
+					return true;
+			}
 		}
+		bClosing = false;
+	} else {
+		bClosing = true;
+		CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
+		pMainFrm->SendMessage(WM_COMMAND, ID_QUEST_CLOSE);
 	}
+
+	// the quest gets closed in the mainframe by OnQuestClose() -> CloseWorld()
 	return true;
 }
 bool CWorldEditorView::DoFileSave(LPCTSTR lpszFilePath)
@@ -718,8 +730,6 @@ void CWorldEditorView::UpdateSelections()
 
 /////////////////////
 
-	static CMapGroup *pOldMapGroup = NULL;
-
 	CMapGroup *pMapGroup = NULL;
 	if(m_pSelMapGroup) {
 		if(m_pSelMapGroup->isMapGroupAt(m_MapPoint.x, m_MapPoint.y)) {
@@ -732,9 +742,9 @@ void CWorldEditorView::UpdateSelections()
 	HPEN oldPen = dc.SelectPen(m_hPenMapGroup);
 	HBRUSH hOldBrush = dc.SelectStockBrush(NULL_BRUSH);
 
-	if(pOldMapGroup != pMapGroup && pOldMapGroup) {
-		if(pOldMapGroup == m_pSelMapGroup) dc.SelectPen(m_hPenMapGroupSelected);
-		pOldMapGroup->GetMapGroupRect(Rect);
+	if(m_pOldMapGroup != pMapGroup && m_pOldMapGroup) {
+		if(m_pOldMapGroup == m_pSelMapGroup) dc.SelectPen(m_hPenMapGroupSelected);
+		m_pOldMapGroup->GetMapGroupRect(Rect);
 		Rect.top *= szMap.cy;
 		Rect.left *= szMap.cx;
 		Rect.bottom *= szMap.cy;
@@ -756,7 +766,7 @@ void CWorldEditorView::UpdateSelections()
 		dc.Rectangle(Rect);
 	}
 
-	pOldMapGroup = pMapGroup;
+	m_pOldMapGroup = pMapGroup;
 
 	dc.SelectBrush(hOldBrush);
 	dc.SelectPen(oldPen);

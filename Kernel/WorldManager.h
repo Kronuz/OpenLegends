@@ -101,7 +101,7 @@ public:
 
 	void SetLoadPoint(int x, int y);
 	void SetLoadPoint(const CPoint &point_);
-	bool AddSpriteContext(CSpriteContext *pSpriteContext, bool bAllowDups_ = true);
+	bool AddSpriteContext(CSpriteContext *pSpriteContext);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -148,6 +148,8 @@ class CMapGroup :
 protected:
 	// CDocumentObject override:
 	bool _Close(bool bForce);
+
+	virtual bool CanMerge(CDrawableObject *object);
 
 public:
 	CMapGroup();
@@ -286,11 +288,11 @@ inline void CLayer::SetLoadPoint(const CPoint &point_)
 {
 	m_ptLoadPoint = point_;
 }
-inline bool CLayer::AddSpriteContext(CSpriteContext *sprite, bool bAllowDups_)
+inline bool CLayer::AddSpriteContext(CSpriteContext *sprite)
 {
 	CPoint Point;
 	sprite->GetPosition(Point);
 	Point += m_ptLoadPoint;
 	sprite->MoveTo(Point);
-	return AddChild(sprite, bAllowDups_);
+	return AddChild(sprite);
 }
