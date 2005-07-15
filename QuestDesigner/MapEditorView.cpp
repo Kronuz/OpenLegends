@@ -214,9 +214,9 @@ void CMapEditorView::OnSound()
 void CMapEditorView::OnMerge()
 {
 	if(m_pMapGroupI) {
-		OnIdle();
 		GetMainFrame()->UIEnableToolbar(FALSE);
-		UpdateWindow();
+		GetMainFrame()->UIUpdateToolBar();
+		GetMainFrame()->UpdateWindow();
 
 		int nObjects = m_pMapGroupI->CountObjects();
 	    GetMainFrame()->StatusBar("Merging objects...", IDI_ICO_WAIT);
@@ -226,7 +226,7 @@ void CMapEditorView::OnMerge()
 		//FIXME: perhaps doing this in a separated thread:
 		int nMerged = m_pMapGroupI->MergeObjects();
 		
-		CONSOLE_PRINTF("Done! %d/%d objects merged (%0.02f%% compressed). (%d milliseconds)\n", nMerged, nObjects, 100.f*(1.0f-(float)nMerged/(float)nObjects), GetTickCount()-dwInitTicks);
+		CONSOLE_PRINTF("Done! %d/%d objects merged (compressed to %0.02f%%). (%d milliseconds)\n", nMerged, nObjects, 100.f*(1.0f-(float)nMerged/(float)nObjects), GetTickCount()-dwInitTicks);
 		
 		CleanSelection();
 
