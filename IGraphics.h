@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -192,7 +192,7 @@ enum GpxFilters { ClearFilters, EnableFilters, Pixelate, Colorize, Alpha, HorzMo
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IBuffer
 	\brief		Interface for the textures.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		May 27, 2003
 
@@ -238,7 +238,7 @@ interface IBuffer
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	ITexture
 	\brief		Interface for the textures.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		May 19, 2003
 
@@ -282,7 +282,7 @@ interface ITexture
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IGraphics
 	\brief		Interface the graphics devices.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		May 19, 2003
 

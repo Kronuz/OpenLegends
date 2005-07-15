@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,8 +18,10 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		Console.cpp
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the Console classes.
-	\date		April 23, 2003
+	\date		April 23, 2003:
+						* Creation date.
 
 	This file implements all the classes that handles all output messages,
 	to the user.

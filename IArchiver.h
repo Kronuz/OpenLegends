@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -25,7 +25,7 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	IArchive
 	\brief		Interface for concrete implementation disk IO objects.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 28, 2003
 				July 12, 2005 + Added IsLoaded()
@@ -58,7 +58,7 @@ interface IArchive
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	CDocumentObject
 	\brief		Interface for objects with on-disk read write operations.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 16, 2003
 

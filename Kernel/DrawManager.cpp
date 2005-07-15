@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,13 +18,13 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		DrawManager.cpp
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the Drawing classes.
-	\date		June 15, 2003
-					* First release
+	\date		June 15, 2003:
+					* Creation date.
 				May 29, 2005
 					- Fix: The [i] issue that prevented compilation has been corrected.
 					- Bug: New bugs were created. Groups are not yet functional.
-	\author		Kronuz
 	\remarks	This file implements the classes to handle drawing objects and selections.
 				Known bugs:
 				This has a major bug while working with groups. need to be fixed

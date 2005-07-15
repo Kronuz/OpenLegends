@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,11 +18,11 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		ArchiveText.h
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Archive text mode operations classes.
-	\author		Kronuz
 	\version	1.0
 	\date		April 28, 2003:
-						* Initial release
+						* Creation date.
 				July 11, 2005 by Littlebuddy:
 						+ Implemented CWorldTxtArch::Save(CVFile);
 						* Added a commented version of the temporary save function

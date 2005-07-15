@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,6 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		SpriteManager.h 
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Interface of the classes that maintain sprites properties.
 	\date		April 15, 2003
 				April 17, 2003
@@ -114,7 +115,7 @@ typedef CBackground CMaskMap;
 /////////////////////////////////////////////////////////////////////////////
 /*! \struct		SSpriteData
 	\brief		Data structure of the sprites.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 28, 2003
 
@@ -176,7 +177,7 @@ struct SEntityData : public SBackgroundData
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CSprite
 	\brief		The sprites base class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 15, 2003
 
@@ -297,7 +298,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CBackground
 	\brief		Background sprites class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 15, 2003
 
@@ -332,7 +333,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CEntity
 	\brief		Entity sprites class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 16, 2003
 
@@ -362,7 +363,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CSpriteSheet
 	\brief		CSpriteSheet class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 15, 2003
 
@@ -453,7 +454,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class	CSpriteContext
 	\brief		Flyweight sprites context class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 28, 2003
 

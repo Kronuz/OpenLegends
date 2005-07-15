@@ -346,6 +346,9 @@
 				RelativePath="Kernel.h">
 			</File>
 			<File
+				RelativePath=".\Memento.h">
+			</File>
+			<File
 				RelativePath="..\Misc.h">
 			</File>
 			<File

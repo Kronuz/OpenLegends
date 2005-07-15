@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -18,6 +18,7 @@
 */
 /////////////////////////////////////////////////////////////////////////////
 /*! \file		WorldManager.h 
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Interface of the CWorld and CMap classes.
 	\date		April 28, 2003
 
@@ -74,7 +75,7 @@ const char g_szSubLayerNames[MAX_SUBLAYERS][30] = {
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CLayer
 	\brief		CLayer class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.2
 	\date		May 31, 2003
 				June 3, 2003
@@ -107,7 +108,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CThumbnails
 	\brief		CThumbnails class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		Oct 9, 2003
 
@@ -124,7 +125,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CMapGroup
 	\brief		CMapGroup class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		May 31, 2003
 				July 11, 2005:
@@ -206,7 +207,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CMapPos
 	\brief		CMapPos class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		July 12, 2005
 
@@ -241,10 +242,10 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CWorld
 	\brief		CWorld class.
-	\author		Kronuz
+	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		April 28, 2003:
-						* First release.
+						* Creation date.
 				July 07, 2005 by Littlebuddy:
 						+ Added ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam).
 

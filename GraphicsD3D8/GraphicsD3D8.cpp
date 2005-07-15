@@ -1,5 +1,5 @@
 /* QuestDesigner - Open Legends's Project
-   Copyright (C) 2003-2004. Germán Méndez Bravo (Kronuz)
+   Copyright (C) 2003-2005. Germán Méndez Bravo (Kronuz)
    Copyright (C) 2001-2003. Open Legends's Project
  
    This program is free software; you can redistribute it and/or
@@ -19,9 +19,10 @@
 /////////////////////////////////////////////////////////////////////////////
 /*! 
 	\file		GraphicsD3D8.cpp
+	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the DirectGraphics 2D Graphics plugin for Open Legends.
 	\date		May 19, 2003: 
-					* Initial Release.
+					* Creation date.
 				June 9, 2003
 				September 10, 2003: 
 					- Bug Fix: The Alpha and RGB values are now updated in the vertex buffer
@@ -48,7 +49,6 @@
 					  partial support for those cards and doesn't crash.
 			    September 14, 2004
 					- Bug Fix:  Added only square textures and power of 2 textures support.
-	\author		Kronuz
 	\remarks	Known bugs:
 				Take the next scenario. There is an open map (being displayed), the
 				textures were loaded from png (or bmp) files.
