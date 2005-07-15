@@ -661,8 +661,8 @@ public:
 			rbBand.fMask |= RBBIM_TEXT;
 		rbBand.fStyle = RBBS_CHILDEDGE;
 #if (_WIN32_IE >= 0x0500)
-		if(nBtnCount > 0)   // add chevron style for toolbar with buttons
-			rbBand.fStyle |= RBBS_USECHEVRON;
+		//if(nBtnCount > 0)   // add chevron style for toolbar with buttons
+		//	rbBand.fStyle |= RBBS_USECHEVRON;
 #endif //(_WIN32_IE >= 0x0500)
 		if(bNewRow)
 			rbBand.fStyle |= RBBS_BREAK;
@@ -680,7 +680,7 @@ public:
 		{
 			bRet = (BOOL)::SendMessage(hWndBand, TB_GETITEMRECT, nBtnCount - 1, (LPARAM)&rcTmp);
 			ATLASSERT(bRet);
-			rbBand.cx = (cxWidth != 0) ? cxWidth : rcTmp.right;
+			rbBand.cx = (cxWidth != 0) ? cxWidth : rcTmp.right + 10;
 			rbBand.cyMinChild = rcTmp.bottom - rcTmp.top;
 			if(bFullWidthAlways)
 			{

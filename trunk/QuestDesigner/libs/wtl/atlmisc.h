@@ -2937,7 +2937,8 @@ public:
 		m_nMaxEntries_Min = 2,
 		m_nMaxEntries_Max = t_nLastID - t_nFirstID + 1,
 		m_cchMaxItemLen_Min = 6,
-		m_cchMaxItemLen_Max = t_cchItemLen
+		m_cchMaxItemLen_Max = t_cchItemLen,
+		m_cchItemNameLen = 11
 	};
 
 // Data members
@@ -2968,7 +2969,11 @@ public:
 		ATLASSERT(hMenu == NULL || ::IsMenu(hMenu));
 		m_hMenu = hMenu;
 		if(m_hMenu == NULL || (::GetMenuString(m_hMenu, t_nFirstID, m_szNoEntries, t_cchItemLen, MF_BYCOMMAND) == 0))
-			lstrcpy(m_szNoEntries, _WTL_MRUEMPTY_TEXT);
+		{
+			T* pT = static_cast<T*>(this);
+			pT;   // avoid level 4 warning
+			lstrcpyn(m_szNoEntries, pT->GetMRUEmptyText(), t_cchItemLen);
+		}
 	}
 
 	int GetMaxEntries() const
@@ -3097,9 +3102,9 @@ public:
 
 		DWORD dwRet = 0;
 #if (_ATL_VER >= 0x0700)
-		lRet = rk.QueryDWORDValue(_T("DocumentCount"), dwRet);
+		lRet = rk.QueryDWORDValue(pT->GetRegCountName(), dwRet);
 #else
-		lRet = rk.QueryValue(dwRet, _T("DocumentCount"));
+		lRet = rk.QueryValue(dwRet, pT->GetRegCountName());
 #endif
 		if(lRet != ERROR_SUCCESS)
 			return FALSE;
@@ -3112,9 +3117,8 @@ public:
 
 		for(int nItem = m_nMaxEntries; nItem > 0; nItem--)
 		{
-			const int cchBuff = 11;
-			TCHAR szBuff[cchBuff] = { 0 };
-			wsprintf(szBuff, _T("Document%i"), nItem);
+			TCHAR szBuff[m_cchItemNameLen] = { 0 };
+			wsprintf(szBuff, pT->GetRegItemName(), nItem);
 #if (_ATL_VER >= 0x0700)
 			ULONG ulCount = t_cchItemLen;
 			lRet = rk.QueryStringValue(szBuff, szRetString, &ulCount);
@@ -3147,9 +3151,9 @@ public:
 			return FALSE;
 
 #if (_ATL_VER >= 0x0700)
-		lRet = rk.SetDWORDValue(_T("DocumentCount"), m_nMaxEntries);
+		lRet = rk.SetDWORDValue(pT->GetRegCountName(), m_nMaxEntries);
 #else
-		lRet = rk.SetValue(m_nMaxEntries, _T("DocumentCount"));
+		lRet = rk.SetValue(m_nMaxEntries, pT->GetRegCountName());
 #endif
 		ATLASSERT(lRet == ERROR_SUCCESS);
 
@@ -3157,9 +3161,8 @@ public:
 		int nItem;
 		for(nItem = m_arrDocs.GetSize(); nItem > 0; nItem--)
 		{
-			const int cchBuff = 11;
-			TCHAR szBuff[cchBuff] = { 0 };
-			wsprintf(szBuff, _T("Document%i"), nItem);
+			TCHAR szBuff[m_cchItemNameLen] = { 0 };
+			wsprintf(szBuff, pT->GetRegItemName(), nItem);
 			TCHAR szDocName[t_cchItemLen] = { 0 };
 			GetFromList(t_nFirstID + nItem - 1, szDocName);
 #if (_ATL_VER >= 0x0700)
@@ -3173,9 +3176,8 @@ public:
 		// delete unused keys
 		for(nItem = m_arrDocs.GetSize() + 1; nItem < m_nMaxEntries_Max; nItem++)
 		{
-			const int cchBuff = 11;
-			TCHAR szBuff[cchBuff] = { 0 };
-			wsprintf(szBuff, _T("Document%i"), nItem);
+			TCHAR szBuff[m_cchItemNameLen] = { 0 };
+			wsprintf(szBuff, pT->GetRegItemName(), nItem);
 			rk.DeleteValue(szBuff);
 		}
 
@@ -3257,6 +3259,24 @@ public:
 	static LPCTSTR GetRegKeyName()
 	{
 		return _T("Recent Document List");
+	}
+
+	static LPCTSTR GetRegCountName()
+	{
+		return _T("DocumentCount");
+	}
+
+	static LPCTSTR GetRegItemName()
+	{
+		// Note: This string is a format string used with wsprintf().
+		// Resulting formatted string must be m_cchItemNameLen or less 
+		// characters long, including the terminating null character.
+		return _T("Document%i");
+	}
+
+	static LPCTSTR GetMRUEmptyText()
+	{
+		return _WTL_MRUEMPTY_TEXT;
 	}
 };
 
@@ -3675,13 +3695,13 @@ inline HBITMAP AtlLoadBitmap(ATL::_U_STRINGorID bitmap)
 }
 
 #ifdef OEMRESOURCE
-inline HBITMAP AtlLoadSysBitmap(LPCTSTR lpBitmapName)
+inline HBITMAP AtlLoadSysBitmap(ATL::_U_STRINGorID bitmap)
 {
 #ifdef _DEBUG
-	WORD wID = (WORD)lpBitmapName;
+	WORD wID = (WORD)bitmap.m_lpstr;
 	ATLASSERT(wID >= 32734 && wID <= 32767);
 #endif //_DEBUG
-	return ::LoadBitmap(NULL, lpBitmapName);
+	return ::LoadBitmap(NULL, bitmap.m_lpstr);
 }
 #endif //OEMRESOURCE
 

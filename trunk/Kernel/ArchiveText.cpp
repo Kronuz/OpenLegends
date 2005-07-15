@@ -337,10 +337,7 @@ int CMapTxtArch::ReadSprite(CVFile &vfFile)
 		return 0;
 	}
 
-	if(!m_pLayer->AddSpriteContext(pSpriteContext, false)) {
-		CONSOLE_PRINTF("Map warning in '%s' (%d): Duplicated sprite '%s' not added at (%d, %d).\n", vfFile.GetFileName(), m_nLines, sName, x, y); // x/2, y/2
-		delete pSpriteContext;
-	}
+	m_pLayer->AddSpriteContext(pSpriteContext);
 
 	return 1;
 }
@@ -383,10 +380,7 @@ int CMapTxtArch::ReadTile(CVFile &vfFile)
 		return 0;
 	}
 
-	if(!m_pLayer->AddSpriteContext(pSpriteContext, false)) {
-		CONSOLE_PRINTF("Map warning in '%s' (%d): Duplicated sprite '%s' not added at (%d, %d).\n", vfFile.GetFileName(), m_nLines, sName, x2-x1, y2-y1); // (x2-x1)/2, (y2-y1)/2
-		delete pSpriteContext;
-	}
+	m_pLayer->AddSpriteContext(pSpriteContext);
 
 	return 1;
 }
@@ -611,7 +605,11 @@ bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
 
 				pLayer->SetLoadPoint(pWorld->m_szMapSize.cx*i, pWorld->m_szMapSize.cy*j);
 				if(!pLayer->Load(vfFile2)) {
-					CONSOLE_PRINTF("Map error in '%s': Couldn't load the screen!\n", vfFile2.GetFileName());
+					if(nLayer == DEFAULT_LAYER) {
+						CONSOLE_PRINTF("Map error in '%s': Couldn't load the screen!\n", vfFile2.GetFileName());
+					} else {
+						CONSOLE_PRINTF("Map warning in '%s': Couldn't load the screen!\n", vfFile2.GetFileName());
+					}
 				} else {
 					pLayer->LoadMore(); // more screens to load...
 				}

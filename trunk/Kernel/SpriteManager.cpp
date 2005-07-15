@@ -1163,7 +1163,7 @@ CRect CSpriteSelection::PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoi
 		pSpriteContext->Alpha(static_cast<CBackground *>(pSprite)->GetAlphaValue());
 
 		// NEED TO FIX *** (Pasted sprite sets within pasted data, should be pasted here)
-		pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
+		pLayer->AddSpriteContext(pSpriteContext); // insert the sprite in the current layer
 		if(!pPoint) {
 			m_Groups[0].O.push_back(SObjProp(this, pSpriteContext, 0));
 			pSpriteContext->MoveTo(0, 0);
@@ -1331,7 +1331,7 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 				pSpriteContext->Flip(flipped);
 				pSpriteContext->ARGB(rgbColor);
 
-				pLayer->AddSpriteContext(pSpriteContext, true); // insert the sprite in the current layer
+				pLayer->AddSpriteContext(pSpriteContext); // insert the sprite in the current layer
 				if(!pPoint) {
 					// the sprite absolute postion must be set after inserting it in the layer.
 					pSpriteContext->SelectContext();
@@ -1628,6 +1628,7 @@ void CSpriteSelection::SelectionToTop()
 			Iterator->pContext->SetObjOrder(nNextOrder++);
 		}
 	}
+	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::SelectionToBottom()
 {
@@ -1645,6 +1646,7 @@ void CSpriteSelection::SelectionToBottom()
 			Iterator->pContext->SetObjOrder(nNextOrder++);
 		}
 	}
+	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::SelectionDown()
 {
@@ -1664,6 +1666,7 @@ void CSpriteSelection::SelectionDown()
 			Iterator->pContext->SetObjOrder(nNextOrder);
 		}
 	}
+	m_bModified = m_bChanged = true;
 }
 void CSpriteSelection::SelectionUp()
 {
@@ -1682,6 +1685,7 @@ void CSpriteSelection::SelectionUp()
 			Iterator->pContext->SetObjOrder(nNextOrder);
 		}
 	}
+	m_bModified = m_bChanged = true;
 }
 
 void CSpriteSelection::FlipSelection()

@@ -704,6 +704,64 @@
 						RelativePath=".\libs\MenuXP\Tools.h">
 					</File>
 				</Filter>
+				<Filter
+					Name="wtl"
+					Filter="">
+					<File
+						RelativePath=".\libs\wtl\atlapp.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlcrack.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlctrls.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlctrlw.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlctrlx.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlddx.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atldlgs.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlframe.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlgdi.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlmisc.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlprint.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlres.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlresce.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlscrl.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlsplit.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atltheme.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atluser.h">
+					</File>
+					<File
+						RelativePath=".\libs\wtl\atlwinx.h">
+					</File>
+				</Filter>
 			</Filter>
 		</Filter>
 		<Filter

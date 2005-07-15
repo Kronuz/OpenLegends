@@ -263,6 +263,12 @@ bool CMapGroup::_Close(bool bForce)
 	return true;
 }
 
+bool CMapGroup::CanMerge(CDrawableObject *object) 
+{
+	// never merge entities:
+	return((static_cast<CSprite*>(object))->GetSpriteType() != tEntity);
+}
+
 LPCSTR CMapGroup::GetMapGroupID() const
 {
 	return m_sMapID;

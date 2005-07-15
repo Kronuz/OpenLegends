@@ -54,6 +54,7 @@ private:
 
 	CPoint m_PanningPoint;
 	CMapGroup *m_pSelMapGroup;
+	CMapGroup *m_pOldMapGroup;
 	CPoint m_MousePoint;
 	CPoint m_MapPoint;
 	CSize m_szMap;		// Map dimensions (default is 640x480)

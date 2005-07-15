@@ -127,7 +127,9 @@ public:
 		MENU_COMMAND_HANDLER(ID_MAPED_GRID,			ToggleGrid)
 		MENU_COMMAND_HANDLER(ID_MAPED_GRIDSNAP,		ToggleSnap)
 		MENU_COMMAND_HANDLER(ID_MAPED_SELHOLD,		ToggleHold)
-		
+
+		MENU_COMMAND_HANDLER(ID_MAPED_MERGE,		OnMerge)
+
 		MENU_COMMAND_HANDLER(ID_APP_SOUND,			OnSound)
 		MENU_COMMAND_HANDLER(ID_APP_ANIM,			OnAnim)
 		MENU_COMMAND_HANDLER(ID_APP_PARALLAX,		OnParallax)
@@ -164,6 +166,7 @@ public:
 	void OnAnim();
 	void OnParallax();
 	void OnSound();
+	void OnMerge();
 
 	void OnZoom();
 

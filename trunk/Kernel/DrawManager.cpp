@@ -193,10 +193,10 @@ CDrawableContext::~CDrawableContext()
 	Clean();
 };
 
-bool CDrawableContext::AddSibling(CDrawableContext *object, bool bAllowDups_) 
+bool CDrawableContext::AddSibling(CDrawableContext *object) 
 {
 	if(m_pParent == NULL) return false;
-	return m_pParent->AddChild(object, bAllowDups_);
+	return m_pParent->AddChild(object);
 }
 
 bool CDrawableContext::InsertChild(CDrawableContext *object, int nInsertion) 
@@ -230,23 +230,80 @@ bool CDrawableContext::InsertChild(CDrawableContext *object, int nInsertion)
 
 	return true;
 }
-bool CDrawableContext::AddChild(CDrawableContext *object, bool bAllowDups_) 
+
+int CDrawableContext::_MergeChildren(CDrawableContext *object) 
+{
+	int nMerged = 0;
+	// Merge sprites (never merge entities):
+	CDrawableObject *TrueObject = object->GetDrawableObj();
+	if(TrueObject == NULL) return object->MergeChildren();
+
+	if(!CanMerge(TrueObject)) return 0;
+
+	CRect Rect, NewRect;
+	object->GetAbsFinalRect(NewRect);
+
+	vector<CDrawableContext*>::iterator IteratorAux;
+	vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		CDrawableObject *Tow = (*Iterator)->GetDrawableObj();
+		if(*Iterator == object || Tow == NULL) {
+			Iterator++;
+			continue;
+		}
+		if(Tow == TrueObject) {
+			bool bMerge = false;
+			(*Iterator)->GetAbsFinalRect(Rect);
+			if(Rect == NewRect) {
+				bMerge = true;
+			} else if(Rect.top == NewRect.bottom && NewRect.left == Rect.left && NewRect.right == Rect.right) {
+				bMerge = true;
+				NewRect.bottom = Rect.bottom;
+			} else if(Rect.bottom == NewRect.top && NewRect.left == Rect.left && NewRect.right == Rect.right) {
+				bMerge = true;
+				NewRect.top = Rect.top;
+			} else if(Rect.left == NewRect.right && NewRect.top == Rect.top && NewRect.bottom == Rect.bottom) {
+				bMerge = true;
+				NewRect.right = Rect.right;
+			} else if(Rect.right == NewRect.left && NewRect.top == Rect.top && NewRect.bottom == Rect.bottom) {
+				bMerge = true;
+				NewRect.left = Rect.left;
+			}
+			if(bMerge) {
+				object->SetAbsFinalRect(NewRect);
+				IteratorAux = Iterator;
+				Iterator++;
+				KillChild(*IteratorAux);
+				nMerged++;
+			}
+		}
+		Iterator++;
+	}
+	return nMerged;
+}
+
+int CDrawableContext::MergeChildren() 
+{
+	for(int i=0; i<MAX_SUBLAYERS; i++) sort(m_LayersMap[i+1], m_LayersMap[i+2], m_cmpYX); 
+	int nMerged = 0;
+	int cnt;
+	do {
+		cnt = 0;
+		vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
+		while(Iterator != m_Children.end()) {
+			cnt += _MergeChildren(*Iterator);
+			Iterator++;
+		}
+		nMerged += cnt;
+	} while(cnt);
+	for(int i=0; i<MAX_SUBLAYERS; i++) Sort(i);
+	return nMerged;
+}
+
+bool CDrawableContext::AddChild(CDrawableContext *object) 
 { 
 	ASSERT(object);
-
-	if(!bAllowDups_) {
-		vector<CDrawableContext*>::iterator Iterator = 
-			find_if(
-				m_Children.begin(), m_Children.end(), 
-				bind2nd(ptr_equal_to<CDrawableContext*>(), object));
-		if(Iterator != m_Children.end()) {
-			(*Iterator)->m_nOrder = m_nInsertion++;	// renew the order of the located item, 
-			return false;							// but skip duplicates.
-		}
-	}
-
 	ASSERT(object->m_pParent == NULL); // child must be orphan.
-
 	object->m_pParent = this;
 	object->m_nOrder = m_nInsertion++;
 	m_Children.push_back(object);
@@ -1666,10 +1723,12 @@ inline bool CDrawableSelection::DrawAll(IGraphics *pGraphicsI)
 	if(!m_rcClip.IsRectEmpty()) {
 		bRet &= pGraphicsI->DrawFrame(m_rcClip, m_rgbClipColor, COLOR_ARGB(255, 255, 0, 0));
 	}
-	// Get the current layer's size and draw a frame around it:
-	CRect Rect;
-	(*m_ppMainDrawable)->GetChild(m_nLayer)->GetRect(Rect);
-	if(!Rect.IsRectEmpty()) pGraphicsI->SelectingBox(Rect, COLOR_ARGB(128, 0, 255, 0)); 
+	if(m_nLayer != -1) { // Layer not locked:
+		// Get the current layer's size and draw a frame around it:
+		CRect Rect;
+		(*m_ppMainDrawable)->GetChild(m_nLayer)->GetRect(Rect);
+		if(!Rect.IsRectEmpty()) pGraphicsI->SelectingBox(Rect, COLOR_ARGB(128, 0, 255, 0)); 
+	}
 
 	bRet &= Draw(pGraphicsI);
 

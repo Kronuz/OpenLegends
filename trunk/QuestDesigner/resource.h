@@ -245,6 +245,8 @@
 #define ID_BUILD_CLEANQUEST             32478
 #define ID_APP_REBUILD                  32482
 #define ID_APP_CLEANBUILD               32483
+#define ID_Menu                         32485
+#define ID_MAPED_MERGE                  32486
 #define ID_APP_SAVE                     57603
 #define ID_APP_SAVE_AS                  57604
 #define ID_ERASE                        57632
@@ -286,7 +288,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        277
-#define _APS_NEXT_COMMAND_VALUE         32484
+#define _APS_NEXT_COMMAND_VALUE         32487
 #define _APS_NEXT_CONTROL_VALUE         1032
 #define _APS_NEXT_SYMED_VALUE           105
 #endif

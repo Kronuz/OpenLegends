@@ -177,15 +177,15 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	}
 	m_ctrlLayers.SetCurSel(DEFAULT_LAYER);
 
-	// create a rebat to hold both: the command bar and the toolbar
+	// create a rebar to hold both: the command bar and the toolbar
 	if(!CreateSimpleReBar(ATL_SIMPLE_REBAR_NOBORDER_STYLE | CCS_ADJUSTABLE)) {
 		ATLTRACE("Failed to create applications rebar\n");
 		return -1;      // fail to create
 	}	
 	AddSimpleReBarBand(hWndCmdBar);
-	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 0, TRUE);
+	AddSimpleReBarBand(hProjectToolBar, NULL, TRUE, 0, FALSE);
 	AddSimpleReBarBand(hMainToolBar, NULL, TRUE, 0, FALSE);
-	AddSimpleReBarBand(hDebugToolBar, NULL, FALSE, 0, TRUE);
+	AddSimpleReBarBand(hDebugToolBar, NULL, FALSE, 0, FALSE);
 
 	// create a status bar
 	if(!CreateSimpleStatusBar(_T("")) ||
@@ -512,12 +512,11 @@ void CMainFrame::OnScriptFileOpen()
 
 void CMainFrame::OnQuestOpen()
 {
-	if(!OnQuestClose()) return;
-
 	static TCHAR szFilter[] = "OL Quest files (*.qss;*.qsz)|*.qss; *.qsz|All Files (*.*)|*.*||";
 	CSSFileDialog wndFileDialog(TRUE, NULL, NULL, OFN_HIDEREADONLY, szFilter, m_hWnd);
 	
 	if(IDOK == wndFileDialog.DoModal()) {
+		if(!OnQuestClose()) return;
 		FileOpen(wndFileDialog.m_ofn.lpstrFile, 0, (wndFileDialog.m_ofn.Flags&OFN_READONLY)?TRUE:FALSE);
 	}
 }
@@ -619,8 +618,6 @@ BOOL BrowseForFolder(HWND hwnd, // parent window.
 
 void CMainFrame::OnProjectOpen()
 {
-	if(!OnProjectClose()) return; // closes the project (and the world if it's open)
-
 	UIEnableToolbar(FALSE);
 	// Update all the toolbar items
 	UIUpdateToolBar();
@@ -635,14 +632,20 @@ void CMainFrame::OnProjectOpen()
 		return;
 	}
 
+	if(!OnProjectClose()) return; // closes the project (and the world if it's open)
+
     StatusBar("Loading...", IDI_ICO_WAIT);
 
 	::SendMessage(m_GameProject, WM_SETREDRAW, FALSE, 0);
 	g_sHomeDir = taux;
 
+	SetCursor(LoadCursor(NULL, IDC_WAIT));
 	if(!m_pOLKernel->LoadProject(g_sHomeDir)) {
+		SetCursor(LoadCursor(NULL, IDC_ARROW));
 		return;
 	}
+	SetCursor(LoadCursor(NULL, IDC_ARROW));
+
 	::SendMessage(m_GameProject, WM_SETREDRAW, TRUE, 0);
 	::RedrawWindow(m_GameProject, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
 	m_SpriteSets.PopulateTree(g_sHomeDir + "Sprite Sets");
@@ -853,6 +856,11 @@ HRESULT CMainFrame::OnRunProject()
 }
 HRESULT CMainFrame::OnDebugProject()
 {
+	UIEnableToolbar(FALSE);
+	// Update all the toolbar items
+	UIUpdateToolBar();
+	UpdateWindow();
+
 	if(Connected()) return E_FAIL;
 
     StatusBar("Connecting debugger...", IDI_ICO_WAIT);
@@ -958,6 +966,11 @@ int CMainFrame::MapCreate(CPoint &Point)
 
 int CMainFrame::MapFileOpen(CPoint &Point)
 {
+	UIEnableToolbar(FALSE);
+	// Update all the toolbar items
+	UIUpdateToolBar();
+	UpdateWindow();
+
 	CMapGroup *pMapGroupI;
 	if((pMapGroupI = m_pOLKernel->FindMapGroup(Point.x, Point.y))==NULL) return MapCreate(Point);
 
@@ -969,10 +982,13 @@ int CMainFrame::MapFileOpen(CPoint &Point)
 	CBString strTmp;
 	strTmp.Format("Loading (%d, %d)...", Point.x, Point.y);
     StatusBar(strTmp, IDI_ICO_WAIT);
+	SetCursor(LoadCursor(NULL, IDC_WAIT));
 	if(!pMapGroupI->Load()) {
 	    StatusBar("Couldn't load the map group! (1)", IDI_ICO_ERROR);
+		SetCursor(LoadCursor(NULL, IDC_ARROW));
 		return 0;
 	}
+	SetCursor(LoadCursor(NULL, IDC_ARROW));
 
 	CMapEditorFrame *pChild = new CMapEditorFrame(this);
 	DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
@@ -1070,12 +1086,20 @@ int CMainFrame::CloseWorld()
 
 int CMainFrame::FileOpen(LPCTSTR szFilename, LPARAM lParam, BOOL bReadOnly)
 {
-    StatusBar("Loading...", IDI_ICO_WAIT);
+	UIEnableToolbar(FALSE);
+	// Update all the toolbar items
+	UIUpdateToolBar();
+	UpdateWindow();
+
+	StatusBar("Loading...", IDI_ICO_WAIT);
+	SetCursor(LoadCursor(NULL, IDC_WAIT));
 	g_sQuestFile = szFilename;
 	if(!m_pOLKernel->LoadWorld(g_sQuestFile)) {
 	    StatusBar("Couldn't load quest!", IDI_ICO_ERROR);
+		SetCursor(LoadCursor(NULL, IDC_ARROW));
 		return 0;
 	}
+	SetCursor(LoadCursor(NULL, IDC_ARROW));
 
 	m_bQuestLoaded = true;
 
@@ -1316,6 +1340,9 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_SCRIPTED_GOTO_NEXT_BOOKMARK, FALSE);
 		UIEnable(ID_SCRIPTED_GOTO_PREV_BOOKMARK, FALSE);
 		UIEnable(ID_SCRIPTED_CLEAR_ALL_BOOKMARKS, FALSE);
+	}
+	if(ActiveChildType!=tMapEditor) {
+		UIEnable(ID_MAPED_MERGE, FALSE);
 	}
 
 	if(ActiveChildType==tAny) {
