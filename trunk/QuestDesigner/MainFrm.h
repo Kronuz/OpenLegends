@@ -28,6 +28,8 @@
 #include <DockingFrame.h>
 #include <TabbedDockingWindow.h>
 
+#include <MenuXP.h>
+
 #include "SuperCombo.h"
 
 #define CWM_INITIALIZE	(WMDF_LAST+1)
@@ -111,7 +113,8 @@ protected:
 
 	// The windows status bar
 	CMultiPaneStatusBarCtrl m_wndStatusBar;
-	CTabbedMDICommandBarCtrl m_CmdBar;
+	CCommandBarCtrlXP m_CmdBar;
+	//CTabbedMDICommandBarCtrl m_CmdBar;
 
 public:
 	std::vector<CTabbedDockingWindow*> m_PaneWindows;
