@@ -81,7 +81,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\lib\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
@@ -145,7 +145,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories=".\lib\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
 				StringPooling="TRUE"
 				RuntimeLibrary="0"
