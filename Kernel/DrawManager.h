@@ -33,6 +33,8 @@
 						+ Object sorting added for selections. (Object map was changed for vector)
 				July 08, 2005:
 						* Reorganized the file.
+				July 15, 2005:
+						* Added CMutable Touch() calls
 
 	The interface CDrawableObject represents an object that can, somehow, be draw on
 	the screen. This drawing is done using a flyweight pool of "drawable" objects to save
@@ -57,6 +59,7 @@
 #include <IConsole.h>
 
 #include <Core.h>
+#include "Memento.h"
 
 #include <vector>
 #include <map>
@@ -77,21 +80,6 @@ class CDrawableObject;
 class CDrawableSelection;
 
 enum DRAWTYPE { birthOrder, yOrder, leftIso, rightIso, noOrder };
-
-// Functor class to easily delete objects within containers:
-struct ptr_delete {
-	template<typename Type>
-	void operator()(const Type *ptr) const {
-		delete ptr;
-	}
-};
-template<class Type>
-struct ptr_equal_to : public binary_function<Type, Type, bool> 
-{
-	bool operator()(const Type& _Left, const Type& _Right) const {
-		return(*_Left == *_Right);
-	}
-};
 
 // This struct is used at run context time, it gives the required
 // information to the run procedures.
@@ -114,7 +102,9 @@ typedef struct __RUNACTION {
 */
 class CDrawableContext :
 	public CNamedObj,
-	public IPropertyEnabled
+	public IPropertyEnabled,
+	virtual public CMutable,
+	virtual public CMemento
 {
 protected:
 	const struct ContextSubLayerCompare : 
@@ -189,6 +179,39 @@ private:
 	int _MergeChildren(CDrawableContext *object);
 
 protected:
+
+/////////////////////////////////////////////////////////
+// TO KEEP THE MEMENTO:
+	struct StateDrawableContext : 
+		public CMemento::StateData
+	{
+		virtual bool operator==(const StateData& state) const {
+			const StateDrawableContext *curr = static_cast<const StateDrawableContext*>(&state);
+			return (
+				curr->bDeleted == bDeleted &&
+				curr->rgbBkColor == rgbBkColor &&
+				curr->nSubLayer == nSubLayer &&
+				curr->Position == Position &&
+				curr->Size == Size &&
+				curr->dwStatus == dwStatus &&
+				curr->bSelected == bSelected
+			);
+		}
+
+		bool bDeleted;
+//		CDrawableObject *pDrawableObj;
+		ARGBCOLOR rgbBkColor;
+
+		int nSubLayer;
+		CPoint Position;
+
+		CSize Size;
+//		CDrawableContext *pParent;
+		DWORD dwStatus;
+		bool bSelected;
+	};
+// DATA TO KEEP:
+	bool m_bDeleted;
 	CDrawableObject *m_pDrawableObj;		//!< Drawable object for the context (if any)
 	ARGBCOLOR m_rgbBkColor;					//!< If there is no drawable object, a background color should exist
 
@@ -199,11 +222,11 @@ protected:
 	CDrawableContext *m_pParent;	//!< parent drawable object.
 	DWORD m_dwStatus;
 	bool m_bSelected;
+/////////////////////////////////////////////////////////
 
+protected:
 	void PreSort();
 	void Sort(int nSubLayer);
-
-	bool __Draw(const IGraphics *pIGraphics);
 
 	bool GetFirstChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
 	bool GetNextChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
@@ -217,8 +240,17 @@ protected:
 	bool InsertChild(CDrawableContext *object, int nInsertion = -1);
 
 	virtual bool CanMerge(CDrawableObject *object) { return true; }
+
+	// Memento interface
+	virtual void ReadState(StateData *data);
+	virtual void WriteState(StateData *data);
+	virtual int _SaveState(UINT checkpoint);
+	virtual int _RestoreState(UINT checkpoint);
+	virtual void DestroyCheckpoint(StateData *data);
+
 public:
 
+	// These aren't needed to be saved as states:
 	mutable LPVOID m_pPtr;							//!< Multipurpose pointer for the drawable context.
 	mutable IBuffer *m_pBuffer[CONTEXT_BUFFERS];	//!< Buffers for the drawable context (to use as needed)
 
@@ -227,16 +259,20 @@ public:
 	// leaves holes between objects of nStep size (nStep must be >= 1)
 	int ReOrder(int nStep, int nRoomAt = -1, int nRoomSize = 0);
 
-	void Invalidate() {
+	void InvalidateBuffers() {
 		for(int i=0; i<CONTEXT_BUFFERS; i++) {
 			if(m_pBuffer[i]) m_pBuffer[i]->Invalidate(true);
 		}
 	}
-	void Touch() {
+	void TouchBuffers() {
 		for(int i=0; i<CONTEXT_BUFFERS; i++) {
 			if(m_pBuffer[i]) m_pBuffer[i]->Touch();
 		}
 	}
+
+	virtual bool HasChanged();
+	virtual bool IsModified();
+	virtual void WasSaved();
 
 	CDrawableContext(LPCSTR szName="");
 	virtual ~CDrawableContext();
@@ -348,6 +384,9 @@ public:
 
 	virtual bool CleanTemp();
 
+	virtual int SaveState(UINT checkpoint);
+	virtual int RestoreState(UINT checkpoint);
+
 	// Operators:
 	bool operator==(const CDrawableContext &context) const {
 		if( m_pDrawableObj == context.m_pDrawableObj &&	m_nSubLayer == context.m_nSubLayer ) {
@@ -447,14 +486,16 @@ inline void CDrawableContext::SetSize(const CSize &_Size)
 {
 	if(m_Size != _Size) {
 		m_Size = _Size;
-		Invalidate();
+		InvalidateBuffers();
+		Touch();
 	}
 }
 inline void CDrawableContext::SetSize(int x, int y) 
 { 
 	if(m_Size.cx != x || m_Size.cy != y) {
 		m_Size.SetSize(x, y); 
-		Invalidate();
+		InvalidateBuffers();
+		Touch();
 	}
 }
 inline void CDrawableContext::GetSize(CSize &_Size) const 
@@ -469,8 +510,12 @@ inline int CDrawableContext::GetObjSubLayer() const
 }
 inline void CDrawableContext::SetObjOrder(int nNewOrder)
 {
+	if(m_nOrder == nNewOrder) return;
+
 	m_nOrder = nNewOrder;
 	m_pParent->m_eSorted[m_nSubLayer] = noOrder;
+	m_pParent->Touch();
+	Touch();
 }
 inline int CDrawableContext::GetObjOrder() const
 {
@@ -493,6 +538,7 @@ inline bool CDrawableContext::SetObjLayer(int nLayer)
 		if(pNewLayer) { // if the new layer exists, try changing the layer:
 			if(m_pParent->PopChild(this)) {
 				bRet = pNewLayer->InsertChild(this, m_nOrder);
+				Touch(); //FIXME: add layers to the CMemento
 				ASSERT(bRet);
 			}
 		}
@@ -501,17 +547,24 @@ inline bool CDrawableContext::SetObjLayer(int nLayer)
 }
 inline bool CDrawableContext::SetObjSubLayer(int nLayer) 
 { 
+	if(m_nSubLayer == nLayer) return true;
 	m_nSubLayer = nLayer; 
+
 	if(m_pParent) {
 		// let the parent know one of its layers has changed.
 		m_pParent->m_bValidMap = false;
 		m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 	}
+	Touch();
 	return true;
 }
 inline void CDrawableContext::MoveTo(int x, int y) 
 { 
+	if(m_Position.x == x && m_Position.y == y) return;
+
 	m_Position.SetPoint(x,y); 
+	Touch();
+
 	if(m_pParent) {
 		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
 			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
@@ -519,7 +572,11 @@ inline void CDrawableContext::MoveTo(int x, int y)
 }
 inline void CDrawableContext::MoveTo(const CPoint &_point) 
 {
+	if(m_Position == _point) return;
+
 	m_Position = _point;
+	Touch();
+
 	if(m_pParent) {
 		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
 			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
@@ -561,15 +618,18 @@ inline void CDrawableContext::GetAbsFinalRect(CRect &_Rect) const
 }
 inline void CDrawableContext::SetRect(const CRect &_Rect) 
 {
+	if(m_Position != _Rect.TopLeft()) Touch();
 	m_Position = _Rect.TopLeft();
-	if(m_pParent) {
-		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
-			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
-	}
 
 	if(m_Size.cx != _Rect.Width() || m_Size.cy != _Rect.Height()) {
 		m_Size.SetSize(_Rect.Width(), _Rect.Height());
-		Invalidate(); // Invalidate only if the size changes.
+		InvalidateBuffers(); // Invalidate only if the size changes.
+		Touch();
+	}
+
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 	}
 }
 inline void CDrawableContext::SetAbsRect(const CRect &_Rect)
@@ -577,15 +637,18 @@ inline void CDrawableContext::SetAbsRect(const CRect &_Rect)
 	CPoint Position(0,0);
 	if(m_pParent) m_pParent->GetAbsPosition(Position);
 
+	if(m_Position != _Rect.TopLeft() - Position) Touch();
 	m_Position = _Rect.TopLeft() - Position;
-	if(m_pParent) {
-		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
-			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
-	}
 
 	if(m_Size.cx != _Rect.Width() || m_Size.cy != _Rect.Height()) {
 		m_Size.SetSize(_Rect.Width(), _Rect.Height());
-		Invalidate();
+		InvalidateBuffers();
+		Touch();
+	}
+
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 	}
 }
 inline void CDrawableContext::SetAbsFinalRect(const CRect &_Rect)
@@ -593,22 +656,26 @@ inline void CDrawableContext::SetAbsFinalRect(const CRect &_Rect)
 	CPoint Position(0,0);
 	if(m_pParent) m_pParent->GetAbsPosition(Position);
 
+	if(m_Position != _Rect.TopLeft() - Position) Touch();
 	m_Position = _Rect.TopLeft() - Position;
-	if(m_pParent) {
-		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
-			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
-	}
 
 	if(isRotated()) {
 		if(m_Size.cx != _Rect.Height() || m_Size.cy != _Rect.Width()) {
 			m_Size.SetSize(_Rect.Height(), _Rect.Width());
-			Invalidate();
+			InvalidateBuffers();
+			Touch();
 		}
 	} else {
 		if(m_Size.cx != _Rect.Width() || m_Size.cy != _Rect.Height()) {
 			m_Size.SetSize(_Rect.Width(), _Rect.Height());
-			Invalidate();
+			InvalidateBuffers();
+			Touch();
 		}
+	}
+
+	if(m_pParent) {
+		if(m_pParent->m_eSorted[m_nSubLayer] != birthOrder) // *Optimization (1)
+			m_pParent->m_eSorted[m_nSubLayer] = noOrder;
 	}
 }
 inline bool CDrawableContext::isAt(int x, int y) const 
@@ -662,6 +729,7 @@ inline void CDrawableContext::Rotate(bool bRotate)
 {
 	if(bRotate)	m_dwStatus |= DROTATE;
 	else		m_dwStatus &= ~DROTATE;
+	Touch();
 }
 inline bool CDrawableContext::isRotated() const
 {
@@ -681,6 +749,7 @@ inline void CDrawableContext::SetTemp(bool bTemp)
 {
 	if(bTemp)	m_dwStatus |= (DTEMP<<_DRW_SHFT);
 	else		m_dwStatus &= ~(DTEMP<<_DRW_SHFT);
+	Touch();
 }
 inline bool CDrawableContext::isTemp() const 
 { 
@@ -722,7 +791,9 @@ inline CDrawableObject* CDrawableContext::GetDrawableObj() const
 }
 inline void CDrawableContext::SetBkColor(ARGBCOLOR rgbColor) 
 { 
+	if(m_rgbBkColor == rgbColor) return;
 	m_rgbBkColor = rgbColor;
+	Touch();
 }
 inline ARGBCOLOR CDrawableContext::GetBkColor() const
 { 
@@ -777,7 +848,8 @@ struct SObjProp :
 
 	\sa CDrawableContext, CDrawableObject
 */
-class CDrawableSelection
+class CDrawableSelection :
+	public CMutable
 {
 	friend SObjProp;
 
@@ -902,13 +974,6 @@ public:
 	virtual void LockLayer(int nLayer, bool bLock = true);
 	virtual bool isLocked(int nLayer);
 	
-	// returns true if the object has been modified since the last save or its initial state.
-	virtual bool IsModified() { return m_bModified; }
-	virtual void WasSaved() { m_bModified = false; }
-
-	// returns whether or not the object has changed since last call to hasChanged()
-	virtual bool HasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }
-
 	virtual bool SelectedAt(const CPoint &point_); // Is there a selected object at this point?
 
 	virtual void StartResizing(const CPoint &point_);

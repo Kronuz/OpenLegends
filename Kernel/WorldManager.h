@@ -87,9 +87,34 @@ class CLayer :
 	public CDrawableContext,	// Layers can be painted on the screen.
 	public CDocumentObject		// Maps can be loaded from a file into a layer.
 {
-	CPoint m_ptLoadPoint;
+public:
+	// dimond multiple inherence resolution:
+	virtual void Touch(bool bChange = true) { CDrawableContext::Touch(bChange); }
+	virtual void WasSaved() { CDrawableContext::WasSaved(); }
+	virtual bool HasChanged() { return CDrawableContext::HasChanged(); }
+	virtual bool IsModified() { return CDrawableContext::IsModified(); }
 
 protected:
+/////////////////////////////////////////////////////////
+// TO KEEP THE MEMENTO:
+	struct StateLayer : 
+		public CDrawableContext::StateDrawableContext
+	{
+		virtual bool operator==(const StateData& state) const {
+			const StateLayer *curr = static_cast<const StateLayer*>(&state);
+			return (
+				StateDrawableContext::operator ==(state) &&
+				curr->ptLoadPoint == ptLoadPoint
+			);
+		}
+
+		CPoint ptLoadPoint;
+	};
+// DATA TO KEEP:
+	CPoint m_ptLoadPoint;
+/////////////////////////////////////////////////////////
+protected:
+
 	// CDocumentObject override:
 	bool _Close(bool bForce) { Clean(); return true; }
 
@@ -103,6 +128,13 @@ public:
 	void SetLoadPoint(int x, int y);
 	void SetLoadPoint(const CPoint &point_);
 	bool AddSpriteContext(CSpriteContext *pSpriteContext);
+
+	// Memento interface
+	virtual void ReadState(StateData *data);
+	virtual void WriteState(StateData *data);
+	virtual int _SaveState(UINT checkpoint);
+	virtual int _RestoreState(UINT checkpoint);
+	virtual void DestroyCheckpoint(StateData *data);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -118,9 +150,36 @@ public:
 class CThumbnails :
 	public CDrawableContext
 {
+protected:
+/////////////////////////////////////////////////////////
+// TO KEEP THE MEMENTO:
+	struct StateThumbnails : 
+		public CDrawableContext::StateDrawableContext
+	{
+		virtual bool operator==(const StateData& state) const {
+			const StateThumbnails *curr = static_cast<const StateThumbnails*>(&state);
+			return (
+				StateDrawableContext::operator ==(state)
+			);
+		}
+
+		// no data
+	};
+// DATA TO KEEP:
+	// no data
+/////////////////////////////////////////////////////////
+protected:
+
 public:
 	CThumbnails();
 	virtual void CleanThumbnails();
+
+	// Memento interface
+	virtual void ReadState(StateData *data) {};
+	virtual void WriteState(StateData *data) {};
+	virtual int _SaveState(UINT checkpoint) { return 0; };
+	virtual int _RestoreState(UINT checkpoint) { return 0; };
+	virtual void DestroyCheckpoint(StateData *data) {};
 };
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CMapGroup
@@ -137,6 +196,39 @@ class CMapGroup :
 	public CDrawableContext,
 	public CDocumentObject
 {
+public:
+	// dimond multiple inherence resolution:
+	virtual void Touch(bool bChange = true) { CDrawableContext::Touch(bChange); }
+	virtual void WasSaved() { CDrawableContext::WasSaved(); }
+	virtual bool HasChanged() { return CDrawableContext::HasChanged(); }
+	virtual bool IsModified() { return CDrawableContext::IsModified(); }
+
+protected:
+/////////////////////////////////////////////////////////
+// TO KEEP THE MEMENTO:
+	struct StateMapGroup : 
+		public CDrawableContext::StateDrawableContext
+	{
+		virtual bool operator==(const StateData& state) const {
+			const StateMapGroup *curr = static_cast<const StateMapGroup*>(&state);
+			return (
+				StateDrawableContext::operator ==(state) &&
+				curr->bFlagged == bFlagged &&
+				curr->sMapID == sMapID &&
+				curr->rcPosition == rcPosition
+			);
+		}
+
+		bool bFlagged;
+
+		CBString sMapID;
+		CRect rcPosition;
+//		const CWorld *pWorld;
+//		BITMAP *pOriginalBitmap;
+//		BITMAP *pBitmap;
+//		ISound *pMusic;
+	};
+// DATA TO KEEP:
 	bool m_bFlagged;
 
 	CBString m_sMapID;
@@ -145,6 +237,7 @@ class CMapGroup :
 	BITMAP *m_pOriginalBitmap;
 	BITMAP *m_pBitmap;
 	ISound *m_pMusic;
+/////////////////////////////////////////////////////////
 
 protected:
 	// CDocumentObject override:
@@ -202,6 +295,13 @@ public:
 
 	virtual void SetMusic(ISound *pSound);
 	virtual ISound* GetMusic() const;
+
+	// Memento interface
+	virtual void ReadState(StateData *data);
+	virtual void WriteState(StateData *data);
+	virtual int _SaveState(UINT checkpoint);
+	virtual int _RestoreState(UINT checkpoint);
+	virtual void DestroyCheckpoint(StateData *data);
 };
 
 /////////////////////////////////////////////////////////////////////////////

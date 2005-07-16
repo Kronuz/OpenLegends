@@ -24,6 +24,8 @@
 				April 17, 2003
 				September 3, 2003
 				September 16, 2003
+				July 15, 2005:
+						* Added CMutable Touch() calls
 
 	All sprites are almost the same, but to distinguish sprites that
 	can handle an advanced interaction (entities) from those which do not 
@@ -467,7 +469,27 @@ public:
 class CSpriteContext :
 	public CDrawableContext
 {
+protected:
+/////////////////////////////////////////////////////////
+// TO KEEP THE MEMENTO:
+	struct StateSpriteContext : 
+		public CDrawableContext::StateDrawableContext
+	{
+		virtual bool operator==(const StateData& state) const {
+			const StateSpriteContext *curr = static_cast<const StateSpriteContext*>(&state);
+			return (
+				StateDrawableContext::operator ==(state) &&
+				curr->rgbColor == rgbColor
+			);
+		}
+
+		ARGBCOLOR rgbColor;
+	};
+// DATA TO KEEP:
 	ARGBCOLOR m_rgbColor;
+/////////////////////////////////////////////////////////
+protected:
+
 public:
 	mutable int m_nFrame[CONTEXT_BUFFERS];
 
@@ -509,9 +531,34 @@ public:
 	virtual bool SetProperties(SPropertyList &PL);
 	virtual void Commit() const;
 	virtual void Cancel();
+
+	// Memento interface
+	virtual void ReadState(StateData *data);
+	virtual void WriteState(StateData *data);
+	virtual int _SaveState(UINT checkpoint);
+	virtual int _RestoreState(UINT checkpoint);
+	virtual void DestroyCheckpoint(StateData *data);
+
 private:
 	// Commit variables (saved in case of abortion):
 	mutable ARGBCOLOR Commit_rgbColor;
+};
+
+/////////////////////////////////////////////////////////////////////////////
+/*! \class	CSpriteSetContext
+	\brief		Flyweight sprites context class.
+	\author		Germán Méndez Bravo (Kronuz)
+	\version	1.0
+	\date		July 15, 2005
+
+	\todo	Class yet to be implemented. This class should keep the state of a sprite set
+			which is nothing more than a group of sprite contexts.
+
+	\sa CDrawableObject, CSpriteContext
+*/
+class CSpriteSetContext :
+	public CSpriteContext
+{
 };
 
 #define SSD_WIDTHHEIGHT	0x01	// 000001
@@ -631,37 +678,45 @@ inline void CSpriteContext::Mirror()
 {
 	if(isMirrored()) Mirror(false);
 	else Mirror(true);
+	Touch();
 }
 inline void CSpriteContext::Flip() 
 {
 	if(isFlipped()) Flip(false);
 	else Flip(true);
+	Touch();
 }
 inline void CSpriteContext::Mirror(bool bMirror) 
 {
 	if(bMirror) m_dwStatus |= (SMIRRORED<<_SPT_TRANSFORM);
 	else		m_dwStatus &= ~(SMIRRORED<<_SPT_TRANSFORM);
+	Touch();
 }
 inline void CSpriteContext::Flip(bool bFlip) 
 {
 	if(bFlip)	m_dwStatus |= (SFLIPPED<<_SPT_TRANSFORM);
 	else		m_dwStatus &= ~(SFLIPPED<<_SPT_TRANSFORM);
+	Touch();
 }
 inline void CSpriteContext::Red(int red) 
 {
 	m_rgbColor.rgbRed = (BYTE)(red / 2 + 128);
+	Touch();
 }
 inline void CSpriteContext::Green(int green) 
 {
 	m_rgbColor.rgbGreen = (BYTE)(green / 2 + 128);
+	Touch();
 }
 inline void CSpriteContext::Blue(int blue) 
 {
 	m_rgbColor.rgbBlue = (BYTE)(blue / 2 + 128);
+	Touch();
 }
 inline void CSpriteContext::Alpha(int alpha) 
 {
 	m_rgbColor.rgbAlpha = (BYTE)alpha;
+	Touch();
 /* Deprecated, now use full ARGB values (Strider's idea):
 	DWORD newAlpha = ((alpha<<_SPT_ALPHA)&SPT_ALPHA);
 	if(newAlpha != (m_dwStatus&SPT_ALPHA)) {
@@ -672,17 +727,21 @@ inline void CSpriteContext::Alpha(int alpha)
 }
 inline void CSpriteContext::ARGB(ARGBCOLOR rgbColor_) 
 {
+	if(m_rgbColor == rgbColor_) return;
 	m_rgbColor = rgbColor_;
+	Touch();
 }
 inline void CSpriteContext::Rotate(int rotate) 
 {
 	m_dwStatus &= ~SPT_ROT;
 	m_dwStatus |= ((rotate<<_SPT_ROT)&SPT_ROT);
+	Touch();
 }
 inline void CSpriteContext::Tile(bool bTile) 
 {
 	if(!bTile)	m_dwStatus |= (SNTILED<<_SPT_INFO);
 	else		m_dwStatus &= ~(SNTILED<<_SPT_INFO);
+	Touch();
 }
 inline bool CSpriteContext::isTiled() const
 {
@@ -706,7 +765,10 @@ inline void CSpriteContext::Lightness(int lightness)
 {
 	AHSLCOLOR hslColor = RGB2HSL(m_rgbColor);
 	hslColor.hslLightness = lightness;
+
+	if(m_rgbColor == HSL2RGB(hslColor)) return;
 	m_rgbColor = HSL2RGB(hslColor);
+	Touch();
 }
 inline int CSpriteContext::getRed() const
 {
