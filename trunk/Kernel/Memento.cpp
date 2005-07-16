@@ -35,7 +35,11 @@ inline bool CMemento::CheckpointDestroy::operator()(const State* &a, const UINT 
 	ASSERT(m_pMemento);
 	ASSERT(a->checkpoint > b);
 	if(a->checkpoint > b) {
-		m_pMemento->DestroyCheckpoint(a->data);
+		ASSERT(m_pMemento->m__DestroyCheckpoint || !a->data);
+		if(m_pMemento->m__DestroyCheckpoint && a->data) {
+			// callback the destroyer for the checkpoint data:
+			m_pMemento->m__DestroyCheckpoint(a->data, m_pMemento->m__lParam);
+		}
 		delete a; a = NULL;
 		return true;
 	}
@@ -51,6 +55,8 @@ inline bool CMemento::CheckpointCmp::operator()( State* const &a, State* const &
 #pragma warning (push)
 #pragma warning(disable : 4355) // ignore the C4355 warning
 CMemento::CMemento() :
+	m__DestroyCheckpoint(NULL),
+	m__lParam(0),
 	m_destroyCheckpoint(this)
 {
 }
@@ -67,12 +73,6 @@ void CMemento::Flush(UINT checkpoint)
 		upper_bound(m_Checkpoints.begin(), m_Checkpoints.end(), &State(checkpoint, NULL), m_cmpCheckpoint);
 	for_each(Iterator, m_Checkpoints.end(), bind2nd(m_destroyCheckpoint, checkpoint));
 	m_Checkpoints.erase(Iterator, m_Checkpoints.end());
-/*
-	m_Checkpoints.erase(
-		remove_if(m_Checkpoints.begin(), m_Checkpoints.end(), bind2nd(m_destroyCheckpoint, checkpoint)),
-		m_Checkpoints.end()
-	);
-*/
 }
 
 int CMemento::SetState(UINT checkpoint, StateData *data)
@@ -84,7 +84,11 @@ int CMemento::SetState(UINT checkpoint, StateData *data)
 	if(actual) {
 		// If the current saved state is equal to the new state, then abort the state saving:
 		if(actual == data) {
-			DestroyCheckpoint(data);
+			ASSERT(m__DestroyCheckpoint || !data);
+			if(m__DestroyCheckpoint && data) {
+				// callback the destroyer for the checkpoint data:
+				m__DestroyCheckpoint(data, m__lParam);
+			}
 			return 0;
 		}
 	}
@@ -96,11 +100,18 @@ int CMemento::SetState(UINT checkpoint, StateData *data)
 CMemento::StateData* CMemento::GetState(UINT checkpoint)
 {
 	Checkpoints::iterator Iterator =
-		lower_bound(m_Checkpoints.begin(), m_Checkpoints.end(), &State(checkpoint, NULL), m_cmpCheckpoint);
+		upper_bound(m_Checkpoints.begin(), m_Checkpoints.end(), &State(checkpoint, NULL), m_cmpCheckpoint);
 
-	if(Iterator != m_Checkpoints.end() && m_Checkpoints.begin() != m_Checkpoints.end()) Iterator--;
-	if(Iterator != m_Checkpoints.end() && Iterator != m_Checkpoints.begin() && (*Iterator)) {
-		return (*Iterator)->data;
+	if(Iterator != m_Checkpoints.begin()) {
+		Iterator--;
+		if(*Iterator) return (*Iterator)->data;
 	}
 	return NULL;
+}
+
+int CMemento::StateCount(UINT checkpoint)
+{
+	Checkpoints::iterator Iterator =
+		upper_bound(m_Checkpoints.begin(), m_Checkpoints.end(), &State(checkpoint, NULL), m_cmpCheckpoint);
+	return distance(m_Checkpoints.begin(), Iterator);
 }

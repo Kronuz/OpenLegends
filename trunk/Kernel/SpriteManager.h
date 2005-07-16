@@ -401,19 +401,18 @@ protected:
 	mapSprite m_Sprites; //!< Flyweight pool of sprites.
 	/**/
 
-	// CDocumentObject override:
-	bool _Close(bool bForce) { return true; }
-
 	//! No one but the Project Manager is alowed to create Sprite Sheets
 	CSpriteSheet(CGameManager *pGameManager);
 	~CSpriteSheet();
 public:
+	bool _Close(bool bForce) { return true; }
+
 	DWORD m_dwLastTry;
 	ITexture *m_pTexture; //! cached texture (valid only if it was aquired with the same Device ID)
 
 	const CBString& GetName() const { return CNamedObj::GetName(); }
 
-	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
+	int ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam);
 
 	// Interface:
 	virtual LPCSTR GetFilePath(LPSTR szPath, size_t buffsize) const
@@ -537,7 +536,8 @@ public:
 	virtual void WriteState(StateData *data);
 	virtual int _SaveState(UINT checkpoint);
 	virtual int _RestoreState(UINT checkpoint);
-	virtual void DestroyCheckpoint(StateData *data);
+	
+	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 
 private:
 	// Commit variables (saved in case of abortion):

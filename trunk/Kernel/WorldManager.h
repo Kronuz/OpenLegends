@@ -87,13 +87,6 @@ class CLayer :
 	public CDrawableContext,	// Layers can be painted on the screen.
 	public CDocumentObject		// Maps can be loaded from a file into a layer.
 {
-public:
-	// dimond multiple inherence resolution:
-	virtual void Touch(bool bChange = true) { CDrawableContext::Touch(bChange); }
-	virtual void WasSaved() { CDrawableContext::WasSaved(); }
-	virtual bool HasChanged() { return CDrawableContext::HasChanged(); }
-	virtual bool IsModified() { return CDrawableContext::IsModified(); }
-
 protected:
 /////////////////////////////////////////////////////////
 // TO KEEP THE MEMENTO:
@@ -115,10 +108,9 @@ protected:
 /////////////////////////////////////////////////////////
 protected:
 
-	// CDocumentObject override:
+public:
 	bool _Close(bool bForce) { Clean(); return true; }
 
-public:
 	CLayer();
 	~CLayer();
 
@@ -134,7 +126,7 @@ public:
 	virtual void WriteState(StateData *data);
 	virtual int _SaveState(UINT checkpoint);
 	virtual int _RestoreState(UINT checkpoint);
-	virtual void DestroyCheckpoint(StateData *data);
+	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -179,7 +171,7 @@ public:
 	virtual void WriteState(StateData *data) {};
 	virtual int _SaveState(UINT checkpoint) { return 0; };
 	virtual int _RestoreState(UINT checkpoint) { return 0; };
-	virtual void DestroyCheckpoint(StateData *data) {};
+	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 };
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CMapGroup
@@ -196,12 +188,6 @@ class CMapGroup :
 	public CDrawableContext,
 	public CDocumentObject
 {
-public:
-	// dimond multiple inherence resolution:
-	virtual void Touch(bool bChange = true) { CDrawableContext::Touch(bChange); }
-	virtual void WasSaved() { CDrawableContext::WasSaved(); }
-	virtual bool HasChanged() { return CDrawableContext::HasChanged(); }
-	virtual bool IsModified() { return CDrawableContext::IsModified(); }
 
 protected:
 /////////////////////////////////////////////////////////
@@ -240,12 +226,11 @@ protected:
 /////////////////////////////////////////////////////////
 
 protected:
-	// CDocumentObject override:
-	bool _Close(bool bForce);
-
 	virtual bool CanMerge(CDrawableObject *object);
 
 public:
+	bool _Close(bool bForce);
+
 	CMapGroup();
 	~CMapGroup();
 
@@ -301,7 +286,7 @@ public:
 	virtual void WriteState(StateData *data);
 	virtual int _SaveState(UINT checkpoint);
 	virtual int _RestoreState(UINT checkpoint);
-	virtual void DestroyCheckpoint(StateData *data);
+	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -347,7 +332,7 @@ public:
 	\date		April 28, 2003:
 						* Creation date.
 				July 07, 2005 by Littlebuddy:
-						+ Added ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam).
+						+ Added ForEachMapGroup(SIMPLEPROC ForEach, LPARAM lParam).
 
 	This class Is the one that manages everything in the project,
 	from the sprite sheets list and the sounds list, to the world and
@@ -362,11 +347,9 @@ class CWorld :
 	typedef std::vector<CMapGroup*>::iterator iterMapGroup;
 	std::vector<CMapGroup*> m_MapGroups;
 
-protected:
-	// CDocumentObject override:
+public:
 	bool _Close(bool bForce);
 
-public:
 	CMapPos m_StartPosition;
 	CSize m_szWorldSize;
 	CSize m_szMapSize;
@@ -377,7 +360,7 @@ public:
 	CMapGroup* FindMapGroup(LPCSTR szMapID) const;
 	CMapGroup* FindMapGroup(int x, int y) const;
 	CMapGroup* BuildMapGroup(int x, int y, int width, int height);
-	int ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam);
+	int ForEachMapGroup(SIMPLEPROC ForEach, LPARAM lParam);
 };
 
 

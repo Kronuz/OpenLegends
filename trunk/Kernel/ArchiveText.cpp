@@ -243,6 +243,11 @@ bool CSpriteSheetTxtArch::WriteObject(CVFile &vfFile)
 	return false;
 }
 
+bool CSpriteSheetTxtArch::CloseObject(CVFile &vfFile, bool bForce)
+{
+	return m_pSpriteSheet->_Close(bForce);
+}
+
 bool CProjectTxtArch::ReadObject(CVFile &vfFile)
 {
 	// this is to print how long did it take to load
@@ -270,6 +275,11 @@ bool CProjectTxtArch::ReadObject(CVFile &vfFile)
 bool CProjectTxtArch::WriteObject(CVFile &vfFile)
 {
 	return false;
+}
+
+bool CProjectTxtArch::CloseObject(CVFile &vfFile, bool bForce)
+{
+	return m_pGameManager->_Close(bForce);
 }
 
 bool CMapTxtArch::ReadObject(CVFile &vfFile)
@@ -572,6 +582,11 @@ bool CMapTxtArch::WriteObject(CVFile &vfFile)
 	return true;
 }
 
+bool CMapTxtArch::CloseObject(CVFile &vfFile, bool bForce)
+{
+	return m_pLayer->_Close(bForce);
+}
+
 bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
 {	
 	// this is to print how long did it take to load
@@ -631,6 +646,11 @@ bool CMapGroupTxtArch::WriteObject(CVFile &vfFile)
 		pLayer->Save(vfFile);
 	}
 	return true;
+}
+
+bool CMapGroupTxtArch::CloseObject(CVFile &vfFile, bool bForce)
+{
+	return m_pMapGroup->_Close(bForce);
 }
 
 bool CWorldTxtArch::ReadObject(CVFile &vfFile)
@@ -838,6 +858,11 @@ bool CWorldTxtArch::WriteObject(CVFile &vfFile)	//TODO: test this file.
 	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 	vfFile.Close();
 	return true;
+}
+
+bool CWorldTxtArch::CloseObject(CVFile &vfFile, bool bForce)
+{
+	return m_pWorld->_Close(bForce);
 }
 
 bool CWorldTxtArch::LoadThumbnail(CMapGroup *pMapGroup)

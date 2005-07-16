@@ -175,6 +175,7 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 	m_pParent(NULL), 
 	m_dwStatus((DVISIBLE<<_DRW_SHFT)), // DrawContexts are initially visibles.
 	m_bSelected(false),
+	m_bDeleted(false),
 	m_nOrder(0),
 	m_nSubLayer(-1), // DrawContexts are initially on sublayer -1 (not drew)
 	m_Position(0,0),
@@ -184,6 +185,7 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 	m_pPtr(NULL),
 	m_rgbBkColor(255,0,0,0)
 {
+	DestroyStateCallback(CDrawableContext::DestroyCheckpoint, (LPARAM)this);
 	memset(m_pBuffer, 0, sizeof(m_pBuffer));
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
 		// The default ordering is birthOrder, birthOrder, yOrder, birthOrder, birthOrder, yOrder... (one and one)
@@ -223,6 +225,11 @@ int CDrawableContext::_SaveState(UINT checkpoint)
 {
 	StateDrawableContext *curr = new StateDrawableContext;
 	ReadState(curr);
+	// This is needed to delete no longer used objects (garbage collector):
+	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
+		m_pParent->KillChildEx(this);
+		return 0;
+	}
 	// Save the object's state (SaveState decides if there are changes to be saved)
 	return SetState(checkpoint, curr);
 }
@@ -238,10 +245,11 @@ int CDrawableContext::_RestoreState(UINT checkpoint)
 	} 
 	return 1;
 }
-void CDrawableContext::DestroyCheckpoint(StateData *data)
+int CALLBACK CDrawableContext::DestroyCheckpoint(LPVOID Interface, LPARAM lParam)
 {
-	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
+	StateDrawableContext *curr = static_cast<StateDrawableContext *>(Interface);
 	delete curr;
+	return 1;
 }
 
 bool CDrawableContext::AddSibling(CDrawableContext *object) 
@@ -324,7 +332,7 @@ int CDrawableContext::_MergeChildren(CDrawableContext *object)
 				object->SetAbsFinalRect(NewRect);
 				IteratorAux = Iterator;
 				Iterator++;
-				KillChild(*IteratorAux);
+				DeleteChild(*IteratorAux);
 				nMerged++;
 			}
 		}
@@ -432,6 +440,8 @@ inline bool CDrawableContext::CleanTempContext::operator()(CDrawableContext *pDr
 	ASSERT(pDrawableContext);
 	if(!pDrawableContext) return false;
 
+	if( pDrawableContext->m_bDeleted ) return true;
+
 	// Start cleaning:
 	for_each(
 		pDrawableContext->m_Children.begin(), pDrawableContext->m_Children.end(), 
@@ -464,6 +474,8 @@ inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawable
 	ASSERT(pDrawableContext);
 	if(!pDrawableContext) return false;
 
+	if( pDrawableContext->m_bDeleted ) return true;
+
 	if( !pDrawableContext->isVisible() && m_bVisible )
 		return true;
 
@@ -487,6 +499,8 @@ inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawabl
 {
 	ASSERT(pDrawableContext);
 	if(!pDrawableContext) return false;
+
+	if( pDrawableContext->m_bDeleted ) return true;
 
 	// is this context visible? (if not, none of its children are either)
 	if( !pDrawableContext->isVisible() && m_bVisible ) 
@@ -544,18 +558,18 @@ int CDrawableContext::Objects(int init)
 		Iterator++;
 	}
 
-	if(m_pDrawableObj) init++;
+	if(!m_bDeleted && m_pDrawableObj) init++;
 	return init;
 }
 bool CDrawableContext::PopChild(CDrawableContext *pDrawableContext_)
 {
-	//FIXME: Instead of erasing the context, flag it as "deleted"
+	//ASSERT(!"This is probably not what you want, try DeleteChild()");
 	// Search for the requested child and if found, erase if from the list and return true
 	vector<CDrawableContext*>::iterator Iterator =
 		find(m_Children.begin(), m_Children.end(), pDrawableContext_);
 	if(Iterator != m_Children.end()) {
-		m_bValidMap = false;
-		m_eSorted[(*Iterator)->m_nSubLayer] = noOrder;
+		m_bValidMap = false; //FIXME: this is probably not needed
+		m_eSorted[(*Iterator)->m_nSubLayer] = noOrder; //FIXME: this is probably not needed
 		(*Iterator)->m_pParent = NULL; // this will be an orphan child.
 		m_Children.erase(Iterator);
 		return true;
@@ -591,6 +605,8 @@ bool CDrawableContext::KillChild(CDrawableContext *pDrawableContext_)
 	}
 	return false;
 }
+// This function really kills and erases a child, so use it careful 
+// (instead you probably should be using DeleteChild)
 bool CDrawableContext::KillChildEx(CDrawableContext *pDrawableContext_)
 {
 	ASSERT(pDrawableContext_);
@@ -603,6 +619,40 @@ bool CDrawableContext::KillChildEx(CDrawableContext *pDrawableContext_)
 	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->KillChildEx(pDrawableContext_)) {
+			return true;
+		}
+		Iterator++;
+	}
+	return false;
+}
+
+bool CDrawableContext::DeleteChild(CDrawableContext *pDrawableContext_)
+{
+	ASSERT(pDrawableContext_);
+
+	vector<CDrawableContext*>::iterator Iterator =
+		find(m_Children.begin(), m_Children.end(), pDrawableContext_);
+	if(Iterator != m_Children.end()) {
+		ASSERT(!(*Iterator)->m_bSelected);
+		(*Iterator)->m_bDeleted = true; // flag it as "deleted"
+		(*Iterator)->Touch();
+		return true;
+	}
+	return false;
+}
+
+bool CDrawableContext::DeleteChildEx(CDrawableContext *pDrawableContext_)
+{
+	ASSERT(pDrawableContext_);
+
+	// Search for the requested child and if found, flag it as deleted
+	if(DeleteChild(pDrawableContext_)) {
+		return true;
+	}
+	// Propagate the search to the children:
+	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		if((*Iterator)->DeleteChildEx(pDrawableContext_)) {
 			return true;
 		}
 		Iterator++;
@@ -636,7 +686,7 @@ bool CDrawableContext::GetFirstChildAt(const CPoint &point_, CDrawableContext **
 			return false;
 		}
 	}
-	if(isAt(point_)) {
+	if(!m_bDeleted && isAt(point_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;
@@ -660,7 +710,7 @@ bool CDrawableContext::GetNextChildAt(const CPoint &point_, CDrawableContext **p
 			}
 		}
 	}
-	if(isAt(point_)) {
+	if(!m_bDeleted && isAt(point_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;
@@ -678,7 +728,7 @@ bool CDrawableContext::GetFirstChildIn(const RECT &rect_, CDrawableContext **ppD
 			return false;
 		}
 	}
-	if(isIn(rect_)) {
+	if(!m_bDeleted && isIn(rect_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;
@@ -702,7 +752,7 @@ bool CDrawableContext::GetNextChildIn(const RECT &rect_, CDrawableContext **ppDr
 			}
 		}
 	}
-	if(isIn(rect_)) {
+	if(!m_bDeleted && isIn(rect_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;
@@ -1293,7 +1343,7 @@ int CDrawableSelection::DeleteSelection(int nGroup_)
 			if(Iterator->pContext) {
 				Iterator->pContext->SelectContext(false);
 				DeleteInGroups(Iterator->pContext); // NEED TO FIX *** couldn't this be done using clear() instead?
-				(*m_ppMainDrawable)->KillChildEx(Iterator->pContext);
+				(*m_ppMainDrawable)->DeleteChildEx(Iterator->pContext);
 				nDeleted++;
 			} else {
 				// Get the bounding rect of the children:

@@ -26,9 +26,11 @@
 /*! \interface	IArchive
 	\brief		Interface for concrete implementation disk IO objects.
 	\author		Germán Méndez Bravo (Kronuz)
-	\version	1.0
-	\date		April 28, 2003
-				July 12, 2005 + Added IsLoaded()
+	\version	1.1
+	\date		April 28, 2003:
+						+ First version
+				July 15, 2005:
+						+ Added CloseObject()
 
 	IArchive Interface to implement disk read/write operations of specific
 	objects. It is an abstract class that must be implemented in any
@@ -53,14 +55,24 @@ interface IArchive
 	*/
 	virtual bool WriteObject(CVFile &vfFile) = 0;
 
+	/*! \brief Closes the object.
+	
+		Closes the object. This method takes all necesary information and attributes 
+		from the object and closes everything. 
+		\sa Close()
+	*/
+	virtual bool CloseObject(CVFile &vfFile, bool bForce) = 0;
 };
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \interface	CDocumentObject
 	\brief		Interface for objects with on-disk read write operations.
 	\author		Germán Méndez Bravo (Kronuz)
-	\version	1.0
-	\date		April 16, 2003
+	\version	1.3
+	\date		April 16, 2003:
+						* First Version
+				July 12, 2005:
+						+ Added IsLoaded()
 
 	CDocumentObject allows the object to be saved or loaded from the 
 	Archive interface. It is an abstract class that must be 
@@ -74,7 +86,7 @@ interface CDocumentObject :
 		Loads or reads the object using an Archive interface derivated object. 
 		\sa Save()
 	*/
-	virtual bool Load(CVFile &vfFile) {
+	inline bool Load(CVFile &vfFile) {
 		bool bRet = true;
 		ASSERT(m_ArchiveIn);
 		if(m_bLoaded && !vfFile.IsEmpty()) return false;
@@ -88,7 +100,7 @@ interface CDocumentObject :
 		Saves or writes the object using an Archive interface derivated object. 
 		\sa Load()
 	*/
-	virtual bool Save(CVFile &vfFile) {
+	inline bool Save(CVFile &vfFile) {
 		ASSERT(m_ArchiveOut);
 		m_fnFile = vfFile;
 		if(!m_bLoaded) return true;
@@ -101,27 +113,26 @@ interface CDocumentObject :
 
 		\sa Load()
 	*/
-	virtual bool Save() {
+	inline bool Save() {
 		ASSERT(m_ArchiveOut);
 		if(!m_bLoaded) return true;
 		return m_ArchiveOut->WriteObject(m_fnFile);
 	}
 
-	virtual bool Close(bool bForce = false) {
+	inline bool Close(bool bForce = false) {
 		bool bRet = true;
 		if(!m_bLoaded && !bForce) return true;
 		if(IsModified() && !bForce) return false;
-		if((bRet = _Close(bForce))) m_bLoaded = false;
+		if((bRet = m_ArchiveOut->CloseObject(m_fnFile, bForce))) m_bLoaded = false;
 		return bRet;
 	}
 
+	inline bool IsLoaded() {return m_bLoaded;}
+
 	virtual bool Load(LPCSTR szFile = "") { return Load(CVFile(szFile)); }
 	virtual bool Save(LPCSTR szFile) { return Save(CVFile(szFile)); }
-	virtual bool IsLoaded() {return m_bLoaded;}
 
 protected:
-	virtual bool _Close(bool bForce) = 0; //!< Cleans the object when it's closed.
-
 	bool m_bLoaded;
 	IArchive *m_ArchiveIn;
 	IArchive *m_ArchiveOut;

@@ -114,10 +114,9 @@ protected:
 	void DeleteMap(int nIndex);
 	void DeleteSound(int nIndex);
 
-	// CDocumentObject override:
+public:
 	bool _Close(bool bForce); //!< Frees all allocated memory and cleans the object.
 
-public:
 	static int CALLBACK LoadSheet(LPCTSTR szFile, DWORD dwFileAttributes, LPARAM lParam);
 	void CleanUndefs();
 
@@ -250,12 +249,12 @@ public:
 	void SetMapCallback(STATUSCHANGEDPROC *StatusChanged, LPARAM lParam);
 	void SetMapGroupCallback(STATUSCHANGEDPROC *StatusChanged, LPARAM lParam);
 
-	int ForEachSound(FOREACHPROC ForEach, LPARAM lParam);
-	int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam);
-	int ForEachScript(FOREACHPROC ForEach, LPARAM lParam);
-	int ForEachSpriteSheet(FOREACHPROC ForEach, LPARAM lParam);
-	int ForEachMap(FOREACHPROC ForEach, LPARAM lParam);
-	int ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam);
+	int ForEachSound(SIMPLEPROC ForEach, LPARAM lParam);
+	int ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam);
+	int ForEachScript(SIMPLEPROC ForEach, LPARAM lParam);
+	int ForEachSpriteSheet(SIMPLEPROC ForEach, LPARAM lParam);
+	int ForEachMap(SIMPLEPROC ForEach, LPARAM lParam);
+	int ForEachMapGroup(SIMPLEPROC ForEach, LPARAM lParam);
 
 	DWORD GetModuleID() const { return MODULE_ID; }
 	void SetConsole(IConsole *pConsole) { g_pConsole = pConsole; }

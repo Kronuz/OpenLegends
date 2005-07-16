@@ -242,14 +242,18 @@ void CMapEditorView::OnMerge()
 void CMapEditorView::OnUndo()
 {
 	if(m_pMapGroupI && CanUndo()) {
-		m_pMapGroupI->RestoreState(--m_nCheckPoint);
+		m_nCheckPoint--;
+		CONSOLE_DEBUG("Restored state (%d)\n", m_nCheckPoint);
+		m_pMapGroupI->RestoreState(m_nCheckPoint);
 	}
 }
 
 void CMapEditorView::OnRedo()
 {
 	if(m_pMapGroupI && CanRedo()) {
-		m_pMapGroupI->RestoreState(m_nCheckPoint++);
+		m_nCheckPoint++;
+		CONSOLE_DEBUG("Restored state (%d)\n", m_nCheckPoint);
+		m_pMapGroupI->RestoreState(m_nCheckPoint);
 	}
 }
 
@@ -289,9 +293,10 @@ bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 	BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f);
 	m_pMapGroupI->SetThumbnail(pBitmap);
 
-	m_pMapGroupI->SaveState(m_nCheckPoint++);
-	m_pMapGroupI->HasChanged(); // just to make sure
-	m_pMapGroupI->WasSaved();
+	CONSOLE_DEBUG("Saved state (%d)\n", m_nCheckPoint);
+	m_pMapGroupI->SaveState(m_nCheckPoint);
+	m_pMapGroupI->HasChanged(); // make sure the object 
+	m_pMapGroupI->WasSaved();	// is kept unchanged.
 
 	OnChangeSel(OCS_RENEW);
 
@@ -619,7 +624,7 @@ BOOL CMapEditorView::CanUndo()
 {
 	if(!m_SelectionI) return FALSE;
 	if(isHeld() || isFloating()) return FALSE;
-	if(m_nCheckPoint>1) return TRUE;
+	if(m_nCheckPoint>0) return TRUE;
 	return FALSE;
 }
 BOOL CMapEditorView::CanRedo()
@@ -1053,9 +1058,12 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 
 	HWND hWnd = GetMainFrame()->m_hWnd;
 
-	if(m_pMapGroupI->HasChanged()) {
-		m_pMapGroupI->SaveState(m_nCheckPoint++);
-		m_nCheckPointLimit = m_nCheckPoint;
+	if(!isFloating() && !m_SelectionI->isFloating() && m_pMapGroupI->HasChanged()) {
+		m_nCheckPoint++;
+		CONSOLE_DEBUG("Saved state (%d)\n", m_nCheckPoint);
+		if(m_pMapGroupI->SaveState(m_nCheckPoint)) {
+			m_nCheckPointLimit = m_nCheckPoint;
+		} else m_nCheckPoint--; // nothing was saved anyway.
 	}
 
 	if( isHeld() && type == OCS_AUTO || 

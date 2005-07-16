@@ -103,8 +103,8 @@ typedef struct __RUNACTION {
 class CDrawableContext :
 	public CNamedObj,
 	public IPropertyEnabled,
-	virtual public CMutable,
-	virtual public CMemento
+	public CMemento,
+	virtual public CMutable
 {
 protected:
 	const struct ContextSubLayerCompare : 
@@ -246,7 +246,7 @@ protected:
 	virtual void WriteState(StateData *data);
 	virtual int _SaveState(UINT checkpoint);
 	virtual int _RestoreState(UINT checkpoint);
-	virtual void DestroyCheckpoint(StateData *data);
+	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 
 public:
 
@@ -355,6 +355,9 @@ public:
 
 	bool KillChild(CDrawableContext *pDrawableContext_);
 	bool KillChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
+
+	bool DeleteChild(CDrawableContext *pDrawableContext_); // extensive search of the object in children
+	bool DeleteChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
 
 	void Clean(); // recursivelly clean the Drawable context freeing all allocated memory.
 

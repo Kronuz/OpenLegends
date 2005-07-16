@@ -64,6 +64,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CProjectTxtArch :
@@ -76,6 +77,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CMapTxtArch :
@@ -92,6 +94,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CMapGroupTxtArch :
@@ -105,6 +108,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CWorldTxtArch :
@@ -123,5 +127,6 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
