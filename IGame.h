@@ -450,12 +450,12 @@ interface IGame
 	virtual void SetMapCallback(STATUSCHANGEDPROC StatusChanged, LPARAM lParam) = 0;
 	virtual void SetMapGroupCallback(STATUSCHANGEDPROC StatusChanged, LPARAM lParam) = 0;
 
-	virtual int ForEachSound(FOREACHPROC ForEach, LPARAM lParam) = 0;
-	virtual int ForEachSprite(FOREACHPROC ForEach, LPARAM lParam) = 0;
-	virtual int ForEachScript(FOREACHPROC ForEach, LPARAM lParam) = 0;
-	virtual int ForEachSpriteSheet(FOREACHPROC ForEach, LPARAM lParam) = 0;
-	virtual int ForEachMap(FOREACHPROC ForEach, LPARAM lParam) = 0;
-	virtual int ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam) = 0;
+	virtual int ForEachSound(SIMPLEPROC ForEach, LPARAM lParam) = 0;
+	virtual int ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam) = 0;
+	virtual int ForEachScript(SIMPLEPROC ForEach, LPARAM lParam) = 0;
+	virtual int ForEachSpriteSheet(SIMPLEPROC ForEach, LPARAM lParam) = 0;
+	virtual int ForEachMap(SIMPLEPROC ForEach, LPARAM lParam) = 0;
+	virtual int ForEachMapGroup(SIMPLEPROC ForEach, LPARAM lParam) = 0;
 
 	virtual DWORD GetModuleID() const = 0;
 	virtual void SetConsole(IConsole *pConsole) = 0;

@@ -620,7 +620,7 @@ void CGameManager::SetMapGroupCallback(STATUSCHANGEDPROC *StatusChanged, LPARAM 
 	SetCallback(MapGroup, StatusChanged, lParam);
 }
 
-int CGameManager::ForEachSound(FOREACHPROC ForEach, LPARAM lParam)
+int CGameManager::ForEachSound(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	int cnt = 0;
 	std::map<CBString, CSound*>::iterator Iterator = m_Sounds.begin();
@@ -633,7 +633,7 @@ int CGameManager::ForEachSound(FOREACHPROC ForEach, LPARAM lParam)
 	}
 	return cnt;
 }
-int CGameManager::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
+int CGameManager::ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	int cnt = 0;
 	std::vector<CSpriteSheet*>::iterator Iterator = m_SpriteSheets.begin();
@@ -646,7 +646,7 @@ int CGameManager::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 	}
 	return cnt;
 }
-int CGameManager::ForEachScript(FOREACHPROC ForEach, LPARAM lParam)
+int CGameManager::ForEachScript(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	int cnt = 0;
 	std::map<CBString, CScript*>::iterator Iterator = m_Scripts.begin();
@@ -659,7 +659,7 @@ int CGameManager::ForEachScript(FOREACHPROC ForEach, LPARAM lParam)
 	}
 	return cnt;
 }
-int CGameManager::ForEachSpriteSheet(FOREACHPROC ForEach, LPARAM lParam)
+int CGameManager::ForEachSpriteSheet(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	int cnt = 0;
 	std::vector<CSpriteSheet*>::iterator Iterator = m_SpriteSheets.begin();
@@ -672,11 +672,11 @@ int CGameManager::ForEachSpriteSheet(FOREACHPROC ForEach, LPARAM lParam)
 	}
 	return cnt;
 }
-int CGameManager::ForEachMap(FOREACHPROC ForEach, LPARAM lParam)
+int CGameManager::ForEachMap(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	return 0;
 }
-int CGameManager::ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam)
+int CGameManager::ForEachMapGroup(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	return m_World.ForEachMapGroup(ForEach, lParam);
 }

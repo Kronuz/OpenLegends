@@ -79,6 +79,8 @@ protected:
 	struct StateData {
 		virtual bool operator==(const StateData& state) const = 0;
 	};
+	SIMPLEPROC *m__DestroyCheckpoint;
+	LPARAM m__lParam;
 private:
 	struct State {
 		UINT checkpoint;
@@ -106,16 +108,21 @@ private:
 protected:
 	int SetState(UINT checkpoint, StateData *data);
 	StateData* GetState(UINT checkpoint);
+	int StateCount(UINT checkpoint); //!< Returns the number of states bellow checkpoint saved for the child
 
 	virtual int _SaveState(UINT checkpoint) = 0;
 	virtual int _RestoreState(UINT checkpoint) = 0;
-	// This function must ALWAYS delete the data:
-	virtual void DestroyCheckpoint(StateData *data) { ASSERT(!"Abstract class call"); } //!< Finction called when a state is about to be destroyed.
 
 	virtual void ReadState(StateData *data) = 0;
 	virtual void WriteState(StateData *data) = 0;
 
 public:
+	// DestroyCheckpoint callback function must ALWAYS delete the Interface pointer passed:
+	inline void DestroyStateCallback(SIMPLEPROC _DestroyCheckpoint, LPARAM _lParam) {
+		m__DestroyCheckpoint = _DestroyCheckpoint;
+		m__lParam = _lParam;
+	}
+
 	CMemento();
 	~CMemento();
 };

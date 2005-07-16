@@ -298,7 +298,7 @@ CSpriteSheet::~CSpriteSheet()
 	/**/
 	m_Sprites.clear();
 }
-int CSpriteSheet::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
+int CSpriteSheet::ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	int cnt = 0;
 
@@ -343,6 +343,11 @@ int CSpriteContext::_SaveState(UINT checkpoint)
 {
 	StateSpriteContext *curr = new StateSpriteContext;
 	ReadState(curr);
+	// This is needed to delete no longer used objects (garbage collector):
+	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
+		m_pParent->KillChildEx(this);
+		return 0;
+	}
 	// Save the object's state (SaveState decides if there are changes to be saved)
 	return SetState(checkpoint, curr);
 }
@@ -358,10 +363,11 @@ int CSpriteContext::_RestoreState(UINT checkpoint)
 	}
 	return 1;
 }
-void CSpriteContext::DestroyCheckpoint(StateData *data)
+int CALLBACK CSpriteContext::DestroyCheckpoint(LPVOID Interface, LPARAM lParam)
 {
-	StateSpriteContext *curr = static_cast<StateSpriteContext *>(data);
+	StateSpriteContext *curr = static_cast<StateSpriteContext *>(Interface);
 	delete curr;
+	return 1;
 }
 
 bool CSpriteContext::GetInfo(SInfo *pI) const 
@@ -602,6 +608,8 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
 	CDrawableContext(szName)
 {
+	DestroyStateCallback(CSpriteContext::DestroyCheckpoint, (LPARAM)this);
+
 	memset(m_nFrame, -1, sizeof(m_nFrame));
 	Mirror(false);
 	Flip(false);

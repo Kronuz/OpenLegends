@@ -21,6 +21,8 @@
 
 #include "../Version.h"
 
+#pragma warning(disable : 4250) // ignore the C4355 warning: inheritance via dominance
+
 #include <functional>
 
 // Flags for the sprites and their transformations (higher byte of the status reserved):
@@ -236,8 +238,8 @@ public:
 	};
 	friend NameCompare;
 
-	const CBString& GetName() const { return m_sName; }
-	void SetName(LPCSTR szName)  { m_sName = szName; }
+	inline const CBString& GetName() const { return m_sName; }
+	inline void SetName(LPCSTR szName) { m_sName = szName; }
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -286,5 +288,5 @@ interface IPropertyEnabled
 };
 
 struct GameInfo;
-typedef int CALLBACK FOREACHPROC(LPVOID Interface, LPARAM lParam);
+typedef int CALLBACK SIMPLEPROC(LPVOID Interface, LPARAM lParam);
 typedef int CALLBACK STATUSCHANGEDPROC(GameInfo *NewStatus, LPARAM lParam);

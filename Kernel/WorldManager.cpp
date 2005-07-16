@@ -41,6 +41,7 @@ CLayer::CLayer() :
 	CDocumentObject(),
 	m_ptLoadPoint(0,0)
 {
+	DestroyStateCallback(CLayer::DestroyCheckpoint, (LPARAM)this);
 	m_ArchiveIn = new CMapTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 }
@@ -65,6 +66,11 @@ int CLayer::_SaveState(UINT checkpoint)
 {
 	StateLayer *curr = new StateLayer;
 	ReadState(curr);
+	// This is needed to delete no longer used objects (garbage collector):
+	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
+		m_pParent->KillChildEx(this);
+		return 0;
+	}
 	// Save the object's state (SaveState decides if there are changes to be saved)
 	return SetState(checkpoint, curr);
 }
@@ -80,10 +86,11 @@ int CLayer::_RestoreState(UINT checkpoint)
 	}
 	return 1;
 }
-void CLayer::DestroyCheckpoint(StateData *data)
+int CALLBACK CLayer::DestroyCheckpoint(LPVOID Interface, LPARAM lParam)
 {
-	StateLayer *curr = static_cast<StateLayer *>(data);
+	StateLayer *curr = static_cast<StateLayer *>(Interface);
 	delete curr;
+	return 1;
 }
 
 CThumbnails::CThumbnails() :
@@ -119,6 +126,7 @@ CMapGroup::CMapGroup() :
 	m_bFlagged(false),
 	m_pMusic(NULL)
 {
+	DestroyStateCallback(CMapGroup::DestroyCheckpoint, (LPARAM)this);
 	m_ArchiveIn = new CMapGroupTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 
@@ -158,6 +166,12 @@ int CMapGroup::_SaveState(UINT checkpoint)
 {
 	StateMapGroup *curr = new StateMapGroup;
 	ReadState(curr);
+	// This is needed to delete no longer used objects (garbage collector):
+	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
+		ASSERT(!m_pParent); // This shouldn't happen since MapGropus don't currently have parents
+		m_pParent->KillChildEx(this);
+		return 0;
+	}
 	// Save the object's state (SaveState decides if there are changes to be saved)
 	return SetState(checkpoint, curr);
 }
@@ -173,10 +187,11 @@ int CMapGroup::_RestoreState(UINT checkpoint)
 	} 
 	return 1;
 }
-void CMapGroup::DestroyCheckpoint(StateData *data)
+int CALLBACK CMapGroup::DestroyCheckpoint(LPVOID Interface, LPARAM lParam)
 {
-	StateMapGroup *curr = static_cast<StateMapGroup *>(data);
+	StateMapGroup *curr = static_cast<StateMapGroup *>(Interface);
 	delete curr;
+	return 1;
 }
 
 bool CMapGroup::isFlagged()
@@ -716,7 +731,7 @@ CMapGroup* CWorld::BuildMapGroup(int x, int y, int width, int height)
 	return retmap;
 }
 
-int CWorld::ForEachMapGroup(FOREACHPROC ForEach, LPARAM lParam)
+int CWorld::ForEachMapGroup(SIMPLEPROC ForEach, LPARAM lParam)
 {
 	int cnt = 0;
 	std::vector<CMapGroup*>::iterator Iterator = m_MapGroups.begin();

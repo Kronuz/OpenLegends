@@ -56,6 +56,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CProjectBinArch :
@@ -68,6 +69,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CMapGroupBinArch :
@@ -81,6 +83,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CMapBinArch :
@@ -93,6 +96,7 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
 class CWorldBinArch :
@@ -105,5 +109,6 @@ private:
 public:
 	bool ReadObject(CVFile &vfFile);
 	bool WriteObject(CVFile &vfFile);
+	bool CloseObject(CVFile &vfFile, bool bForce);
 };
 
