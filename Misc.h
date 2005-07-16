@@ -44,20 +44,20 @@ public:
 	CSize(DWORD dwSize);
 
 // Operations
-	bool operator==(SIZE size) const;
-	bool operator!=(SIZE size) const;
-	void operator+=(SIZE size);
-	void operator-=(SIZE size);
+	bool operator==(CSize size) const;
+	bool operator!=(CSize size) const;
+	void operator+=(CSize size);
+	void operator-=(CSize size);
 	void SetSize(int CX, int CY);
 
 // Operators returning CSize values
-	CSize operator+(SIZE size) const;
-	CSize operator-(SIZE size) const;
+	CSize operator+(CSize size) const;
+	CSize operator-(CSize size) const;
 	CSize operator-() const;
 
 // Operators returning CPoint values
-	CPoint operator+(POINT point) const;
-	CPoint operator-(POINT point) const;
+	CPoint operator+(CPoint point) const;
+	CPoint operator-(CPoint point) const;
 
 // Operators returning CRect values
 	CRect operator+(const RECT* lpRect) const;
@@ -67,7 +67,6 @@ public:
 
 /////////////////////////////////////////////////////////////////////////////
 // CPoint - Wrapper for Windows POINT structure.
-
 class CPoint : public tagPOINT
 {
 public:
@@ -80,24 +79,24 @@ public:
 
 // Operations
 	void Offset(int xOffset, int yOffset);
-	void Offset(POINT point);
-	void Offset(SIZE size);
-	bool operator==(POINT point) const;
-	bool operator!=(POINT point) const;
-	void operator+=(SIZE size);
-	void operator-=(SIZE size);
-	void operator+=(POINT point);
-	void operator-=(POINT point);
+	void Offset(CPoint point);
+	void Offset(CSize size);
+	bool operator==(CPoint point) const;
+	bool operator!=(CPoint point) const;
+	void operator+=(CSize size);
+	void operator-=(CSize size);
+	void operator+=(CPoint point);
+	void operator-=(CPoint point);
 	void SetPoint(int X, int Y);
 
 // Operators returning CPoint values
-	CPoint operator+(SIZE size) const;
-	CPoint operator-(SIZE size) const;
+	CPoint operator+(CSize size) const;
+	CPoint operator-(CSize size) const;
 	CPoint operator-() const;
-	CPoint operator+(POINT point) const;
+	CPoint operator+(CPoint point) const;
 
 // Operators returning CSize values
-	CSize operator-(POINT point) const;
+	CSize operator-(CPoint point) const;
 
 // Operators returning CRect values
 	CRect operator+(const RECT* lpRect) const;
@@ -212,25 +211,25 @@ inline CSize::CSize(DWORD dwSize)
 		cx = (short)LOWORD(dwSize);
 		cy = (short)HIWORD(dwSize);
 	}
-inline bool CSize::operator==(SIZE size) const
+inline bool CSize::operator==(CSize size) const
 	{ return (cx == size.cx && cy == size.cy); }
-inline bool CSize::operator!=(SIZE size) const
+inline bool CSize::operator!=(CSize size) const
 	{ return (cx != size.cx || cy != size.cy); }
-inline void CSize::operator+=(SIZE size)
+inline void CSize::operator+=(CSize size)
 	{ cx += size.cx; cy += size.cy; }
-inline void CSize::operator-=(SIZE size)
+inline void CSize::operator-=(CSize size)
 	{ cx -= size.cx; cy -= size.cy; }
 inline void CSize::SetSize(int CX, int CY)
 	{ cx = CX; cy = CY; }	
-inline CSize CSize::operator+(SIZE size) const
+inline CSize CSize::operator+(CSize size) const
 	{ return CSize(cx + size.cx, cy + size.cy); }
-inline CSize CSize::operator-(SIZE size) const
+inline CSize CSize::operator-(CSize size) const
 	{ return CSize(cx - size.cx, cy - size.cy); }
 inline CSize CSize::operator-() const
 	{ return CSize(-cx, -cy); }
-inline CPoint CSize::operator+(POINT point) const
+inline CPoint CSize::operator+(CPoint point) const
 	{ return CPoint(cx + point.x, cy + point.y); }
-inline CPoint CSize::operator-(POINT point) const
+inline CPoint CSize::operator-(CPoint point) const
 	{ return CPoint(cx - point.x, cy - point.y); }
 inline CRect CSize::operator+(const RECT* lpRect) const
 	{ return CRect(lpRect) + *this; }
@@ -253,33 +252,33 @@ inline CPoint::CPoint(DWORD dwPoint)
 	}
 inline void CPoint::Offset(int xOffset, int yOffset)
 	{ x += xOffset; y += yOffset; }
-inline void CPoint::Offset(POINT point)
+inline void CPoint::Offset(CPoint point)
 	{ x += point.x; y += point.y; }
-inline void CPoint::Offset(SIZE size)
+inline void CPoint::Offset(CSize size)
 	{ x += size.cx; y += size.cy; }
-inline bool CPoint::operator==(POINT point) const
+inline bool CPoint::operator==(CPoint point) const
 	{ return (x == point.x && y == point.y); }
-inline bool CPoint::operator!=(POINT point) const
+inline bool CPoint::operator!=(CPoint point) const
 	{ return (x != point.x || y != point.y); }
-inline void CPoint::operator+=(SIZE size)
+inline void CPoint::operator+=(CSize size)
 	{ x += size.cx; y += size.cy; }
-inline void CPoint::operator-=(SIZE size)
+inline void CPoint::operator-=(CSize size)
 	{ x -= size.cx; y -= size.cy; }
-inline void CPoint::operator+=(POINT point)
+inline void CPoint::operator+=(CPoint point)
 	{ x += point.x; y += point.y; }
-inline void CPoint::operator-=(POINT point)
+inline void CPoint::operator-=(CPoint point)
 	{ x -= point.x; y -= point.y; }
 inline void CPoint::SetPoint(int X, int Y)
 	{ x = X; y = Y; }
-inline CPoint CPoint::operator+(SIZE size) const
+inline CPoint CPoint::operator+(CSize size) const
 	{ return CPoint(x + size.cx, y + size.cy); }
-inline CPoint CPoint::operator-(SIZE size) const
+inline CPoint CPoint::operator-(CSize size) const
 	{ return CPoint(x - size.cx, y - size.cy); }
 inline CPoint CPoint::operator-() const
 	{ return CPoint(-x, -y); }
-inline CPoint CPoint::operator+(POINT point) const
+inline CPoint CPoint::operator+(CPoint point) const
 	{ return CPoint(x + point.x, y + point.y); }
-inline CSize CPoint::operator-(POINT point) const
+inline CSize CPoint::operator-(CPoint point) const
 	{ return CSize(x - point.x, y - point.y); }
 inline CRect CPoint::operator+(const RECT* lpRect) const
 	{ return CRect(lpRect) + *this; }
