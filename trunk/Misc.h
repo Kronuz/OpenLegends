@@ -73,16 +73,16 @@ public:
 // Constructors
 	CPoint();
 	CPoint(int initX, int initY);
-	CPoint(POINT initPt);
-	CPoint(SIZE initSize);
+	CPoint(const POINT &initPt);
+	CPoint(const SIZE &initSize);
 	CPoint(DWORD dwPoint);
 
 // Operations
 	void Offset(int xOffset, int yOffset);
 	void Offset(CPoint point);
 	void Offset(CSize size);
-	bool operator==(CPoint point) const;
-	bool operator!=(CPoint point) const;
+	bool operator==(const CPoint &point) const;
+	bool operator!=(const CPoint &point) const;
 	void operator+=(CSize size);
 	void operator-=(CSize size);
 	void operator+=(CPoint point);
@@ -241,9 +241,9 @@ inline CPoint::CPoint()
 	{ /* random filled */ }
 inline CPoint::CPoint(int initX, int initY)
 	{ x = initX; y = initY; }
-inline CPoint::CPoint(POINT initPt)
+inline CPoint::CPoint(const POINT &initPt)
 	{ *(POINT*)this = initPt; }
-inline CPoint::CPoint(SIZE initSize)
+inline CPoint::CPoint(const SIZE &initSize)
 	{ *(SIZE*)this = initSize; }
 inline CPoint::CPoint(DWORD dwPoint)
 	{
@@ -256,9 +256,9 @@ inline void CPoint::Offset(CPoint point)
 	{ x += point.x; y += point.y; }
 inline void CPoint::Offset(CSize size)
 	{ x += size.cx; y += size.cy; }
-inline bool CPoint::operator==(CPoint point) const
+inline bool CPoint::operator==(const CPoint &point) const
 	{ return (x == point.x && y == point.y); }
-inline bool CPoint::operator!=(CPoint point) const
+inline bool CPoint::operator!=(const CPoint &point) const
 	{ return (x != point.x || y != point.y); }
 inline void CPoint::operator+=(CSize size)
 	{ x += size.cx; y += size.cy; }
