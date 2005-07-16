@@ -42,6 +42,10 @@
 #define _WIN32_IE		0x0500
 #define _RICHEDIT_VER	0x0300
 
+// we don't want these buggy ATL CSize, CPoint, and CRect:
+#define __ATLTYPES_INL__
+#define __ATLTYPES_H__
+
 // This is required for hosting browser in ATL7
 //#define _ATL_DLL
 
@@ -63,6 +67,11 @@
 #pragma comment ( lib, "htmlhelp.lib" )
 
 extern CAppModule _Module;
+
+// we'll use our types instead:
+//#define _NO_MISCSTRING
+//#define _NO_MISCTYPES
+#include <Misc.h>
 
 #include <atlimage.h>
 
@@ -89,12 +98,9 @@ extern CAppModule _Module;
 #define _TABBEDMDI_MESSAGES_NO_WARN_ATL_MIN_CRT
 #include <TabbedMDI.h>
 
+#undef ASSERT
 #define ASSERT ATLASSERT
 
-//#define _NO_MISCSTRING
-#define _NO_MISCTYPES
-
-#include <Misc.h>
 #include "Console.h"
 
 #include "IdleHandlerPump.h"
