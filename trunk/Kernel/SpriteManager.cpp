@@ -37,6 +37,8 @@
 					+ Optimization. Sprite sets now have indexed names and the alpha-RGB are now separated.
 				September 14, 2004: 
 					+ Bug Fix. Sprite Sets didn't load entities well. (it changed some sizes to null)
+				July 15, 2005:
+						* Added CMutable Touch() calls
 
 	This file implements all the classes that manage the sprites,
 	including backgrounds, sprite sheets, animations, mask maps and
@@ -323,6 +325,45 @@ int CSpriteSheet::ForEachSprite(FOREACHPROC ForEach, LPARAM lParam)
 
 	return cnt;
 }
+
+// Memento interface
+void CSpriteContext::ReadState(StateData *data)
+{
+	CDrawableContext::ReadState(data);
+	StateSpriteContext *curr = static_cast<StateSpriteContext *>(data);
+	curr->rgbColor = m_rgbColor;
+}
+void CSpriteContext::WriteState(StateData *data)
+{
+	CDrawableContext::WriteState(data);
+	StateSpriteContext *curr = static_cast<StateSpriteContext *>(data);
+	m_rgbColor = curr->rgbColor;
+}
+int CSpriteContext::_SaveState(UINT checkpoint)
+{
+	StateSpriteContext *curr = new StateSpriteContext;
+	ReadState(curr);
+	// Save the object's state (SaveState decides if there are changes to be saved)
+	return SetState(checkpoint, curr);
+}
+int CSpriteContext::_RestoreState(UINT checkpoint)
+{
+	StateSpriteContext *curr = static_cast<StateSpriteContext *>(GetState(checkpoint));
+	if(curr) {
+		WriteState(curr);
+	} else {
+		if(m_bDeleted) return 0;
+		// Set the sprite "deleted" flag
+		m_bDeleted = true;
+	}
+	return 1;
+}
+void CSpriteContext::DestroyCheckpoint(StateData *data)
+{
+	StateSpriteContext *curr = static_cast<StateSpriteContext *>(data);
+	delete curr;
+}
+
 bool CSpriteContext::GetInfo(SInfo *pI) const 
 {
 	ASSERT(m_pDrawableObj);
@@ -553,6 +594,7 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 			bChanged = true;
 		}
 	}
+	if(bChanged) Touch();
 
 	return bChanged;
 }
@@ -1590,6 +1632,7 @@ void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 	m_Groups[0].O.push_back(SObjProp(this, NULL, m_nCurrentGroup, rcRect));
 
 	// SelectGroup(m_nCurrentGroup); // <-- the current group should already be selected (it hasn't been unselected)
+	Touch();
 }
 // converts the currently selected group to a simple selection:
 void CSpriteSelection::GroupToSelection()
@@ -1612,6 +1655,7 @@ void CSpriteSelection::GroupToSelection()
 	m_Groups[m_nCurrentGroup].Name.clear();
 
 	m_nCurrentGroup = nParent;
+	Touch();
 }
 void CSpriteSelection::SelectionToTop()
 {
@@ -1629,7 +1673,7 @@ void CSpriteSelection::SelectionToTop()
 			Iterator->pContext->SetObjOrder(nNextOrder++);
 		}
 	}
-	m_bModified = m_bChanged = true;
+	Touch();
 }
 void CSpriteSelection::SelectionToBottom()
 {
@@ -1647,7 +1691,7 @@ void CSpriteSelection::SelectionToBottom()
 			Iterator->pContext->SetObjOrder(nNextOrder++);
 		}
 	}
-	m_bModified = m_bChanged = true;
+	Touch();
 }
 void CSpriteSelection::SelectionDown()
 {
@@ -1667,7 +1711,7 @@ void CSpriteSelection::SelectionDown()
 			Iterator->pContext->SetObjOrder(nNextOrder);
 		}
 	}
-	m_bModified = m_bChanged = true;
+	Touch();
 }
 void CSpriteSelection::SelectionUp()
 {
@@ -1686,7 +1730,7 @@ void CSpriteSelection::SelectionUp()
 			Iterator->pContext->SetObjOrder(nNextOrder);
 		}
 	}
-	m_bModified = m_bChanged = true;
+	Touch();
 }
 
 void CSpriteSelection::FlipSelection()
@@ -1731,7 +1775,7 @@ void CSpriteSelection::FlipSelection()
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
-	m_bModified = m_bChanged = true;
+	Touch();
 }
 void CSpriteSelection::MirrorSelection()
 {
@@ -1775,7 +1819,7 @@ void CSpriteSelection::MirrorSelection()
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
-	m_bModified = m_bChanged = true;
+	Touch();
 }
 void CSpriteSelection::CWRotateSelection()
 {
@@ -1833,7 +1877,7 @@ void CSpriteSelection::CWRotateSelection()
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
-	m_bModified = m_bChanged = true;
+	Touch();
 }
 void CSpriteSelection::CCWRotateSelection()
 {
@@ -1891,5 +1935,5 @@ void CSpriteSelection::CCWRotateSelection()
 		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
 
-	m_bModified = m_bChanged = true;
+	Touch();
 }

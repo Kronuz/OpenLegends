@@ -22,6 +22,7 @@
 #include "../Version.h"
 
 #include <functional>
+
 // Flags for the sprites and their transformations (higher byte of the status reserved):
 #define SNORMAL				GFX_NORMAL	
 #define SMIRRORED			GFX_MIRRORED
@@ -171,7 +172,37 @@ inline LPCSTR GetDescFromOLFile(LPCOLFILE pOLFile, LPSTR szBuffer, int nBuffSize
 	return szBuffer;
 }
 
-////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+// Functor class to easily delete objects within containers:
+struct ptr_delete {
+	template<typename Type>
+	void operator()(const Type *ptr) const {
+		delete ptr;
+	}
+};
+template<class Type>
+struct ptr_equal_to : public std::binary_function<Type, Type, bool> 
+{
+	bool operator()(const Type& _Left, const Type& _Right) const {
+		return(*_Left == *_Right);
+	}
+};
+
+template <class Pair>
+struct select1st : public std::unary_function<Pair, typename Pair::first_type> {
+  const typename Pair::first_type& operator()(const Pair& x) const
+  {
+    return x.first;
+  }
+};
+
+template <class Pair>
+struct select2nd : public std::unary_function<Pair, typename Pair::second_type> {
+  const typename Pair::second_type& operator()(const Pair& x) const
+  {
+    return x.second;
+  }
+};
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
@@ -207,6 +238,30 @@ public:
 
 	const CBString& GetName() const { return m_sName; }
 	void SetName(LPCSTR szName)  { m_sName = szName; }
+};
+
+/////////////////////////////////////////////////////////////////////////////
+/*! \class	CMutable
+	\brief		Class to manage the objects that change its internal state.
+	\author		Germán Méndez Bravo (Kronuz)
+	\version	1.0
+	\date		July 15, 2005
+
+	Many classes modify its internal state. This class provides the methods to
+	keep track of the changes that an object has suffered as its life goes on.
+*/
+interface CMutable
+{
+	bool m_bChanged;	//!< Set if the object has chenged since the last call to Haschanged();
+	bool m_bModified;	//!< Set if the object has been modified since the last call to WasSaved();
+public:
+	CMutable() : m_bModified(false), m_bChanged(false) {}
+	virtual void Touch(bool bChange = true) { m_bModified = true; if(bChange) m_bChanged = true; }
+	virtual void WasSaved() { m_bModified = false; }
+	// returns whether or not the object has changed since last call to HasChanged()
+	virtual bool HasChanged() { if(m_bChanged) { m_bChanged = false; return true; } return false; }
+	// returns true if the object has been modified since the last save or its initial state.
+	virtual bool IsModified() { return m_bModified; }
 };
 
 enum InfoType { itUnknown, itWorld, itMapGroup, itMap, itSpriteSheet, itSprite, itBackground, itMask, itEntity, itSpriteContext, itSound, itScript };

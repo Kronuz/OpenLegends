@@ -41,6 +41,8 @@ class CMapEditorView :
 {
 	typedef CGEditorView baseClass;
 private:
+	int m_nCheckPoint;
+	int m_nCheckPointLimit;
 	IGraphics *m_pGraphicsI;
 	CMapGroup *m_pMapGroupI;
 	ISoundManager *m_pSoundManager;
@@ -131,6 +133,9 @@ public:
 
 		MENU_COMMAND_HANDLER(ID_MAPED_MERGE,		OnMerge)
 
+		MENU_COMMAND_HANDLER(ID_UNDO,				OnUndo)
+		MENU_COMMAND_HANDLER(ID_REDO,				OnRedo)
+
 		MENU_COMMAND_HANDLER(ID_APP_SOUND,			OnSound)
 		MENU_COMMAND_HANDLER(ID_APP_ANIM,			OnAnim)
 		MENU_COMMAND_HANDLER(ID_APP_PARALLAX,		OnParallax)
@@ -168,6 +173,8 @@ public:
 	void OnParallax();
 	void OnSound();
 	void OnMerge();
+	void OnUndo();
+	void OnRedo();
 
 	void OnZoom();
 

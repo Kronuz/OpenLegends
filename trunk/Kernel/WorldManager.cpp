@@ -48,6 +48,43 @@ CLayer::~CLayer()
 {
 	delete m_ArchiveIn;
 }
+// Memento interface
+void CLayer::ReadState(StateData *data)
+{
+	CDrawableContext::ReadState(data);
+	StateLayer *curr = static_cast<StateLayer *>(data);
+	// no data
+}
+void CLayer::WriteState(StateData *data)
+{
+	CDrawableContext::WriteState(data);
+	StateLayer *curr = static_cast<StateLayer *>(data);
+	// no data
+}
+int CLayer::_SaveState(UINT checkpoint)
+{
+	StateLayer *curr = new StateLayer;
+	ReadState(curr);
+	// Save the object's state (SaveState decides if there are changes to be saved)
+	return SetState(checkpoint, curr);
+}
+int CLayer::_RestoreState(UINT checkpoint)
+{
+	StateLayer *curr = static_cast<StateLayer *>(GetState(checkpoint));
+	if(curr) {
+		WriteState(curr);
+	} else {
+		if(m_bDeleted) return 0;
+		// Set the sprite "deleted" flag
+		m_bDeleted = true;
+	}
+	return 1;
+}
+void CLayer::DestroyCheckpoint(StateData *data)
+{
+	StateLayer *curr = static_cast<StateLayer *>(data);
+	delete curr;
+}
 
 CThumbnails::CThumbnails() :
 	CDrawableContext()
@@ -98,6 +135,48 @@ CMapGroup::~CMapGroup()
 {
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 	delete []m_pOriginalBitmap;
+}
+
+// Memento interface
+void CMapGroup::ReadState(StateData *data)
+{
+	CDrawableContext::ReadState(data);
+	StateMapGroup *curr = static_cast<StateMapGroup *>(data);
+	curr->bFlagged = m_bFlagged;
+	curr->sMapID = m_sMapID;
+	curr->rcPosition = m_rcPosition;
+}
+void CMapGroup::WriteState(StateData *data)
+{
+	CDrawableContext::WriteState(data);
+	StateMapGroup *curr = static_cast<StateMapGroup *>(data);
+	m_bFlagged = curr->bFlagged;
+	m_sMapID = curr->sMapID;
+	m_rcPosition = curr->rcPosition;
+}
+int CMapGroup::_SaveState(UINT checkpoint)
+{
+	StateMapGroup *curr = new StateMapGroup;
+	ReadState(curr);
+	// Save the object's state (SaveState decides if there are changes to be saved)
+	return SetState(checkpoint, curr);
+}
+int CMapGroup::_RestoreState(UINT checkpoint)
+{
+	StateMapGroup *curr = static_cast<StateMapGroup *>(GetState(checkpoint));
+	if(curr) {
+		WriteState(curr);
+	} else {
+		if(m_bDeleted) return 0;
+		// Set the sprite "deleted" flag
+		m_bDeleted = true;
+	} 
+	return 1;
+}
+void CMapGroup::DestroyCheckpoint(StateData *data)
+{
+	StateMapGroup *curr = static_cast<StateMapGroup *>(data);
+	delete curr;
 }
 
 bool CMapGroup::isFlagged()

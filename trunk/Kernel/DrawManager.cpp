@@ -25,6 +25,9 @@
 				May 29, 2005
 					- Fix: The [i] issue that prevented compilation has been corrected.
 					- Bug: New bugs were created. Groups are not yet functional.
+				July 15, 2005:
+						* Added CMutable Touch() calls
+
 	\remarks	This file implements the classes to handle drawing objects and selections.
 				Known bugs:
 				This has a major bug while working with groups. need to be fixed
@@ -69,7 +72,7 @@ bool SObjProp::SetProperties(SPropertyList &PL)
 	if(!pContext) return false;
 	SProperty* pP;
 	bool bChanged = pContext->SetProperties(PL);
-	if(bChanged) pSelection->m_bChanged = pSelection->m_bModified = true;
+	if(bChanged) pSelection->Touch(false);
 
 	pP = PL.FindProperty("Horizontal Chain", "Behavior", SProperty::ptList);
 	if(pP) if(pP->bEnabled && pP->bChanged) {
@@ -192,6 +195,54 @@ CDrawableContext::~CDrawableContext()
 {
 	Clean();
 };
+
+// Memento interface
+void CDrawableContext::ReadState(StateData *data)
+{
+	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
+	curr->bDeleted = m_bDeleted;
+	curr->rgbBkColor = m_rgbBkColor;
+	curr->nSubLayer = m_nSubLayer;
+	curr->Position = m_Position;
+	curr->Size = m_Size;
+	curr->dwStatus = m_dwStatus;
+	curr->bSelected = m_bSelected;
+}
+void CDrawableContext::WriteState(StateData *data)
+{
+	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
+	m_bDeleted = curr->bDeleted;
+	m_rgbBkColor = curr->rgbBkColor;
+	m_nSubLayer = curr->nSubLayer;
+	m_Position = curr->Position;
+	m_Size = curr->Size;
+	m_dwStatus = curr->dwStatus;
+	m_bSelected = curr->bSelected;
+}
+int CDrawableContext::_SaveState(UINT checkpoint)
+{
+	StateDrawableContext *curr = new StateDrawableContext;
+	ReadState(curr);
+	// Save the object's state (SaveState decides if there are changes to be saved)
+	return SetState(checkpoint, curr);
+}
+int CDrawableContext::_RestoreState(UINT checkpoint)
+{
+	StateDrawableContext *curr = static_cast<StateDrawableContext *>(GetState(checkpoint));
+	if(curr) {
+		WriteState(curr);
+	} else {
+		if(m_bDeleted) return 0;
+		// Set the sprite "deleted" flag
+		m_bDeleted = true;
+	} 
+	return 1;
+}
+void CDrawableContext::DestroyCheckpoint(StateData *data)
+{
+	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
+	delete curr;
+}
 
 bool CDrawableContext::AddSibling(CDrawableContext *object) 
 {
@@ -498,6 +549,7 @@ int CDrawableContext::Objects(int init)
 }
 bool CDrawableContext::PopChild(CDrawableContext *pDrawableContext_)
 {
+	//FIXME: Instead of erasing the context, flag it as "deleted"
 	// Search for the requested child and if found, erase if from the list and return true
 	vector<CDrawableContext*>::iterator Iterator =
 		find(m_Children.begin(), m_Children.end(), pDrawableContext_);
@@ -517,7 +569,7 @@ bool CDrawableContext::PopChildEx(CDrawableContext *pDrawableContext_)
 	if(PopChild(pDrawableContext_)) {
 		return true;
 	}
-	// Propagate de search for the child:
+	// Propagate de search to the children:
 	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->PopChildEx(pDrawableContext_)) {
@@ -547,7 +599,7 @@ bool CDrawableContext::KillChildEx(CDrawableContext *pDrawableContext_)
 	if(KillChild(pDrawableContext_)) {
 		return true;
 	}
-	// Propagate the search for the child:
+	// Propagate the search to the children:
 	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->KillChildEx(pDrawableContext_)) {
@@ -656,6 +708,71 @@ bool CDrawableContext::GetNextChildIn(const RECT &rect_, CDrawableContext **ppDr
 	return true;
 }
 
+int CDrawableContext::SaveState(UINT checkpoint) 
+{
+	// Save this context state:
+	int nRet = _SaveState(checkpoint);
+	// Propagate the state saving to the children:
+	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		nRet += (*Iterator)->SaveState(checkpoint);
+		Iterator++;
+	}
+	return nRet;
+}
+
+int CDrawableContext::RestoreState(UINT checkpoint)
+{
+	// Restore this context state:
+	int nRet = _RestoreState(checkpoint);
+	// Propagate the state restoring to the children:
+	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		nRet += (*Iterator)->RestoreState(checkpoint);
+		Iterator++;
+	}
+	if(nRet) Touch(false);
+	return nRet;
+}
+
+bool CDrawableContext::HasChanged()
+{
+	// Restore this context state:
+	bool bRet = CMutable::HasChanged();
+	// Propagate the call to the children:
+	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		bRet |= (*Iterator)->HasChanged();
+		Iterator++;
+	}
+	return bRet;
+}
+
+bool CDrawableContext::IsModified()
+{
+	// Restore this context state:
+	bool bRet = CMutable::IsModified();
+	// Propagate the call to the children:
+	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		bRet |= (*Iterator)->IsModified();
+		Iterator++;
+	}
+	return bRet;
+}
+
+void CDrawableContext::WasSaved()
+{
+	// Restore this context state:
+	CMutable::WasSaved();
+	// Propagate the call to the children:
+	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		(*Iterator)->WasSaved();
+		Iterator++;
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // FROM HERE ON THE CLASSES AND FUNCTIONS ARE FOR ADVANCED DRAWING FUNCTIONALITY (SUCH AS SELECTIONS)
 // (Probably everything below this point should be in other file)
@@ -714,8 +831,6 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_ptInitialPoint(0,0),
 	m_bAllowMultiLayerSel(false),
 	m_bFloating(false),
-	m_bChanged(true),
-	m_bModified(false),
 	m_bHoldSelection(false),
 	m_pBitmap(NULL),
 	m_pLastSelected(NULL),
@@ -1126,7 +1241,7 @@ void CDrawableSelection::EndResizing(const CPoint &point_)
 	rcNewBoundaries = m_rcSelection; // save start boundaries rect
 	BuildRealSelectionBounds(); // updates m_rcSelection
 
-	if(rcNewBoundaries != m_rcSelection) m_bModified = m_bChanged = true;
+	if(rcNewBoundaries != m_rcSelection) Touch();
 
 	m_eCurrentState = eNone;
 }
@@ -1142,7 +1257,7 @@ int CDrawableSelection::SetLayerSelection(int nLayer, int nGroup_)
 	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
 		if(Iterator->pContext) {
 			if(Iterator->pContext->GetObjLayer() != m_nLayer) {
-				m_bModified = m_bChanged = true;
+				Touch();
 				Iterator->pContext->SetObjLayer(m_nLayer);
 				nSelected++;
 			}
@@ -1201,7 +1316,7 @@ int CDrawableSelection::DeleteSelection()
 	m_nCurrentGroup = 0;
 
 	if(m_bFloating) m_bFloating = false;
-	else m_bModified = m_bChanged = true;
+	else Touch();
 	CONSOLE_DEBUG("%d objects left.\n", (*m_ppMainDrawable)->Objects());
 
 	return nDeleted;
@@ -1300,7 +1415,7 @@ void CDrawableSelection::EndMoving(const CPoint &point_)
 	rcNewBoundaries = m_rcSelection; // save start boundaries rect
 	BuildRealSelectionBounds(); // updates m_rcSelection
 
-	if(rcNewBoundaries != m_rcSelection || m_bFloating) m_bModified = m_bChanged = true;
+	if(rcNewBoundaries != m_rcSelection || m_bFloating) Touch();
 
 	m_bFloating = false;
 	m_eCurrentState = eNone;

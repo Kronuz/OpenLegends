@@ -66,7 +66,8 @@ interface IArchive
 	Archive interface. It is an abstract class that must be 
 	implemented in any derivated class.
 */
-interface CDocumentObject 
+interface CDocumentObject :
+	virtual public CMutable		// KJD
 {
 	/*! \brief Reads the object from the IArchive.
 	
@@ -122,15 +123,11 @@ protected:
 	virtual bool _Close(bool bForce) = 0; //!< Cleans the object when it's closed.
 
 	bool m_bLoaded;
-	bool m_hasChanged;
 	IArchive *m_ArchiveIn;
 	IArchive *m_ArchiveOut;
 	CVFile m_fnFile;
 
-	CDocumentObject() : m_ArchiveIn(NULL), m_ArchiveOut(NULL), m_hasChanged(false), m_bLoaded(false) {}
+	CDocumentObject() : m_ArchiveIn(NULL), m_ArchiveOut(NULL), m_bLoaded(false) {}
 public:
-	void Touch() { m_hasChanged = true; }
-	bool IsModified() { return m_hasChanged; }
 	const CVFile& GetFile() const { return m_fnFile; }
 };
-

@@ -214,6 +214,9 @@
 				RelativePath="Kernel.def">
 			</File>
 			<File
+				RelativePath=".\Memento.cpp">
+			</File>
+			<File
 				RelativePath="..\Misc.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">

@@ -43,7 +43,10 @@ CMapEditorView::CMapEditorView(CMapEditorFrame *pParentFrame) :
 	m_szMap(0, 0),
 
 	m_bShowMasks(false),
-	m_bShowBoundaries(false)
+	m_bShowBoundaries(false),
+	
+	m_nCheckPoint(0),
+	m_nCheckPointLimit(0)
 {
 }
 
@@ -236,6 +239,19 @@ void CMapEditorView::OnMerge()
 	    GetMainFrame()->StatusBar("Ready", IDI_ICO_OK);
 	}
 }
+void CMapEditorView::OnUndo()
+{
+	if(m_pMapGroupI && CanUndo()) {
+		m_pMapGroupI->RestoreState(--m_nCheckPoint);
+	}
+}
+
+void CMapEditorView::OnRedo()
+{
+	if(m_pMapGroupI && CanRedo()) {
+		m_pMapGroupI->RestoreState(m_nCheckPoint++);
+	}
+}
 
 bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam) 
 {
@@ -273,6 +289,10 @@ bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 	BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f);
 	m_pMapGroupI->SetThumbnail(pBitmap);
 
+	m_pMapGroupI->SaveState(m_nCheckPoint++);
+	m_pMapGroupI->HasChanged(); // just to make sure
+	m_pMapGroupI->WasSaved();
+
 	OnChangeSel(OCS_RENEW);
 
 	UpdateView();
@@ -304,6 +324,7 @@ bool CMapEditorView::DoFileSave(LPCTSTR lpszFilePath)
 	bool bRet = m_pMapGroupI->Save();
 	if(bRet) {
 		m_SelectionI->WasSaved(); // Let the Selection know it was saved
+		m_pMapGroupI->WasSaved();
 		// Capture the MapGroup (to update the world editor)
 		BITMAP *pBitmap = m_SelectionI->Capture(m_pGraphicsI, 0.25f); // (1/4 the size)
 		m_pMapGroupI->SetThumbnail(pBitmap);
@@ -598,12 +619,14 @@ BOOL CMapEditorView::CanUndo()
 {
 	if(!m_SelectionI) return FALSE;
 	if(isHeld() || isFloating()) return FALSE;
+	if(m_nCheckPoint>1) return TRUE;
 	return FALSE;
 }
 BOOL CMapEditorView::CanRedo()
 {
 	if(!m_SelectionI) return FALSE;
 	if(isHeld() || isFloating()) return FALSE;
+	if(m_nCheckPoint<m_nCheckPointLimit) return TRUE;
 	return FALSE;
 }
 BOOL CMapEditorView::CanCut()
@@ -770,8 +793,10 @@ BOOL CMapEditorView::OnIdle()
 }
 bool CMapEditorView::hasChanged()
 {
-	if(m_SelectionI == NULL) return false;
-	return m_SelectionI->IsModified();
+	bool bRet = false;
+	if(m_pMapGroupI) bRet |= m_pMapGroupI->IsModified();
+	if(m_SelectionI) bRet |= m_SelectionI->IsModified();
+	return bRet;
 }
 
 void CMapEditorView::ViewToWorld(CPoint *_pPoint) 
@@ -1028,6 +1053,11 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 
 	HWND hWnd = GetMainFrame()->m_hWnd;
 
+	if(m_pMapGroupI->HasChanged()) {
+		m_pMapGroupI->SaveState(m_nCheckPoint++);
+		m_nCheckPointLimit = m_nCheckPoint;
+	}
+
 	if( isHeld() && type == OCS_AUTO || 
 		type == OCS_UPDATE ) {
 		::SendMessage(hWnd, WMP_UPDATE, 0, 0);
@@ -1062,6 +1092,7 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 			pOP = m_SelectionI->GetNextSelection();
 		}
 	}
+
 	::SendMessage(hWnd, WMP_SETPROP, 0, 0);
 }
 
