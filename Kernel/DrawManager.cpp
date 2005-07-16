@@ -760,21 +760,21 @@ bool CDrawableContext::GetNextChildIn(const RECT &rect_, CDrawableContext **ppDr
 
 int CDrawableContext::SaveState(UINT checkpoint) 
 {
-	// Save this context state:
-	int nRet = _SaveState(checkpoint);
+	int nRet = 0;
 	// Propagate the state saving to the children:
 	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		nRet += (*Iterator)->SaveState(checkpoint);
 		Iterator++;
 	}
+	// Save this context state:
+	nRet += _SaveState(checkpoint);
 	return nRet;
 }
 
 int CDrawableContext::RestoreState(UINT checkpoint)
 {
-	// Restore this context state:
-	int nRet = _RestoreState(checkpoint);
+	int nRet = 0;
 	// Propagate the state restoring to the children:
 	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
@@ -782,6 +782,8 @@ int CDrawableContext::RestoreState(UINT checkpoint)
 		Iterator++;
 	}
 	if(nRet) Touch(false);
+	// Restore this context state:
+	nRet += _RestoreState(checkpoint);
 	return nRet;
 }
 
