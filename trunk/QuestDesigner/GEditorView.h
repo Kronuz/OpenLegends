@@ -54,6 +54,10 @@ protected:
 
 	CRect m_rcScrollLimits;
 
+	bool m_bLButtonDown;
+	bool m_bRButtonDown;
+	bool m_bMButtonDown;
+
 	bool m_bModified;
 	float m_Zoom;
 	float m_MinZoom;
