@@ -43,10 +43,10 @@ static cell get_symbolvalue(AMX *amx, SYMBOL *sym, int index)
 	return *value;
 }
 
-vector<string> CDebugFile::ms_Watches;
-vector<BREAKPOINT> CDebugFile::ms_Breakpoints;
+std::vector<std::string> CDebugFile::ms_Watches;
+std::vector<BREAKPOINT> CDebugFile::ms_Breakpoints;
 
-list<string> CDebugScript::ms_LinesToSend;
+std::list<std::string> CDebugScript::ms_LinesToSend;
 SOCKET CDebugScript::ms_Socket = INVALID_SOCKET;
 int CDebugScript::ms_nScripts = 0;
 volatile bool CDebugScript::ms_bBreakRequest = false;
@@ -88,6 +88,7 @@ CDebugScript::CDebugScript(CDebugScript *pDebugCreator, HANDLE hSemaphore) :
 }
 CDebugScript::~CDebugScript()
 {
+	BEGIN_DESTRUCTOR
 	if(--ms_nScripts == 0) {
 		EndServer();
 		DeleteCriticalSection(&ms_SendCritical);
@@ -100,6 +101,7 @@ CDebugScript::~CDebugScript()
 	}
 	for_each(m_Functions.begin(), m_Functions.end(), ptr_delete());
 	for_each(m_Variables.begin(), m_Variables.end(), ptr_delete());
+	END_DESTRUCTOR
 }
 
 bool CDebugScript::BeginSend()
@@ -151,7 +153,7 @@ int CALLBACK CDebugScript::Request(SOCKET s)
 		if(WaitForSingleObject(ms_hLines, 500) == WAIT_OBJECT_0) {
 			EnterCriticalSection(&ms_SendCritical);
 			if(!ms_LinesToSend.empty()) {
-				string sLine = ms_LinesToSend.front();
+				std::string sLine = ms_LinesToSend.front();
 				::Send(s, sLine.c_str(), sLine.length());
 				ms_LinesToSend.pop_front();
 			}
@@ -364,7 +366,7 @@ bool CDebugScript::AddFile(int num, LPCSTR name)
 	mapDebugFiles::iterator Iterator = ms_DebugFiles.find(name);
 	if(Iterator == ms_DebugFiles.end()) {
 		pDebugFile = new CDebugFile(name);
-		pair<mapDebugFiles::iterator, bool> pr =
+		std::pair<mapDebugFiles::iterator, bool> pr =
 			ms_DebugFiles.insert(pairDebugFiles(name, pDebugFile));
 		if(pr.second == false) {
 			delete pDebugFile;
@@ -377,7 +379,7 @@ bool CDebugScript::AddFile(int num, LPCSTR name)
 	return false;
 }
 
-SYMBOL* CDebugScript::AddSymbol(vector<SYMBOL *> &table, LPCSTR name, int type, ucell addr, int vclass, int level) 
+SYMBOL* CDebugScript::AddSymbol(std::vector<SYMBOL *> &table, LPCSTR name, int type, ucell addr, int vclass, int level) 
 {
 	SYMBOL *sym = new SYMBOL;
 	if(!sym) return NULL;
@@ -398,13 +400,13 @@ SYMBOL* CDebugScript::AddSymbol(vector<SYMBOL *> &table, LPCSTR name, int type, 
 	table.push_back(sym);
 	return sym;
 }
-bool CDebugScript::DeleteSymbol(vector<SYMBOL *> &table, ucell addr, int level)
+bool CDebugScript::DeleteSymbol(std::vector<SYMBOL *> &table, ucell addr, int level)
 {
 	// Delete all local symbols below a certain address (these are local
 	// variables from a function/block that one stepped out of). Also
 	// remove all symbols of deeper calllevels (removes the static variables
 	// at the end of a function).
-	vector<SYMBOL *>::iterator Iterator = table.begin();
+	std::vector<SYMBOL *>::iterator Iterator = table.begin();
 	while(Iterator != table.end()) {
 		if((*Iterator)->calllevel>level || (*Iterator)->vclass==1 && (*Iterator)->addr<addr) {
 			delete *Iterator;

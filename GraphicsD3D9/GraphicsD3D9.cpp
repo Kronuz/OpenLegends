@@ -182,7 +182,9 @@ CBufferD3D9::CBufferD3D9(SVertexBuffer *pBuffer) :
 }
 CBufferD3D9::~CBufferD3D9() 
 {
+	BEGIN_DESTRUCTOR
 	CONSOLE_DEBUG4("DEBUG: IBuffer deleted.\n"); 
+	END_DESTRUCTOR
 }
 
 void CBufferD3D9::Touch() 
@@ -230,8 +232,11 @@ CTextureD3D9::CTextureD3D9(IDirect3DTexture9 *pTexture, D3DXIMAGE_INFO &imageInf
 	AddRef();
 }
 CTextureD3D9::~CTextureD3D9() {
+	BEGIN_DESTRUCTOR
 	CONSOLE_DEBUG4("DEBUG: ITexture deleted.\n"); 
+	END_DESTRUCTOR
 }
+
 void CTextureD3D9::Invalidate(bool full) { 
 	if(m_pTexture) {
 		m_pTexture->Release(); 
@@ -761,9 +766,11 @@ CGraphicsD3D9::CGraphicsD3D9() :
 }
 CGraphicsD3D9::~CGraphicsD3D9()
 {
+	BEGIN_DESTRUCTOR
 	delete []m_pGrid[0];
 	delete []m_pGrid[1];
 	Finalize();
+	END_DESTRUCTOR
 }
 
 bool CGraphicsD3D9::SetMode(HWND hWnd, bool bWindowed, int nScreenWidth, int nScreenHeight)

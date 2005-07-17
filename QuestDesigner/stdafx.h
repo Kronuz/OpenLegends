@@ -26,12 +26,17 @@
 				July 20, 2003
 */
 
+#pragma once
+
+// disable exeption handling:
+#undef _HAS_EXCEPTIONS
+#define _HAS_EXCEPTIONS 0 
+class exception {};
+
 #include "../Version.h"
 
 #define APPNAME _T(QD_NAME)
 #define COMPANY _T(OL_NAME)
-
-#pragma once
 
 #pragma warning ( disable : 4530 )
 #pragma warning ( disable : 4244 )
@@ -69,8 +74,6 @@
 extern CAppModule _Module;
 
 // we'll use our types instead:
-//#define _NO_MISCSTRING
-//#define _NO_MISCTYPES
 #include <Misc.h>
 
 #include <atlimage.h>
@@ -97,9 +100,6 @@ extern CAppModule _Module;
 #define _TABBEDMDI_MESSAGES_EXTERN_REGISTER
 #define _TABBEDMDI_MESSAGES_NO_WARN_ATL_MIN_CRT
 #include <TabbedMDI.h>
-
-#undef ASSERT
-#define ASSERT ATLASSERT
 
 #include "Console.h"
 

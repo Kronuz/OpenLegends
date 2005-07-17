@@ -70,8 +70,6 @@
 #include <functional>
 #include <algorithm>
 
-using namespace std;
-
 #define MAX_SUBLAYERS		10	// Maximum Sublayers
 #define MAX_LAYERS			10	// Maximum Layers
 #define DEFAULT_LAYER		3	// Default layer
@@ -112,28 +110,28 @@ class CDrawableContext :
 {
 protected:
 	const struct ContextSubLayerCompare : 
-	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
+	public std::binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
 	} m_cmpSubLayer; // *Optimization (2)
 	const struct ContextYCompare :
-	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
+	public std::binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
 	} m_cmpY; // *Optimization (2)
 	const struct ContextYXCompare :
-	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
+	public std::binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
 	} m_cmpYX; // *Optimization (2)
 	const struct ContextYiXCompare :
-	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
+	public std::binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
 	} m_cmpYiX; // *Optimization (2)
 	const struct ContextOrderCompare :
-	public binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
+	public std::binary_function<const CDrawableContext*, const CDrawableContext*, bool> {
 		bool operator()(const CDrawableContext *a, const CDrawableContext *b) const;
 	} m_cmpOrder; // *Optimization (2)
 
 	const class DrawContext :
-	public binary_function<CDrawableContext*, const IGraphics *, bool> {
+	public std::binary_function<CDrawableContext*, const IGraphics *, bool> {
 		bool m_bHighlight;
 		bool m_bSelected;
 		bool m_bVisible;
@@ -143,7 +141,7 @@ protected:
 	};
 
 	const class RunContext :
-	public binary_function<CDrawableContext*, RUNACTION, bool> {
+	public std::binary_function<CDrawableContext*, RUNACTION, bool> {
 		bool m_bVisible;
 	public:
 		RunContext(bool bVisible) : m_bVisible(bVisible) {}
@@ -151,7 +149,7 @@ protected:
 	};
 
 	const class CleanTempContext :
-	public unary_function<CDrawableContext*, bool> {
+	public std::unary_function<CDrawableContext*, bool> {
 	public:
 		bool operator()(CDrawableContext *pDrawableContext) const;
 	};
@@ -168,11 +166,11 @@ protected:
 private:
 	const IGraphics *m_pIGraphics;
 
-	vector<CDrawableContext *> m_Children;
-	vector<CDrawableContext *>::iterator m_LayersMap[MAX_SUBLAYERS+2];
+	std::vector<CDrawableContext *> m_Children;
+	std::vector<CDrawableContext *>::iterator m_LayersMap[MAX_SUBLAYERS+2];
 
-	vector<CDrawableContext *>::reverse_iterator m_ChildIterator;
-	vector<CDrawableContext *>::reverse_iterator m_LastChildIteratorUsed;
+	std::vector<CDrawableContext *>::reverse_iterator m_ChildIterator;
+	std::vector<CDrawableContext *>::reverse_iterator m_LastChildIteratorUsed;
 	size_t m_nInsertion;
 
 	DRAWTYPE m_eDrawType[MAX_SUBLAYERS];	//!< Ordering type for child sprites.
@@ -248,8 +246,6 @@ protected:
 	// Memento interface
 	virtual void ReadState(StateData *data);
 	virtual void WriteState(StateData *data);
-	virtual int _SaveState(UINT checkpoint);
-	virtual int _RestoreState(UINT checkpoint);
 	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 
 public:
@@ -820,7 +816,7 @@ struct SObjProp :
 	CDrawableSelection *pSelection;
 	CDrawableContext *pContext;
 
-	vector<int> C; // This is the list of group children the object has.
+	std::vector<int> C; // This is the list of group children the object has.
 
 	int nGroup; // what group does it belong to? (0 = no group, its group number if it's a group)
 	bool bSubselected;
@@ -868,22 +864,22 @@ class CDrawableSelection :
 
 protected:
 	const struct ObjPropContextEqual : 
-	public binary_function<SObjProp, const CDrawableContext*, bool> {
+	public std::binary_function<SObjProp, const CDrawableContext*, bool> {
 		bool operator()(const SObjProp &a, const CDrawableContext *b) const;
 	} m_equalContext;
 
 	const struct ObjPropGroupEqual : 
-	public binary_function<SObjProp, int, bool> {
+	public std::binary_function<SObjProp, int, bool> {
 		bool operator()(const SObjProp &a, int b) const;
 	} m_equalGroup;
 
 	const struct ObjPropLayerEqual : 
-	public binary_function<SObjProp, int, bool> {
+	public std::binary_function<SObjProp, int, bool> {
 		bool operator()(const SObjProp &a, const int &b) const;
 	} m_equalLayer;
 
 	const struct SelectionCompare : 
-	public binary_function<SObjProp, SObjProp, bool> {
+	public std::binary_function<SObjProp, SObjProp, bool> {
 		bool operator()(const SObjProp &a, const SObjProp &b) const;
 	} m_cmpSelection;
 
@@ -922,11 +918,11 @@ protected:
 	bool m_bLockedLayers[MAX_LAYERS]; // keeps the locked layers
 
 	CDrawableContext *m_pLastSelected; // Last context selected.
-	typedef vector<SObjProp> vectorObject;
+	typedef std::vector<SObjProp> vectorObject;
 	vectorObject::iterator m_CurrentSel;
 
 	struct SGroup {
-		string Name; // This is the name of the group. (It's either a regular name or a relative path to a sprite set)
+		std::string Name; // This is the name of the group. (It's either a regular name or a relative path to a sprite set)
 		vectorObject O; // This is the actual vector of objects.
 		int P; // This is the address to the parent group.
 		SGroup() : P(0) {}
@@ -934,7 +930,7 @@ protected:
 
 	int m_nPasteGroup;
 	int m_nCurrentGroup;
-	vector<SGroup> m_Groups;
+	std::vector<SGroup> m_Groups;
 
 	int GetBoundingRect(CRect *pRect_, int nGroup_ = 0);
 	int FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_);
@@ -960,7 +956,9 @@ protected:
 public:
 	CDrawableSelection(CDrawableContext **ppDrawableContext_);
 	virtual ~CDrawableSelection() {
+		BEGIN_DESTRUCTOR
 		delete []m_pBitmap;
+		END_DESTRUCTOR
 	}
 
 	// Interface Definition:

@@ -38,10 +38,12 @@ CProjectFactory::CProjectFactory() :
 	m_iStep(0), m_iCnt1(0), m_iCnt2(0)
 {
 }
-
 CProjectFactory::~CProjectFactory()
 {
+	BEGIN_DESTRUCTOR
+	END_DESTRUCTOR
 }
+
 IGame* CProjectFactory::Interface(HWND hWnd)
 { 
 	return Instance(hWnd)->m_pGameI; 

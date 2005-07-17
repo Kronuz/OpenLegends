@@ -71,8 +71,10 @@ CGameManager::CGameManager() :
 
 CGameManager::~CGameManager()
 {
+	BEGIN_DESTRUCTOR
 	Close(true);
 	delete m_pDummyDebug;
+	END_DESTRUCTOR
 }
 
 CSprite *CGameManager::CreateSprite(_spt_type sptType, LPCSTR szName)

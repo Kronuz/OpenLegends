@@ -43,6 +43,8 @@ CProjectFactory::CProjectFactory() :
 
 CProjectFactory::~CProjectFactory()
 {
+	BEGIN_DESTRUCTOR
+	END_DESTRUCTOR
 }
 IGame* CProjectFactory::Interface(HWND hWnd)
 { 

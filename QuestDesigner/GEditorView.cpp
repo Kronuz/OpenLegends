@@ -448,14 +448,17 @@ LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 		}
 	} else if(isFloating()) {
 		EndMoving(Point, NULL);
+		Checkpoint();
 		if(m_bDuplicating) {
 			Duplicate(Point);
 		} else OnChangeSel(OCS_AUTO);
 	} else if(isMoving()) {
 		EndMoving(Point, NULL);
+		Checkpoint();
 		OnChangeSel(OCS_UPDATE);
 	} else if(isResizing()) {
 		EndResizing(Point, NULL);
+		Checkpoint();
 		OnChangeSel(OCS_UPDATE);
 	}
 
@@ -897,6 +900,7 @@ LRESULT CGEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL&
 	} else if(wParam == VK_DELETE) {
 		if(!isMoving() && !isResizing()) {
 			if(DeleteSelection() <= 1) HoldSelection(false);
+			Checkpoint();
 			OnChangeSel(OCS_RENEW);
 		}
 	}
@@ -932,6 +936,7 @@ LRESULT CGEditorView::OnDropObject(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 bool CGEditorView::Delete()
 {
 	if(DeleteSelection() <= 1) HoldSelection(false);
+	Checkpoint();
 	OnChangeSel(OCS_RENEW);
 	return true;
 }
@@ -941,6 +946,7 @@ bool CGEditorView::Duplicate(const CPoint &Point)
 	m_bDuplicating = true;
 	Copy();
 	Paste(Point);
+	//doesn't need a checkpoint call
 	return true;
 }
 bool CGEditorView::Duplicate()
@@ -952,6 +958,7 @@ bool CGEditorView::Duplicate()
 	ScreenToClient(&Point);
 	ViewToWorld(&Point);
 	Duplicate(Point);
+	//doesn't need a checkpoint call
 	return true;
 }
 bool CGEditorView::Copy()
@@ -974,6 +981,7 @@ bool CGEditorView::Cut()
 	if(isHeld() || isFloating()) return false;
 	if(!Copy()) return false;
 	DeleteSelection();
+	Checkpoint();
 	Invalidate();
 	OnChangeSel(OCS_AUTO);
 	return true;
@@ -986,6 +994,7 @@ bool CGEditorView::Paste()
 	ScreenToClient(&Point);
 	ViewToWorld(&Point);
 	Paste(Point);
+	//doesn't need a checkpoint call
 	return true;
 }
 bool CGEditorView::SingleSel()
@@ -1137,6 +1146,7 @@ inline bool CGEditorView::Paste(const CPoint &Point)
 			STGMEDIUM medium;
 			pGetDataObject->GetData(&fmtetc, &medium);
 			m_pDropTarget->DropAt(&fmtetc, medium, MAKELPARAM(Point.x,Point.y));
+			if(!m_bDuplicating) Checkpoint();
 		}
 		pGetDataObject->Release();
 	}

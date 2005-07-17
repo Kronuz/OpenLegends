@@ -37,7 +37,9 @@ CSound::CSound() :
 }
 CSound::~CSound()
 {
+	BEGIN_DESTRUCTOR
 	delete []m_pData;
+	END_DESTRUCTOR
 }
 
 LPCSTR CSound::GetSoundFilePath(LPSTR szPath, size_t buffsize)
@@ -359,8 +361,10 @@ CSoundManager::CSoundManager() :
 
 CSoundManager::~CSoundManager()
 {
+	BEGIN_DESTRUCTOR
 	// Stop Sound
 	FSOUND_Close();
+	END_DESTRUCTOR
 }
 
 bool CSoundManager::InitSound()

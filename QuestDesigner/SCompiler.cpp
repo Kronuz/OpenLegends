@@ -258,7 +258,9 @@ m_nTabSize(3)
 }
 SCompiler::~SCompiler()
 {
+	BEGIN_DESTRUCTOR
 	CloseHandle(m_Mutex);
+	END_DESTRUCTOR
 }
 
 struct _thrdParam {

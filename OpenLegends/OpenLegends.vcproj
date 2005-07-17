@@ -66,6 +66,8 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
+				GlobalOptimizations="TRUE"
+				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="..\libs\zlib;..\libs;..\;.\"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_OL"
 				StringPooling="TRUE"

@@ -81,6 +81,8 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
+				GlobalOptimizations="TRUE"
+				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
 				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
 				StringPooling="TRUE"

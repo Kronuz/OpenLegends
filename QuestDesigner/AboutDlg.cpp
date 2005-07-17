@@ -58,7 +58,6 @@ LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPar
 	RECT rcClient;
 	GetClientRect(&rcClient);
 	memdc.FillRect(&rcClient, COLOR_3DFACE);
-
 	Image.AlphaBlend(memdc, 7, 25, Image.GetWidth(), Image.GetHeight(), 0, 0, Image.GetWidth(), Image.GetHeight());
 
 	return 0;

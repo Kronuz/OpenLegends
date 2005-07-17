@@ -195,7 +195,9 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 }
 CDrawableContext::~CDrawableContext() 
 {
+	BEGIN_DESTRUCTOR
 	Clean();
+	END_DESTRUCTOR
 };
 
 // Memento interface
@@ -228,30 +230,6 @@ void CDrawableContext::WriteState(StateData *data)
 
 	if(bInvalidate) InvalidateBuffers();
 }
-int CDrawableContext::_SaveState(UINT checkpoint)
-{
-	StateDrawableContext *curr = new StateDrawableContext;
-	ReadState(curr);
-	// This is needed to delete no longer used objects (garbage collector):
-	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
-		m_pParent->KillChildEx(this);
-		return 0;
-	}
-	// Save the object's state (SaveState decides if there are changes to be saved)
-	return SetState(checkpoint, curr);
-}
-int CDrawableContext::_RestoreState(UINT checkpoint)
-{
-	StateDrawableContext *curr = static_cast<StateDrawableContext *>(GetState(checkpoint));
-	if(curr) {
-		WriteState(curr);
-	} else {
-		if(m_bDeleted) return 0;
-		// Set the sprite "deleted" flag
-		m_bDeleted = true;
-	} 
-	return 1;
-}
 int CALLBACK CDrawableContext::DestroyCheckpoint(LPVOID Interface, LPARAM lParam)
 {
 	StateDrawableContext *curr = static_cast<StateDrawableContext *>(Interface);
@@ -283,7 +261,7 @@ bool CDrawableContext::InsertChild(CDrawableContext *object, int nInsertion)
 		m_Children.push_back(object);
 		m_nInsertion = m_Children.size();
 	} else {
-		vector<CDrawableContext*>::iterator Iterator =
+		std::vector<CDrawableContext*>::iterator Iterator =
 			m_Children.insert(m_Children.begin() + m_nInsertion, object);
 		int nNewOrder = ++m_nInsertion;
 		while(++Iterator != m_Children.end()) {
@@ -311,8 +289,7 @@ int CDrawableContext::_MergeChildren(CDrawableContext *object)
 	CRect Rect, NewRect;
 	object->GetAbsFinalRect(NewRect);
 
-	vector<CDrawableContext*>::iterator IteratorAux;
-	vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		CDrawableObject *Tow = (*Iterator)->GetDrawableObj();
 		if(*Iterator == object || Tow == NULL || (*Iterator)->m_bDeleted) {
@@ -339,11 +316,8 @@ int CDrawableContext::_MergeChildren(CDrawableContext *object)
 			}
 			if(bMerge) {
 				object->SetAbsFinalRect(NewRect);
-				IteratorAux = Iterator;
-				Iterator++;
-				DeleteChild(*IteratorAux);
+				DeleteChild(*Iterator);
 				nMerged++;
-				continue;
 			}
 		}
 		Iterator++;
@@ -358,7 +332,7 @@ int CDrawableContext::MergeChildren()
 	int cnt;
 	do {
 		cnt = 0;
-		vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
+		std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 		while(Iterator != m_Children.end()) {
 			cnt += _MergeChildren(*Iterator);
 			Iterator++;
@@ -389,7 +363,7 @@ int CDrawableContext::ReOrder(int nStep, int nRoomAt, int nRoomSize)
 
 	// Reassign birth orders:
 	m_nInsertion = 0;
-	vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if(m_nInsertion == nRoomAt) m_nInsertion += nRoomSize;
 		(*Iterator)->m_nOrder = m_nInsertion;
@@ -408,7 +382,7 @@ void CDrawableContext::PreSort()
 	stable_sort(m_Children.begin(), m_Children.end(), m_cmpSubLayer);
 
 	// Generate the map of children
-	vector<CDrawableContext *>::iterator Iterator;
+	std::vector<CDrawableContext *>::iterator Iterator;
 	m_LayersMap[0] = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->m_nSubLayer != -1) break;
@@ -459,7 +433,7 @@ inline bool CDrawableContext::CleanTempContext::operator()(CDrawableContext *pDr
 
 	if(pDrawableContext->isTemp()) {
 		CDrawableContext *pParent = pDrawableContext->m_pParent;
-		vector<CDrawableContext *>::iterator Iterator = find(
+		std::vector<CDrawableContext *>::iterator Iterator = find(
 			pParent->m_Children.begin(),
 			pParent->m_Children.end(),
 			pDrawableContext );
@@ -562,7 +536,7 @@ bool CDrawableContext::DrawSelectedH(const IGraphics *pIGraphics)
 // counts the number of drawable contexts with a drawable object assigned to it.
 int CDrawableContext::Objects(int init)
 {
-	vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		init = (*Iterator)->Objects(init);
 		Iterator++;
@@ -573,15 +547,19 @@ int CDrawableContext::Objects(int init)
 }
 bool CDrawableContext::PopChild(CDrawableContext *pDrawableContext_)
 {
+	ASSERT(pDrawableContext_);
+	if(pDrawableContext_ == NULL) return true;
+
 	//ASSERT(!"This is probably not what you want, try DeleteChild()");
 	// Search for the requested child and if found, erase if from the list and return true
-	vector<CDrawableContext*>::iterator Iterator =
+	std::vector<CDrawableContext*>::iterator Iterator =
 		find(m_Children.begin(), m_Children.end(), pDrawableContext_);
 	if(Iterator != m_Children.end()) {
+		ASSERT((*Iterator) == pDrawableContext_);
 		m_bValidMap = false; //FIXME: this is probably not needed
 		m_eSorted[(*Iterator)->m_nSubLayer] = noOrder; //FIXME: this is probably not needed
 		(*Iterator)->m_pParent = NULL; // this will be an orphan child.
-		m_Children.erase(Iterator);
+		VERIFY(m_Children.erase(Iterator) != m_Children.end());
 		return true;
 	}
 	return false;
@@ -594,7 +572,7 @@ bool CDrawableContext::PopChildEx(CDrawableContext *pDrawableContext_)
 		return true;
 	}
 	// Propagate de search to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->PopChildEx(pDrawableContext_)) {
 			return true;
@@ -626,7 +604,7 @@ bool CDrawableContext::KillChildEx(CDrawableContext *pDrawableContext_)
 		return true;
 	}
 	// Propagate the search to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->KillChildEx(pDrawableContext_)) {
 			return true;
@@ -640,7 +618,7 @@ bool CDrawableContext::DeleteChild(CDrawableContext *pDrawableContext_)
 {
 	ASSERT(pDrawableContext_);
 
-	vector<CDrawableContext*>::iterator Iterator =
+	std::vector<CDrawableContext*>::iterator Iterator =
 		find(m_Children.begin(), m_Children.end(), pDrawableContext_);
 	if(Iterator != m_Children.end()) {
 		ASSERT(!(*Iterator)->m_bSelected);
@@ -660,7 +638,7 @@ bool CDrawableContext::DeleteChildEx(CDrawableContext *pDrawableContext_)
 		return true;
 	}
 	// Propagate the search to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->DeleteChildEx(pDrawableContext_)) {
 			return true;
@@ -772,9 +750,23 @@ int CDrawableContext::SaveState(UINT checkpoint)
 {
 	int nRet = 0;
 	// Propagate the state saving to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
-		nRet += (*Iterator)->SaveState(checkpoint);
+		if(*Iterator) {
+			// We need to keep the current position of the Iterator:
+			int nDist = distance(m_Children.begin(), Iterator);
+			// SaveState kills useless children (garbage collector) but if a children
+			// was erased, the order of the vector, or the full vector itself
+			// might have had changed, thus making the Iterator useless.
+			CDrawableContext *curr = *Iterator;
+			nRet += curr->SaveState(checkpoint); 
+			Iterator = m_Children.begin();
+			// If SaveState in fact killed a child, advance will create a new iterator
+			// that would already point to next item to work with, otherwise it will
+			// still point to current sprite context.
+			advance(Iterator, nDist);
+			if(*Iterator != curr) continue;
+		}
 		Iterator++;
 	}
 	// Save this context state:
@@ -786,9 +778,11 @@ int CDrawableContext::RestoreState(UINT checkpoint)
 {
 	int nRet = 0;
 	// Propagate the state restoring to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
-		nRet += (*Iterator)->RestoreState(checkpoint);
+		if(*Iterator) {
+			nRet += (*Iterator)->RestoreState(checkpoint);
+		}
 		Iterator++;
 	}
 	if(nRet) Touch(false);
@@ -802,9 +796,12 @@ bool CDrawableContext::HasChanged()
 	// Restore this context state:
 	bool bRet = CMutable::HasChanged();
 	// Propagate the call to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
-		bRet |= (*Iterator)->HasChanged();
+		ASSERT(*Iterator);
+		if(*Iterator) {
+			bRet |= (*Iterator)->HasChanged();
+		}
 		Iterator++;
 	}
 	return bRet;
@@ -815,9 +812,12 @@ bool CDrawableContext::IsModified()
 	// Restore this context state:
 	bool bRet = CMutable::IsModified();
 	// Propagate the call to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
-		bRet |= (*Iterator)->IsModified();
+		ASSERT(*Iterator);
+		if(*Iterator) {
+			bRet |= (*Iterator)->IsModified();
+		}
 		Iterator++;
 	}
 	return bRet;
@@ -828,9 +828,12 @@ void CDrawableContext::WasSaved()
 	// Restore this context state:
 	CMutable::WasSaved();
 	// Propagate the call to the children:
-	vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
-		(*Iterator)->WasSaved();
+		ASSERT(*Iterator);
+		if(*Iterator) {
+			(*Iterator)->WasSaved();
+		}
 		Iterator++;
 	}
 }

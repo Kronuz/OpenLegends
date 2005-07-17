@@ -24,6 +24,14 @@
 
 #include "stdafx.h"
 
+// disable exeption handling:
+#include <exception>
+namespace std {
+    _Prhand _Raise_handler;
+    void _cdecl _Throw(class std::exception const &) {};
+}
+//////////////////////////////////////////////////////////////////////
+
 #if (_ATL_VER < 0x0700)
 #include <atlimpl.cpp>
 #endif //(_ATL_VER < 0x0700)

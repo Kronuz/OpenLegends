@@ -4,5 +4,11 @@
 
 #include "stdafx.h"
 
-// TODO: mencionar los encabezados adicionales que se necesitan en STDAFX.H
-// pero no en este archivo
+// disable exeption handling:
+#include <exception>
+namespace std {
+    _Prhand _Raise_handler;
+    void _cdecl _Throw(class std::exception const &) {};
+}
+//////////////////////////////////////////////////////////////////////
+
