@@ -299,6 +299,8 @@ bool CDrawableContext::InsertChild(CDrawableContext *object, int nInsertion)
 
 int CDrawableContext::_MergeChildren(CDrawableContext *object) 
 {
+	if(object->m_bDeleted) return 0; // this also prevents context sets to be merged
+
 	int nMerged = 0;
 	// Merge sprites (never merge entities):
 	CDrawableObject *TrueObject = object->GetDrawableObj();
@@ -313,7 +315,7 @@ int CDrawableContext::_MergeChildren(CDrawableContext *object)
 	vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		CDrawableObject *Tow = (*Iterator)->GetDrawableObj();
-		if(*Iterator == object || Tow == NULL) {
+		if(*Iterator == object || Tow == NULL || (*Iterator)->m_bDeleted) {
 			Iterator++;
 			continue;
 		}
@@ -341,6 +343,7 @@ int CDrawableContext::_MergeChildren(CDrawableContext *object)
 				Iterator++;
 				DeleteChild(*IteratorAux);
 				nMerged++;
+				continue;
 			}
 		}
 		Iterator++;
