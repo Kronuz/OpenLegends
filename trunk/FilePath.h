@@ -860,103 +860,106 @@ inline bool CVFile::OpenVirtual(LPCSTR mode)
 	m_bChanges = false;
 	m_bTempFile = true;
 
-	try {
-		ASSERT(m_vFile == NULL);
-		ASSERT(m_vzFile == NULL);
+	ASSERT(m_vFile == NULL);
+	ASSERT(m_vzFile == NULL);
 
-		// Open Zip file (for reading and writing if needed):
-		if(strchr(mode, 'w') || strchr(mode, 'a')) {
-			// Create a temporary zip file without the current file.
-			DeleteVirtual(true);
-			m_vzFile = zipOpen(sTmpFile, APPEND_STATUS_ADDINZIP);
-			if(!m_vzFile) throw 0;
-		}
+	// Open Zip file (for reading and writing if needed):
+	if(strchr(mode, 'w') || strchr(mode, 'a')) {
+		// Create a temporary zip file without the current file.
+		DeleteVirtual(true);
+		m_vzFile = zipOpen(sTmpFile, APPEND_STATUS_ADDINZIP);
+		if(!m_vzFile) goto err0;
+	}
 
-		if(!FileExists() && !strchr(mode, 'w') && !strchr(mode, 'a')) throw 0;
+	if(!FileExists() && !strchr(mode, 'w') && !strchr(mode, 'a')) goto err0;
 
-		m_vFile = unzOpen(sFile);
-		if(!m_vFile) throw 0;
+	m_vFile = unzOpen(sFile);
+	if(!m_vFile) goto err0;
 
-		// get global commentary
-		m_sComment.Empty();
-		unz_global_info glob_info;
-		if(unzGetGlobalInfo(m_vFile, &glob_info) == UNZ_OK) {
-			LPSTR szComment = NULL;
-			if(glob_info.size_comment > 0) {
-				szComment = new CHAR[glob_info.size_comment + 1];
-				if(szComment) {
-					if(unzGetGlobalComment(m_vFile, szComment, glob_info.size_comment + 1) != glob_info.size_comment) {
-						delete []szComment;
-						szComment = NULL;
-					}
+	// get global commentary
+	m_sComment.Empty();
+	unz_global_info glob_info;
+	if(unzGetGlobalInfo(m_vFile, &glob_info) == UNZ_OK) {
+		LPSTR szComment = NULL;
+		if(glob_info.size_comment > 0) {
+			szComment = new CHAR[glob_info.size_comment + 1];
+			if(szComment) {
+				if(unzGetGlobalComment(m_vFile, szComment, glob_info.size_comment + 1) != glob_info.size_comment) {
+					delete []szComment;
+					szComment = NULL;
 				}
 			}
-			if(szComment) m_sComment = szComment;
-			delete []szComment;
 		}
-
-		if(FileExists()) { // This call also fills the m_RawCRC if using Raw Mode.
-			CBString sFile = GetFilePath();
-			if(sFile.IsEmpty()) throw 0;
-
-			// Try to locate and open the wanted file:
-			if(unzLocateFile(m_vFile, sFile, 0) != UNZ_OK) throw 0;
-			if(unzOpenCurrentFile2(m_vFile, &m_nMethod, &m_nLevel, m_bRawMode) != UNZ_OK) throw 0;
-		}
-
-		if(m_vzFile) {
-			// Get current time:
-			DWORD dwDosTime;
-			FILETIME FileTime;
-			SYSTEMTIME LocalTime;
-			GetLocalTime(&LocalTime);
-			SystemTimeToFileTime(&LocalTime, &FileTime);
-			FileTimeToDosDateTime(&FileTime, ((LPWORD)&dwDosTime)+1, ((LPWORD)&dwDosTime)+0);
-
-			// Set new file time and flags:
-            zip_fileinfo zi;
-			zi.tmz_date.tm_sec = LocalTime.wSecond;
-			zi.tmz_date.tm_min = LocalTime.wMinute;
-			zi.tmz_date.tm_hour = LocalTime.wHour;
-			zi.tmz_date.tm_mday = LocalTime.wDay;
-			zi.tmz_date.tm_mon = LocalTime.wMonth;
-			zi.tmz_date.tm_year = LocalTime.wYear;
-
-            zi.dosDate = dwDosTime;
-            zi.internal_fa = 0;
-            zi.external_fa = 0;
-
-			// Open new file in zip:
-            if(zipOpenNewFileInZip2(m_vzFile, GetFilePath(), &zi, 
-				NULL,0,NULL,0,NULL,
-				m_nMethod,
-				m_nLevel,
-				m_bRawMode) != ZIP_OK) throw 1;
-		}
-
-		// Initialize the buffer:
-		if(!m_pBuffer) {
-			m_pBuffer = new BYTE[VBUFFER_SIZE]; ASSERT(m_pBuffer);
-			m_BuffSize = VBUFFER_SIZE;
-		}
-		m_BuffLen = -1;
-		m_BuffOffset = -1;
-
-		ASSERT(m_pBuffer);
-		if(!m_pBuffer) throw 2;
-
-		m_bOpenFile = true;
-		return true;
-	} 
-	catch(int err) {
-		if(err >= 2 && m_vzFile) {
-			if(m_bRawMode) zipCloseFileInZipRaw(m_vzFile, m_RawSize, m_RawCRC);
-			else zipCloseFileInZip(m_vzFile);
-		}
-		if(err >= 1) unzCloseCurrentFile(m_vFile);
-		if(m_vFile) unzClose(m_vFile); m_vFile = NULL;
-		if(m_vzFile) zipClose(m_vzFile, m_sComment.IsEmpty() ? NULL : (LPCSTR)m_sComment); m_vzFile = NULL;
+		if(szComment) m_sComment = szComment;
+		delete []szComment;
 	}
+
+	if(FileExists()) { // This call also fills the m_RawCRC if using Raw Mode.
+		CBString sFile = GetFilePath();
+		if(sFile.IsEmpty()) goto err0;
+
+		// Try to locate and open the wanted file:
+		if(unzLocateFile(m_vFile, sFile, 0) != UNZ_OK) goto err0;
+		if(unzOpenCurrentFile2(m_vFile, &m_nMethod, &m_nLevel, m_bRawMode) != UNZ_OK) goto err0;
+	}
+
+	if(m_vzFile) {
+		// Get current time:
+		DWORD dwDosTime;
+		FILETIME FileTime;
+		SYSTEMTIME LocalTime;
+		GetLocalTime(&LocalTime);
+		SystemTimeToFileTime(&LocalTime, &FileTime);
+		FileTimeToDosDateTime(&FileTime, ((LPWORD)&dwDosTime)+1, ((LPWORD)&dwDosTime)+0);
+
+		// Set new file time and flags:
+        zip_fileinfo zi;
+		zi.tmz_date.tm_sec = LocalTime.wSecond;
+		zi.tmz_date.tm_min = LocalTime.wMinute;
+		zi.tmz_date.tm_hour = LocalTime.wHour;
+		zi.tmz_date.tm_mday = LocalTime.wDay;
+		zi.tmz_date.tm_mon = LocalTime.wMonth;
+		zi.tmz_date.tm_year = LocalTime.wYear;
+
+        zi.dosDate = dwDosTime;
+        zi.internal_fa = 0;
+        zi.external_fa = 0;
+
+		// Open new file in zip:
+        if(zipOpenNewFileInZip2(m_vzFile, GetFilePath(), &zi, 
+			NULL,0,NULL,0,NULL,
+			m_nMethod,
+			m_nLevel,
+			m_bRawMode) != ZIP_OK) goto err1;
+	}
+
+	// Initialize the buffer:
+	if(!m_pBuffer) {
+		m_pBuffer = new BYTE[VBUFFER_SIZE]; ASSERT(m_pBuffer);
+		m_BuffSize = VBUFFER_SIZE;
+	}
+	m_BuffLen = -1;
+	m_BuffOffset = -1;
+
+	ASSERT(m_pBuffer);
+	if(!m_pBuffer) goto err2;
+
+	m_bOpenFile = true;
+
+	return true;
+
+///////////////////////////////////
+err2:
+	if( m_vzFile) {
+		if(m_bRawMode) zipCloseFileInZipRaw(m_vzFile, m_RawSize, m_RawCRC);
+		else zipCloseFileInZip(m_vzFile);
+	}
+err1:
+	unzCloseCurrentFile(m_vFile);
+err0:
+	if(m_vFile) unzClose(m_vFile); m_vFile = NULL;
+	if(m_vzFile) zipClose(m_vzFile, m_sComment.IsEmpty() ? NULL : (LPCSTR)m_sComment); m_vzFile = NULL;
+
 	return false;
 }
 

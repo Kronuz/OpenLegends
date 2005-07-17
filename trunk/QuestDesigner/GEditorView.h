@@ -258,6 +258,8 @@ public:
 	virtual void Render(WPARAM wParam) = 0;
 	virtual void UpdateView() = 0;
 
+	virtual void Checkpoint() {}
+
 	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL) = 0;
 	virtual void OnZoom() = 0; // Called after a zooming
 

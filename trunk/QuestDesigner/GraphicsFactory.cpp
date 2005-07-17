@@ -41,6 +41,8 @@ CGraphicsFactory::CGraphicsFactory() :
 
 CGraphicsFactory::~CGraphicsFactory()
 {
+	BEGIN_DESTRUCTOR
+	END_DESTRUCTOR
 }
 
 HRESULT CGraphicsFactory::Delete(IGraphics **pGraphics) {

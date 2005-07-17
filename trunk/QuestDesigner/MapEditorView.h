@@ -238,6 +238,8 @@ public:
 	virtual void Render(WPARAM wParam);
 	virtual void UpdateView();
 
+	virtual void Checkpoint();
+
 	virtual void OnChangeSel(int type, IPropertyEnabled *pPropObj = NULL);
 
 	virtual bool DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle = _T("Untitled"), WPARAM wParam = NULL, LPARAM lParam = NULL);

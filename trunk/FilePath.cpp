@@ -69,11 +69,13 @@ CVFile::CVFile(LPCSTR szNewName, bool bGlobalize) :
 	SetFilePath(szNewName, bGlobalize);
 }
 CVFile::~CVFile() 
-{ 
+{
+	BEGIN_DESTRUCTOR
 	delete []m_pBuffer;	m_pBuffer = NULL;
 	if(m_vFile) unzClose(m_vFile); m_vFile = NULL; 
 	if(m_vzFile) zipClose(m_vzFile, NULL); m_vzFile = NULL; 
 	if(m_File) fclose(m_File); m_File = NULL;
+	END_DESTRUCTOR
 }
 inline int wildcardcmp(const char *a, const char *b)
 {

@@ -5,15 +5,17 @@
 
 #pragma once
 
+// disable exeption handling:
+#undef _HAS_EXCEPTIONS
+#define _HAS_EXCEPTIONS 0 
+class exception { };
+
+#include <Misc.h>
 #include "../Version.h"
 
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
-#include <cassert>
-
-#define ASSERT assert
-#define interface struct
 
 #include <IConsole.h>
 extern IConsole *g_pConsole;

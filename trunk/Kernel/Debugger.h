@@ -31,7 +31,6 @@
 #include <list>
 #include <vector>
 #include <string>
-using namespace std;
 
 #include <Net.h>
 
@@ -73,7 +72,7 @@ enum _bptype {
 };
 
 typedef struct __symbol {
-	string name;
+	std::string name;
 	ucell addr;
 	int file;             // file number that a function appears in
 	int line;             // line number that a function starts on
@@ -96,9 +95,9 @@ typedef struct __breakpoint {
 } BREAKPOINT;
 
 struct CDebugFile {
-	string m_sName;
-	static vector<string> ms_Watches;
-	static vector<BREAKPOINT> ms_Breakpoints;
+	std::string m_sName;
+	static std::vector<std::string> ms_Watches;
+	static std::vector<BREAKPOINT> ms_Breakpoints;
 
 	CDebugFile(LPCSTR szName) : m_sName(szName) {}
 };
@@ -107,7 +106,7 @@ class CDebugScript {
 protected:
 	// Sockets and debugging (common to all debugged scripts):
 	static HANDLE ms_hLines;
-	static list<string> ms_LinesToSend; // Lines to send to the client.
+	static std::list<std::string> ms_LinesToSend; // Lines to send to the client.
 	static SOCKET ms_Socket;
 	static int ms_nScripts;
 	static CRITICAL_SECTION ms_SendCritical;
@@ -130,18 +129,18 @@ protected:
 	static void ListCommands(LPCSTR szCommand = NULL);
 
 	// CDebugScript stuff:
-	typedef pair<string, CDebugFile*> pairDebugFiles;
-	typedef map<string, CDebugFile*> mapDebugFiles;
+	typedef std::pair<std::string, CDebugFile*> pairDebugFiles;
+	typedef std::map<std::string, CDebugFile*> mapDebugFiles;
 	static mapDebugFiles ms_DebugFiles; // debugged files (share breakpoints and stuff)
 
-	typedef pair<int, CDebugFile*> pairFiles;
-	typedef map<int, CDebugFile*> mapFiles;
+	typedef std::pair<int, CDebugFile*> pairFiles;
+	typedef std::map<int, CDebugFile*> mapFiles;
 	mapFiles m_Files;	// index of files for the current script/context.
 
 	CDebugScript *m_pDebugCreator;
 
-	vector<SYMBOL *> m_Functions;		// table of functions.
-	vector<SYMBOL *> m_Variables;		// table of variables.
+	std::vector<SYMBOL *> m_Functions;		// table of functions.
+	std::vector<SYMBOL *> m_Variables;		// table of variables.
 public:
 	static int CALLBACK Dispatch(SOCKET s);
 	static int CALLBACK Request(SOCKET s);
@@ -157,12 +156,12 @@ public:
 		return pFile;
 	}
 
-	string m_sName; // script name (or ID)
+	std::string m_sName; // script name (or ID)
 	HANDLE m_hSemaphore;
 	bool m_bDebugging;
 	DWORD m_dwStartDebug;
 	DWORD m_dwDebugTime;
-	vector<ucell> m_CallStack;			// calling stack is kept here.
+	std::vector<ucell> m_CallStack;			// calling stack is kept here.
 
 	// Current status is kept here:
 	int m_nCurrentFile;
@@ -178,9 +177,9 @@ public:
 	~CDebugScript();
 	int BreakCheck(AMX *amx, int line, int file);
 
-	SYMBOL* AddSymbol(vector<SYMBOL *> &table, LPCSTR name, int type, ucell addr, int vclass, int level);
-	SYMBOL* FindSymbol(vector<SYMBOL *> &table, LPCSTR name, int level) {return NULL;}
-	bool DeleteSymbol(vector<SYMBOL *> &table, ucell addr, int level);
+	SYMBOL* AddSymbol(std::vector<SYMBOL *> &table, LPCSTR name, int type, ucell addr, int vclass, int level);
+	SYMBOL* FindSymbol(std::vector<SYMBOL *> &table, LPCSTR name, int level) {return NULL;}
+	bool DeleteSymbol(std::vector<SYMBOL *> &table, ucell addr, int level);
 
 	bool AddFile(int num, LPCSTR name);
 

@@ -7,9 +7,19 @@
 #include <climits>
 
 #ifndef ASSERT
-	#include <cassert>
-	#define ASSERT assert
+	#ifdef _DEBUG
+		#include <cassert>
+		#define ASSERT assert
+		#define VERIFY(expr) (void)( (expr) || (ASSERT(expr),0) )
+	#else
+		#define ASSERT __noop
+		#define VERIFY
+	#endif
+	#define BEGIN_DESTRUCTOR try {
+	#define END_DESTRUCTOR } catch (...) { ASSERT(!"Exception catched in destructor"); }
 #endif
+
+#define interface struct
 
 #define FEF_NOEXT		0x01
 #define FEF_NODIR		0x02

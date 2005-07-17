@@ -47,7 +47,9 @@ CLayer::CLayer() :
 }
 CLayer::~CLayer()
 {
+	BEGIN_DESTRUCTOR
 	delete m_ArchiveIn;
+	END_DESTRUCTOR
 }
 // Memento interface
 void CLayer::ReadState(StateData *data)
@@ -64,13 +66,14 @@ void CLayer::WriteState(StateData *data)
 }
 int CLayer::_SaveState(UINT checkpoint)
 {
-	StateLayer *curr = new StateLayer;
-	ReadState(curr);
 	// This is needed to delete no longer used objects (garbage collector):
 	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
-		m_pParent->KillChildEx(this);
+		m_pParent->KillChild(this);
 		return 0;
 	}
+	// Create a new state and read the object's information into it:
+	StateLayer *curr = new StateLayer;
+	ReadState(curr);
 	// Save the object's state (SaveState decides if there are changes to be saved)
 	return SetState(checkpoint, curr);
 }
@@ -141,8 +144,10 @@ CMapGroup::CMapGroup() :
 }
 CMapGroup::~CMapGroup()
 {
+	BEGIN_DESTRUCTOR
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 	delete []m_pOriginalBitmap;
+	END_DESTRUCTOR
 }
 
 // Memento interface
@@ -164,14 +169,14 @@ void CMapGroup::WriteState(StateData *data)
 }
 int CMapGroup::_SaveState(UINT checkpoint)
 {
-	StateMapGroup *curr = new StateMapGroup;
-	ReadState(curr);
 	// This is needed to delete no longer used objects (garbage collector):
 	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
 		ASSERT(!m_pParent); // This shouldn't happen since MapGropus don't currently have parents
-		m_pParent->KillChildEx(this);
 		return 0;
 	}
+	// Create a new state and read the object's information into it:
+	StateMapGroup *curr = new StateMapGroup;
+	ReadState(curr);
 	// Save the object's state (SaveState decides if there are changes to be saved)
 	return SetState(checkpoint, curr);
 }
@@ -682,7 +687,9 @@ CWorld::CWorld(LPCSTR szName) :
 
 CWorld::~CWorld()
 {
+	BEGIN_DESTRUCTOR
 	Close(true);
+	END_DESTRUCTOR
 }
 
 bool CWorld::_Close(bool bForce)

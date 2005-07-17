@@ -43,8 +43,10 @@ HSCRIPT__::HSCRIPT__()
 
 HSCRIPT__::~HSCRIPT__() 
 {
+	BEGIN_DESTRUCTOR
 	delete []m_pData;
 	delete m_pDebug;
+	END_DESTRUCTOR
 }
 
 const char* AMXAPI amx_StrError(int error)
@@ -89,8 +91,8 @@ int AMXAPI amx_ListUnresolved(AMX *amx, int number)
 
 	unresolved = 0;
 	hdr=(AMX_HEADER *)amx->base;
-	assert(hdr!=NULL);
-	assert(hdr->natives<=hdr->libraries);
+	ASSERT(hdr!=NULL);
+	ASSERT(hdr->natives<=hdr->libraries);
 	numnatives=NUMENTRIES(*hdr,natives,libraries);
 
 	func=(AMX_FUNCSTUB *)(amx->base+(int)hdr->natives);
@@ -124,9 +126,11 @@ CScriptThread::CScriptThread() :
 
 CScriptThread::~CScriptThread() 
 {
+	BEGIN_DESTRUCTOR
 	KillThread(1000);
 	DeleteCriticalSection(&XCritical);
 	CloseHandle(ScriptReady);
+	END_DESTRUCTOR
 }
 
 // Running thread of scripts
@@ -286,6 +290,7 @@ CScript::CScript() :
 }
 CScript::~CScript() 
 {
+	BEGIN_DESTRUCTOR
 	Scripts::iterator Iterator = m_Scripts.begin();
 	while(Iterator!=m_Scripts.end()) {
 		DeleteScript(Iterator->second);
@@ -293,6 +298,7 @@ CScript::~CScript()
 	m_Scripts.clear();
 	delete []m_pProgram;
 	delete m_pDebug;
+	END_DESTRUCTOR
 }
 
 bool CScript::InitScript()

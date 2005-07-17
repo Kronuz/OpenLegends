@@ -46,6 +46,7 @@ CScriptEditorView::CScriptEditorView(CScriptEditorFrame *pParentFrame) :
 }
 CScriptEditorView::~CScriptEditorView()
 {
+	BEGIN_DESTRUCTOR
 	if(m_hFont) {
 		DeleteObject(m_hFont);
 	}
@@ -53,6 +54,7 @@ CScriptEditorView::~CScriptEditorView()
 		ImageList_Destroy( m_hilMargin );
 	}
 	if(ms_pCurrentScript == this) ms_pCurrentScript = NULL;
+	END_DESTRUCTOR
 }
 
 // Called to translate window messages before they are dispatched 

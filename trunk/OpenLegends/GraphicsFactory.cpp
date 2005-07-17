@@ -35,9 +35,10 @@ CGraphicsFactory::CGraphicsFactory() :
 	m_hDLL(NULL)
 {
 }
-
 CGraphicsFactory::~CGraphicsFactory()
 {
+	BEGIN_DESTRUCTOR
+	END_DESTRUCTOR
 }
 
 HRESULT CGraphicsFactory::Delete(IGraphics **pGraphics) {

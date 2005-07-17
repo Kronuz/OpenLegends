@@ -86,7 +86,7 @@ static int printstring(AMX *amx,cell *cstr,cell *params,int num)
       if (c==0)
         break;
       if (informat) {
-        assert(params!=NULL);
+        ASSERT(params!=NULL);
         paramidx+=dochar(amx,c,params[paramidx]);
         informat=0;
       } else if (params!=NULL && c=='%') {
@@ -102,7 +102,7 @@ static int printstring(AMX *amx,cell *cstr,cell *params,int num)
     /* the string is unpacked */
     for (i=0; cstr[i]!=0; i++) {
       if (informat) {
-        assert(params!=NULL);
+        ASSERT(params!=NULL);
         paramidx+=dochar(amx,(char)cstr[i],params[paramidx]);
         informat=0;
       } else if (params!=NULL && (int)cstr[i]=='%') {

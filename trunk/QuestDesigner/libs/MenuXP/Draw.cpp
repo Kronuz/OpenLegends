@@ -115,7 +115,7 @@ CBufferDC::CBufferDC (HDC hDestDC, const CRect& rcPaint) : m_hDestDC (hDestDC)
     {
         m_rect = rcPaint;
     }
-    VERIFY(Attach (::CreateCompatibleDC (m_hDestDC)));
+    Attach (::CreateCompatibleDC (m_hDestDC));
     m_bitmap.Attach (::CreateCompatibleBitmap (m_hDestDC, m_rect.right, m_rect.bottom));
     m_hOldBitmap = ::SelectObject (m_hDC, m_bitmap);
 
@@ -175,8 +175,8 @@ COLORREF CPenDC::Color () const
 ///////////////////////////////////////////////////////////////////////////////
 CBrushDC::CBrushDC (HDC hDC, COLORREF crColor) : m_hDC (hDC)
 {
-    if ( crColor == CLR_NONE ) VERIFY(m_brush.Attach ((HBRUSH)::GetStockObject (NULL_BRUSH)));
-    else                       VERIFY(m_brush.CreateSolidBrush (crColor));
+    if ( crColor == CLR_NONE ) m_brush.Attach ((HBRUSH)::GetStockObject (NULL_BRUSH));
+    else                       m_brush.CreateSolidBrush (crColor);
     m_hOldBrush = (HBRUSH)::SelectObject (m_hDC, m_brush);
 }
 
@@ -191,8 +191,8 @@ void CBrushDC::Color (COLORREF crColor)
 {
     ::SelectObject (m_hDC, m_hOldBrush);
     VERIFY(m_brush.DeleteObject());
-    if ( crColor == CLR_NONE ) VERIFY(m_brush.Attach ((HBRUSH)::GetStockObject (NULL_BRUSH)));
-    else                       VERIFY(m_brush.CreateSolidBrush (crColor));
+    if ( crColor == CLR_NONE ) m_brush.Attach ((HBRUSH)::GetStockObject (NULL_BRUSH));
+    else                       m_brush.CreateSolidBrush (crColor);
     m_hOldBrush = (HBRUSH)::SelectObject (m_hDC, m_brush);
 }
 

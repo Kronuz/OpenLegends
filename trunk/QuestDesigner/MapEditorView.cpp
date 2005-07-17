@@ -247,6 +247,7 @@ void CMapEditorView::OnUndo()
 		m_nCheckPoint--;
 		CONSOLE_DEBUG("Restored state (%d)\n", m_nCheckPoint);
 		m_pMapGroupI->RestoreState(m_nCheckPoint);
+		CleanSelection(); //FIXME: selections should also be restored
 	}
 }
 
@@ -256,6 +257,7 @@ void CMapEditorView::OnRedo()
 		m_nCheckPoint++;
 		CONSOLE_DEBUG("Restored state (%d)\n", m_nCheckPoint);
 		m_pMapGroupI->RestoreState(m_nCheckPoint);
+		CleanSelection(); //FIXME: selections should also be restored
 	}
 }
 
@@ -1054,19 +1056,22 @@ void CMapEditorView::UpdateView()
 	m_pGraphicsI->SetWindowView(m_hWnd, m_Zoom, &rcClient, &rcClip);
 }
 
+void CMapEditorView::Checkpoint()
+{
+	if(m_pMapGroupI->HasChanged()) {
+		m_nCheckPoint++;
+		if(m_pMapGroupI->SaveState(m_nCheckPoint)) {
+			CONSOLE_DEBUG("Saved state (%d)\n", m_nCheckPoint);
+			m_nCheckPointLimit = m_nCheckPoint;
+		} else m_nCheckPoint--; // nothing was saved anyway.
+	}
+}
+
 void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 {
 	if(!m_SelectionI || !m_pMapGroupI) return;
 
 	HWND hWnd = GetMainFrame()->m_hWnd;
-
-	if(!isFloating() && !m_SelectionI->isFloating() && m_pMapGroupI->HasChanged()) {
-		m_nCheckPoint++;
-		CONSOLE_DEBUG("Saved state (%d)\n", m_nCheckPoint);
-		if(m_pMapGroupI->SaveState(m_nCheckPoint)) {
-			m_nCheckPointLimit = m_nCheckPoint;
-		} else m_nCheckPoint--; // nothing was saved anyway.
-	}
 
 	if( isHeld() && type == OCS_AUTO || 
 		type == OCS_UPDATE ) {
@@ -1144,7 +1149,7 @@ LRESULT CMapEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 
 	CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
 	if(m_SelectionI && !m_bPanning) {
-		bool bNewSelected = m_sPasting != pMainFrm->m_ThumbnailsBox.m_sSelected;
+		bool bNewSelected = (m_sPasting != pMainFrm->m_ThumbnailsBox.m_sSelected);
 		if( bNewSelected || !m_SelectionI->isFloating()) {
 			if(bNewSelected || !m_sPasting.IsEmpty()) {
 				m_SelectionI->Cancel();

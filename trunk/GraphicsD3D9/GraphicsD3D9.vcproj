@@ -71,6 +71,8 @@
 			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
+				GlobalOptimizations="TRUE"
+				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="..\;.\"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;GRAPHICSD3D9_EXPORTS;_OL"
 				StringPooling="TRUE"

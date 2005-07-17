@@ -64,7 +64,9 @@ CMemento::CMemento() :
 
 CMemento::~CMemento()
 {
+	BEGIN_DESTRUCTOR
 	Flush();
+	END_DESTRUCTOR
 }
 
 void CMemento::Flush(UINT checkpoint)
