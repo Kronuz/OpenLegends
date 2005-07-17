@@ -1615,7 +1615,6 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 		EndSubSelBox(true, point_, Chains);
 		return NULL;
 	}
-
 	if(m_eCurrentState!=eSelecting) return NULL;
 
 	m_rcSelection.right = point_.x;

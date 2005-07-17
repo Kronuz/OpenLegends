@@ -21,6 +21,8 @@
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the CMapEditorView class.
 	\date		April 27, 2003
+				July 15, 2005:
+						+ Added undo/redo support
 */
 
 #include "stdafx.h"

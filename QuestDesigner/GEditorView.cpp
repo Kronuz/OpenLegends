@@ -61,6 +61,10 @@ CGEditorView::CGEditorView(CGEditorFrame *pParentFrame) :
 	m_bDuplicating(false),
 	m_bScrolling(false),
 
+	m_bLButtonDown(false),
+	m_bRButtonDown(false),
+	m_bMButtonDown(false),
+
 	m_rcScrollLimits(0,0,0,0)
 {
 }
@@ -366,6 +370,8 @@ CURSOR CGEditorView::ToCursor(CURSOR cursor_)
 
 LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	m_bLButtonDown = true;
+
 	CPoint Point(lParam);
 
 	static DWORD dwLastTick;
@@ -415,6 +421,8 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	if(!m_bLButtonDown) return 0;
+
 	CPoint Point(lParam);
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
@@ -461,6 +469,8 @@ LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 }
 LRESULT CGEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	m_bRButtonDown = true;
+
 	CPoint Point(lParam);
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
@@ -486,6 +496,8 @@ LRESULT CGEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	if(!m_bRButtonDown) return 0;
+
 	CPoint Point(lParam);
 	bool bInSelection = GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
@@ -535,6 +547,7 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 }
 LRESULT CGEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	m_bMButtonDown = true;
 	m_PanningPoint.SetPoint(LOWORD(lParam), HIWORD(lParam));
 	m_bPanning = true;
 	ToCursor(m_CursorStatus);
@@ -543,6 +556,8 @@ LRESULT CGEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnMButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	if(!m_bMButtonDown) return 0;
+
 	m_bPanning = false;
 	ToCursor(m_CursorStatus);
 	if(!isMoving() && !isResizing() && !isSelecting()) {
@@ -682,7 +697,7 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	m_lMousePos = lParam;
 
 	if(m_bPanning) { // We are panning around, so just do that:
-		if((wParam&MK_MBUTTON)!=MK_MBUTTON) {
+		if((wParam&MK_MBUTTON)!=MK_MBUTTON || !m_bMButtonDown) {
 			m_bPanning = false;
 			ReleaseCapture();
 		} else {
@@ -784,7 +799,7 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
-	if((wParam&MK_LBUTTON)==0 && !isFloating()) {
+	if((wParam&MK_LBUTTON)!=MK_MBUTTON && !isFloating() || !m_bMButtonDown) {
 		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
 		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
 	}
@@ -792,7 +807,7 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 
 	ViewToWorld(&Point);
 
-	if((wParam&MK_LBUTTON)==MK_LBUTTON) {
+	if((wParam&MK_LBUTTON)==MK_LBUTTON && m_bLButtonDown) {
 		if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
 		else UpdateSnapSize(m_bSnapToGrid?m_nSnapSize:1);
 
@@ -807,7 +822,8 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	}
 
 	// If no buttons are pressed, cancel the current operations and release the mouse capture:
-	if((wParam&MK_LBUTTON)!=MK_LBUTTON && (wParam&MK_MBUTTON)!=MK_MBUTTON && (wParam&MK_RBUTTON)!=MK_RBUTTON) {
+	if((wParam&MK_LBUTTON)!=MK_LBUTTON && (wParam&MK_MBUTTON)!=MK_MBUTTON && (wParam&MK_RBUTTON)!=MK_RBUTTON ||
+		!m_bLButtonDown && !m_bMButtonDown && !m_bRButtonDown) {
 		if(isFloating()) {
 			if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
 			else UpdateSnapSize(m_bSnapToGrid?m_nSnapSize:1);

@@ -51,6 +51,10 @@
 	with all of its properties (location, size, display behavior, etc.)
 
 	CDrawableContext and CDrawableObject are the basic implementation of the explained interfaces.
+
+	\todo	FIXME: We need to move the sublayers from CDrawableContext to CMapGroup and CLayer; 
+			CDrawableContext shouldn't provide layers.
+			FIXME: We need to move the CDrawableSelection to its own files.
 */
 
 #pragma once
