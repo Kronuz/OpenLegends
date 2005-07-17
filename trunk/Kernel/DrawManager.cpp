@@ -213,6 +213,11 @@ void CDrawableContext::ReadState(StateData *data)
 void CDrawableContext::WriteState(StateData *data)
 {
 	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
+
+	bool bInvalidate = false;
+	if(m_Size != curr->Size) bInvalidate = true;
+	if(m_dwStatus != curr->dwStatus) bInvalidate = true;
+
 	m_bDeleted = curr->bDeleted;
 	m_rgbBkColor = curr->rgbBkColor;
 	m_nSubLayer = curr->nSubLayer;
@@ -220,6 +225,8 @@ void CDrawableContext::WriteState(StateData *data)
 	m_Size = curr->Size;
 	m_dwStatus = curr->dwStatus;
 	m_bSelected = curr->bSelected;
+
+	if(bInvalidate) InvalidateBuffers();
 }
 int CDrawableContext::_SaveState(UINT checkpoint)
 {
