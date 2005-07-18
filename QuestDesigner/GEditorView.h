@@ -57,6 +57,7 @@ protected:
 	bool m_bLButtonDown;
 	bool m_bRButtonDown;
 	bool m_bMButtonDown;
+	bool m_bIgnoreNextButton;
 
 	bool m_bModified;
 	float m_Zoom;

@@ -68,7 +68,9 @@ int CLayer::_SaveState(UINT checkpoint)
 {
 	// This is needed to delete no longer used objects (garbage collector):
 	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
-		m_pParent->KillChild(this);
+		ASSERT(!m_bDeleted); // Layers are never deleted at this point, so they shouldn't be in the garbage can
+//		VERIFY(m_pParent->PopChild(this));
+//		delete this;
 		return 0;
 	}
 	// Create a new state and read the object's information into it:
@@ -171,7 +173,10 @@ int CMapGroup::_SaveState(UINT checkpoint)
 {
 	// This is needed to delete no longer used objects (garbage collector):
 	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
+		ASSERT(!m_bDeleted); // Map Groups are never deleted at this point, so they shouldn't be in the garbage can
 		ASSERT(!m_pParent); // This shouldn't happen since MapGropus don't currently have parents
+//		VERIFY(m_pParent->PopChild(this));
+//		delete this;
 		return 0;
 	}
 	// Create a new state and read the object's information into it:

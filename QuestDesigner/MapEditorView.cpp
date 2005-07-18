@@ -520,6 +520,11 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 		menu.EnableMenuItem(10, MF_GRAYED);
 		menu.EnableMenuItem(11, MF_GRAYED);
 	}
+	if(isFloating()) {
+		menu.EnableMenuItem(12, MF_GRAYED);
+		menu.EnableMenuItem(13, MF_GRAYED);
+		menu.EnableMenuItem(7, MF_GRAYED);
+	}
 
 	FORMATETC fmtetc = {0};
 	fmtetc.dwAspect = DVASPECT_CONTENT;
@@ -553,6 +558,8 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	RunPopUpCmd(nCmd);
 
 	if(isFloating()) SetCapture();
+
+	m_bIgnoreNextButton = true;
 
 	return 0;
 }

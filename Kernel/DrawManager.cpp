@@ -27,6 +27,8 @@
 					- Bug: New bugs were created. Groups are not yet functional.
 				July 15, 2005:
 						* Added CMutable Touch() calls
+				July 16, 2005:
+						- Many undo/redo fixes (improved robustness)
 
 	\remarks	This file implements the classes to handle drawing objects and selections.
 				Known bugs:
@@ -765,7 +767,7 @@ int CDrawableContext::SaveState(UINT checkpoint)
 			// that would already point to next item to work with, otherwise it will
 			// still point to current sprite context.
 			advance(Iterator, nDist);
-			if(*Iterator != curr) continue;
+			if(*Iterator != curr || Iterator == m_Children.end()) continue;
 		}
 		Iterator++;
 	}
