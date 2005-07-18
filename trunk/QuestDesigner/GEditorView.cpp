@@ -64,6 +64,7 @@ CGEditorView::CGEditorView(CGEditorFrame *pParentFrame) :
 	m_bLButtonDown(false),
 	m_bRButtonDown(false),
 	m_bMButtonDown(false),
+	m_bIgnoreNextButton(false),
 
 	m_rcScrollLimits(0,0,0,0)
 {
@@ -137,6 +138,7 @@ LRESULT CGEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BO
 	if(m_bAllowAnimate) SetTimer(1, 1000/30);
 
 	OnZoom(); // called to update the zoom information (perhaps in the status bar)
+	m_bIgnoreNextButton = false;
 
 	return 0;
 }
@@ -283,6 +285,8 @@ LRESULT CGEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 {
 	int zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
+	bool bCtrlKey = ((wParam&MK_CONTROL)==MK_CONTROL);
+
 	// We need to get the mouse position in the world and in the client area
 	CPoint MousePoint(lParam);
 	ScreenToClient(&MousePoint);
@@ -299,7 +303,7 @@ LRESULT CGEditorView::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 	CRect rcClient;
 	GetClientRect(&rcClient);
 	// Two ways of zooming, one centering the zoomed point and the other not
-	if((wParam&MK_CONTROL)==MK_CONTROL || m_bPanning) {
+	if(bCtrlKey || m_bPanning) {
 		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-MousePoint.x, (int)((float)WorldPoint.y*m_Zoom)-MousePoint.y);
 	} else {
 		ScrollTo((int)((float)WorldPoint.x*m_Zoom)-rcClient.CenterPoint().x, (int)((float)WorldPoint.y*m_Zoom)-rcClient.CenterPoint().y);
@@ -370,6 +374,7 @@ CURSOR CGEditorView::ToCursor(CURSOR cursor_)
 
 LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	m_bLButtonDown = true;
 
 	CPoint Point(lParam);
@@ -389,9 +394,14 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 
+	bool bCtrlKey = ((wParam&MK_CONTROL)==MK_CONTROL);
+	bool bShiftKey = ((wParam&MK_SHIFT)==MK_SHIFT);
+	bool bAltKey = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0);
+
 	if(m_bAllowMulSelection) {
-		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
-		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+		if(bCtrlKey) m_CursorStatus = eIDC_ARROWDEL;
+		if(bShiftKey) m_CursorStatus = eIDC_ARROWADD;
+		if(bAltKey) m_CursorStatus = eIDC_ARROW;
 	}
 	ToCursor(m_CursorStatus);
 	
@@ -402,10 +412,10 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 
 	// Is the cursor status ready to select objects?
 	if((m_CursorStatus & ceToSelect) != 0) {
-		if(m_bMulSelection || m_CursorStatus!=eIDC_ARROW || isHeld()) {
+		if((m_bMulSelection || m_CursorStatus!=eIDC_ARROW || isHeld()) && !bAltKey ) {
 			StartSelBox(Point, &m_CursorStatus);
 		} else  {
-			SelectPoint(Point, &m_CursorStatus);
+			SelectPoint(Point, &m_CursorStatus); // Single selection can be forced with ALT
 		}
 	}
 
@@ -421,30 +431,37 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	if(!m_bLButtonDown) return 0;
+	m_bLButtonDown = false;
 
 	CPoint Point(lParam);
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 
+	bool bCtrlKey = ((wParam&MK_CONTROL)==MK_CONTROL);
+	bool bShiftKey = ((wParam&MK_SHIFT)==MK_SHIFT);
+	bool bAltKey = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0);
+
 	if(m_bAllowMulSelection) {
-		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
-		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+		if(bCtrlKey) m_CursorStatus = eIDC_ARROWDEL;
+		if(bShiftKey) m_CursorStatus = eIDC_ARROWADD;
+		if(bAltKey) m_CursorStatus = eIDC_ARROW;
 	}
 	ToCursor(m_CursorStatus);
 
 	ViewToWorld(&Point);
 
 	// call the update snap size
-	if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
+	if(bCtrlKey && m_bAllowSnapOverride) UpdateSnapSize(1);
 	else UpdateSnapSize(m_bSnapToGrid?m_nSnapSize:1);
 
 	if(isSelecting()) {
-		if((wParam&MK_SHIFT)==MK_SHIFT || (wParam&MK_CONTROL)==0) {
-			if((wParam&MK_SHIFT)==0) CleanSelection();
-			OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, (LPARAM)((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
+		if(bShiftKey || !bCtrlKey) {
+			if(!bShiftKey) CleanSelection();
+			OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, (LPARAM)(bCtrlKey?1:0)));
 		} else {
-			OnChangeSel(OCS_AUTO, EndSelBoxRemove(Point, (LPARAM)((wParam&MK_CONTROL)==MK_CONTROL)?1:0));
+			OnChangeSel(OCS_AUTO, EndSelBoxRemove(Point, (LPARAM)(bCtrlKey?1:0)));
 		}
 	} else if(isFloating()) {
 		EndMoving(Point, NULL);
@@ -472,15 +489,21 @@ LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 }
 LRESULT CGEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	m_bRButtonDown = true;
 
 	CPoint Point(lParam);
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 
+	bool bCtrlKey = ((wParam&MK_CONTROL)==MK_CONTROL);
+	bool bShiftKey = ((wParam&MK_SHIFT)==MK_SHIFT);
+	bool bAltKey = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0);
+
 	if(m_bAllowMulSelection) {
-		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
-		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+		if(bCtrlKey) m_CursorStatus = eIDC_ARROWDEL;
+		if(bShiftKey) m_CursorStatus = eIDC_ARROWADD;
+		if(bAltKey) m_CursorStatus = eIDC_ARROW;
 	}
 	ToCursor(m_CursorStatus);
 
@@ -499,23 +522,30 @@ LRESULT CGEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	if(!m_bRButtonDown) return 0;
+	m_bRButtonDown = false;
 
 	CPoint Point(lParam);
 	bool bInSelection = GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
 
+	bool bCtrlKey = ((wParam&MK_CONTROL)==MK_CONTROL);
+	bool bShiftKey = ((wParam&MK_SHIFT)==MK_SHIFT);
+	bool bAltKey = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0);
+
 	if(m_bAllowMulSelection) {
-		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
-		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+		if(bCtrlKey) m_CursorStatus = eIDC_ARROWDEL;
+		if(bShiftKey) m_CursorStatus = eIDC_ARROWADD;
+		if(bAltKey) m_CursorStatus = eIDC_ARROW;
 	}
 	ToCursor(m_CursorStatus);
 
-	if((wParam&MK_SHIFT)==MK_SHIFT && (wParam&MK_CONTROL)==MK_CONTROL) {
+	if(bShiftKey && bCtrlKey) {
 		ViewToWorld(&Point);
 		StartSelBox(Point, &m_CursorStatus);
 		OnChangeSel(OCS_AUTO, EndSelBoxAdd(Point, -1));
-	} else if((wParam&MK_SHIFT)==0 && (wParam&MK_CONTROL)==0) {
+	} else if(!bShiftKey && !bCtrlKey) {
 		if(!bInSelection && m_bMulSelection && m_bAllowMulSelection) {
 			if(SelectedCount() == 0) {
 				CPoint ScreenPoint(lParam);
@@ -550,7 +580,9 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 }
 LRESULT CGEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	m_bMButtonDown = true;
+
 	m_PanningPoint.SetPoint(LOWORD(lParam), HIWORD(lParam));
 	m_bPanning = true;
 	ToCursor(m_CursorStatus);
@@ -559,7 +591,9 @@ LRESULT CGEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnMButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	if(!m_bMButtonDown) return 0;
+	m_bMButtonDown = false;
 
 	m_bPanning = false;
 	ToCursor(m_CursorStatus);
@@ -802,16 +836,21 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 
 	GetMouseStateAt(Point, &m_CursorStatus);
 	m_OldCursorStatus = m_CursorStatus;
+
+	bool bCtrlKey = ((wParam&MK_CONTROL)==MK_CONTROL);
+	bool bShiftKey = ((wParam&MK_SHIFT)==MK_SHIFT);
+	bool bAltKey = ((GetAsyncKeyState(VK_MENU) & 0x8000) != 0);
 	if((wParam&MK_LBUTTON)!=MK_MBUTTON && !isFloating() || !m_bMButtonDown) {
-		if((wParam&MK_CONTROL)==MK_CONTROL) m_CursorStatus = eIDC_ARROWDEL;
-		if((wParam&MK_SHIFT)==MK_SHIFT) m_CursorStatus = eIDC_ARROWADD;
+		if(bCtrlKey) m_CursorStatus = eIDC_ARROWDEL;
+		if(bShiftKey) m_CursorStatus = eIDC_ARROWADD;
+		if(bAltKey) m_CursorStatus = eIDC_ARROW;
 	}
 	ToCursor(m_CursorStatus);
 
 	ViewToWorld(&Point);
 
 	if((wParam&MK_LBUTTON)==MK_LBUTTON && m_bLButtonDown) {
-		if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
+		if(bCtrlKey && m_bAllowSnapOverride) UpdateSnapSize(1);
 		else UpdateSnapSize(m_bSnapToGrid?m_nSnapSize:1);
 
 		if(isSelecting()) {
@@ -828,7 +867,7 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 	if((wParam&MK_LBUTTON)!=MK_LBUTTON && (wParam&MK_MBUTTON)!=MK_MBUTTON && (wParam&MK_RBUTTON)!=MK_RBUTTON ||
 		!m_bLButtonDown && !m_bMButtonDown && !m_bRButtonDown) {
 		if(isFloating()) {
-			if((wParam&MK_CONTROL)==MK_CONTROL && m_bAllowSnapOverride) UpdateSnapSize(1);
+			if(bCtrlKey && m_bAllowSnapOverride) UpdateSnapSize(1);
 			else UpdateSnapSize(m_bSnapToGrid?m_nSnapSize:1);
 			MoveTo(Point, &m_CursorStatus);
 			Invalidate();
@@ -845,6 +884,9 @@ LRESULT CGEditorView::OnMouseMove(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 }
 LRESULT CGEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	bHandled = TRUE;
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
+
 	bHandled = FALSE;
 	if(!isMoving() && !isResizing() && !isSelecting()) {
 		if(wParam == VK_CONTROL) {
@@ -878,6 +920,9 @@ LRESULT CGEditorView::OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOO
 }
 LRESULT CGEditorView::OnKeyUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
 {
+	bHandled = TRUE;
+	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
+
 	bHandled = FALSE;
 	if(wParam == VK_CONTROL) {
 		if(m_CursorStatus == eIDC_ARROWDEL) ToCursor(m_OldCursorStatus);
