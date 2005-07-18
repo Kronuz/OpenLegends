@@ -699,12 +699,16 @@ CWorld::~CWorld()
 
 bool CWorld::_Close(bool bForce)
 {
+	DWORD dwInitTicks = GetTickCount();
+
 	if(m_MapGroups.size()) CONSOLE_PRINTF("Closing World...\n");
 	for(UINT i=0; i<m_MapGroups.size(); i++) {
 		delete m_MapGroups[i];
 		m_MapGroups[i] = NULL;
 	}
 	m_MapGroups.clear();
+
+	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
 	return true;
 }
 CMapGroup* CWorld::FindMapGroup(int x, int y) const

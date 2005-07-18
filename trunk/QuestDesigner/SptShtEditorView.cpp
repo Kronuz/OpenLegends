@@ -481,7 +481,7 @@ LRESULT CSptShtEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
 	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
 
-	if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
+	//if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
 
 	return 0;
 }

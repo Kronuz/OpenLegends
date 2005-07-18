@@ -52,6 +52,7 @@ private:
 
 	bool m_bPanning;
 	bool m_bWasModified;
+	bool m_bClosing;
 
 	CPoint m_PanningPoint;
 	CMapGroup *m_pSelMapGroup;

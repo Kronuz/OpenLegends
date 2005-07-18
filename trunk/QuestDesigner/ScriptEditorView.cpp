@@ -154,6 +154,12 @@ LRESULT CScriptEditorView::OnMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 	return 0;
 }
 
+LRESULT CScriptEditorView::OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
+{
+	bHandled = FALSE;
+	::BringWindowToTop(GetParent());
+	return 0;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 bool CScriptEditorView::OnFileOpen()
@@ -162,7 +168,8 @@ bool CScriptEditorView::OnFileOpen()
 }
 bool CScriptEditorView::OnFileClose()
 {
-	return DoFileClose();
+	return (::PostMessage(GetParent(), WM_CLOSE, 0, 0)==0);
+	//return DoFileClose();
 }
 bool CScriptEditorView::OnFileReload()
 {

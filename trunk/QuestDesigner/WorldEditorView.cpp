@@ -34,8 +34,8 @@ CWorldEditorView::CWorldEditorView(CWorldEditorFrame *pParentFrame) :
 	m_MousePoint(0,0),
 	m_MapPoint(0,0),
 	m_bPanning(false),
-
 	m_bWasModified(false),
+	m_bClosing(false),
 	m_szMap(0, 0),
 	m_pSelMapGroup(NULL),
 	m_pOldMapGroup(NULL),
@@ -467,14 +467,13 @@ void CWorldEditorView::OnZoom()
 
 bool CWorldEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM wParam, LPARAM lParam)
 {
-	m_pSelMapGroup = NULL;
-	m_pOldMapGroup = NULL;
+	ASSERT("!This shouldn't happen!");
 	return false;
 }
 bool CWorldEditorView::DoFileClose()
 {
-	static bool bClosing = false;
-	if(bClosing) {
+	bool bRet = true;
+	if(m_bClosing) {
 		if(hasChanged()) {
 			CString sSave;
 			sSave.Format("Save Changes to %s?", GetTitle());
@@ -491,15 +490,14 @@ bool CWorldEditorView::DoFileClose()
 					return true;
 			}
 		}
-		bClosing = false;
 	} else {
-		bClosing = true;
+		m_bClosing = true;
 		CMainFrame *pMainFrm = m_pParentFrame->GetMainFrame();
-		pMainFrm->SendMessage(WM_COMMAND, ID_QUEST_CLOSE);
+		bRet = (pMainFrm->SendMessage(WM_COMMAND, ID_QUEST_CLOSE) != 0);
+		m_bClosing = false;
 	}
-
-	// the quest gets closed in the mainframe by OnQuestClose() -> CloseWorld()
-	return true;
+	// the quest gets closed in the mainframe by OnQuestClose()
+	return bRet;
 }
 bool CWorldEditorView::DoFileSave(LPCTSTR lpszFilePath)
 {
@@ -532,7 +530,7 @@ LRESULT CWorldEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, B
 	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
 	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
 
-	if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
+	//if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
 
 	UpdateMouse(Point);
 
