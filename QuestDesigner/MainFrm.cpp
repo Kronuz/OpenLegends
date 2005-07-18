@@ -215,8 +215,6 @@ LRESULT CMainFrame::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/
 	UISetCheck(ID_APP_TOOLBAR, TRUE);
 	UISetCheck(ID_APP_STATUS_BAR, TRUE);
 
-	UISetCheck(ID_APP_WORLDED, FALSE);
-
 	UIUpdateMenuItems();
 
 	// register object for message filtering and idle updates
@@ -277,7 +275,7 @@ void CMainFrame::InitializeDefaultPanes()
 	CRect rcClient;
 	GetClientRect(&rcClient);
 
-	CRect rcDockV(0, 0, 250, 300);
+	CRect rcDockV(0, 0, 285, 300);
 	CRect rcDockH(0, 0, 200, 250);
 
 	CImageList ilIcons;
@@ -708,6 +706,31 @@ int CMainFrame::CountChilds(_child_type ChildType)
 	}
 	return cnt;
 }
+CChildFrame* CMainFrame::FindChild(_child_type ChildType)
+{
+	return FindNextChild(ChildType, NULL);
+}
+
+CChildFrame* CMainFrame::FindNextChild(_child_type ChildType, CChildFrame* pLastChildFrame)
+{
+	int cnt = 0;
+	CChildFrame *pChildFrame;
+	bool bLooped = (pLastChildFrame == NULL);
+	for(int l=0; l<2; l++) {
+		for(int i=0; i<m_ChildList.GetSize(); i++) {
+			pChildFrame = m_ChildList[i];
+			if(pLastChildFrame == pChildFrame) {
+				pLastChildFrame = NULL;
+				bLooped = true;
+			} else if(pChildFrame->m_ChildType == ChildType && bLooped) {
+				return pChildFrame;
+			}
+		}
+		bLooped = true;
+	}
+	return NULL;
+}
+
 CChildFrame* CMainFrame::FindChild(LPCSTR lpszName)
 {
 	int cnt = 0;
@@ -746,29 +769,43 @@ void CMainFrame::OnParallax()
 
 void CMainFrame::OnViewWorldEditor()
 {
+	static CChildFrame *pChildFrame = NULL;
 	if(CountChilds(tWorldEditor)) {
-		CChildFrame *pChild = FindChild(_T("World Editor"));
-		ATLASSERT(pChild);
-		::PostMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
-	} else {
-		CWorldEditorFrame *pChild = new CWorldEditorFrame(this);
-		DWORD dwStyle = CountChilds()?0:WS_MAXIMIZE;
-		HWND hChildWnd = pChild->CreateEx(m_hWndClient, NULL, NULL, dwStyle);
-		//pChild->m_hAccel = ::LoadAccelerators(_Module.GetResourceInstance(), MAKEINTRESOURCE(IDR_MDIWORLDED));
-		ATLASSERT(::IsWindow(hChildWnd));
+		pChildFrame = FindNextChild(tWorldEditor, pChildFrame);
+		ATLASSERT(pChildFrame);
+		pChildFrame->SetFocus();
 	}
 	OnIdle(); // Force idle processing to update the toolbar.
 }
 void CMainFrame::OnViewMapEditor()
 {
-//	MapCreate(CPoint(0,0));
+	static CChildFrame *pChildFrame = NULL;
+	if(CountChilds(tMapEditor)) {
+		pChildFrame = FindNextChild(tMapEditor, pChildFrame);
+		ATLASSERT(pChildFrame);
+		pChildFrame->SetFocus();
+	}
+	OnIdle(); // Force idle processing to update the toolbar.
 }
 void CMainFrame::OnViewSpriteEditor()
 {
-//	SptShtFileOpen("C:\\newHouseOut.png");
+	static CChildFrame *pChildFrame = NULL;
+	if(CountChilds(tSpriteEditor)) {
+		pChildFrame = FindNextChild(tSpriteEditor, pChildFrame);
+		ATLASSERT(pChildFrame);
+		pChildFrame->SetFocus();
+	}
+	OnIdle(); // Force idle processing to update the toolbar.
 }
 void CMainFrame::OnViewScriptEditor()
 {
+	static CChildFrame *pChildFrame = NULL;
+	if(CountChilds(tScriptEditor)) {
+		pChildFrame = FindNextChild(tScriptEditor, pChildFrame);
+		ATLASSERT(pChildFrame);
+		pChildFrame->SetFocus();
+	}
+	OnIdle(); // Force idle processing to update the toolbar.
 }
 
 void CMainFrame::OnSaveAs()
@@ -784,9 +821,74 @@ int CMainFrame::OnClose()
 }
 int CMainFrame::OnQuestClose()
 {
+	if(!CountChilds(tWorldEditor)) return 1;
+
+	CChildFrame *pChildFrame;
+	bool bModified = false;
+	int nChild = 0;
+
+	// Find out if there are any files modified:
+	for(nChild=0; nChild<m_ChildList.GetSize(); nChild++) {
+		pChildFrame = m_ChildList[nChild];
+		if(pChildFrame->m_ChildType == tWorldEditor || pChildFrame->m_ChildType == tMapEditor) {
+			if(pChildFrame->hasChanged()) { 
+				bModified = true; 
+				break; 
+			}
+		}
+	}
+
+	// Check if anything has been modified. The world must keep the whole status of the Quest (world and maps)
+	// if a map is modified, it must know about it. (scripts and sprite sheets are part of the game set, not the quest)
+	if(!bModified) {
+		int nChoice = MessageBox("Are you sure you want to close the Quest?", QD_MSG_TITLE, MB_YESNO|MB_DEFBUTTON2|MB_ICONQUESTION);
+		if(nChoice != IDYES) return 0;
+	}
+
+	bool bModifiedAux = false;
+	for(nChild = 0; m_ChildList.GetSize(); nChild++) {
+		if(nChild >= m_ChildList.GetSize()) {
+			bModified = false;
+			bModifiedAux = false;
+			nChild = 0;
+		}
+		pChildFrame = m_ChildList[nChild];
+
+		if(pChildFrame->m_ChildType == tWorldEditor && CountChilds(tMapEditor)) {
+			bModifiedAux = bModified;
+			continue; // first close all maps
+		}
+
+		if(pChildFrame->hasChanged()) {
+			nChild = 0;
+			bModifiedAux = true;
+			pChildFrame->SetFocus();
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+			if(pChildFrame->m_ChildType == tWorldEditor) break; // only close up to the Quest closing
+		} else if(!bModified && !bModifiedAux) {
+			nChild = 0;
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+			if(pChildFrame->m_ChildType == tWorldEditor) break; // only close up to the Quest closing
+		}
+	}
+
+	if(!m_pOLKernel->CloseWorld()) return 0;
+	m_bQuestLoaded = false;
+	OnIdle(); // Force idle processing to update the toolbar.
+    StatusBar("Quest closed.", IDI_ICO_OK);
+	return 1;
+}
+void CMainFrame::OnQuestNew()
+{
+}
+int CMainFrame::OnProjectClose()
+{
+	if(!OnQuestClose()) return 0;
+
 	bool bModified = true;
 	int nChild = 0;
 	CChildFrame *pChildFrame;
+	
 	while(m_ChildList.GetSize()) {
 		if(nChild >= m_ChildList.GetSize()) {
 			bModified = false;
@@ -797,20 +899,13 @@ int CMainFrame::OnQuestClose()
 			nChild = 0;
 			bModified = true;
 			pChildFrame->SetFocus();
-			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1; //FIXME: only close files opened for the project
 		} else if(bModified == false) {
 			nChild = 0;
-			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1;
+			if(::SendMessage(pChildFrame->m_hWnd, WM_CLOSE, 0, 0)) return 1; //FIXME: only close files opened for the project
 		}
 	}
-	return CloseWorld();
-}
-void CMainFrame::OnQuestNew()
-{
-}
-int CMainFrame::OnProjectClose()
-{
-	if(!OnQuestClose()) return 0;
+
 	return Close();
 }
 void CMainFrame::OnProjectNew()
@@ -1047,7 +1142,7 @@ void CMainFrame::StatusBar(LPCSTR szMessage, UINT Icon)
 int CMainFrame::Close()
 {
 	if(!m_pOLKernel->CloseProject()) {
-		int nChoice = MessageBox("Save Changes to the game files?", QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
+		int nChoice = MessageBox("Save changes to the Game Set?", QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
 		if(nChoice == IDYES) {
 			if(!m_pOLKernel->SaveProject()) {
 				MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR);
@@ -1059,26 +1154,6 @@ int CMainFrame::Close()
 		m_pOLKernel->CloseProject(true);
 	} 
 	m_bProjectLoaded = false;
-	OnIdle(); // Force idle processing to update the toolbar.
-    StatusBar("Quest closed.", IDI_ICO_OK);
-	return 1;
-}
-
-int CMainFrame::CloseWorld()
-{
-	if(!m_pOLKernel->CloseWorld()) {
-		int nChoice = MessageBox("Save Changes to the quest files?", QD_MSG_TITLE, MB_YESNOCANCEL|MB_ICONWARNING);
-		if(nChoice == IDYES) {
-			if(!m_pOLKernel->SaveWorld()) {
-				MessageBox("Couldn't save!", QD_MSG_TITLE, MB_OK|MB_ICONERROR);
-				return 0;
-			}
-		} else if(nChoice == IDCANCEL) {
-			return 0;
-		}
-		m_pOLKernel->CloseWorld(true);
-	}
-	m_bQuestLoaded = false;
 	OnIdle(); // Force idle processing to update the toolbar.
     StatusBar("Quest closed.", IDI_ICO_OK);
 	return 1;
@@ -1196,7 +1271,6 @@ void CMainFrame::UIUpdateMenuItems()
 
 	if(m_pProjectFactory->isBuilding()) {
 		ASSERT(m_bQuestLoaded);
-		UISetCheck(ID_APP_WORLDED, FALSE);
 		UISetCheck(ID_APP_SOUND, FALSE);
 		UISetCheck(ID_APP_ANIM, FALSE);
 		UISetCheck(ID_APP_PARALLAX, FALSE);
@@ -1248,7 +1322,7 @@ void CMainFrame::UIUpdateMenuItems()
 		UIEnable(ID_DBG_BREAKPOINT, FALSE);
 		UIEnable(ID_DBG_CONTINUE, FALSE);
 	} else {
-		UISetCheck(ID_APP_WORLDED, m_bQuestLoaded && CountChilds(tWorldEditor));
+		CChildFrame *pChild = FindChild(tWorldEditor);
 		UISetCheck(ID_APP_SOUND, m_bQuestLoaded && m_bAllowSounds);
 		UISetCheck(ID_APP_ANIM, m_bQuestLoaded && m_bAllowAnimations);
 		UISetCheck(ID_APP_PARALLAX, m_bQuestLoaded && m_bAllowParallax);

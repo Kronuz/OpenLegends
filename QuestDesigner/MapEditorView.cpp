@@ -187,6 +187,7 @@ LRESULT CMapEditorView::OnKillFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 	// check if we are still the focused window or other application's window is to be focused, 
 	// if so, we just do nothing:
 	if(wParam == NULL) return 0;
+	if(GetMainFrame() && GetParentFrame()->m_hWnd == GetMainFrame()->m_tabbedClient.GetTopWindow()) return 0;
 	if(GetParentFrame()->m_hWnd == (HWND)wParam) return 0;
 
 	// Capture the MapGroup (to update the world editor)
@@ -224,6 +225,8 @@ void CMapEditorView::OnMerge()
 		GetMainFrame()->UIUpdateToolBar();
 		GetMainFrame()->UpdateWindow();
 
+		CleanSelection();
+
 		int nObjects = m_pMapGroupI->CountObjects();
 	    GetMainFrame()->StatusBar("Merging objects...", IDI_ICO_WAIT);
 		SetCursor(LoadCursor(NULL, IDC_WAIT));
@@ -232,10 +235,9 @@ void CMapEditorView::OnMerge()
 		//FIXME: perhaps doing this in a separated thread:
 		int nMerged = m_pMapGroupI->MergeObjects();
 		
+		Checkpoint();
 		CONSOLE_PRINTF("Done! %d/%d objects merged (compressed to %0.02f%%). (%d milliseconds)\n", nMerged, nObjects, 100.f*(1.0f-(float)nMerged/(float)nObjects), GetTickCount()-dwInitTicks);
 		
-		CleanSelection();
-
 		SetCursor(LoadCursor(NULL, IDC_ARROW));
 		GetMainFrame()->UIEnableToolbar(TRUE);
 	    GetMainFrame()->StatusBar("Ready", IDI_ICO_OK);
@@ -246,8 +248,8 @@ void CMapEditorView::OnUndo()
 	if(m_pMapGroupI && CanUndo()) {
 		m_nCheckPoint--;
 		CONSOLE_DEBUG("Restored state (%d)\n", m_nCheckPoint);
-		m_pMapGroupI->RestoreState(m_nCheckPoint);
-		CleanSelection(); //FIXME: selections should also be restored
+		if(m_pMapGroupI->RestoreState(m_nCheckPoint)) 
+			CleanSelection(); //FIXME: selections should also be restored
 	}
 }
 
@@ -256,8 +258,8 @@ void CMapEditorView::OnRedo()
 	if(m_pMapGroupI && CanRedo()) {
 		m_nCheckPoint++;
 		CONSOLE_DEBUG("Restored state (%d)\n", m_nCheckPoint);
-		m_pMapGroupI->RestoreState(m_nCheckPoint);
-		CleanSelection(); //FIXME: selections should also be restored
+		if(m_pMapGroupI->RestoreState(m_nCheckPoint))
+			CleanSelection(); //FIXME: selections should also be restored
 	}
 }
 
@@ -1181,7 +1183,7 @@ LRESULT CMapEditorView::OnMouseMove(UINT uMsg, WPARAM wParam, LPARAM lParam, BOO
 	sText.Format(_T("X: %3d, Y: %3d"), Point.x, Point.y);
 	pStatusBar->SetPaneText(ID_POSITION_PANE, sText);
 
-	if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
+	//if(::GetFocus() != m_hWnd && ::GetFocus()) ::SetFocus(m_hWnd);
 
 	return 0;
 }

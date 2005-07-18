@@ -224,7 +224,7 @@ bool CGEditorView::OnFileOpen()
 }
 bool CGEditorView::OnFileClose()
 {
-	return (::SendMessage(GetParent(), WM_CLOSE, 0, 0)==0);
+	return (::PostMessage(GetParent(), WM_CLOSE, 0, 0)==0);
 }
 bool CGEditorView::OnFileReload()
 {
@@ -374,6 +374,7 @@ CURSOR CGEditorView::ToCursor(CURSOR cursor_)
 
 LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	::SetFocus(m_hWnd);
 	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	m_bLButtonDown = true;
 
@@ -431,6 +432,7 @@ LRESULT CGEditorView::OnLButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	::SetFocus(m_hWnd);
 	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	if(!m_bLButtonDown) return 0;
 	m_bLButtonDown = false;
@@ -489,6 +491,7 @@ LRESULT CGEditorView::OnLButtonUp(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, B
 }
 LRESULT CGEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	::SetFocus(m_hWnd);
 	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	m_bRButtonDown = true;
 
@@ -522,6 +525,7 @@ LRESULT CGEditorView::OnRButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	::SetFocus(m_hWnd);
 	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	if(!m_bRButtonDown) return 0;
 	m_bRButtonDown = false;
@@ -580,6 +584,7 @@ LRESULT CGEditorView::OnRButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 }
 LRESULT CGEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
+	::SetFocus(m_hWnd);
 	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	m_bMButtonDown = true;
 
@@ -591,6 +596,7 @@ LRESULT CGEditorView::OnMButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam,
 }
 LRESULT CGEditorView::OnMButtonUp(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL &bHandled)
 {
+	::SetFocus(m_hWnd);
 	if(m_bIgnoreNextButton) { m_bIgnoreNextButton = false; return 0; }
 	if(!m_bMButtonDown) return 0;
 	m_bMButtonDown = false;

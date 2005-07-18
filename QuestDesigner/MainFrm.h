@@ -103,7 +103,7 @@ public:
 		m_bQuestLoaded (false),
 		m_bAllowSounds(false),
 		m_bAllowAnimations(true),
-		m_bAllowParallax(false) 
+		m_bAllowParallax(false)
 	{
 	}
 
@@ -150,6 +150,7 @@ public:
 	bool m_bAllowSounds;
 	bool m_bAllowAnimations;
 	bool m_bAllowParallax;
+
 	HWND m_ahWnd[10];
 
 ////////////////////////////////////////////////////////
@@ -418,6 +419,8 @@ public:
 
 	int CountChilds(_child_type ChildType = tAny);
 	CChildFrame* FindChild(LPCSTR lpszName);
+	CChildFrame* FindChild(_child_type ChildType);
+	CChildFrame* FindNextChild(_child_type ChildType, CChildFrame* pLastChildFrame);
 
 	void StatusBar(LPCSTR szMessage, UINT Icon); // used to change the status bar message and icon.
 
@@ -428,7 +431,6 @@ public:
 	int MapFileOpen(CPoint &Point);
 	int SptShtFileOpen(CSpriteSheet *pSpriteSheet, LPCSTR lpszSprite);
 
-	int CloseWorld();
 	int Close();
 
 	void UIUpdateMenuItems();

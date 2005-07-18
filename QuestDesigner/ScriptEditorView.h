@@ -129,6 +129,8 @@ public:
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_HANDLER(WM_MOVE, OnMove)
 
+		MESSAGE_HANDLER(WM_SETFOCUS, OnSetFocus)
+
 		MENU_COMMAND_HANDLER(ID_APP_OPEN, OnFileOpen)
 		MENU_COMMAND_HANDLER(ID_APP_CLOSE, OnFileClose)
 		MENU_COMMAND_HANDLER(ID_APP_RELOAD, OnFileReload)
@@ -180,6 +182,8 @@ public:
 	LRESULT OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
 	LRESULT OnMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL &bHandled);
+
+	LRESULT OnSetFocus(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL & /*bHandled*/);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
