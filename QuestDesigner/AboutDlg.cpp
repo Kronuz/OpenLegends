@@ -30,7 +30,8 @@
 #include "AboutDlg.h"
 LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
-/*	HBITMAP hPicture = LoadBitmap(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDB_LOGO));
+/*
+	HBITMAP hPicture = LoadBitmap(_Module.GetModuleInstance(), MAKEINTRESOURCE(IDB_LOGO));
 
 	BITMAP bm;
 	GetObject(hPicture, sizeof (BITMAP), (LPSTR)&bm);
@@ -42,13 +43,12 @@ LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPar
 	GetClientRect(&rcClient);
 	memdc.FillSolidRect(&rcClient, GetSysColor(COLOR_3DFACE));
 
-	memdc.TransparentBlt(7, 15, bm.bmWidth, bm.bmHeight, hdcCompatible, 
+	memdc.TransparentBlt(107-bm.bmWidth/2, 116-bm.bmHeight/2, bm.bmWidth, bm.bmHeight, hdcCompatible, 
 						 0, 0, bm.bmWidth, bm.bmHeight, 0xff00ff);
 
 	SelectObject(hdcCompatible, hOldBMP);
 	DeleteDC(hdcCompatible);
 	DeleteObject(hPicture);
-
 /*/
 	CImage Image;
 	LoadImage(&Image, _Module.GetModuleInstance(), IDB_LOGO);
@@ -58,8 +58,8 @@ LRESULT CAboutDlg::OnEraseBackground(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lPar
 	RECT rcClient;
 	GetClientRect(&rcClient);
 	memdc.FillRect(&rcClient, COLOR_3DFACE);
-	Image.AlphaBlend(memdc, 7, 25, Image.GetWidth(), Image.GetHeight(), 0, 0, Image.GetWidth(), Image.GetHeight());
-
+	Image.AlphaBlend(memdc, 107-Image.GetWidth()/2, 116-Image.GetHeight()/2, Image.GetWidth(), Image.GetHeight(), 0, 0, Image.GetWidth(), Image.GetHeight());
+/**/
 	return 0;
 
 }
