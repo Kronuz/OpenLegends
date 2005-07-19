@@ -25,11 +25,11 @@
 #include "Kernel/DrawManager.h"
 #include "Kernel/SpriteManager.h"
 #include "Kernel/WorldManager.h"
+#include "Kernel/SelectionManager.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
 struct GameInfo;
-
 class CSound;
 
 #define BUFFSIZE 200

@@ -243,9 +243,6 @@
 				RelativePath="..\Net.cpp">
 			</File>
 			<File
-				RelativePath="SpriteManager.cpp">
-			</File>
-			<File
 				RelativePath="stdafx.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -307,6 +304,12 @@
 				<File
 					RelativePath="DrawManager.cpp">
 				</File>
+				<File
+					RelativePath=".\SelectionManager.cpp">
+				</File>
+				<File
+					RelativePath="SpriteManager.cpp">
+				</File>
 			</Filter>
 			<Filter
 				Name="File System"
@@ -331,9 +334,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc">
 			<File
 				RelativePath="..\Core.h">
-			</File>
-			<File
-				RelativePath="..\FilePath.h">
 			</File>
 			<File
 				RelativePath="GameManager.h">
@@ -361,9 +361,6 @@
 			</File>
 			<File
 				RelativePath="resource.h">
-			</File>
-			<File
-				RelativePath="SpriteManager.h">
 			</File>
 			<File
 				RelativePath="stdafx.h">
@@ -406,6 +403,12 @@
 				<File
 					RelativePath="..\IGraphics.h">
 				</File>
+				<File
+					RelativePath=".\SelectionManager.h">
+				</File>
+				<File
+					RelativePath="SpriteManager.h">
+				</File>
 			</Filter>
 			<Filter
 				Name="Sound"
@@ -438,6 +441,9 @@
 				</File>
 				<File
 					RelativePath="ArchiveText.h">
+				</File>
+				<File
+					RelativePath="..\FilePath.h">
 				</File>
 				<File
 					RelativePath="..\IArchiver.h">
