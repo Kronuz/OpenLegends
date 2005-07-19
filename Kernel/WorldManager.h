@@ -34,6 +34,9 @@
 
 #include <vector>
 
+#include "SpriteManager.h"
+#include "ArchiveText.h"
+
 #define DEF_MAXMAPSX 256
 #define DEF_MAXMAPSY 256
 #define DEF_MAPSIZEX 640
@@ -43,9 +46,6 @@
 // Forward declarations
 interface ISound;
 class CWorld;
-
-#include "SpriteManager.h"
-#include "ArchiveText.h"
 
 const char g_szLayerNames[MAX_LAYERS][30] = {
 	"0 - Background",
@@ -88,7 +88,7 @@ class CLayer :
 	public CDocumentObject		// Maps can be loaded from a file into a layer.
 {
 protected:
-/////////////////////////////////////////////////////////
+//-------------------------------------
 // TO KEEP THE MEMENTO:
 	struct StateLayer : 
 		public CDrawableContext::StateDrawableContext
@@ -105,7 +105,7 @@ protected:
 	};
 // DATA TO KEEP:
 	CPoint m_ptLoadPoint;
-/////////////////////////////////////////////////////////
+//-------------------------------------
 protected:
 
 public:
@@ -143,7 +143,7 @@ class CThumbnails :
 	public CDrawableContext
 {
 protected:
-/////////////////////////////////////////////////////////
+//-------------------------------------
 // TO KEEP THE MEMENTO:
 	struct StateThumbnails : 
 		public CDrawableContext::StateDrawableContext
@@ -159,7 +159,7 @@ protected:
 	};
 // DATA TO KEEP:
 	// no data
-/////////////////////////////////////////////////////////
+//-------------------------------------
 protected:
 
 public:
@@ -190,7 +190,7 @@ class CMapGroup :
 {
 
 protected:
-/////////////////////////////////////////////////////////
+//-------------------------------------
 // TO KEEP THE MEMENTO:
 	struct StateMapGroup : 
 		public CDrawableContext::StateDrawableContext
@@ -223,7 +223,7 @@ protected:
 	BITMAP *m_pOriginalBitmap;
 	BITMAP *m_pBitmap;
 	ISound *m_pMusic;
-/////////////////////////////////////////////////////////
+//-------------------------------------
 
 protected:
 	virtual bool CanMerge(CDrawableObject *object);

@@ -295,7 +295,46 @@ public:
 	virtual int GetCatalogOrder() { return m_nCatalog; }
 
 };
+/////////////////////////////////////////////////////////////////////////////
+// CSprite Implementation:
+/////////////////////////////////////////////////////////////////////////////
+inline _spt_type CSprite::GetSpriteType() 
+{ 
+	return m_SptType; 
+}
+inline void CSprite::SetSpriteType(_spt_type SptType) 
+{ 
+	// only valid conversion between types is tMask <-> tBackground
+	ASSERT(m_SptType == tMask || m_SptType == tBackground);
+	ASSERT(SptType == tMask || SptType == tBackground);
+	m_SptType = SptType; 
+}
+inline CSpriteSheet* CSprite::GetSpriteSheet() 
+{ 
+	if(m_bDefined) return m_pSpriteSheet; 
+	return NULL;
+}
+inline bool CSprite::IsDefined() 
+{ 
+	return m_bDefined; 
+}
+inline void CSprite::SetSpriteSheet(CSpriteSheet *pSpriteSheet) 
+{
+	m_pSpriteSheet = pSpriteSheet;
+	if(m_pSpriteSheet) m_bDefined = true;
+}
+inline void CSprite::AddRect(RECT rcRect) 
+{
+	m_Boundaries.push_back(rcRect);
+}
 
+inline SSpriteData* CSprite::GetSpriteData() {
+	return m_pSpriteData;
+}
+
+inline void CSprite::SetSpriteData(SSpriteData *pSpriteData) {
+	m_pSpriteData = pSpriteData;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CBackground
@@ -469,7 +508,7 @@ class CSpriteContext :
 	public CDrawableContext
 {
 protected:
-/////////////////////////////////////////////////////////
+//-------------------------------------
 // TO KEEP THE MEMENTO:
 	struct StateSpriteContext : 
 		public CDrawableContext::StateDrawableContext
@@ -486,7 +525,7 @@ protected:
 	};
 // DATA TO KEEP:
 	ARGBCOLOR m_rgbColor;
-/////////////////////////////////////////////////////////
+//-------------------------------------
 protected:
 
 public:
@@ -543,137 +582,9 @@ private:
 	// Commit variables (saved in case of abortion):
 	mutable ARGBCOLOR Commit_rgbColor;
 };
-
 /////////////////////////////////////////////////////////////////////////////
-/*! \class	CSpriteSetContext
-	\brief		Flyweight sprites context class.
-	\author		Germán Méndez Bravo (Kronuz)
-	\version	1.0
-	\date		July 15, 2005
-
-	\todo	Class yet to be implemented. This class should keep the state of a sprite set
-			which is nothing more than a group of sprite contexts.
-
-	\sa CDrawableObject, CSpriteContext
-*/
-class CSpriteSetContext :
-	public CSpriteContext
-{
-};
-
-#define SSD_WIDTHHEIGHT	0x01	// 000001
-#define SSD_CHAIN_X		0x02	// 000010
-#define SSD_CHAIN_Y		0x04	// 000100
-#define SSD_TRANS     	0x08	// 001000
-#define SSD_ALPHA		0x10	// 010000
-#define SSD_RGBL		0x20	// 100000
-
-#pragma pack(1)
-struct _SpriteSet {
-	struct _SpriteSetInfo {
-		_OpenLegendsFile Header;
-		UINT nSelected;
-		CRect rcBoundaries;
-	} Info;
-
-	// Here comes the index. A list of offsets (from the begining to the start of the name)...
-	// WORD Offset_to_the_first_name;
-	// WORD Offset_to_the_second_name;
-	//             ...
-	// WORD Offset_to_the_last_name;
-
-	// Here comes the NULL terminated strings of the names (referred by the offsets above)...
-
-	// Here starts the data:
-	struct _SpriteSetData {	// (7 bytes)
-		WORD Mask :		6;
-		WORD Layer :	3;
-		WORD SubLayer :	3;
-		WORD ObjIndex :	12;
-		WORD X :		16;
-		WORD Y :		16;
-	};
-	struct _SpriteSetData01 { // mask SSD_WIDTHHEIGHT	(4 bytes)
-		WORD Width :	16;
-		WORD Height :	16;
-	};
-	struct _SpriteSetData02 { // masks SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS (1 byte)
-		BYTE rotation :	2;
-		BYTE mirrored :	1;
-		BYTE flipped :	1;
-		BYTE XChain :	2; // = Xchain - 1
-		BYTE YChain :	2; // = Ychain - 1
-	};
-	struct _SpriteSetData03 { // mask SSD_ALPHA (1 byte)
-		BYTE Alpha;
-	};
-	struct _SpriteSetData04 { // mask SSD_RGBL (4 bytes)
-		BYTE Red;
-		BYTE Green;
-		BYTE Blue;
-	};
-	// ...the bitmap continues here (starts in a 16 bytes alignment)
-};
-#pragma pack()
-
-class CSpriteSelection :
-	public CDrawableSelection
-{
-	bool m_bHighlightOnly;
-
-	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
-	void BuildRealSelectionBounds(int nGroup_ = 0);
-
-	// Pastes a buffer in the specified point, without selecting it, and returns a
-	// rect with the ending location of the pasted buffer (empty on fail)
-	CRect PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, const CPoint *pPoint = NULL, bool bPaste = true);
-	CRect PasteFile(CLayer *pLayer, LPCSTR szFilePath, const CPoint *pPoint = NULL, bool bPaste = true);
-	CRect PasteSprite(CLayer *pLayer, LPCSTR szSprite, const CPoint *pPoint = NULL, bool bPaste = true);
-	CRect PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoint *pPoint = NULL, bool bPaste = true) ;
-
-public:
-	CSpriteSelection(CDrawableContext **ppDrawableContext_) : 
-	  CDrawableSelection(ppDrawableContext_), m_bHighlightOnly(false) 
-	  {
-	  }
-
-	// Interface Definition:
-	virtual void SetHighlightMode(bool bHighlight = true) { m_bHighlightOnly = bHighlight; }
-
-	virtual void SelectionToGroup(LPCSTR szGroupName = "");
-	virtual void GroupToSelection();
-
-	virtual void SelectionToTop();
-	virtual void SelectionToBottom();
-	virtual void SelectionDown();
-	virtual void SelectionUp();
-
-	virtual void FlipSelection();
-	virtual void MirrorSelection();
-	virtual void CWRotateSelection();
-	virtual void CCWRotateSelection();
-
-	virtual bool Draw(const IGraphics *pGraphics_);
-
-	// If no bitmap is provided, no thumbnail bitmap is added to the copy.
-	// If a bitmap is provided, and the memory for the bitmap has been allocated 
-	// by the kernel you can set bDeleteBitmap to true, so the memory gets deleted 
-	// in the copy process. In this case, *ppBitmap is nulled to avoid missuses.
-	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false); 
-	virtual bool Paste(LPCVOID pBuffer, const CPoint &point_);
-
-	virtual bool FastPaste(LPCVOID pBuffer, const CPoint &point_);
-	virtual bool FastPaste(CSprite *pSprite, const CPoint &point_ );
-
-	virtual bool GetPastedSize(LPCVOID pBuffer, SIZE *pSize);
-	virtual bool GetPastedSize(CSprite *pSprite, SIZE *pSize);
-	
-	virtual LPCSTR GetSelectionName(LPSTR szName, int size);
-	virtual void SetSelectionName(LPCSTR szName);
-
-};
-
-
+// CSpriteContext Implementation:
+/////////////////////////////////////////////////////////////////////////////
 inline void CSpriteContext::Mirror() 
 {
 	if(isMirrored()) Mirror(false);
@@ -820,40 +731,21 @@ inline float CSpriteContext::RelScale() const
 	return 1.0f;
 }
 
-inline _spt_type CSprite::GetSpriteType() 
-{ 
-	return m_SptType; 
-}
-inline void CSprite::SetSpriteType(_spt_type SptType) 
-{ 
-	// only valid conversion between types is tMask <-> tBackground
-	ASSERT(m_SptType == tMask || m_SptType == tBackground);
-	ASSERT(SptType == tMask || SptType == tBackground);
-	m_SptType = SptType; 
-}
-inline CSpriteSheet* CSprite::GetSpriteSheet() 
-{ 
-	if(m_bDefined) return m_pSpriteSheet; 
-	return NULL;
-}
-inline bool CSprite::IsDefined() 
-{ 
-	return m_bDefined; 
-}
-inline void CSprite::SetSpriteSheet(CSpriteSheet *pSpriteSheet) 
-{
-	m_pSpriteSheet = pSpriteSheet;
-	if(m_pSpriteSheet) m_bDefined = true;
-}
-inline void CSprite::AddRect(RECT rcRect) 
-{
-	m_Boundaries.push_back(rcRect);
-}
 
-inline SSpriteData* CSprite::GetSpriteData() {
-	return m_pSpriteData;
-}
+/////////////////////////////////////////////////////////////////////////////
+/*! \class	CSpriteSetContext
+	\brief		Flyweight sprites context class.
+	\author		Germán Méndez Bravo (Kronuz)
+	\version	1.0
+	\date		July 15, 2005
 
-inline void CSprite::SetSpriteData(SSpriteData *pSpriteData) {
-	m_pSpriteData = pSpriteData;
-}
+	\todo	Class yet to be implemented. 
+	This class keeps the state of a sprite set which is nothing more 
+	than a group of sprite contexts.
+
+	\sa CDrawableObject, CSpriteContext
+*/
+class CSpriteSetContext :
+	public CSpriteContext
+{
+};
