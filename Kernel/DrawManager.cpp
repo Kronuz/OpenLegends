@@ -144,6 +144,8 @@ CDrawableContext::~CDrawableContext()
 void CDrawableContext::ReadState(StateData *data)
 {
 	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
+	ASSERT(curr);
+
 	curr->bDeleted = m_bDeleted;
 	curr->rgbBkColor = m_rgbBkColor;
 	curr->nSubLayer = m_nSubLayer;
@@ -151,10 +153,13 @@ void CDrawableContext::ReadState(StateData *data)
 	curr->Size = m_Size;
 	curr->dwStatus = m_dwStatus;
 	curr->bSelected = m_bSelected;
+	curr->nOrder = m_nOrder;
+	curr->pParent = m_pParent;
 }
 void CDrawableContext::WriteState(StateData *data)
 {
 	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
+	ASSERT(curr);
 
 	bool bInvalidate = false;
 	if(m_Size != curr->Size) bInvalidate = true;
@@ -167,6 +172,13 @@ void CDrawableContext::WriteState(StateData *data)
 	m_Size = curr->Size;
 	m_dwStatus = curr->dwStatus;
 	m_bSelected = curr->bSelected;
+	m_nOrder = curr->nOrder;
+
+	if(curr->pParent != m_pParent && curr->pParent && m_pParent) {
+		if(m_pParent->PopChild(this)) {
+			VERIFY(curr->pParent->InsertChild(this, m_nOrder));
+		}
+	}
 
 	if(bInvalidate) InvalidateBuffers();
 }
@@ -364,7 +376,7 @@ inline bool CDrawableContext::CleanTempContext::operator()(CDrawableContext *pDr
 	ASSERT(pDrawableContext);
 	if(!pDrawableContext) return false;
 
-	if( pDrawableContext->m_bDeleted ) return true;
+	//if( pDrawableContext->m_bDeleted ) return true;
 
 	// Start cleaning:
 	for_each(
@@ -721,7 +733,14 @@ int CDrawableContext::RestoreState(UINT checkpoint)
 	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if(*Iterator) {
-			nRet += (*Iterator)->RestoreState(checkpoint);
+			// RestoreState can move children around layers, etc.
+			// SaveState, above, explains the following...
+			int nDist = distance(m_Children.begin(), Iterator);
+			CDrawableContext *curr = *Iterator;
+			nRet += curr->RestoreState(checkpoint); 
+			Iterator = m_Children.begin();
+			advance(Iterator, nDist);
+			if(*Iterator != curr || Iterator == m_Children.end()) continue;
 		}
 		Iterator++;
 	}

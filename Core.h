@@ -24,6 +24,7 @@
 #pragma warning(disable : 4250) // ignore the C4355 warning: inheritance via dominance
 
 #include <functional>
+#include <vector>
 
 // Flags for the sprites and their transformations (higher byte of the status reserved):
 #define SNORMAL				GFX_NORMAL	
@@ -240,6 +241,27 @@ public:
 
 	inline const CBString& GetName() const { return m_sName; }
 	inline void SetName(LPCSTR szName) { m_sName = szName; }
+};
+
+template <class T> class CReferredObj
+{
+	std::vector<T**> m_References;
+public:
+	~CReferredObj() {
+		while(m_References.size()) {
+			std::vector<T**>::iterator Iterator = m_References.begin();
+			ASSERT(*(*Iterator) == reinterpret_cast<T*>(this));
+			*(*Iterator) = NULL;
+			m_References.erase(m_References.begin());
+		}
+	}
+	void Ref(T** ref) {
+		m_References.push_back(ref);
+	}
+	void UnRef(T** ref) {
+		std::vector<T**>::iterator Iterator = std::find(m_References.begin(), m_References.end(), ref);
+		m_References.erase(Iterator);
+	}
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -582,7 +582,7 @@ void Render()
 
 		///////////////////////////////////////////////////////////////////////////
 		// 3. CLEAN STUFF
-		// check if a compete frame has been drawn (without debugging in the middle):
+		// check if a complete frame has been drawn (without debugging in the middle):
 		if(!g_bRunningScripts) {
 			g_bClearToGo = true;
 

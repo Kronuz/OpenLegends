@@ -2315,6 +2315,7 @@ bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
 
 void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 {
+
 	// NEED TO FIX *** (if the group already exists, no new group is to be created??)
 	// if(m_nCurrentGroup) return; // <-- ^^^
 
@@ -2353,6 +2354,7 @@ void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 
 	// SelectGroup(m_nCurrentGroup); // <-- the current group should already be selected (it hasn't been unselected)
 	Touch();
+
 }
 // converts the currently selected group to a simple selection:
 void CSpriteSelection::GroupToSelection()

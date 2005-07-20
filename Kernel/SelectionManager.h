@@ -64,12 +64,32 @@ struct SObjProp :
 	CRect rcRect; // this must always be updated from Resizes and other position changes
 	_Chain eXChain;
 	_Chain eYChain;
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), nGroup(nGroup_) {}
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), nGroup(nGroup_) {
+		if(pContext) pContext->Ref(&pContext);
+	}
+	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {
+		if(pContext) pContext->Ref(&pContext);
+	}
 	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {
-		if(pContext) pContext->GetAbsFinalRect(rcRect);
+		if(pContext) pContext->Ref(&pContext), pContext->GetAbsFinalRect(rcRect);
 		else ASSERT(0); // You should provide Rect_ for groups.;
 	}
+	SObjProp(const SObjProp &obj) {
+		C = obj.C;
+		nGroup = obj.nGroup;
+		rcRect = obj.rcRect;
+		eXChain = obj.eXChain;
+		eYChain = obj.eYChain;
+		bSubselected = obj.bSubselected;
+		pSelection = obj.pSelection;
+		pContext = obj.pContext;
+
+		if(pContext) pContext->Ref(&pContext);
+	}
+	virtual ~SObjProp() { 
+		if(pContext) pContext->UnRef(&pContext); 
+	}
+
 	virtual bool isFlagged();
 	virtual void Flag(bool bFlag);
 	virtual bool GetInfo(SInfo *pI) const;
