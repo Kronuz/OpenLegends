@@ -748,4 +748,6 @@ inline float CSpriteContext::RelScale() const
 class CSpriteSetContext :
 	public CSpriteContext
 {
+protected:
+	bool m_bOriginalContext;	//!< Keeps the state of the sprite set against the original saved context
 };

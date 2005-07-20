@@ -51,9 +51,6 @@
 	with all of its properties (location, size, display behavior, etc.)
 
 	CDrawableContext and CDrawableObject are the basic implementation of the explained interfaces.
-
-	\todo	FIXME: We need to move the sublayers from CDrawableContext to CMapGroup and CLayer; 
-			CDrawableContext shouldn't provide layers. Probably creating a new class CLDrawableContext.
 */
 
 #pragma once
@@ -102,6 +99,7 @@ typedef struct __RUNACTION {
 */
 class CDrawableContext :
 	public CNamedObj,
+	public CReferredObj<CDrawableContext>,
 	public IPropertyEnabled,
 	public CMemento,
 	virtual public CMutable
@@ -174,7 +172,6 @@ private:
 	DRAWTYPE m_eDrawType[MAX_SUBLAYERS];	//!< Ordering type for child sprites.
 	DRAWTYPE m_eSorted[MAX_SUBLAYERS];		//!< The current sort of the children.
 	bool m_bValidMap;						//!< Indicates if the layers map is valid. (also if iterators are valid)
-	size_t m_nOrder;						//!< Number of siblings at the time of the creation.
 
 	int _MergeChildren(CDrawableContext *object);
 
@@ -193,8 +190,10 @@ protected:
 				curr->nSubLayer == nSubLayer &&
 				curr->Position == Position &&
 				curr->Size == Size &&
+				curr->pParent == pParent &&
 				curr->dwStatus == dwStatus &&
-				curr->bSelected == bSelected
+				curr->bSelected == bSelected &&
+				curr->nOrder == nOrder
 			);
 		}
 
@@ -206,22 +205,24 @@ protected:
 		CPoint Position;
 
 		CSize Size;
-//		CDrawableContext *pParent;
+		CDrawableContext *pParent;
 		DWORD dwStatus;
 		bool bSelected;
+		size_t nOrder;
 	};
 // DATA TO KEEP:
 	bool m_bDeleted;
-	CDrawableObject *m_pDrawableObj;		//!< Drawable object for the context (if any)
-	ARGBCOLOR m_rgbBkColor;					//!< If there is no drawable object, a background color should exist
+	CDrawableObject *m_pDrawableObj;	//!< Drawable object for the context (if any)
+	ARGBCOLOR m_rgbBkColor;				//!< If there is no drawable object, a background color should exist
 
-	int m_nSubLayer;						//!< Object's current sub layer (relative to the layer)
-	CPoint m_Position;						//!< Object's position.
+	int m_nSubLayer;					//!< Object's current sub layer (relative to the layer)
+	CPoint m_Position;					//!< Object's position.
 
-	mutable CSize m_Size;			//!< If the context's size is 0,0 then the size is obtained from the drawable object.
-	CDrawableContext *m_pParent;	//!< parent drawable object.
+	mutable CSize m_Size;				//!< If the context's size is 0,0 then the size is obtained from the drawable object.
+	CDrawableContext *m_pParent;		//!< parent drawable object.
 	DWORD m_dwStatus;
 	bool m_bSelected;
+	size_t m_nOrder;					//!< Number of siblings at the time of the creation.
 //-------------------------------------
 
 protected:
@@ -286,9 +287,9 @@ public:
 
 	int GetObjSubLayer() const;
 	int GetObjLayer() const;
-	int GetObjOrder() const;
 
 	void SetObjOrder(int nNewOrder); // use this carefully
+	int GetObjOrder() const;
 
 	CDrawableContext* GetParent() const;
 	CDrawableContext* GetSibling(int idx) const;
@@ -506,10 +507,6 @@ inline void CDrawableContext::GetSize(CSize &_Size) const
 		if(m_pDrawableObj) m_pDrawableObj->GetSize(m_Size);
 	_Size = m_Size; 
 }
-inline int CDrawableContext::GetObjSubLayer() const
-{
-	return m_nSubLayer;
-}
 inline void CDrawableContext::SetObjOrder(int nNewOrder)
 {
 	if(m_nOrder == nNewOrder) return;
@@ -528,6 +525,10 @@ inline int CDrawableContext::GetObjLayer() const
 {
 	if(m_pParent) return m_pParent->m_nSubLayer;
 	return -1;
+}
+inline int CDrawableContext::GetObjSubLayer() const
+{
+	return m_nSubLayer;
 }
 inline bool CDrawableContext::SetObjLayer(int nLayer) 
 {
@@ -801,19 +802,3 @@ inline ARGBCOLOR CDrawableContext::GetBkColor() const
 { 
 	return m_rgbBkColor; 
 }
-
-/////////////////////////////////////////////////////////////////////////////
-/*! \class		CLDrawableContext
-	\brief		Specialization of CDrawableContext so it has layers.
-	\author		Germán Méndez Bravo (Kronuz)
-	\version	1.0
-	\date		July 19, 2005
-
-	\todo	Class yet to be implemented.
-	This class does the same as CDrawableContext, but it maintains the layering
-	system used by layered drawable contexts.
-*/
-class CLDrawableContext : 
-	public CDrawableContext
-{
-};

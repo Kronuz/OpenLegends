@@ -268,6 +268,7 @@ bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 	if(!DoFileClose()) return false;
 
 	m_pMapGroupI = (CMapGroup *)wParam;
+
 	if(FAILED(CProjectFactory::New(&m_SelectionI, reinterpret_cast<CDrawableContext**>(&m_pMapGroupI)))) {
 		MessageBox("Couldn't load kernel, check kernel version.", QD_MSG_TITLE);
 		return false;
@@ -275,6 +276,8 @@ bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 
 	ASSERT(m_pMapGroupI);
 	if(!m_pMapGroupI) return false;
+
+	m_pMapGroupI->Ref(reinterpret_cast<CDrawableContext**>(&m_pMapGroupI)); // add a reference to the map group.
 
 	m_pMapGroupI->GetSize(m_szMap);
 
@@ -415,7 +418,7 @@ void CMapEditorView::RunPopUpCmd(int nCmd)
 			break;
 		}
 		case 14: {
-			m_SelectionI->SelectionToGroup();
+			m_SelectionI->SelectionToGroup("NewGroup");
 			OnChangeSel(OCS_AUTO);
 			break;
 		}

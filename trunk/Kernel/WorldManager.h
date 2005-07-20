@@ -73,6 +73,41 @@ const char g_szSubLayerNames[MAX_SUBLAYERS][30] = {
 };
 
 /////////////////////////////////////////////////////////////////////////////
+/*! \class		CMapPos
+	\brief		CMapPos class.
+	\author		Germán Méndez Bravo (Kronuz)
+	\version	1.0
+	\date		July 12, 2005
+
+	This class keeps map positions and returns either absolute or 
+	local positions for maps.
+	Members return -1 when on error, or the current MapPos layer otherwise.
+*/
+class CMapPos {
+	static CWorld *ms_pWorld;
+	int m_nLayer;
+	int m_nSubLayer;
+	mutable CPoint m_LocalPoint;
+	mutable CBString m_sMapID;
+protected:
+	friend CWorld;
+	CMapPos(CWorld *pWorld);
+public:
+	CMapPos();
+	int GetAbsPosition(CPoint &_Point) const;
+	int SetAbsPosition(const CPoint &_Point, int _nLayer = -1, int _nSubLayer = -1);
+	int GetPosition(CPoint &_Point) const;
+	int GetMapGroup(CMapGroup **_ppMapGroup) const;
+	int GetLayer() const;
+	int GetSubLayer() const;
+	int SetPosition(const CMapGroup *_pMapGroup, const CPoint &_Point, int _nLayer = -1, int _nSubLayer = -1);
+	int SetMapGroup(const CMapGroup *_pMapGroup);
+	int SetPosition(const CPoint &_Point);
+	int SetLayer(int _nLayer);
+	int SetSubLayer(int _nSubLayer);
+};
+
+/////////////////////////////////////////////////////////////////////////////
 /*! \class		CLayer
 	\brief		CLayer class.
 	\author		Germán Méndez Bravo (Kronuz)
@@ -128,51 +163,23 @@ public:
 	virtual int _RestoreState(UINT checkpoint);
 	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 };
-
-/////////////////////////////////////////////////////////////////////////////
-/*! \class		CThumbnails
-	\brief		CThumbnails class.
-	\author		Germán Méndez Bravo (Kronuz)
-	\version	1.0
-	\date		Oct 9, 2003
-
-	CThumbnails is a Drawable context that contains a single layer and
-	a bunch of sprites to be painted as thumbnails
-*/
-class CThumbnails :
-	public CDrawableContext
+inline void CLayer::SetLoadPoint(int x, int y)
 {
-protected:
-//-------------------------------------
-// TO KEEP THE MEMENTO:
-	struct StateThumbnails : 
-		public CDrawableContext::StateDrawableContext
-	{
-		virtual bool operator==(const StateData& state) const {
-			const StateThumbnails *curr = static_cast<const StateThumbnails*>(&state);
-			return (
-				StateDrawableContext::operator ==(state)
-			);
-		}
+	m_ptLoadPoint.SetPoint(x,y);
+}
+inline void CLayer::SetLoadPoint(const CPoint &point_)
+{
+	m_ptLoadPoint = point_;
+}
+inline bool CLayer::AddSpriteContext(CSpriteContext *sprite)
+{
+	CPoint Point;
+	sprite->GetPosition(Point);
+	Point += m_ptLoadPoint;
+	sprite->MoveTo(Point);
+	return AddChild(sprite);
+}
 
-		// no data
-	};
-// DATA TO KEEP:
-	// no data
-//-------------------------------------
-protected:
-
-public:
-	CThumbnails();
-	virtual void CleanThumbnails();
-
-	// Memento interface
-	virtual void ReadState(StateData *data) {};
-	virtual void WriteState(StateData *data) {};
-	virtual int _SaveState(UINT checkpoint) { return 0; };
-	virtual int _RestoreState(UINT checkpoint) { return 0; };
-	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
-};
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CMapGroup
 	\brief		CMapGroup class.
@@ -290,41 +297,6 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////////
-/*! \class		CMapPos
-	\brief		CMapPos class.
-	\author		Germán Méndez Bravo (Kronuz)
-	\version	1.0
-	\date		July 12, 2005
-
-	This class keeps map positions and returns either absolute or 
-	local positions for maps.
-	Members return -1 when on error, or the current MapPos layer otherwise.
-*/
-class CMapPos {
-	static CWorld *ms_pWorld;
-	int m_nLayer;
-	int m_nSubLayer;
-	mutable CPoint m_LocalPoint;
-	mutable CBString m_sMapID;
-protected:
-	friend CWorld;
-	CMapPos(CWorld *pWorld);
-public:
-	CMapPos();
-	int GetAbsPosition(CPoint &_Point) const;
-	int SetAbsPosition(const CPoint &_Point, int _nLayer = -1, int _nSubLayer = -1);
-	int GetPosition(CPoint &_Point) const;
-	int GetMapGroup(CMapGroup **_ppMapGroup) const;
-	int GetLayer() const;
-	int GetSubLayer() const;
-	int SetPosition(const CMapGroup *_pMapGroup, const CPoint &_Point, int _nLayer = -1, int _nSubLayer = -1);
-	int SetMapGroup(const CMapGroup *_pMapGroup);
-	int SetPosition(const CPoint &_Point);
-	int SetLayer(int _nLayer);
-	int SetSubLayer(int _nSubLayer);
-};
-
-/////////////////////////////////////////////////////////////////////////////
 /*! \class		CWorld
 	\brief		CWorld class.
 	\author		Germán Méndez Bravo (Kronuz)
@@ -363,20 +335,47 @@ public:
 	int ForEachMapGroup(SIMPLEPROC ForEach, LPARAM lParam);
 };
 
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CThumbnails
+	\brief		CThumbnails class.
+	\author		Germán Méndez Bravo (Kronuz)
+	\version	1.0
+	\date		Oct 9, 2003
 
-inline void CLayer::SetLoadPoint(int x, int y)
+	CThumbnails is a Drawable context that contains a single layer and
+	a bunch of sprites to be painted as thumbnails in the QD.
+*/
+class CThumbnails :
+	public CDrawableContext
 {
-	m_ptLoadPoint.SetPoint(x,y);
-}
-inline void CLayer::SetLoadPoint(const CPoint &point_)
-{
-	m_ptLoadPoint = point_;
-}
-inline bool CLayer::AddSpriteContext(CSpriteContext *sprite)
-{
-	CPoint Point;
-	sprite->GetPosition(Point);
-	Point += m_ptLoadPoint;
-	sprite->MoveTo(Point);
-	return AddChild(sprite);
-}
+protected:
+//-------------------------------------
+// TO KEEP THE MEMENTO:
+	struct StateThumbnails : 
+		public CDrawableContext::StateDrawableContext
+	{
+		virtual bool operator==(const StateData& state) const {
+			const StateThumbnails *curr = static_cast<const StateThumbnails*>(&state);
+			return (
+				StateDrawableContext::operator ==(state)
+			);
+		}
+
+		// no data
+	};
+// DATA TO KEEP:
+	// no data
+//-------------------------------------
+protected:
+
+public:
+	CThumbnails();
+	virtual void CleanThumbnails();
+
+	// Memento interface
+	virtual void ReadState(StateData *data) {};
+	virtual void WriteState(StateData *data) {};
+	virtual int _SaveState(UINT checkpoint) { return 0; };
+	virtual int _RestoreState(UINT checkpoint) { return 0; };
+	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
+};

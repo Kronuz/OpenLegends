@@ -398,6 +398,8 @@ LRESULT CPropertyView::OnAddInfo(WPARAM wParam, LPARAM lParam)
 }
 LRESULT CPropertyView::OnSetProperties(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
+	m_ctrlList.SetRedraw(FALSE);
+
 	m_ctrlList.ResetContent();
 
 	SPropertyList FinalProperties;
@@ -406,7 +408,10 @@ LRESULT CPropertyView::OnSetProperties(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	for(int idx = 0; idx < m_ctrlComboBox.GetCount(); idx++) {
 		IPropertyEnabled *pProperty = (IPropertyEnabled *)m_ctrlComboBox.GetItemDataPtr(idx);
 		ASSERT((int)pProperty != -1);
-		if((int)pProperty == -1) return 0;
+		if((int)pProperty == -1) {
+			m_ctrlList.SetRedraw(TRUE);
+			return 0;
+		}
 
 		if(m_ctrlComboBox.GetSel(idx) == TRUE) {
 			SPropertyList Properties;
@@ -424,6 +429,8 @@ LRESULT CPropertyView::OnSetProperties(WPARAM /*wParam*/, LPARAM /*lParam*/)
 
 	BOOL bDummy;
 	m_ctrlComboBox.OnSelChange(0,0,0,bDummy);
+
+	m_ctrlList.SetRedraw(TRUE);
 
 	return 0;
 }
