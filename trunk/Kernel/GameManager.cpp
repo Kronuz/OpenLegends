@@ -74,6 +74,10 @@ CGameManager::~CGameManager()
 	BEGIN_DESTRUCTOR
 	Close(true);
 	delete m_pDummyDebug;
+
+	delete m_ArchiveIn;
+	if(m_ArchiveIn != m_ArchiveOut) delete m_ArchiveOut;
+
 	END_DESTRUCTOR
 }
 

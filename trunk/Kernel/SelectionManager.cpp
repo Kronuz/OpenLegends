@@ -52,34 +52,13 @@ bool SObjProp::GetProperties(SPropertyList *pPL) const
 	if(!ret) return false;
 
 	pPL->Information.pPropObject = (IPropertyEnabled*)this;
-
-	pPL->AddList("Horizontal Chain", eXChain, "0 - Relative, 1 - Fill, 2 - Right, 3 - Left, 4 - Fixed");
-	pPL->AddList("Vertical Chain", eYChain, "0 - Relative, 1 - Fill, 2 - Up, 3 - Down, 4 - Fixed");
-
 	return true;
 }
 bool SObjProp::SetProperties(SPropertyList &PL)
 {
 	if(!pContext) return false;
-	SProperty* pP;
 	bool bChanged = pContext->SetProperties(PL);
 	if(bChanged) pSelection->Touch(false);
-
-	pP = PL.FindProperty("Horizontal Chain", "Behavior", SProperty::ptList);
-	if(pP) if(pP->bEnabled && pP->bChanged) {
-		if(eXChain != (_Chain)pP->nIndex) {
-			eXChain = (_Chain)pP->nIndex;
-			bChanged = true;
-		}
-	}
-	
-	pP = PL.FindProperty("Vertical Chain", "Behavior", SProperty::ptList);
-	if(pP) if(pP->bEnabled && pP->bChanged)  {
-		if(eYChain != (_Chain)pP->nIndex) {
-			eYChain = (_Chain)pP->nIndex;
-			bChanged = true;
-		}
-	}
 	return bChanged;
 }
 void SObjProp::Commit() const
@@ -147,15 +126,16 @@ CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
 	m_rcClip(0,0,0,0),
 	m_CurrentSel(NULL),
 	m_nPasteGroup(0),
-	m_nCurrentGroup(0)
+	m_nCurrentGroup(0),
+	m_pCurrentDrawable(NULL)
 {
 	for(int i=0; i<MAX_LAYERS; i++)
 		m_bLockedLayers[i] = false;
 
 	m_Groups.resize(16); // begin with 16 gropus
 
+	ASSERT(ppDrawableContext_);
 	m_ppMainDrawable = ppDrawableContext_;
-	ASSERT(m_ppMainDrawable);
 }
 int CDrawableSelection::GetBoundingRect(CRect *pRect_, int nGroup_) 
 {
@@ -327,8 +307,9 @@ IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chai
 
 	while(pDrawableContext) {
 		int nNewLayer = pDrawableContext->GetObjLayer();
+		if(m_pCurrentDrawable == NULL) m_pCurrentDrawable = pDrawableContext->GetSuperContext();
 		// If the layer is not locked and the new context is in the same layer as the currently selected layer:
-		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
+		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
 			m_nLayer = nLayer = nNewLayer;
 
 			// try to find in the selected groups:
@@ -888,7 +869,8 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
 		int nNewLayer = pDrawableContext->GetObjLayer();
-		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
+		if(m_pCurrentDrawable == NULL) m_pCurrentDrawable = pDrawableContext->GetSuperContext();
+		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
 			m_nLayer = nLayer = nNewLayer;
 
 			// try to find in the selected groups:
@@ -1147,12 +1129,12 @@ inline bool CDrawableSelection::DrawAll(IGraphics *pGraphicsI)
 	if(!m_rcClip.IsRectEmpty()) {
 		bRet &= pGraphicsI->DrawFrame(m_rcClip, m_rgbClipColor, COLOR_ARGB(255, 255, 0, 0));
 	}
-	if(m_nLayer != -1) { // Layer not locked:
+/*	if(m_nLayer != -1) { // Layer not locked:
 		// Get the current layer's size and draw a frame around it:
 		CRect Rect;
 		(*m_ppMainDrawable)->GetChild(m_nLayer)->GetRect(Rect);
 		if(!Rect.IsRectEmpty()) pGraphicsI->SelectingBox(Rect, COLOR_ARGB(128, 0, 255, 0)); 
-	}
+	}/**/
 
 	bRet &= Draw(pGraphicsI);
 
@@ -1385,14 +1367,6 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 
 	vectorObject::iterator Iterator;
 	for(Iterator = m_Groups[m_nCurrentGroup].O.begin(); Iterator != m_Groups[m_nCurrentGroup].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) {
-			// NEED TO FIX *** (Show subgroups as orange selections:)
-			GetBoundingRect(&RectTmp, Iterator->nGroup);
-			pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(160,255,192,96));
-			Rect.UnionRect(Rect, RectTmp); // Add the boundaries to the final Rect
-			continue;
-		}
-
 		scontext = static_cast<const CSpriteContext*>(Iterator->pContext);
 		scontext->GetAbsFinalRect(RectTmp);
 		Rect.UnionRect(Rect, RectTmp); // Add the boundaries to the final Rect
@@ -1403,12 +1377,19 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 					if(m_bHoldSelection) {
 						// if the object is subselected and the selection is held, draw in other color:
 						pGraphics_->FillRect(RectTmp, COLOR_ARGB(92,128,128,255));
+					} else if(scontext->GetDrawableObj()) {
+						pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
 					} else {
-						// only fill the selection if it isn't held:
-//						if(!m_bHoldSelection) pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
+						// fill in other color if it's a sprite set:
+						pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,192,96));
 					}
 					// draw a bounding rect over the selected object:
-					pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(80,255,255,225));
+					if(scontext->GetDrawableObj()) {
+						pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(200,255,255,225));
+					} else {
+						// Show Sprite Sets as orange selections:
+						pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(200,255,192,96));
+					}
 				}
 			}
 			if(!m_bHighlightOnly) {
@@ -1502,7 +1483,9 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
  					else pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
 				}
 			} else if(nSelected==1) {
-				if(scontext->isTiled()) {
+				if(scontext->GetDrawableObj() == NULL) {
+					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,192,96));
+				} else if(scontext->isTiled()) {
 					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,255,200));
 				} else {
 					m_bCanResize = false;
@@ -1518,7 +1501,7 @@ bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
 		if(RectTmp.Width()>1 && RectTmp.Height()>1) {
 			pGraphics_->SelectingBox(m_rcSelection, COLOR_ARGB(128,255,255,255));
 		}
-	}
+	}/**/
 	return true;
 }
 
@@ -2315,46 +2298,17 @@ bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
 
 void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
 {
-
-	// NEED TO FIX *** (if the group already exists, no new group is to be created??)
-	// if(m_nCurrentGroup) return; // <-- ^^^
-
-	if(m_bHoldSelection) return;
-	// no new groups can be created from an empty selection or a single sprite selection.
-	if(m_Groups[0].O.size() <= 1) return;
-
-	// get the next availible free paste group to paste group into:
-	m_nCurrentGroup = SetNextPasteGroup(szGroupName);
-	CONSOLE_DEBUG("New group #%d created\n", m_nCurrentGroup);
-
-	ASSERT(m_nCurrentGroup > 0);
-
+	CONSOLE_DEBUG("Creating new group: '%s'..\n", szGroupName);
 	// go through all selected sprites adding the orphans 
 	// to the new group, and setting relationships:
 	vectorObject::iterator Iterator;
 	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext) {
-			ASSERT(Iterator->nGroup == 0); // sprites at this level must not belong to any group.
-			m_Groups[m_nCurrentGroup].O.push_back(*Iterator);
-			m_Groups[m_nCurrentGroup].O.back().nGroup = m_nCurrentGroup;
-			Iterator->nGroup = m_nCurrentGroup;
-		} else {
-			ASSERT(m_Groups[Iterator->nGroup].P == 0); // groups at this level must not belong to any group.
-			m_Groups[Iterator->nGroup].P = m_nCurrentGroup;
-			m_Groups[m_nCurrentGroup].O.push_back(*Iterator);
-			CONSOLE_DEBUG("  Subgroup #%d ('%s') inserted\n", Iterator->nGroup, (LPCSTR)m_Groups[Iterator->nGroup].Name.c_str());
-		}
+		ASSERT(Iterator->pContext);
+		CDrawableContext *pGroupContext = Iterator->pContext->SetGroup(szGroupName);
 	}
+	// pGroupContext;
 	m_Groups[0].O.clear();
-
-	// Select the newly created group:
-	CRect rcRect;
-	GetBoundingRect(&rcRect, m_nCurrentGroup);
-	m_Groups[0].O.push_back(SObjProp(this, NULL, m_nCurrentGroup, rcRect));
-
-	// SelectGroup(m_nCurrentGroup); // <-- the current group should already be selected (it hasn't been unselected)
-	Touch();
-
+//	Touch(); //FIXME: Selection shouldn't Mutate??
 }
 // converts the currently selected group to a simple selection:
 void CSpriteSelection::GroupToSelection()

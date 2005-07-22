@@ -156,6 +156,8 @@ public:
 	void SetLoadPoint(const CPoint &point_);
 	bool AddSpriteContext(CSpriteContext *pSpriteContext);
 
+	virtual CDrawableContext* MakeGroup(LPCSTR szGroupName);
+
 	// Memento interface
 	virtual void ReadState(StateData *data);
 	virtual void WriteState(StateData *data);

@@ -10,7 +10,7 @@
 	#ifdef _DEBUG
 		#include <cassert>
 		#define ASSERT assert
-		#define VERIFY(expr) (void)( (expr) || (ASSERT(expr),0) )
+		#define VERIFY ASSERT
 	#else
 		#define ASSERT __noop
 		#define VERIFY

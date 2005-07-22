@@ -63,7 +63,6 @@
 
 #include "DrawManager.h"
 #include <cmath>
-//#include "WorldManager.h"
 
 #include <map>
 #include <vector>
@@ -72,6 +71,8 @@
 #define SPRITE_MASKS		0x0002	// show the sprite mask, if any?
 #define SPRITE_ENTITIES		0x0004	// show entities?
 #define GRAPHICS_FILTERS	0x0100	// Activate the filters, mainly to show a frame around the world.
+
+enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
 
 extern bool g_bBounds;
 extern bool g_bMasks;
@@ -517,14 +518,20 @@ protected:
 			const StateSpriteContext *curr = static_cast<const StateSpriteContext*>(&state);
 			return (
 				StateDrawableContext::operator ==(state) &&
-				curr->rgbColor == rgbColor
+				curr->rgbColor == rgbColor &&
+				curr->eXChain == eXChain &&
+				curr->eYChain == eYChain
 			);
 		}
 
 		ARGBCOLOR rgbColor;
+		_Chain eXChain;
+		_Chain eYChain;
 	};
 // DATA TO KEEP:
 	ARGBCOLOR m_rgbColor;
+	_Chain m_eXChain;
+	_Chain m_eYChain;
 //-------------------------------------
 protected:
 
@@ -569,6 +576,8 @@ public:
 	virtual bool SetProperties(SPropertyList &PL);
 	virtual void Commit() const;
 	virtual void Cancel();
+
+	virtual CDrawableContext* MakeGroup(LPCSTR szGroupName);
 
 	// Memento interface
 	virtual void ReadState(StateData *data);
@@ -731,7 +740,6 @@ inline float CSpriteContext::RelScale() const
 	return 1.0f;
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
 /*! \class	CSpriteSetContext
 	\brief		Flyweight sprites context class.
@@ -750,4 +758,8 @@ class CSpriteSetContext :
 {
 protected:
 	bool m_bOriginalContext;	//!< Keeps the state of the sprite set against the original saved context
+
+public:
+	CSpriteSetContext(LPCSTR szName) : CSpriteContext(szName) {}
+	~CSpriteSetContext() { m_Children.clear(); }
 };

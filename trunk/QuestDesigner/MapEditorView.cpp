@@ -277,8 +277,6 @@ bool CMapEditorView::DoFileOpen(LPCTSTR lpszFilePath, LPCTSTR lpszTitle, WPARAM 
 	ASSERT(m_pMapGroupI);
 	if(!m_pMapGroupI) return false;
 
-	m_pMapGroupI->Ref(reinterpret_cast<CDrawableContext**>(&m_pMapGroupI)); // add a reference to the map group.
-
 	m_pMapGroupI->GetSize(m_szMap);
 
 	// Save file name for later
@@ -419,11 +417,13 @@ void CMapEditorView::RunPopUpCmd(int nCmd)
 		}
 		case 14: {
 			m_SelectionI->SelectionToGroup("NewGroup");
+			Checkpoint();
 			OnChangeSel(OCS_AUTO);
 			break;
 		}
 		case 15: {
 			m_SelectionI->GroupToSelection();
+			Checkpoint();
 			OnChangeSel(OCS_AUTO);
 			break;
 		}
@@ -560,11 +560,11 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 	
 	int nCmd = menu.TrackPopupMenu(TPM_RETURNCMD, PopUpPoint.x, PopUpPoint.y, (HWND)wParam);
 
-	RunPopUpCmd(nCmd);
-
+	if(nCmd) {
+		m_bIgnoreNextButton = true;
+		RunPopUpCmd(nCmd);
+	}
 	if(isFloating()) SetCapture();
-
-	m_bIgnoreNextButton = true;
 
 	return 0;
 }
