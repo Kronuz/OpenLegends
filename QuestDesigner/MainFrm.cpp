@@ -1053,7 +1053,7 @@ int CMainFrame::MapCreate(CPoint &Point)
 	CMapEditorView *pView = pChild->GetView();
 	if(!pView->DoFileOpen(NULL, szTitle, (WPARAM)pMapGroupI)) {
 		// kill the failed window (will delete itself)
-		::PostMessage(pChild->m_hWnd,WM_CLOSE,0,0);
+		::PostMessage(pChild->m_hWnd, WM_CLOSE, 0, 0);
 		return 0;
 	}
 	return 1;

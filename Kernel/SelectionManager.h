@@ -40,6 +40,8 @@
 
 #include "SpriteManager.h"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Sprite Sets Copy/Paste Structure:
 #define SSD_WIDTHHEIGHT	0x01	// 000001
 #define SSD_CHAIN_X		0x02	// 000010
 #define SSD_CHAIN_Y		0x04	// 000100
@@ -47,9 +49,56 @@
 #define SSD_ALPHA		0x10	// 010000
 #define SSD_RGBL		0x20	// 100000
 
-class CDrawableSelection;
+#pragma pack(1)
+struct _SpriteSet {
+	struct _SpriteSetInfo {
+		_OpenLegendsFile Header;
+		UINT nSelected;
+		CRect rcBoundaries;
+	} Info;
 
-enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
+	// Here comes the index. A list of offsets (from the begining to the start of the name)...
+	// WORD Offset_to_the_first_name;
+	// WORD Offset_to_the_second_name;
+	//             ...
+	// WORD Offset_to_the_last_name;
+
+	// Here comes the NULL terminated strings of the names (referred by the offsets above)...
+
+	// Here starts the data:
+	struct _SpriteSetData {	// (7 bytes)
+		WORD Mask :		6;
+		WORD Layer :	3;
+		WORD SubLayer :	3;
+		WORD ObjIndex :	12;
+		WORD X :		16;
+		WORD Y :		16;
+	};
+	struct _SpriteSetData01 { // mask SSD_WIDTHHEIGHT	(4 bytes)
+		WORD Width :	16;
+		WORD Height :	16;
+	};
+	struct _SpriteSetData02 { // masks SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS (1 byte)
+		BYTE rotation :	2;
+		BYTE mirrored :	1;
+		BYTE flipped :	1;
+		BYTE XChain :	2; // = Xchain - 1
+		BYTE YChain :	2; // = Ychain - 1
+	};
+	struct _SpriteSetData03 { // mask SSD_ALPHA (1 byte)
+		BYTE Alpha;
+	};
+	struct _SpriteSetData04 { // mask SSD_RGBL (4 bytes)
+		BYTE Red;
+		BYTE Green;
+		BYTE Blue;
+	};
+	// ...the bitmap continues here (starts in a 16 bytes alignment)
+};
+#pragma pack()
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class CDrawableSelection;
 
 struct SObjProp :
 	public IPropertyEnabled
@@ -175,6 +224,7 @@ protected:
 	CRect m_rcSelection;
 	CPoint m_ptInitialPoint;
 	CDrawableContext **m_ppMainDrawable;
+	CDrawableContext *m_pCurrentDrawable;
 
 	bool m_bLockedLayers[MAX_LAYERS]; // keeps the locked layers
 
@@ -301,54 +351,6 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#pragma pack(1)
-struct _SpriteSet {
-	struct _SpriteSetInfo {
-		_OpenLegendsFile Header;
-		UINT nSelected;
-		CRect rcBoundaries;
-	} Info;
-
-	// Here comes the index. A list of offsets (from the begining to the start of the name)...
-	// WORD Offset_to_the_first_name;
-	// WORD Offset_to_the_second_name;
-	//             ...
-	// WORD Offset_to_the_last_name;
-
-	// Here comes the NULL terminated strings of the names (referred by the offsets above)...
-
-	// Here starts the data:
-	struct _SpriteSetData {	// (7 bytes)
-		WORD Mask :		6;
-		WORD Layer :	3;
-		WORD SubLayer :	3;
-		WORD ObjIndex :	12;
-		WORD X :		16;
-		WORD Y :		16;
-	};
-	struct _SpriteSetData01 { // mask SSD_WIDTHHEIGHT	(4 bytes)
-		WORD Width :	16;
-		WORD Height :	16;
-	};
-	struct _SpriteSetData02 { // masks SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS (1 byte)
-		BYTE rotation :	2;
-		BYTE mirrored :	1;
-		BYTE flipped :	1;
-		BYTE XChain :	2; // = Xchain - 1
-		BYTE YChain :	2; // = Ychain - 1
-	};
-	struct _SpriteSetData03 { // mask SSD_ALPHA (1 byte)
-		BYTE Alpha;
-	};
-	struct _SpriteSetData04 { // mask SSD_RGBL (4 bytes)
-		BYTE Red;
-		BYTE Green;
-		BYTE Blue;
-	};
-	// ...the bitmap continues here (starts in a 16 bytes alignment)
-};
-#pragma pack()
 
 class CSpriteSelection :
 	public CDrawableSelection

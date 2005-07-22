@@ -301,6 +301,10 @@ CSpriteSheet::~CSpriteSheet()
 	}
 	/**/
 	m_Sprites.clear();
+
+	delete m_ArchiveIn;
+	if(m_ArchiveIn != m_ArchiveOut) delete m_ArchiveOut;
+
 	END_DESTRUCTOR
 }
 int CSpriteSheet::ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam)
@@ -335,23 +339,34 @@ int CSpriteSheet::ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam)
 // CSpriteContext Implementation:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+CDrawableContext* CSpriteContext::MakeGroup(LPCSTR szGroupName)
+{
+	CSpriteSetContext *pGroupContext = new CSpriteSetContext(szGroupName);
+	return pGroupContext;
+}
+
 // Memento interface
 void CSpriteContext::ReadState(StateData *data)
 {
 	CDrawableContext::ReadState(data);
 	StateSpriteContext *curr = static_cast<StateSpriteContext *>(data);
 	curr->rgbColor = m_rgbColor;
+	curr->eXChain = m_eXChain;
+	curr->eYChain = m_eYChain;
 }
 void CSpriteContext::WriteState(StateData *data)
 {
 	CDrawableContext::WriteState(data);
 	StateSpriteContext *curr = static_cast<StateSpriteContext *>(data);
 	m_rgbColor = curr->rgbColor;
+	m_eXChain = curr->eXChain;
+	m_eYChain = curr->eYChain;
+
 }
 int CSpriteContext::_SaveState(UINT checkpoint)
 {
 	// This is needed to delete no longer used objects (garbage collector):
-	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
+	if(m_pParent && isDeleted() && !StateCount(checkpoint)) {
 		VERIFY(m_pParent->PopChild(this));
 		delete this; //since we are deleted, and we won't be able to reappear from an undo, we commit suicide
 		return 0;
@@ -368,9 +383,9 @@ int CSpriteContext::_RestoreState(UINT checkpoint)
 	if(curr) {
 		WriteState(curr);
 	} else {
-		if(m_bDeleted) return 0;
+		if(isDeleted()) return 0;
 		// Set the sprite "deleted" flag
-		m_bDeleted = true;
+		DeleteContext();
 	}
 	return 1;
 }
@@ -383,24 +398,27 @@ int CALLBACK CSpriteContext::DestroyCheckpoint(LPVOID Interface, LPARAM lParam)
 
 bool CSpriteContext::GetInfo(SInfo *pI) const 
 {
-	ASSERT(m_pDrawableObj);
-	_spt_type eType = static_cast<CSprite *>(m_pDrawableObj)->GetSpriteType();
-		 if(eType == tMask) pI->eType = itMask;
-	else if(eType == tBackground) pI->eType = itBackground;
-	else if(eType == tEntity) pI->eType = itEntity;
+	if(m_pDrawableObj) {
+		_spt_type eType = static_cast<CSprite *>(m_pDrawableObj)->GetSpriteType();
+			if(eType == tMask) pI->eType = itMask;
+		else if(eType == tBackground) pI->eType = itBackground;
+		else if(eType == tEntity) pI->eType = itEntity;
+		strncpy(pI->szScope, m_pDrawableObj->GetName(), sizeof(pI->szScope) - 1);
+		pI->szScope[sizeof(pI->szScope) - 1] = '\0';
+	} else {
+		pI->eType = itSpriteSet;
+		strncpy(pI->szScope, "group", sizeof(pI->szScope) - 1);
+		pI->szScope[sizeof(pI->szScope) - 1] = '\0';
+	}
 
 	strncpy(pI->szName, GetName(), sizeof(pI->szName) - 1);
-	strncpy(pI->szScope, m_pDrawableObj->GetName(), sizeof(pI->szScope) - 1);
-
 	pI->szName[sizeof(pI->szName) - 1] = '\0';
-	pI->szScope[sizeof(pI->szScope) - 1] = '\0';
 
 	pI->pPropObject = (IPropertyEnabled*)this;
 	return true;
 }
 bool CSpriteContext::GetProperties(SPropertyList *pPL) const 
 {
-	ASSERT(m_pDrawableObj);
 	ASSERT(pPL->nProperties == 0);
 	GetInfo(&pPL->Information);
 
@@ -457,10 +475,16 @@ bool CSpriteContext::GetProperties(SPropertyList *pPL) const
 
 	pPL->AddList("Layer", GetObjLayer(), szLayersList);
 	pPL->AddList("SubLayer", GetObjSubLayer(), szSubLayersList);
-	pPL->AddString("Sprite Sheet", static_cast<CSprite*>(m_pDrawableObj)->GetSpriteSheet()->GetName(), false);
+	if(m_pDrawableObj) {
+		pPL->AddString("Sprite Sheet", static_cast<CSprite*>(m_pDrawableObj)->GetSpriteSheet()->GetName(), false);
+	}
 	
 	pPL->AddCategory("Behavior");
 	pPL->AddBoolean("IsVisible", isVisible(), false);
+	if(pPL->Information.eType == itEntity) {
+		pPL->AddList("Horizontal Chain", m_eXChain, "0 - Relative, 1 - Fill, 2 - Right, 3 - Left, 4 - Fixed");
+		pPL->AddList("Vertical Chain", m_eYChain, "0 - Relative, 1 - Fill, 2 - Up, 3 - Down, 4 - Fixed");
+	}
 
 	return true;
 }
@@ -611,13 +635,31 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 			bChanged = true;
 		}
 	}
-	if(bChanged) Touch();
 
+	pP = PL.FindProperty("Horizontal Chain", "Behavior", SProperty::ptList);
+	if(pP) if(pP->bEnabled && pP->bChanged) {
+		if(m_eXChain != (_Chain)pP->nIndex) {
+			m_eXChain = (_Chain)pP->nIndex;
+			bChanged = true;
+		}
+	}
+	
+	pP = PL.FindProperty("Vertical Chain", "Behavior", SProperty::ptList);
+	if(pP) if(pP->bEnabled && pP->bChanged)  {
+		if(m_eYChain != (_Chain)pP->nIndex) {
+			m_eYChain = (_Chain)pP->nIndex;
+			bChanged = true;
+		}
+	}
+
+	if(bChanged) Touch();
 	return bChanged;
 }
 
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
-	CDrawableContext(szName)
+	CDrawableContext(szName),
+	m_eXChain(relative),
+	m_eYChain(relative)
 {
 	DestroyStateCallback(CSpriteContext::DestroyCheckpoint, (LPARAM)this);
 

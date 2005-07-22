@@ -181,6 +181,7 @@ struct ptr_delete {
 	template<typename Type>
 	void operator()(const Type *ptr) const {
 		delete ptr;
+		ptr = NULL;
 	}
 };
 template<class Type>
@@ -228,6 +229,15 @@ struct SInfo;
 class CNamedObj 
 {
 protected:
+	const struct NameEqual : 
+	public std::binary_function<const CNamedObj*, CBString, bool> {
+		inline bool operator()(const CNamedObj *a, const CBString &b) const {
+			return(a->m_sName == b);
+		}
+	} m_equalName;
+
+	friend NameEqual;
+
 	CBString m_sName;
 	CNamedObj(LPCSTR szName) : m_sName(szName) { }
 public:
@@ -252,8 +262,8 @@ public:
 			std::vector<T**>::iterator Iterator = m_References.begin();
 			ASSERT(*(*Iterator) == reinterpret_cast<T*>(this));
 			*(*Iterator) = NULL;
-			m_References.erase(m_References.begin());
-		}
+			m_References.erase(Iterator);
+		}/**/
 	}
 	void Ref(T** ref) {
 		m_References.push_back(ref);
@@ -288,7 +298,7 @@ public:
 	virtual bool IsModified() { return m_bModified; }
 };
 
-enum InfoType { itUnknown, itWorld, itMapGroup, itMap, itSpriteSheet, itSprite, itBackground, itMask, itEntity, itSpriteContext, itSound, itScript };
+enum InfoType { itUnknown, itWorld, itMapGroup, itMap, itSpriteSheet, itSprite, itBackground, itMask, itEntity, itSpriteContext, itSound, itScript, itSpriteSet };
 interface IPropertyEnabled
 {
 	// Multipurpose flag:

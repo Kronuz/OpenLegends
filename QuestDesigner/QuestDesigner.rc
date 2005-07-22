@@ -510,7 +510,7 @@ BEGIN
             MENUITEM "&Quest...\tCtrl+O",           32400
             MENUITEM "&Script...",                  32470
         END
-        MENUITEM "&Close World",                ID_APP_CLOSE
+        MENUITEM "&Close Quest",                ID_APP_CLOSE
         MENUITEM "Close &Game Set",             32444
         MENUITEM SEPARATOR
         MENUITEM "Add Ne&w Item...\tCtrl+Shift+A", 32468

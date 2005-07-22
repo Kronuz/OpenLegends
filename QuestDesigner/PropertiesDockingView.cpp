@@ -379,6 +379,9 @@ LRESULT CPropertyView::OnAddInfo(WPARAM wParam, LPARAM lParam)
 		case itSpriteSheet:
 			sInfo += "(SpriteSheet)";
 			break;
+		case itSpriteSet:
+			sInfo += "(SpriteSet)";
+			break;
 		default:
 			sInfo += "(Unknown)";
 			break;

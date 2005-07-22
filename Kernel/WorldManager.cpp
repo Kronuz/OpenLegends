@@ -41,6 +41,7 @@ CLayer::CLayer() :
 	CDocumentObject(),
 	m_ptLoadPoint(0,0)
 {
+	m_bSuperContext = true; // Layers are supercontexts (objects aren't poped from them when groups are created)
 	DestroyStateCallback(CLayer::DestroyCheckpoint, (LPARAM)this);
 	m_ArchiveIn = new CMapTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
@@ -48,9 +49,18 @@ CLayer::CLayer() :
 CLayer::~CLayer()
 {
 	BEGIN_DESTRUCTOR
+
 	delete m_ArchiveIn;
+	if(m_ArchiveIn != m_ArchiveOut) delete m_ArchiveOut;
+
 	END_DESTRUCTOR
 }
+CDrawableContext* CLayer::MakeGroup(LPCSTR szGroupName)
+{
+	CDrawableContext *pGroupContext = new CSpriteSetContext(szGroupName);
+	return pGroupContext;
+}
+
 // Memento interface
 void CLayer::ReadState(StateData *data)
 {
@@ -67,8 +77,8 @@ void CLayer::WriteState(StateData *data)
 int CLayer::_SaveState(UINT checkpoint)
 {
 	// This is needed to delete no longer used objects (garbage collector):
-	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
-		ASSERT(!m_bDeleted); // Layers are never deleted at this point, so they shouldn't be in the garbage can
+	if(m_pParent && isDeleted() && !StateCount(checkpoint)) {
+		ASSERT(!isDeleted()); // Layers are never deleted at this point, so they shouldn't be in the garbage can
 //		VERIFY(m_pParent->PopChild(this));
 //		delete this;
 		return 0;
@@ -85,9 +95,9 @@ int CLayer::_RestoreState(UINT checkpoint)
 	if(curr) {
 		WriteState(curr);
 	} else {
-		if(m_bDeleted) return 0;
+		if(isDeleted()) return 0;
 		// Set the sprite "deleted" flag
-		m_bDeleted = true;
+		DeleteContext();
 	}
 	return 1;
 }
@@ -101,6 +111,8 @@ int CALLBACK CLayer::DestroyCheckpoint(LPVOID Interface, LPARAM lParam)
 CThumbnails::CThumbnails() :
 	CDrawableContext()
 {
+	m_bSuperContext = true; // Thumbnails container is a supercontext
+
 	// Build all layers for the map:
 	CLayer *pLayer = NULL;
 	for(int i=0; i<MAX_SUBLAYERS; i++) {
@@ -131,6 +143,8 @@ CMapGroup::CMapGroup() :
 	m_bFlagged(false),
 	m_pMusic(NULL)
 {
+	m_bSuperContext = true; // MapGroups are supercontexts
+
 	DestroyStateCallback(CMapGroup::DestroyCheckpoint, (LPARAM)this);
 	m_ArchiveIn = new CMapGroupTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
@@ -149,6 +163,10 @@ CMapGroup::~CMapGroup()
 	BEGIN_DESTRUCTOR
 	if(m_pBitmap != m_pOriginalBitmap) delete []m_pBitmap;
 	delete []m_pOriginalBitmap;
+
+	delete m_ArchiveIn;
+	if(m_ArchiveIn != m_ArchiveOut) delete m_ArchiveOut;
+
 	END_DESTRUCTOR
 }
 
@@ -172,8 +190,8 @@ void CMapGroup::WriteState(StateData *data)
 int CMapGroup::_SaveState(UINT checkpoint)
 {
 	// This is needed to delete no longer used objects (garbage collector):
-	if(m_pParent && m_bDeleted && !StateCount(checkpoint)) {
-		ASSERT(!m_bDeleted); // Map Groups are never deleted at this point, so they shouldn't be in the garbage can
+	if(m_pParent && isDeleted() && !StateCount(checkpoint)) {
+		ASSERT(!isDeleted()); // Map Groups are never deleted at this point, so they shouldn't be in the garbage can
 		ASSERT(!m_pParent); // This shouldn't happen since MapGropus don't currently have parents
 //		VERIFY(m_pParent->PopChild(this));
 //		delete this;
@@ -191,9 +209,9 @@ int CMapGroup::_RestoreState(UINT checkpoint)
 	if(curr) {
 		WriteState(curr);
 	} else {
-		if(m_bDeleted) return 0;
+		if(isDeleted()) return 0;
 		// Set the sprite "deleted" flag
-		m_bDeleted = true;
+		DeleteContext();
 	} 
 	return 1;
 }
@@ -693,19 +711,21 @@ CWorld::CWorld(LPCSTR szName) :
 CWorld::~CWorld()
 {
 	BEGIN_DESTRUCTOR
+
 	Close(true);
+
+	delete m_ArchiveIn;
+	if(m_ArchiveIn != m_ArchiveOut) delete m_ArchiveOut;
+
 	END_DESTRUCTOR
 }
 
 bool CWorld::_Close(bool bForce)
 {
 	DWORD dwInitTicks = GetTickCount();
-
 	if(m_MapGroups.size()) CONSOLE_PRINTF("Closing World...\n");
-	for(UINT i=0; i<m_MapGroups.size(); i++) {
-		delete m_MapGroups[i];
-		m_MapGroups[i] = NULL;
-	}
+
+	for_each(m_MapGroups.begin(), m_MapGroups.end(), ptr_delete());
 	m_MapGroups.clear();
 
 	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);

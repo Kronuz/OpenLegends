@@ -122,6 +122,7 @@ CDrawableContext::CDrawableContext(LPCSTR szName) :
 	m_Size(-1,-1),
 	m_nInsertion(0),
 	m_bValidMap(false),
+	m_bSuperContext(false),
 	m_pPtr(NULL),
 	m_rgbBkColor(255,0,0,0)
 {
@@ -155,11 +156,14 @@ void CDrawableContext::ReadState(StateData *data)
 	curr->bSelected = m_bSelected;
 	curr->nOrder = m_nOrder;
 	curr->pParent = m_pParent;
+	curr->pSuperContext = GetSuperContext();
 }
 void CDrawableContext::WriteState(StateData *data)
 {
 	StateDrawableContext *curr = static_cast<StateDrawableContext *>(data);
 	ASSERT(curr);
+
+	CDrawableContext *pSuperContext = GetSuperContext();
 
 	bool bInvalidate = false;
 	if(m_Size != curr->Size) bInvalidate = true;
@@ -174,10 +178,17 @@ void CDrawableContext::WriteState(StateData *data)
 	m_bSelected = curr->bSelected;
 	m_nOrder = curr->nOrder;
 
+	if(curr->pSuperContext != pSuperContext && curr->pSuperContext && pSuperContext) {
+		CDrawableContext *pParent = m_pParent;
+		VERIFY(pSuperContext->PopChild(this) &&  curr->pSuperContext->InsertChild(this, m_nOrder));
+		if(pParent != pSuperContext) m_pParent = pParent; // recover parent of the supercontext's non-immediate children.
+	}
+
 	if(curr->pParent != m_pParent && curr->pParent && m_pParent) {
-		if(m_pParent->PopChild(this)) {
-			VERIFY(curr->pParent->InsertChild(this, m_nOrder));
-		}
+		if(m_pParent->m_bSuperContext) m_pParent = NULL; // make the child pseudo-orphan
+		else VERIFY(m_pParent->PopChild(this));
+		if(curr->pParent->m_bSuperContext) m_pParent = curr->pParent;
+		else VERIFY(curr->pParent->InsertChild(this, m_nOrder));
 	}
 
 	if(bInvalidate) InvalidateBuffers();
@@ -197,7 +208,6 @@ bool CDrawableContext::AddSibling(CDrawableContext *object)
 
 bool CDrawableContext::InsertChild(CDrawableContext *object, int nInsertion) 
 {
-
 	// First order the children if needed (expensive but necessary):
 	// (could be avoided here if it was done at a higher level)
 	if(!m_bValidMap) PreSort();
@@ -221,15 +231,27 @@ bool CDrawableContext::InsertChild(CDrawableContext *object, int nInsertion)
 		}
 	}
 
-	m_bValidMap = false;
-	m_eSorted[object->m_nSubLayer] = noOrder;
+	m_bValidMap = false; // force a PreSort()
+	m_eSorted[object->m_nSubLayer] = noOrder; // force a Sort() for the sublayer
 
+	return true;
+}
+
+bool CDrawableContext::AddChild(CDrawableContext *object) 
+{ 
+	ASSERT(object);
+	ASSERT(object->m_pParent == NULL); // child must be orphan.
+	object->m_pParent = this;
+	object->m_nOrder = m_nInsertion++;
+	m_Children.push_back(object);
+	m_bValidMap = false; // force a PreSort()
+	m_eSorted[object->m_nSubLayer] = noOrder; // force a Sort() for the sublayer
 	return true;
 }
 
 int CDrawableContext::_MergeChildren(CDrawableContext *object) 
 {
-	if(object->m_bDeleted) return 0; // this also prevents context sets to be merged
+	if(object->isDeleted()) return 0; // this also prevents context sets to be merged
 
 	int nMerged = 0;
 	// Merge contexts (never merge entities):
@@ -243,8 +265,12 @@ int CDrawableContext::_MergeChildren(CDrawableContext *object)
 
 	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
+		if(object->m_pParent != (*Iterator)->m_pParent) {
+			Iterator++;
+			continue;
+		}
 		CDrawableObject *Tow = (*Iterator)->GetDrawableObj();
-		if(*Iterator == object || Tow == NULL || (*Iterator)->m_bDeleted) {
+		if(*Iterator == object || Tow == NULL || (*Iterator)->isDeleted()) {
 			Iterator++;
 			continue;
 		}
@@ -279,6 +305,7 @@ int CDrawableContext::_MergeChildren(CDrawableContext *object)
 
 int CDrawableContext::MergeChildren() 
 {
+	// First we sort all objects in YX order, so the algorithm works better:
 	for(int i=0; i<MAX_SUBLAYERS; i++) sort(m_LayersMap[i+1], m_LayersMap[i+2], m_cmpYX); 
 	int nMerged = 0;
 	int cnt;
@@ -291,20 +318,37 @@ int CDrawableContext::MergeChildren()
 		}
 		nMerged += cnt;
 	} while(cnt);
+	// We sort back to the proper ordering on every sublayer (expensive, but necessary):
 	for(int i=0; i<MAX_SUBLAYERS; i++) Sort(i);
 	return nMerged;
 }
 
-bool CDrawableContext::AddChild(CDrawableContext *object) 
-{ 
-	ASSERT(object);
-	ASSERT(object->m_pParent == NULL); // child must be orphan.
-	object->m_pParent = this;
-	object->m_nOrder = m_nInsertion++;
-	m_Children.push_back(object);
-	m_bValidMap = false;
-	m_eSorted[object->m_nSubLayer] = noOrder;
-	return true;
+CDrawableContext* CDrawableContext::SetGroup(LPCSTR szGroupName)
+{
+	CDrawableContext *pSuperContext = GetSuperContext();
+	ASSERT(pSuperContext);
+	
+	pSuperContext->ReOrder(); // sorry, but creating groups is expensive.
+	CDrawableContext *pSiblingContext = GetSibling(szGroupName);
+	if(!pSiblingContext) {
+		pSiblingContext = MakeGroup(szGroupName);
+		if(!m_pParent || !pSiblingContext || !m_pParent->InsertChild(pSiblingContext, m_nOrder)) {
+			delete pSiblingContext;
+			return NULL;
+		}
+		if(m_pParent != pSuperContext) {
+			VERIFY(pSuperContext->InsertChild(pSiblingContext, m_nOrder));
+		}
+		pSiblingContext->m_nOrder = m_nOrder;
+		pSiblingContext->m_nSubLayer = m_nSubLayer;
+	}
+	ASSERT(m_pParent);
+	// If the parent is not a super context, do not pop the sprite from it, just add it to the new context
+	if(!m_pParent->m_bSuperContext) VERIFY(m_pParent->PopChild(this));
+	else m_pParent = NULL; // make the child pseudo-orphan
+    VERIFY(pSiblingContext->InsertChild(this, m_nOrder));
+	Touch();
+	return pSiblingContext;
 }
 
 // Reorder the objects (birth order is reordered):
@@ -325,9 +369,18 @@ int CDrawableContext::ReOrder(int nStep, int nRoomAt, int nRoomSize)
 	if(nRoomAt != -1) return nRoomAt;
 	return m_nInsertion;
 }
-
-// Sublayer or -1 to draw all layers
-// We build a layers map to speed things up a little:
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// All children of a drawable context are kept in the same container (m_Children vector); however, as we know,
+// children can be drawn in different order (Y, XY, birth, XiY order, etc.); now this ordering system depends on 
+// the sublayer each object is in, but having them all in the same container makes it difficult to sort with different 
+// schemes. The solutiuon we use is simple: before really sorting the sprites (byt ther supposed order for a given 
+// sub layer) we first sort all the sprites in sublayers blocks and we put each block in a map of layers (m_LayersMap)
+// After doing this, we end up with an array of iterators, each iterator in the array pointing to the first
+// element on the children's container with a different sublayer than the last one. This strategy lets us later
+// sort just the part of the continer that has actually changed or that is needed to sort (as sorting just a single
+// layer.
+// Having explained that, PreSort() *must* (or at least should) be called whenever you insert or add a children.
+// We build a layer's map to speed things up a little (or rather a lot):
 void CDrawableContext::PreSort() 
 {
 	// First, we sort all the elements by their sublayer:
@@ -376,32 +429,25 @@ inline bool CDrawableContext::CleanTempContext::operator()(CDrawableContext *pDr
 	ASSERT(pDrawableContext);
 	if(!pDrawableContext) return false;
 
-	//if( pDrawableContext->m_bDeleted ) return true;
+	// only clean objects whose real parent is the supercontext:
+	if(pDrawableContext->m_pParent && m_pParent != pDrawableContext->m_pParent->GetSuperContext()) 
+		return true;
 
 	// Start cleaning:
 	for_each(
 		pDrawableContext->m_Children.begin(), pDrawableContext->m_Children.end(), 
-		CleanTempContext());
+		CleanTempContext(pDrawableContext));
 
-	if(pDrawableContext->isTemp()) {
+	if(pDrawableContext->isTemp() || pDrawableContext->isDeleted()) {
 		CDrawableContext *pParent = pDrawableContext->m_pParent;
-		std::vector<CDrawableContext *>::iterator Iterator = find(
-			pParent->m_Children.begin(),
-			pParent->m_Children.end(),
-			pDrawableContext );
-		if(Iterator != pParent->m_Children.end()) {
-			ASSERT(*Iterator == pDrawableContext);
-			pParent->m_bValidMap = false;
-			pParent->m_eSorted[pDrawableContext->m_nSubLayer] = noOrder;
-			delete pDrawableContext;
-			pParent->m_Children.erase(Iterator);
-		}
+		//FIXME: what about objects in groups, they should be poped from the supercontext as well??
+		VERIFY(pParent && pParent->KillChild(pDrawableContext));
 	}
 	return true;
 }
 bool CDrawableContext::CleanTemp() 
 {
-	CleanTempContext CleanTemp;
+	CleanTempContext CleanTemp(GetSuperContext());
 	return CleanTemp(this);
 }
 
@@ -410,7 +456,12 @@ inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawable
 	ASSERT(pDrawableContext);
 	if(!pDrawableContext) return false;
 
-	if( pDrawableContext->m_bDeleted ) return true;
+	// only run objects whose real parent is the supercontext:
+	if(pDrawableContext->m_pParent && m_pParent != pDrawableContext->m_pParent->GetSuperContext()) 
+		return true;
+
+	if( pDrawableContext->isDeleted() ) 
+		return true;
 
 	if( !pDrawableContext->isVisible() && m_bVisible )
 		return true;
@@ -418,7 +469,7 @@ inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawable
 	// Start executing the scripts (or whatever)
 	for_each(
 		pDrawableContext->m_Children.begin(), pDrawableContext->m_Children.end(), 
-		bind2nd(RunContext(m_bVisible), action));
+		bind2nd(RunContext(pDrawableContext, m_bVisible), action));
 
 	if(pDrawableContext->m_pDrawableObj) {
 		return pDrawableContext->m_pDrawableObj->Run(*pDrawableContext, action);
@@ -427,7 +478,7 @@ inline bool CDrawableContext::RunContext::operator()(CDrawableContext *pDrawable
 }
 bool CDrawableContext::Run(RUNACTION action) 
 {
-	RunContext Run(true);
+	RunContext Run(GetSuperContext(), true);
 	return Run(this, action);
 }
 
@@ -436,12 +487,19 @@ inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawabl
 	ASSERT(pDrawableContext);
 	if(!pDrawableContext) return false;
 
-	if( pDrawableContext->m_bDeleted ) return true;
+	// only draw objects whose real parent is the supercontext:
+	if(pDrawableContext->m_pParent && m_pParent != pDrawableContext->m_pParent->GetSuperContext()) 
+		return true;
+
+	// is this context flagged as deleted? (if it is, all of its children are deleted too)
+	if( pDrawableContext->isDeleted() ) 
+		return true;
 
 	// is this context visible? (if not, none of its children are either)
 	if( !pDrawableContext->isVisible() && m_bVisible ) 
 		return true;
 
+	// is this context selected? (if not, and it's not a leaf, maybe some of the children are selected)
 	if( !pDrawableContext->isSelected() && m_bSelected && pDrawableContext->m_pDrawableObj ) 
 		return true;
 
@@ -456,7 +514,7 @@ inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawabl
 	// Start drawing objects from sublayer 0 (at position [1] in the layers map):
 	for_each(
 		pDrawableContext->m_LayersMap[1], pDrawableContext->m_Children.end(), 
-		bind2nd(DrawContext(m_bVisible, m_bSelected, m_bHighlight), pIGraphics));
+		bind2nd(DrawContext(pDrawableContext, m_bVisible, m_bSelected, m_bHighlight), pIGraphics));
 
 	if(pDrawableContext->m_pDrawableObj) {
 		if(!pDrawableContext->isSelected() && m_bHighlight) {
@@ -464,24 +522,24 @@ inline bool CDrawableContext::DrawContext::operator()(CDrawableContext *pDrawabl
 			return pDrawableContext->m_pDrawableObj->Draw(*pDrawableContext, &rgbColor);
 		}
 		return pDrawableContext->m_pDrawableObj->Draw(*pDrawableContext);
-	}
+	}/**/
 	return true;
 }
 
 bool CDrawableContext::Draw(const IGraphics *pIGraphics) 
 {
-	DrawContext Draw(true, false, false);
+	DrawContext Draw(GetSuperContext(), true, false, false);
 	return Draw(this, pIGraphics);
 }
 
 bool CDrawableContext::DrawSelected(const IGraphics *pIGraphics) 
 {
-	DrawContext Draw(false, true, false);
+	DrawContext Draw(GetSuperContext(), false, true, false);
 	return Draw(this, pIGraphics);
 }
 bool CDrawableContext::DrawSelectedH(const IGraphics *pIGraphics) 
 {
-	DrawContext Draw(true, false, true);
+	DrawContext Draw(GetSuperContext(), true, false, true);
 	return Draw(this, pIGraphics);
 }
 
@@ -494,7 +552,7 @@ int CDrawableContext::Objects(int init)
 		Iterator++;
 	}
 
-	if(!m_bDeleted && m_pDrawableObj) init++;
+	if(!isDeleted() && m_pDrawableObj) init++;
 	return init;
 }
 bool CDrawableContext::PopChild(CDrawableContext *pDrawableContext_)
@@ -574,7 +632,7 @@ bool CDrawableContext::DeleteChild(CDrawableContext *pDrawableContext_)
 		find(m_Children.begin(), m_Children.end(), pDrawableContext_);
 	if(Iterator != m_Children.end()) {
 		ASSERT(!(*Iterator)->m_bSelected);
-		(*Iterator)->m_bDeleted = true; // flag it as "deleted"
+		(*Iterator)->DeleteContext(); // flag it as "deleted"
 		(*Iterator)->Touch();
 		return true;
 	}
@@ -614,85 +672,89 @@ void CDrawableContext::Clean()
 	m_Children.clear();
 }
 
-bool CDrawableContext::GetFirstChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_)
+bool CDrawableContext::GetFirstChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_)
 {
+	if(pParent_ && pParent_ != m_pParent) return true;
 	CDrawableContext *pToRet = NULL;
 	m_ChildIterator = m_Children.rbegin();
 	while(m_ChildIterator != m_Children.rend()) {
 		m_LastChildIteratorUsed = m_ChildIterator;
-		if((*m_ChildIterator)->GetFirstChildAt(point_, &pToRet) ) m_ChildIterator++;
+		if((*m_ChildIterator)->GetFirstChildAt(point_, &pToRet, this) ) m_ChildIterator++;
 		if(pToRet) {
 			*ppDrawableContext_ = pToRet;
 			return false;
 		}
 	}
-	if(!m_bDeleted && isAt(point_)) {
+	if(!isDeleted() && isAt(point_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;
 }
-bool CDrawableContext::GetNextChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_)
+bool CDrawableContext::GetNextChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_)
 {
+	if(pParent_ && pParent_ != m_pParent) return true;
 	CDrawableContext *pToRet = NULL;
 	while(m_ChildIterator != m_Children.rend()) {
 		if(m_ChildIterator != m_LastChildIteratorUsed) {
 			m_LastChildIteratorUsed = m_ChildIterator;
-			if( (*m_ChildIterator)->GetFirstChildAt(point_, &pToRet) ) m_ChildIterator++;
+			if( (*m_ChildIterator)->GetFirstChildAt(point_, &pToRet, this) ) m_ChildIterator++;
 			if(pToRet) {
 				*ppDrawableContext_ = pToRet;
 				return false;
 			}
 		} else {
-			if( (*m_ChildIterator)->GetNextChildAt(point_, &pToRet) ) m_ChildIterator++;
+			if( (*m_ChildIterator)->GetNextChildAt(point_, &pToRet, this) ) m_ChildIterator++;
 			if(pToRet) {
 				*ppDrawableContext_ = pToRet;
 				return false;
 			}
 		}
 	}
-	if(!m_bDeleted && isAt(point_)) {
+	if(!isDeleted() && isAt(point_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;
 }
 
-bool CDrawableContext::GetFirstChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_)
+bool CDrawableContext::GetFirstChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_)
 {
+	if(pParent_ && pParent_ != m_pParent) return true;
 	CDrawableContext *pToRet = NULL;
 	m_ChildIterator = m_Children.rbegin();
 	while(m_ChildIterator!= m_Children.rend()) {
 		m_LastChildIteratorUsed = m_ChildIterator;
-		if( (*m_ChildIterator)->GetFirstChildIn(rect_, &pToRet) ) m_ChildIterator++;
+		if( (*m_ChildIterator)->GetFirstChildIn(rect_, &pToRet, this) ) m_ChildIterator++;
 		if(pToRet) {
 			*ppDrawableContext_ = pToRet;
 			return false;
 		}
 	}
-	if(!m_bDeleted && isIn(rect_)) {
+	if(!isDeleted() && isIn(rect_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;
 }
-bool CDrawableContext::GetNextChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_)
+bool CDrawableContext::GetNextChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_)
 {
+	if(pParent_ && pParent_ != m_pParent) return true;
 	CDrawableContext *pToRet = NULL;
 	while(m_ChildIterator!= m_Children.rend()) {
 		if(m_ChildIterator != m_LastChildIteratorUsed) {
 			m_LastChildIteratorUsed = m_ChildIterator;
-			if( (*m_ChildIterator)->GetFirstChildIn(rect_, &pToRet) ) m_ChildIterator++;
+			if( (*m_ChildIterator)->GetFirstChildIn(rect_, &pToRet, this) ) m_ChildIterator++;
 			if(pToRet) {
 				*ppDrawableContext_ = pToRet;
 				return false;
 			}
 		} else {
-			if( (*m_ChildIterator)->GetNextChildIn(rect_, &pToRet) ) m_ChildIterator++;
+			if( (*m_ChildIterator)->GetNextChildIn(rect_, &pToRet, this) ) m_ChildIterator++;
 			if(pToRet) {
 				*ppDrawableContext_ = pToRet;
 				return false;
 			}
 		}
 	}
-	if(!m_bDeleted && isIn(rect_)) {
+	if(!isDeleted() && isIn(rect_)) {
 		*ppDrawableContext_ = this;
 	}
 	return true;

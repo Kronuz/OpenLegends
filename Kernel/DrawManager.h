@@ -86,7 +86,6 @@ typedef struct __RUNACTION {
 	LPVOID m_Ptr;			// Multipurpose pointer passed to the run procedures.
 } RUNACTION;
 
-
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CDrawableContext
 	\brief		Flyweight drawable-objects context class.
@@ -128,25 +127,32 @@ protected:
 
 	const class DrawContext :
 	public std::binary_function<CDrawableContext*, const IGraphics *, bool> {
-		bool m_bHighlight;
-		bool m_bSelected;
-		bool m_bVisible;
+		CDrawableContext *m_pParent;
+		bool m_bHighlight; // should only highlighted objects be drawn?
+		bool m_bSelected; // should only selected objects be drawn?
+		bool m_bVisible; // should only visible objects be drawn?
 	public:
-		DrawContext(bool bVisible, bool bSelected, bool bHighlight) : m_bVisible(bVisible), m_bSelected(bSelected), m_bHighlight(bHighlight) {}
+		DrawContext(CDrawableContext *pParent, bool bVisible, bool bSelected, bool bHighlight) : 
+			m_pParent(pParent), m_bVisible(bVisible), m_bSelected(bSelected), m_bHighlight(bHighlight) {}
 		bool operator()(CDrawableContext *pDrawableContext, const IGraphics *pIGraphics) const;
 	};
 
 	const class RunContext :
 	public std::binary_function<CDrawableContext*, RUNACTION, bool> {
+		CDrawableContext *m_pParent;
 		bool m_bVisible;
 	public:
-		RunContext(bool bVisible) : m_bVisible(bVisible) {}
+		RunContext(CDrawableContext *pParent, bool bVisible) : 
+			m_pParent(pParent), m_bVisible(bVisible) {}
 		bool operator()(CDrawableContext *pDrawableContext, RUNACTION action) const;
 	};
 
 	const class CleanTempContext :
 	public std::unary_function<CDrawableContext*, bool> {
+		CDrawableContext *m_pParent;
 	public:
+		CleanTempContext(CDrawableContext *pParent) : 
+			m_pParent(pParent) {}
 		bool operator()(CDrawableContext *pDrawableContext) const;
 	};
 	
@@ -162,7 +168,6 @@ protected:
 private:
 	const IGraphics *m_pIGraphics;
 
-	std::vector<CDrawableContext *> m_Children;
 	std::vector<CDrawableContext *>::iterator m_LayersMap[MAX_SUBLAYERS+2];
 
 	std::vector<CDrawableContext *>::reverse_iterator m_ChildIterator;
@@ -176,7 +181,8 @@ private:
 	int _MergeChildren(CDrawableContext *object);
 
 protected:
-
+	std::vector<CDrawableContext *> m_Children;
+	bool m_bSuperContext;
 //-------------------------------------
 // TO KEEP THE MEMENTO:
 	struct StateDrawableContext : 
@@ -191,6 +197,7 @@ protected:
 				curr->Position == Position &&
 				curr->Size == Size &&
 				curr->pParent == pParent &&
+				curr->pSuperContext == pSuperContext &&
 				curr->dwStatus == dwStatus &&
 				curr->bSelected == bSelected &&
 				curr->nOrder == nOrder
@@ -206,6 +213,7 @@ protected:
 
 		CSize Size;
 		CDrawableContext *pParent;
+		CDrawableContext *pSuperContext;
 		DWORD dwStatus;
 		bool bSelected;
 		size_t nOrder;
@@ -229,18 +237,16 @@ protected:
 	void PreSort();
 	void Sort(int nSubLayer);
 
-	bool GetFirstChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
-	bool GetNextChildAt(int nSubLayer, const CPoint &point_, CDrawableContext **ppDrawableContext_);
-
-	bool GetFirstChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
-	bool GetNextChildIn(int nSubLayer, const RECT &rect_, CDrawableContext **ppDrawableContext_);
-
 	int MergeChildren();
 	bool AddSibling(CDrawableContext *object);
 	bool AddChild(CDrawableContext *object);
 	bool InsertChild(CDrawableContext *object, int nInsertion = -1);
+	bool CDrawableContext::MoveToLayer(CDrawableContext *pNewLayer_);
 
 	virtual bool CanMerge(CDrawableObject *object) { return true; }
+
+	//! A group drawable context must make sure not to kill it's children at its destruction time, just unlink them and flag them as deleted
+	virtual CDrawableContext* MakeGroup(LPCSTR szGroupName) { return NULL; }
 
 	// Memento interface
 	virtual void ReadState(StateData *data);
@@ -256,7 +262,7 @@ public:
 	// reorder the objects, leaving a space between nRoomAt and nRoomAt+nRoomSize. 
 	// Returns the next availible free Ordering position (i.e. nRoomAt if specified)
 	// leaves holes between objects of nStep size (nStep must be >= 1)
-	int ReOrder(int nStep, int nRoomAt = -1, int nRoomSize = 0);
+	int ReOrder(int nStep = 1, int nRoomAt = -1, int nRoomSize = 0);
 
 	void InvalidateBuffers() {
 		for(int i=0; i<CONTEXT_BUFFERS; i++) {
@@ -283,15 +289,20 @@ public:
 	void GetSize(CSize &_Size) const;
 
 	bool SetObjSubLayer(int nLayer);
-	bool SetObjLayer(int nLayer);
-
 	int GetObjSubLayer() const;
+
+	bool SetObjLayer(int nLayer);
 	int GetObjLayer() const;
 
 	void SetObjOrder(int nNewOrder); // use this carefully
 	int GetObjOrder() const;
 
+	CDrawableContext* SetGroup(LPCSTR szGroupName); // use this carefully
+
+	CDrawableContext* GetSuperContext() const;
 	CDrawableContext* GetParent() const;
+	CDrawableContext* GetSibling(LPCSTR szName) const;
+	CDrawableContext* GetChild(LPCSTR szName) const;
 	CDrawableContext* GetSibling(int idx) const;
 	CDrawableContext* GetChild(int idx) const;
 
@@ -334,6 +345,9 @@ public:
 	void ShowContext(bool bShow = true);
 	bool isVisible() const;
 
+	void DeleteContext(bool bDelete = true);
+	bool isDeleted() const;
+
 	void SetTemp(bool bTemp = true);
 	bool isTemp() const;
 
@@ -343,11 +357,11 @@ public:
 	void Rotate(bool bRotate = true);
 	bool isRotated() const;
 
-	bool GetFirstChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_);
-	bool GetNextChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_);
+	bool GetFirstChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_ = NULL);
+	bool GetNextChildAt(const CPoint &point_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_ = NULL);
 
-	bool GetFirstChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_);
-	bool GetNextChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_);
+	bool GetFirstChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_ = NULL);
+	bool GetNextChildIn(const RECT &rect_, CDrawableContext **ppDrawableContext_, CDrawableContext *pParent_ = NULL);
 
 	bool PopChild(CDrawableContext *pDrawableContext_);
 	bool PopChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
@@ -523,7 +537,7 @@ inline int CDrawableContext::GetObjOrder() const
 
 inline int CDrawableContext::GetObjLayer() const
 {
-	if(m_pParent) return m_pParent->m_nSubLayer;
+	if(GetSuperContext()) return GetSuperContext()->m_nSubLayer;
 	return -1;
 }
 inline int CDrawableContext::GetObjSubLayer() const
@@ -533,21 +547,38 @@ inline int CDrawableContext::GetObjSubLayer() const
 inline bool CDrawableContext::SetObjLayer(int nLayer) 
 {
 	bool bRet = false;
-	if(m_pParent) {
-		if(nLayer == m_pParent->m_nSubLayer) 
+	if(m_pParent && m_pParent == GetSuperContext()) {
+		if(nLayer == GetObjLayer()) 
 			return true; //same current layer
 
 		CDrawableContext *pNewLayer = m_pParent->GetSibling(nLayer);
 		if(pNewLayer) { // if the new layer exists, try changing the layer:
-			if(m_pParent->PopChild(this)) {
-				bRet = pNewLayer->InsertChild(this, m_nOrder);
-				Touch(); //FIXME: add layers to the CMemento
-				ASSERT(bRet);
-			}
+			// dig all children and move them to the new supercontext:
+			VERIFY(MoveToLayer(pNewLayer));
+			Touch();
 		}
 	}
 	return bRet;
 }
+
+// Moves the context and all of its children to a new layer (supercontext)
+inline bool CDrawableContext::MoveToLayer(CDrawableContext *pNewLayer_) 
+{ 
+	bool bRet = false;
+	CDrawableContext *pSuperContext = GetSuperContext();
+	if(!pSuperContext || !pNewLayer_) return false;
+
+	std::vector<CDrawableContext *>::const_iterator Iterator = m_Children.begin();
+	while(Iterator != m_Children.end()) {
+		VERIFY((*Iterator)->MoveToLayer(pNewLayer_));
+		Iterator++;
+	}
+	CDrawableContext *pParent = m_pParent;
+	VERIFY(pSuperContext->PopChild(this) && pNewLayer_->InsertChild(this, m_nOrder));
+	if(pParent != pSuperContext) m_pParent = pParent; // recover parent of the supercontext's non-immediate children.
+	return bRet;
+}
+
 inline bool CDrawableContext::SetObjSubLayer(int nLayer) 
 { 
 	if(m_nSubLayer == nLayer) return true;
@@ -561,6 +592,7 @@ inline bool CDrawableContext::SetObjSubLayer(int nLayer)
 	Touch();
 	return true;
 }
+
 inline void CDrawableContext::MoveTo(int x, int y) 
 { 
 	if(m_Position.x == x && m_Position.y == y) return;
@@ -597,17 +629,43 @@ inline void CDrawableContext::GetAbsPosition(CPoint &_Point) const
 }
 inline void CDrawableContext::GetRect(CRect &_Rect) const 
 {
-	if(m_Size.cx==-1 && m_Size.cy==-1)
-		if(m_pDrawableObj) m_pDrawableObj->GetSize(m_Size);
-	_Rect.SetRect(m_Position, m_Position + m_Size);
+	_Rect.SetRect(0,0,0,0);
+	if(m_bDeleted) return;
+
+	if(m_pDrawableObj) {
+		if(m_Size.cx==-1 && m_Size.cy==-1)
+			if(m_pDrawableObj) m_pDrawableObj->GetSize(m_Size);
+		_Rect.SetRect(m_Position, m_Position + m_Size);
+	} else {
+		std::vector<CDrawableContext *>::const_iterator Iterator = m_Children.begin();
+		while(Iterator != m_Children.end()) {
+			CRect Rect(0,0,0,0);
+			(*Iterator)->GetRect(Rect);
+			_Rect.UnionRect(&Rect, &_Rect);
+			Iterator++;
+		}
+	}
 }
 inline void CDrawableContext::GetAbsRect(CRect &_Rect) const 
 {
-	CPoint Position;
-	GetAbsPosition(Position);
-	if(m_Size.cx==-1 && m_Size.cy==-1)
-		if(m_pDrawableObj) m_pDrawableObj->GetSize(m_Size);
-	_Rect.SetRect(Position, Position + m_Size);
+	_Rect.SetRect(0,0,0,0);
+	if(m_bDeleted) return;
+
+	if(m_pDrawableObj) {
+		CPoint Position;
+		GetAbsPosition(Position);
+		if(m_Size.cx==-1 && m_Size.cy==-1)
+			m_pDrawableObj->GetSize(m_Size);
+		_Rect.SetRect(Position, Position + m_Size);
+	} else {
+		std::vector<CDrawableContext *>::const_iterator Iterator = m_Children.begin();
+		while(Iterator != m_Children.end()) {
+			CRect Rect(0,0,0,0);
+			(*Iterator)->GetAbsRect(Rect);
+			_Rect.UnionRect(&Rect, &_Rect);
+			Iterator++;
+		}
+	}
 }
 inline void CDrawableContext::GetAbsFinalRect(CRect &_Rect) const 
 {
@@ -687,7 +745,7 @@ inline bool CDrawableContext::isAt(int x, int y) const
 }
 inline bool CDrawableContext::isAt(const CPoint &_point) const 
 { 
-	if(m_pDrawableObj==NULL) return false;
+	if(m_pDrawableObj==NULL && m_bSuperContext) return false;
 	CRect Rect;
 	GetAbsFinalRect(Rect);
 	if(Rect.IsRectNull()) return false;
@@ -697,7 +755,7 @@ inline bool CDrawableContext::isAt(const CPoint &_point) const
 }
 inline bool CDrawableContext::isAt(const RECT &_rect) const 
 {
-	if(m_pDrawableObj==NULL) return false;
+	if(m_pDrawableObj==NULL && m_bSuperContext) return false;
 	CRect Rect;
 	GetAbsFinalRect(Rect);
 	if(Rect.IsRectNull()) return false;
@@ -705,7 +763,7 @@ inline bool CDrawableContext::isAt(const RECT &_rect) const
 }
 inline bool CDrawableContext::isIn(const RECT &_rect) const 
 {
-	if(m_pDrawableObj==NULL) return false;
+	if(m_pDrawableObj==NULL && m_bSuperContext) return false;
 	CRect Rect;
 	GetAbsFinalRect(Rect);
 	if(Rect.IsRectNull()) return false;
@@ -745,7 +803,19 @@ inline void CDrawableContext::ShowContext(bool bShow)
 }
 inline bool CDrawableContext::isVisible() const 
 { 
-	return ((m_dwStatus&(DVISIBLE<<_DRW_SHFT))==(DVISIBLE<<_DRW_SHFT)); 
+	bool bVisible = ((m_dwStatus&(DVISIBLE<<_DRW_SHFT))==(DVISIBLE<<_DRW_SHFT));
+	if(!bVisible || !m_pParent) return bVisible;
+	return m_pParent->isVisible(); // we go upwards in the chain...
+}
+
+inline void CDrawableContext::DeleteContext(bool bDelete)
+{
+	m_bDeleted = bDelete;
+}
+inline bool CDrawableContext::isDeleted() const 
+{ 
+	if(m_bDeleted || !m_pParent) return m_bDeleted;
+	return m_pParent->isDeleted(); // we go upwards in the chain...
 }
 
 inline void CDrawableContext::SetTemp(bool bTemp) 
@@ -756,7 +826,9 @@ inline void CDrawableContext::SetTemp(bool bTemp)
 }
 inline bool CDrawableContext::isTemp() const 
 { 
-	return ((m_dwStatus&(DTEMP<<_DRW_SHFT))==(DTEMP<<_DRW_SHFT)); 
+	bool bTemp = ((m_dwStatus&(DTEMP<<_DRW_SHFT))==(DTEMP<<_DRW_SHFT));
+	if(bTemp || !m_pParent) return bTemp; 
+	return m_pParent->isTemp(); // we go upwards in the chain...
 }
 
 inline void CDrawableContext::SelectContext(bool bSelect)
@@ -768,6 +840,12 @@ inline bool CDrawableContext::isSelected() const
 	return m_bSelected;
 }
 
+inline CDrawableContext* CDrawableContext::GetSuperContext() const
+{
+	if(m_bSuperContext) return const_cast<CDrawableContext*>(this);
+	if(!m_pParent) return NULL;
+	return m_pParent->GetSuperContext();
+}
 inline CDrawableContext* CDrawableContext::GetParent() const
 {
 	return m_pParent;
@@ -784,6 +862,20 @@ inline CDrawableContext* CDrawableContext::GetChild(int idx) const
 	if(idx >= (int)m_Children.size() || idx<0) return NULL;
 	return m_Children[idx];
 }
+inline CDrawableContext* CDrawableContext::GetSibling(LPCSTR szName) const
+{
+	if(m_pParent == NULL) return NULL;
+	return m_pParent->GetChild(szName);
+}
+
+inline CDrawableContext* CDrawableContext::GetChild(LPCSTR szName) const
+{
+	std::vector<CDrawableContext *>::const_iterator Iterator = 
+		find_if(m_Children.begin(), m_Children.end(), bind2nd(m_equalName, szName));
+	if(Iterator == m_Children.end()) return NULL;
+	return (*Iterator);
+}
+
 inline void CDrawableContext::SetDrawableObj(CDrawableObject *pDrawableObj) 
 { 
 	m_pDrawableObj = pDrawableObj; 
