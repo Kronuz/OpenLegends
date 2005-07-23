@@ -16,9 +16,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
-/*
-	\todo	FIXME: Merge CDrawableSelection and CSpriteSelection
-*/
 
 #pragma once
 
@@ -98,41 +95,25 @@ struct _SpriteSet {
 #pragma pack()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class CDrawableSelection;
+class CSpriteSelection;
 
 struct SObjProp :
 	public IPropertyEnabled
 {
-	CDrawableSelection *pSelection;
+	bool bSubselected;
+	CSpriteSelection *pSelection;
 	CDrawableContext *pContext;
 
-	std::vector<int> C; // This is the list of group children the object has.
+	CRect rcRect;
 
-	int nGroup; // what group does it belong to? (0 = no group, its group number if it's a group)
-	bool bSubselected;
-	CRect rcRect; // this must always be updated from Resizes and other position changes
-	_Chain eXChain;
-	_Chain eYChain;
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_, _Chain eXChain_, _Chain eYChain_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), rcRect(Rect_), eXChain(eXChain_), eYChain(eYChain_), nGroup(nGroup_) {
+	SObjProp(CSpriteSelection *pSelection_, CDrawableContext *pContext_, CRect Rect_) : bSubselected(true), pSelection(pSelection_), pContext(pContext_), rcRect(Rect_) {
 		if(pContext) pContext->Ref(&pContext);
-	}
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_, const CRect &Rect_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {
-		if(pContext) pContext->Ref(&pContext);
-	}
-	SObjProp(CDrawableSelection *pSelection_, CDrawableContext *pContext_, int nGroup_) : pSelection(pSelection_), pContext(pContext_), bSubselected(true), eXChain(relative), eYChain(relative), nGroup(nGroup_) {
-		if(pContext) pContext->Ref(&pContext), pContext->GetAbsFinalRect(rcRect);
-		else ASSERT(0); // You should provide Rect_ for groups.;
 	}
 	SObjProp(const SObjProp &obj) {
-		C = obj.C;
-		nGroup = obj.nGroup;
-		rcRect = obj.rcRect;
-		eXChain = obj.eXChain;
-		eYChain = obj.eYChain;
-		bSubselected = obj.bSubselected;
 		pSelection = obj.pSelection;
 		pContext = obj.pContext;
-
+		bSubselected = obj.bSubselected;
+		rcRect = obj.rcRect;
 		if(pContext) pContext->Ref(&pContext);
 	}
 	virtual ~SObjProp() { 
@@ -148,40 +129,44 @@ struct SObjProp :
 	virtual void Cancel();
 };
 /////////////////////////////////////////////////////////////////////////////
-/*! \interface	CDrawableSelection
+/*! \interface	CSpriteSelection
 	\brief		Interface for selected objects.
 	\author		Germán Méndez Bravo (Kronuz)
 	\version	1.0
 	\date		May 31, 2003
 
-	CDrawableSelection is used to provide a selection class. This class
+	CSpriteSelection is used to provide a selection class. This class
 	manages selections of the objects, as well as changes in their size
 	and location. Many objects can be selected at the same time,
 	and this class can maintain each of them.
 
 	\sa CDrawableContext, CDrawableObject
 */
-class CDrawableSelection :
+class CSpriteSelection :
 	public CMutable
 {
 	friend SObjProp;
 
-	void EndSubSelBox(bool bAdd, const CPoint &point_, int Chains);
-	void SubSelPoint(bool bAdd, const CPoint &point_, int Chains);
+	void EndSubSelBox(bool bAdd, const CPoint &point_);
+	void SubSelPoint(bool bAdd, const CPoint &point_);
 
-	IPropertyEnabled* SelPointAdd(const CPoint &point_, int Chains);
+	IPropertyEnabled* SelPointAdd(const CPoint &point_, int Chains_);
 	void SelPointRemove(const CPoint &point_);
 
-protected:
+	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
+	void BuildRealSelectionBounds();
+
+	// Pastes a buffer in the specified point, without selecting it, and returns a
+	// rect with the ending location of the pasted buffer (empty on fail)
+	CRect PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, const CPoint *pPoint = NULL, bool bPaste = true);
+	CRect PasteFile(CLayer *pLayer, LPCSTR szFilePath, const CPoint *pPoint = NULL, bool bPaste = true);
+	CRect PasteSprite(CLayer *pLayer, LPCSTR szSprite, const CPoint *pPoint = NULL, bool bPaste = true);
+	CRect PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoint *pPoint = NULL, bool bPaste = true) ;
+
 	const struct ObjPropContextEqual : 
 	public std::binary_function<SObjProp, const CDrawableContext*, bool> {
 		bool operator()(const SObjProp &a, const CDrawableContext *b) const;
 	} m_equalContext;
-
-	const struct ObjPropGroupEqual : 
-	public std::binary_function<SObjProp, int, bool> {
-		bool operator()(const SObjProp &a, int b) const;
-	} m_equalGroup;
 
 	const struct ObjPropLayerEqual : 
 	public std::binary_function<SObjProp, int, bool> {
@@ -199,8 +184,6 @@ protected:
 	enum _CurrentState { eNone, eSelecting, eMoving, eResizing } 
 		m_eCurrentState;
 
-	bool m_bAllowMultiLayerSel;
-
 	bool m_bCursorLeft;
 	bool m_bCursorTop;
 	bool m_bCursorRight;
@@ -217,6 +200,7 @@ protected:
 	bool m_bCanMove;
 
 	bool m_bHoldSelection;
+	bool m_bHighlightOnly;
 
 	CRect m_rcClip;
 	ARGBCOLOR m_rgbClipColor;
@@ -225,33 +209,17 @@ protected:
 	CPoint m_ptInitialPoint;
 	CDrawableContext **m_ppMainDrawable;
 	CDrawableContext *m_pCurrentDrawable;
+	CDrawableContext *m_pLastSelected; // Last context selected.
 
 	bool m_bLockedLayers[MAX_LAYERS]; // keeps the locked layers
 
-	CDrawableContext *m_pLastSelected; // Last context selected.
 	typedef std::vector<SObjProp> vectorObject;
 	vectorObject::iterator m_CurrentSel;
+	vectorObject m_Objects;
 
-	struct SGroup {
-		std::string Name; // This is the name of the group. (It's either a regular name or a relative path to a sprite set)
-		vectorObject O; // This is the actual vector of objects.
-		int P; // This is the address to the parent group.
-		SGroup() : P(0) {}
-	};
-
-	int m_nPasteGroup;
-	int m_nCurrentGroup;
-	std::vector<SGroup> m_Groups;
-
-	int GetBoundingRect(CRect *pRect_, int nGroup_ = 0);
-	int FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_);
-
-	virtual void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_) = 0;
-	virtual void BuildRealSelectionBounds(int nGroup_ = 0) = 0;
+	int GetBoundingRect(CRect *pRect_) const;
 
 	void SortSelection();
-	int SetLayerSelection(int nLayer, int nGroup_);
-	int DeleteSelection(int nGroup_);
 
 	bool BeginPaint(IGraphics *pGraphicsI, WORD wFlags = 0);
 	bool DrawAll(IGraphics *pGraphicsI);
@@ -259,34 +227,22 @@ protected:
 
 	void SetInitialMovingPoint(const CPoint &point_);
 
-	bool SelectGroup(int nGroup_, bool bSelectContext = true);
-	bool SelectGroupWith(const CDrawableContext *pDrawableContext);
-	bool SelectGroupWithIn(const CRect &rect_, const CDrawableContext *pDrawableContext);
-	void DeleteInGroups(const CDrawableContext *pDrawableContext);
-
 public:
-	CDrawableSelection(CDrawableContext **ppDrawableContext_);
-	virtual ~CDrawableSelection() {
-		BEGIN_DESTRUCTOR
-		delete []m_pBitmap;
-		END_DESTRUCTOR
-	}
+	CSpriteSelection(CDrawableContext **ppDrawableContext_);
+	virtual ~CSpriteSelection();
 
 	// Interface Definition:
-	virtual void CleanPasteGroups();
-	virtual int SetNextPasteGroup(LPCSTR szGroupName, int nNew = -1);
-
-	virtual LPCSTR GetSelectionName(LPSTR szName, int size) = 0;
-	virtual void SetSelectionName(LPCSTR szName) = 0;
-
 	virtual SObjProp* GetFirstSelection();
 	virtual SObjProp* GetNextSelection();
 
 	virtual CDrawableContext* GetLastSelected() { return m_pLastSelected; }
 
-	virtual void HoldSelection(bool bHold = true) { if(bHold) SortSelection(); m_bHoldSelection = bHold; }
-	virtual bool isHeld() { return m_bHoldSelection; }
-	
+	virtual void HoldSelection(bool bHold = true) {}
+	virtual bool isHeld() {return false;}
+
+	virtual void InPlaceIn();
+	virtual void InPlaceOut();
+
 	virtual void LockLayer(int nLayer, bool bLock = true);
 	virtual bool isLocked(int nLayer);
 	
@@ -300,16 +256,17 @@ public:
 	virtual void MoveTo(const CPoint &point_);
 	virtual void EndMoving(const CPoint &point_);
 	
+	// Pauses all changes and restores original state on the move or resize operations.
 	virtual void HoldOperation();
 
 	virtual void StartSelBox(const CPoint &point_);
 	virtual void CancelSelBox();
 	virtual void SizeSelBox(const CPoint &point_);
-	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains);
+	virtual IPropertyEnabled* EndSelBoxAdd(const CPoint &point_, int Chains_);
 	virtual void EndSelBoxRemove(const CPoint &point_);
 
 	virtual void GetSelBounds(CRect *pRect_);
-	virtual void SetLayerSelection(int nLayer);
+	virtual int SetLayerSelection(int nLayer);
 	virtual int DeleteSelection();
 	virtual void Cancel();
 
@@ -326,17 +283,10 @@ public:
 	virtual bool isGroup();
 
 	virtual int Count();
-	virtual int RealCount(int nGroup_ = 0);
 
 	virtual bool GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor);
 
 	// Make abstract methods:
-	virtual bool Draw(const IGraphics *pGraphics_) = 0; 
-	virtual HGLOBAL Copy(BITMAP **ppBitmap = NULL, bool bDeleteBitmap = false) = 0;
-	virtual bool Paste(LPCVOID pBuffer, const CPoint &point_) = 0;
-
-	virtual bool FastPaste(LPCVOID pBuffer, const CPoint &point_) = 0;
-	virtual bool GetPastedSize(LPCVOID pBuffer, SIZE *pSize) = 0;
 
 	virtual bool SetClip(const CRect *pRect, ARGBCOLOR rgbColor = COLOR_ARGB(0,0,0,0));
 	virtual bool Paint(IGraphics *pGraphicsI, WORD wFlags); // render the map group to the screen
@@ -348,32 +298,7 @@ public:
 		delete []m_pBitmap;
 		m_pBitmap = pBitmap; 
 	}
-};
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-class CSpriteSelection :
-	public CDrawableSelection
-{
-	bool m_bHighlightOnly;
-
-	void ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_);
-	void BuildRealSelectionBounds(int nGroup_ = 0);
-
-	// Pastes a buffer in the specified point, without selecting it, and returns a
-	// rect with the ending location of the pasted buffer (empty on fail)
-	CRect PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, const CPoint *pPoint = NULL, bool bPaste = true);
-	CRect PasteFile(CLayer *pLayer, LPCSTR szFilePath, const CPoint *pPoint = NULL, bool bPaste = true);
-	CRect PasteSprite(CLayer *pLayer, LPCSTR szSprite, const CPoint *pPoint = NULL, bool bPaste = true);
-	CRect PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoint *pPoint = NULL, bool bPaste = true) ;
-
-public:
-	CSpriteSelection(CDrawableContext **ppDrawableContext_) : 
-	  CDrawableSelection(ppDrawableContext_), m_bHighlightOnly(false) 
-	  {
-	  }
-
-	// Interface Definition:
 	virtual void SetHighlightMode(bool bHighlight = true) { m_bHighlightOnly = bHighlight; }
 
 	virtual void SelectionToGroup(LPCSTR szGroupName = "");

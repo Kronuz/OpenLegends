@@ -319,6 +319,7 @@ int CDrawableContext::MergeChildren()
 		nMerged += cnt;
 	} while(cnt);
 	// We sort back to the proper ordering on every sublayer (expensive, but necessary):
+	if(!m_bValidMap) PreSort();
 	for(int i=0; i<MAX_SUBLAYERS; i++) Sort(i);
 	return nMerged;
 }
@@ -355,6 +356,7 @@ CDrawableContext* CDrawableContext::SetGroup(LPCSTR szGroupName)
 int CDrawableContext::ReOrder(int nStep, int nRoomAt, int nRoomSize) 
 {
 	// resort everything (expensive, but necessary):
+	if(!m_bValidMap) PreSort();
 	for(int i=0; i<MAX_SUBLAYERS; i++) Sort(i);
 
 	// Reassign birth orders:
