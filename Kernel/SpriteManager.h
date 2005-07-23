@@ -94,7 +94,8 @@ extern bool g_bEntities;
 enum _spt_type	{
 		tMask,			//!< Indicates a mask map sprite (or unknown)
 		tBackground,	//!< Indicates a background sprite
-		tEntity			//!< Indicates an entity sprite
+		tEntity,		//!< Indicates an entity sprite
+		tSpriteSet		//!< Indicates a group of sprites or a sprite set
 	};	
 
 enum _Direction { 
@@ -267,7 +268,7 @@ protected:
 	bool Draw(const CDrawableContext &context, bool bBounds, const ARGBCOLOR *rgbColorModulation, int nBuffer);
 
 public:
-	_spt_type GetSpriteType();
+	_spt_type GetSpriteType() const;
 	void SetSpriteType(_spt_type SptType);
 	CSpriteSheet* GetSpriteSheet();
 	bool IsDefined();
@@ -299,7 +300,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 // CSprite Implementation:
 /////////////////////////////////////////////////////////////////////////////
-inline _spt_type CSprite::GetSpriteType() 
+inline _spt_type CSprite::GetSpriteType() const
 { 
 	return m_SptType; 
 }
@@ -552,7 +553,11 @@ public:
 	void ARGB(ARGBCOLOR rgbColor_);
 	void Rotate(int rotate);	//!< Rotates the object (the angle is given in degrees)
 	void Tile(bool bTile = true);
+	void SetYChain(_Chain eYChain);
+	void SetXChain(_Chain eXChain);
 
+	_Chain GetXChain() const;
+	_Chain GetYChain() const;
 	bool isTiled() const;
 	bool isMirrored() const;
 	bool isFlipped() const;
@@ -564,6 +569,8 @@ public:
 	ARGBCOLOR getARGB() const;
 	ARGBCOLOR getRGB() const;
 	int Transformation() const;
+
+	_spt_type GetSpriteType() const;
 	
 	int Rotation() const;				//!< returns the basic roatation of the object (defined in the map editor)
 
@@ -663,6 +670,23 @@ inline void CSpriteContext::Tile(bool bTile)
 	else		m_dwStatus &= ~(SNTILED<<_SPT_INFO);
 	Touch();
 }
+inline void CSpriteContext::SetYChain(_Chain eYChain)
+{
+	m_eYChain = eYChain;
+}
+inline void CSpriteContext::SetXChain(_Chain eXChain)
+{
+	m_eXChain = eXChain;
+}
+
+inline _Chain CSpriteContext::GetXChain() const
+{
+	return m_eXChain;
+}
+inline _Chain CSpriteContext::GetYChain() const
+{
+	return m_eXChain;
+}
 inline bool CSpriteContext::isTiled() const
 {
 	return !((m_dwStatus&(SNTILED<<_SPT_INFO))==(SNTILED<<_SPT_INFO));
@@ -739,7 +763,11 @@ inline float CSpriteContext::RelScale() const
 {
 	return 1.0f;
 }
-
+inline _spt_type CSpriteContext::GetSpriteType() const
+{
+	if(!m_pDrawableObj) return tSpriteSet;
+	else return static_cast<CSprite*>(m_pDrawableObj)->GetSpriteType();
+}
 /////////////////////////////////////////////////////////////////////////////
 /*! \class	CSpriteSetContext
 	\brief		Flyweight sprites context class.
@@ -760,6 +788,6 @@ protected:
 	bool m_bOriginalContext;	//!< Keeps the state of the sprite set against the original saved context
 
 public:
-	CSpriteSetContext(LPCSTR szName) : CSpriteContext(szName) {}
+	CSpriteSetContext(LPCSTR szName) : CSpriteContext(szName) { Tile();	}
 	~CSpriteSetContext() { m_Children.clear(); }
 };

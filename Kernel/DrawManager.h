@@ -351,6 +351,8 @@ public:
 	void SetTemp(bool bTemp = true);
 	bool isTemp() const;
 
+	bool isSuperContext() const;
+
 	void SelectContext(bool bSelect = true);
 	bool isSelected() const;
 
@@ -829,6 +831,11 @@ inline bool CDrawableContext::isTemp() const
 	bool bTemp = ((m_dwStatus&(DTEMP<<_DRW_SHFT))==(DTEMP<<_DRW_SHFT));
 	if(bTemp || !m_pParent) return bTemp; 
 	return m_pParent->isTemp(); // we go upwards in the chain...
+}
+
+inline bool CDrawableContext::isSuperContext() const
+{
+	return m_bSuperContext;
 }
 
 inline void CDrawableContext::SelectContext(bool bSelect)

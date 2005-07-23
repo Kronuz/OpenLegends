@@ -86,7 +86,6 @@ LRESULT CMapEditorView::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lPa
 	if(m_SelectionI) {
 		m_SelectionI->Cancel();
 		m_SelectionI->CleanSelection();
-		m_SelectionI->CleanPasteGroups();
 	}
 	if(m_pMapGroupI) {
 		m_pMapGroupI->Close(true);
@@ -506,10 +505,8 @@ LRESULT CMapEditorView::OnContextMenu(UINT /*uMsg*/, WPARAM wParam, LPARAM lPara
 			menu.AppendMenu(MF_STRING, 11, "Select &None"); // Select None
 		}
 	}
-	if(m_SelectionI->RealCount() > 1) {
-		if(m_SelectionI->isGroup())	menu.AppendMenu(MF_STRING, 15, "&Ungroup");
-		else menu.AppendMenu(MF_STRING, 14, "&Group");
-	}
+	if(m_SelectionI->isGroup())	menu.AppendMenu(MF_STRING, 15, "&Ungroup");
+	else if(m_SelectionI->Count()>1) menu.AppendMenu(MF_STRING, 14, "&Group");
 
 	menu.EnableMenuItem(9, MF_GRAYED);
 	// are there more than one object selected?
@@ -590,7 +587,7 @@ void CMapEditorView::UIUpdateMenuItems()
 	pMapUpdateUI->UISetCheck(ID_MAPED_GRIDSNAP, m_bSnapToGrid?TRUE:FALSE);
 
 	int nSelection = 0;
-	if(m_SelectionI && !isFloating()) nSelection = m_SelectionI->RealCount();
+	if(m_SelectionI && !isFloating()) nSelection = m_SelectionI->Count();
 	if(m_SelectionI) pMapUpdateUI->UISetCheck(ID_MAPED_SELHOLD, m_SelectionI->isHeld());
 	pMapUpdateUI->UIEnable(ID_MAPED_SELHOLD, (nSelection>1)?TRUE:FALSE);
 
@@ -891,7 +888,7 @@ IPropertyEnabled* CMapEditorView::SelectPoint(const CPoint &_Point, CURSOR *_pCu
 {
 	m_SelectionI->CleanSelection();
 	m_SelectionI->StartSelBox(_Point);
-	m_SelectionI->EndSelBoxAdd(_Point,0);
+	m_SelectionI->EndSelBoxAdd(_Point, 0);
 	OnChangeSel(OCS_AUTO);
 	*_pCursor = eIDC_SIZEALL;
 	return NULL;

@@ -24,7 +24,6 @@
 
 #include <IGame.h>
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 // Mouse sensivility for selections:
 #define SELSENS_LINE		4	
@@ -72,547 +71,202 @@ void SObjProp::Cancel()
 	pContext->Cancel();
 }
 
-inline bool CDrawableSelection::ObjPropContextEqual::operator()(const SObjProp &a, const CDrawableContext *b) const
+////////////////////////////////////////////////////////////////////////////
+// CSpriteSelection:
+inline bool CSpriteSelection::ObjPropContextEqual::operator()(const SObjProp &a, const CDrawableContext *b) const
 {
 	return (a.pContext == b);
 }
 
-inline bool CDrawableSelection::ObjPropGroupEqual::operator()(const SObjProp &a, int b) const
+inline bool CSpriteSelection::ObjPropLayerEqual::operator()(const SObjProp &a, const int &b) const
 {
-	return (a.nGroup == b);
-}
-
-inline bool CDrawableSelection::ObjPropLayerEqual::operator()(const SObjProp &a, const int &b) const
-{
-	ASSERT(a.pContext); // NEED TO FIX *** add compare for groups
+	ASSERT(a.pContext);
 	return (a.pContext->GetObjLayer() == b);
 }
-inline bool CDrawableSelection::SelectionCompare::operator()(const SObjProp &a, const SObjProp &b) const
+inline bool CSpriteSelection::SelectionCompare::operator()(const SObjProp &a, const SObjProp &b) const
 {
-//	ASSERT(a.pContext && a.pContext); // NEED TO FIX *** add compare for groups
-	if(a.pContext && a.pContext) {
-		ASSERT(a.pContext->GetParent() && b.pContext->GetParent());
+	ASSERT(a.pContext->GetParent() && b.pContext->GetParent());
 
-		// check layer:
-		if(a.pContext->GetObjLayer() <  b.pContext->GetObjLayer()) return true;
-		if(a.pContext->GetObjLayer() >  b.pContext->GetObjLayer()) return false;
+	// check layer:
+	if(a.pContext->GetObjLayer() <  b.pContext->GetObjLayer()) return true;
+	if(a.pContext->GetObjLayer() >  b.pContext->GetObjLayer()) return false;
 
-		//check sublayer:
-		if(a.pContext->GetObjSubLayer() < b.pContext->GetObjSubLayer()) return true;
-		if(a.pContext->GetObjSubLayer() > b.pContext->GetObjSubLayer()) return false;
+	//check sublayer:
+	if(a.pContext->GetObjSubLayer() < b.pContext->GetObjSubLayer()) return true;
+	if(a.pContext->GetObjSubLayer() > b.pContext->GetObjSubLayer()) return false;
 
-		//check order:
-		if(a.pContext->GetObjOrder() < b.pContext->GetObjOrder()) return true;
-		//if(a.pContext->GetObjOrder() > b.pContext->GetObjOrder()) return false;
-	} else {
-		// it's a group.
-	}
+	//check order:
+	if(a.pContext->GetObjOrder() < b.pContext->GetObjOrder()) return true;
+	//if(a.pContext->GetObjOrder() > b.pContext->GetObjOrder()) return false;
 
 	return false;
 }
 
-CDrawableSelection::CDrawableSelection(CDrawableContext **ppDrawableContext_) :
+CSpriteSelection::CSpriteSelection(CDrawableContext **ppDrawableContext_) :
 	m_CurrentCursor(eIDC_ARROW),
 	m_nSnapSize(1),
 	m_bShowGrid(false),
 	m_nLayer(DEFAULT_LAYER), // Default Layer
 	m_rcSelection(0,0,0,0),
 	m_ptInitialPoint(0,0),
-	m_bAllowMultiLayerSel(false),
 	m_bFloating(false),
 	m_bHoldSelection(false),
+	m_bHighlightOnly(false),
 	m_pBitmap(NULL),
 	m_pLastSelected(NULL),
 	m_rcClip(0,0,0,0),
 	m_CurrentSel(NULL),
-	m_nPasteGroup(0),
-	m_nCurrentGroup(0),
 	m_pCurrentDrawable(NULL)
 {
 	for(int i=0; i<MAX_LAYERS; i++)
 		m_bLockedLayers[i] = false;
 
-	m_Groups.resize(16); // begin with 16 gropus
-
 	ASSERT(ppDrawableContext_);
 	m_ppMainDrawable = ppDrawableContext_;
 }
-int CDrawableSelection::GetBoundingRect(CRect *pRect_, int nGroup_) 
-{
-	ASSERT(nGroup_ >= 0 && nGroup_ <= (int)m_Groups.size());
 
+CSpriteSelection::~CSpriteSelection()
+{
+	BEGIN_DESTRUCTOR
+	delete []m_pBitmap;
+	END_DESTRUCTOR
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Helper Functions:
+int CSpriteSelection::GetBoundingRect(CRect *pRect_) const
+{
 	int nSelected = 0;
 	CRect RectTmp;
 	pRect_->SetRectEmpty();
 
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-		if(Iterator->pContext) {
-			Iterator->pContext->GetAbsFinalRect(RectTmp);
-			pRect_->UnionRect(pRect_, RectTmp);
-			nSelected++;
-		} else {
-			// Get the bounding rect of the children:
-			int nChild = Iterator->nGroup;
-			ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
-			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
-			nSelected += GetBoundingRect(&RectTmp, nChild);
-			pRect_->UnionRect(pRect_, RectTmp);
-		}
+	vectorObject::const_iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		Iterator->pContext->GetAbsFinalRect(RectTmp);
+		pRect_->UnionRect(pRect_, RectTmp);
+		nSelected++;
 	}
 	return nSelected;
 }
-
-bool CDrawableSelection::isGroup()
+void CSpriteSelection::BuildRealSelectionBounds()
 {
-	return (m_nCurrentGroup > 0);
+	GetBoundingRect(&m_rcSelection);
 }
-// this function selects every object in a group (and all its children)
-bool CDrawableSelection::SelectGroup(int nGroup_, bool bSelectContext) 
+void CSpriteSelection::SortSelection()
 {
-	ASSERT(nGroup_ >= 0 && nGroup_ <= (int)m_Groups.size());
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-		if(Iterator->pContext) {
-			Iterator->pContext->SelectContext(bSelectContext);
-		} else {
-			// Select children (if any):
-			int nChild = Iterator->nGroup;
-			ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
-			ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
-			SelectGroup(nChild, bSelectContext);
-		}
-	}
-	return true;
+	sort(m_Objects.begin(), m_Objects.end(), m_cmpSelection);
 }
-// this function looks for a drawable context in all the groups and selects the group if found
-bool CDrawableSelection::SelectGroupWith(const CDrawableContext *pDrawableContext) 
+////////////////////////////////////////////////////////////////////////////
+// Selection State:
+int CSpriteSelection::Count()
 {
-	// are there any objects in the current selection?
-	bool bEmpty = m_Groups[0].O.empty(); 
+	return m_Objects.size();
+}
+bool CSpriteSelection::isGroup() 
+{ 
+	return (m_Objects.size() == 1 && m_Objects.begin()->pContext->GetDrawableObj() == NULL);
+}
+bool CSpriteSelection::isResizing() 
+{ 
+	return (m_eCurrentState==eResizing); 
+}
+bool CSpriteSelection::isMoving() 
+{ 
+	return (m_eCurrentState==eMoving); 
+}
+bool CSpriteSelection::isSelecting() 
+{ 
+	return (m_eCurrentState==eSelecting); 
+}
+bool CSpriteSelection::isFloating()
+{
+	return m_bFloating;
+}
+bool CSpriteSelection::isLocked(int nLayer)
+{
+	ASSERT(nLayer>=0 && nLayer<=MAX_LAYERS);
 
-	for(int i=1; i<(int)m_Groups.size(); i++) {
-		// Iterate through every context in every group looking for the required context:
-		vectorObject::iterator Iterator = 
-			find_if(m_Groups[i].O.begin(), m_Groups[i].O.end(), bind2nd(m_equalContext, pDrawableContext));
-		if(Iterator != m_Groups[i].O.end()) {
-			// If the group found has a parent select the parent group too:
-            int nGroup = i;
-			while(m_Groups[nGroup].P) {
-				nGroup = m_Groups[nGroup].P;
-				ASSERT(nGroup >= 0 && nGroup <= (int)m_Groups.size());
-			}
+	if(nLayer>=0 && nLayer<=MAX_LAYERS)
+		return m_bLockedLayers[nLayer];
 
-			// Save the last current selected group (if there were no other selections):
-			if(bEmpty) m_nCurrentGroup = nGroup;
-			else m_nCurrentGroup = 0;
-
-			// Select the new group, appending a child group to the current selection:
-			CRect rcRect;
-			GetBoundingRect(&rcRect, nGroup);
-			m_Groups[0].O.push_back(SObjProp(this, NULL, nGroup, rcRect));
-
-			CONSOLE_DEBUG("The group '%s' has been selected. (%d)\n", (LPCSTR)m_Groups[nGroup].Name.c_str(), m_Groups[nGroup].O.size());
-
-			return SelectGroup(nGroup);
-		}
-	}
 	return false;
 }
-// this function looks for a drawable context in all the groups and selects the group if found
-bool CDrawableSelection::SelectGroupWithIn(const CRect &rect_, const CDrawableContext *pDrawableContext) 
-{
-	// are there any objects in the current selection?
-	bool bEmpty = m_Groups[0].O.empty(); 
-
-	for(int i=1; i<(int)m_Groups.size(); i++) {
-		// Iterate through every context in every group looking for the required context:
-		vectorObject::iterator Iterator = 
-			find_if(m_Groups[i].O.begin(), m_Groups[i].O.end(), bind2nd(m_equalContext, pDrawableContext));
-		if(Iterator != m_Groups[i].O.end()) {
-			// If the group found has a parent select the parent group too:
-			// NEED TO FIX *** (select parents up to the current group only??)
-            int nGroup = i;
-			while(m_Groups[nGroup].P) {
-				nGroup = m_Groups[nGroup].P;
-				ASSERT(nGroup >= 0 && nGroup <= (int)m_Groups.size());
-			}
-			// Check if the full group is within rect_ :
-			CRect rcBoundaries;
-			GetBoundingRect(&rcBoundaries, nGroup);
-			if(!rect_.PtInRect(rcBoundaries.TopLeft()) || !rect_.PtInRect(rcBoundaries.BottomRight())) 
-				return true;
-
-			// Save the last current selected group (if there were no other selections):
-			if(bEmpty) m_nCurrentGroup = nGroup;
-			else m_nCurrentGroup = 0;
-
-			// Append a child group to the current selection:
-			CRect rcRect;
-			GetBoundingRect(&rcRect, nGroup);
-			// m_Groups[0].C.push_back(nGroup); NEED TO FIX *** select groups
-			m_Groups[0].O.push_back(SObjProp(this, NULL, nGroup, rcRect));
-			CONSOLE_DEBUG("The group '%s' has been selected. (%d)\n", (LPCSTR)m_Groups[nGroup].Name.c_str(), m_Groups[nGroup].O.size());
-
-			return SelectGroup(nGroup);
-		}
-	}
-	return false;
-}
-
-// find and delete a context in all groups (a context must exist in only one group)
-void CDrawableSelection::DeleteInGroups(const CDrawableContext *pDrawableContext) 
-{
-	for(int i=1; i<(int)m_Groups.size(); i++) {
-		vectorObject::iterator removed = 
-			remove_if(m_Groups[i].O.begin(), m_Groups[i].O.end(), bind2nd(m_equalContext, pDrawableContext));
-		if(removed != m_Groups[i].O.end()) {
-			m_Groups[i].O.erase(removed, m_Groups[i].O.end());
-			return;
-		}
-	}
-}
-
-// returns -1 if the context is not found, or the group if the context is found.
-// If the context is found, it returns the context's object in *Iterator.
-int CDrawableSelection::FindInGroup(vectorObject::iterator *Iterator, CDrawableContext *pDrawableContext, int nGroup_)
-{
-	*Iterator = find_if(m_Groups[nGroup_].O.begin(), m_Groups[nGroup_].O.end(), bind2nd(m_equalContext, pDrawableContext));
-	if((*Iterator) != m_Groups[nGroup_].O.end()) {
-		return nGroup_;
-	}
-
-	for((*Iterator) = m_Groups[nGroup_].O.begin(); (*Iterator) != m_Groups[nGroup_].O.end(); (*Iterator)++) {
-		if((*Iterator)->pContext == NULL) {
-			vectorObject::iterator Object;
-			int nGroup = FindInGroup(&Object, pDrawableContext, (*Iterator)->nGroup);
-			if(nGroup >= 0) {
-				*Iterator = Object;
-				return nGroup;
-			}
-		}
-	}
-
-	*Iterator = NULL;
-	return -1;
-}
-
-IPropertyEnabled* CDrawableSelection::SelPointAdd(const CPoint &point_, int Chains) 
-{
-	int nLayer = m_Groups[0].O.empty() ? -1: m_nLayer; 
-	CDrawableContext *pDrawableContext = NULL;
-
-	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
-
-	while(pDrawableContext) {
-		int nNewLayer = pDrawableContext->GetObjLayer();
-		if(m_pCurrentDrawable == NULL) m_pCurrentDrawable = pDrawableContext->GetSuperContext();
-		// If the layer is not locked and the new context is in the same layer as the currently selected layer:
-		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
-			m_nLayer = nLayer = nNewLayer;
-
-			// try to find in the selected groups:
-			vectorObject::iterator Iterator;
-			int nChild = FindInGroup(&Iterator, pDrawableContext,0 );
-			
-			if(nChild<0 || Iterator == m_Groups[nChild].O.end()) {
-				// the context is not yet selected, so try to select the full group containing it (if any)
-				if(SelectGroupWith(pDrawableContext)) return NULL;
-
-				CRect Rect;
-				pDrawableContext->GetRect(Rect);
-				pDrawableContext->SelectContext();
-
-				// The sprite wasn't on any group, so we add it as a new object to the selection group:
-				m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, 0, Rect, relative, relative));
-				m_nCurrentGroup = 0; // discard any currently selected group as a unique group.
-				m_pLastSelected = pDrawableContext; // set the last selection.
-
-				pDrawableContext->SelectContext();
-				CONSOLE_DEBUG("%d of %d objects selected.\n", m_Groups[0].O.size(), (*m_ppMainDrawable)->Objects());
-				CONSOLE_DEBUG("The selected object is on layer %d, and sublayer: %d.\n", pDrawableContext->GetObjLayer(), pDrawableContext->GetObjSubLayer());
-				return NULL;
-			}
-			if(nChild == m_nCurrentGroup) {
-				// The context was already selected, edit the chains:
-				if(Chains>0) {
-					if(m_Groups[m_nCurrentGroup].O.size() <= 1) 
-						return NULL; // ignore if there's only one selected object
-
-					if(Iterator->eXChain<4) {
-						Iterator->eXChain = (_Chain)((int)Iterator->eXChain+1);
-					} else {
-						Iterator->eXChain = (_Chain)0;
-						if(Iterator->eYChain<4) Iterator->eYChain = (_Chain)((int)Iterator->eYChain+1);
-						else Iterator->eYChain = (_Chain)0;
-					}
-					// set the last selection:
-					m_pLastSelected = Iterator->pContext;
-					CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
-					return static_cast<IPropertyEnabled *>(Iterator.operator ->());
-				} else if(Chains<0) {
-					if(m_Groups[m_nCurrentGroup].O.size() <= 1) 
-						return NULL; // ignore if there's only one selected object
-
-					if(Iterator->eXChain>0) {
-						Iterator->eXChain = (_Chain)((int)Iterator->eXChain-1);
-					} else {
-						Iterator->eXChain = (_Chain)4;
-						if(Iterator->eYChain>0) Iterator->eYChain = (_Chain)((int)Iterator->eYChain-1);
-						else Iterator->eYChain = (_Chain)4;
-					}
-					// set the last selection:
-					m_pLastSelected = Iterator->pContext;
-					CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
-					return static_cast<IPropertyEnabled *>(Iterator.operator ->());
-				}
-			}
-		}
-		pDrawableContext = NULL;
-		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
-	}
-	return NULL;
-}
-void CDrawableSelection::SelPointRemove(const CPoint &point_) 
-{
-	int nLayer = m_Groups[0].O.empty() ? -1: m_nLayer; 
-	CDrawableContext *pDrawableContext = NULL;
-
-	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
-
-	while(pDrawableContext) {
-		int nNewLayer = pDrawableContext->GetObjLayer();
-		// If the layer is not locked and the new context is in the same layer as the currently selected layer:
-		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
-			nLayer = nNewLayer;
-
-			// try to find in the selected groups:
-			vectorObject::iterator Iterator;
-			int nGroup = FindInGroup(&Iterator, pDrawableContext, 0);
-
-			if(nGroup >= 0) {
-				// Now that we have found the group on which the context is stored,
-				// we look for the topmost group:
-				while(m_Groups[nGroup].P) {
-					nGroup = m_Groups[nGroup].P;
-					ASSERT(nGroup >= 0 && nGroup <= (int)m_Groups.size());
-				}
-
-				vectorObject::iterator removed = 
-					remove_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
-				if(removed != m_Groups[0].O.end()) {
-					m_Groups[0].O.erase(removed, m_Groups[0].O.end());
-					return;
-				}
-
-				// the context is not yet selected, so try to select the full group containing it (if any)
-				SelectGroup(nGroup, false);
-			}
-
-			// remove the last selection:
-			if(m_pLastSelected == pDrawableContext) m_pLastSelected = NULL;
-		}
-		pDrawableContext = NULL;
-		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
-	}
-}
-
-// Interface:
-int CDrawableSelection::GetLayer()
+int CSpriteSelection::GetLayer()
 {
 	return m_nLayer;
 }
-void CDrawableSelection::SetLayer(int nLayer_)
+void CSpriteSelection::GetSelBounds(CRect *pRect_)
+{
+	GetBoundingRect(pRect_);
+}
+bool CSpriteSelection::SelectedAt(const CPoint &point_)
+{
+	vectorObject::const_iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		if(Iterator->pContext->isAt(point_)) return true;
+	}
+	return false;
+}
+
+void CSpriteSelection::LockLayer(int nLayer, bool bLock)
+{
+	ASSERT(nLayer>=0 && nLayer<=MAX_LAYERS);
+
+	if(nLayer>=0 && nLayer<=MAX_LAYERS)
+		m_bLockedLayers[nLayer] = bLock;
+
+	if(bLock && m_nLayer == nLayer) {
+		CleanSelection();
+	}
+}
+void CSpriteSelection::SetLayer(int nLayer_)
 {
 	m_nLayer = nLayer_;
 	if(m_nLayer < 0) m_nLayer = 0;
 	if(m_nLayer > MAX_LAYERS) m_nLayer = MAX_LAYERS;
 }
-void CDrawableSelection::SetSnapSize(int nSnapSize_, bool bShowGrid_)
+bool CSpriteSelection::SetClip(const CRect *pRect, ARGBCOLOR rgbColor)
+{
+	if(pRect) {
+		m_rcClip = *pRect;
+	} else {
+		m_rcClip.SetRect(0,0,0,0);
+	}
+	m_rgbClipColor = rgbColor;
+	return true;
+}
+void CSpriteSelection::SetSnapSize(int nSnapSize_, bool bShowGrid_)
 {
 	m_bShowGrid = bShowGrid_;
 	m_nSnapSize = nSnapSize_;
 }
-int CDrawableSelection::RealCount(int nGroup_)
-{
-	int nRet = 0;
-	vectorObject::const_iterator Iterator;
-	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-		if(Iterator->pContext) nRet++;
-		else nRet += RealCount(Iterator->nGroup);
-	}
-	return nRet;
-}
-int CDrawableSelection::Count()
-{
-	return m_Groups[0].O.size();
-}
-bool CDrawableSelection::isResizing() 
-{ 
-	return (m_eCurrentState==eResizing); 
-}
-bool CDrawableSelection::isMoving() 
-{ 
-	return (m_eCurrentState==eMoving); 
-}
-bool CDrawableSelection::isSelecting() 
-{ 
-	return (m_eCurrentState==eSelecting); 
-}
-bool CDrawableSelection::isFloating()
-{
-	return m_bFloating;
-}
-void CDrawableSelection::StartResizing(const CPoint &point_)
-{
-	m_eCurrentState = eResizing;
-	BuildRealSelectionBounds(); // updates m_rcSelection
-	m_ptInitialPoint = point_;
-}
-void CDrawableSelection::ResizeTo(const CPoint &point_)
-{
-	if(m_eCurrentState!=eResizing) return;
 
-	CRect rcNewBoundaries;
-	rcNewBoundaries = m_rcSelection;
-
-	CPoint PointTmp = m_ptInitialPoint - point_;
-	//if(PointTmp.x == 0 && PointTmp.y == 0) return;
-
-	if(m_bCursorLeft) {
-		rcNewBoundaries.left -= PointTmp.x;
-		rcNewBoundaries.left = m_nSnapSize*((rcNewBoundaries.left+(m_nSnapSize/2))/m_nSnapSize);
-	} else if(m_bCursorRight) {
-		rcNewBoundaries.right -= PointTmp.x;
-		rcNewBoundaries.right = m_nSnapSize*((rcNewBoundaries.right+(m_nSnapSize/2))/m_nSnapSize);
-	}
-	if(m_bCursorTop) {
-		rcNewBoundaries.top -= PointTmp.y;
-		rcNewBoundaries.top = m_nSnapSize*((rcNewBoundaries.top+(m_nSnapSize/2))/m_nSnapSize);
-	} else if(m_bCursorBottom) {
-		rcNewBoundaries.bottom -= PointTmp.y;
-		rcNewBoundaries.bottom = m_nSnapSize*((rcNewBoundaries.bottom+(m_nSnapSize/2))/m_nSnapSize);
-	}
-
-	// Any negative resizes will be transformed to the minumum unit (perhaps the current snap size)
-	if(rcNewBoundaries.Height()<m_nSnapSize && m_bCursorTop) {
-		int h = m_rcSelection.Height()%m_nSnapSize; if(h==0) h = m_nSnapSize;
-		rcNewBoundaries.bottom = m_rcSelection.bottom;
-		rcNewBoundaries.top = m_rcSelection.bottom - h;
-	} else if(rcNewBoundaries.Height()<m_nSnapSize && m_bCursorBottom) {
-		int h = m_rcSelection.Height()%m_nSnapSize; if(h==0) h = m_nSnapSize;
-		rcNewBoundaries.top = m_rcSelection.top;
-		rcNewBoundaries.bottom = m_rcSelection.top + h;
-	}
-	if(rcNewBoundaries.Width()<m_nSnapSize && m_bCursorLeft) {
-		int w = m_rcSelection.Width()%m_nSnapSize; if(w==0) w = m_nSnapSize;
-		rcNewBoundaries.right = m_rcSelection.right;
-		rcNewBoundaries.left = m_rcSelection.right - w;
-	} else if(rcNewBoundaries.Width()<m_nSnapSize && m_bCursorRight) {
-		int w = m_rcSelection.Width()%m_nSnapSize; if(w==0) w = m_nSnapSize;
-		rcNewBoundaries.left = m_rcSelection.left;
-		rcNewBoundaries.right = m_rcSelection.left + w;
-	}
-	rcNewBoundaries.NormalizeRect();
-
-	vectorObject::const_iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		ResizeObject(*Iterator, m_rcSelection, rcNewBoundaries, true);
-		// NEED TO FIX *** (add group resizing)
+void CSpriteSelection::InPlaceIn()
+{
+	if(isGroup()) {
+		CleanSelection();
+		m_pCurrentDrawable = m_Objects.begin()->pContext;
 	}
 }
-void CDrawableSelection::EndResizing(const CPoint &point_)
+void CSpriteSelection::InPlaceOut()
 {
-	if(m_eCurrentState!=eResizing) return;
-	ResizeTo(point_);
-
-	// Next, find out if any changes have actually taken place:
-	CRect rcNewBoundaries;
-	rcNewBoundaries = m_rcSelection; // save start boundaries rect
-	BuildRealSelectionBounds(); // updates m_rcSelection
-
-	if(rcNewBoundaries != m_rcSelection) Touch();
-
-	m_eCurrentState = eNone;
-}
-void CDrawableSelection::GetSelBounds(CRect *pRect_)
-{
-	GetBoundingRect(pRect_);
-}
-
-int CDrawableSelection::SetLayerSelection(int nLayer, int nGroup_)
-{
-	int nSelected = 0;
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-		if(Iterator->pContext) {
-			if(Iterator->pContext->GetObjLayer() != m_nLayer) {
-				Touch();
-				Iterator->pContext->SetObjLayer(m_nLayer);
-				nSelected++;
-			}
-		} else {
-			nSelected += SetLayerSelection(nLayer, Iterator->nGroup);
-		}
-	}
-	return nSelected;
-}
-void CDrawableSelection::SetLayerSelection(int nLayer)
-{
-	if(m_bFloating) return;
-
-	// first sort selection
-	SortSelection();
-
-	int nSelected = SetLayerSelection(nLayer, 0);
-	if(nSelected) {
-		m_nLayer = nLayer;
-		CONSOLE_DEBUG("%d objects moved to layer %d.\n", nSelected, nLayer);
-	}
-}
-
-int CDrawableSelection::DeleteSelection(int nGroup_)
-{
-	int nDeleted = 0;
-
-	if(m_bHoldSelection) { // if the selection is held, just remove from selection.
-		// NEED TO FIX *** add functionality to this
+	if(m_pCurrentDrawable && !m_pCurrentDrawable->isSuperContext()) {
+		m_pCurrentDrawable = m_pCurrentDrawable->GetParent();
 	} else {
-		vectorObject::iterator Iterator;
-		for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-			if(Iterator->pContext) {
-				Iterator->pContext->SelectContext(false);
-				DeleteInGroups(Iterator->pContext); // NEED TO FIX *** couldn't this be done using clear() instead?
-				(*m_ppMainDrawable)->DeleteChildEx(Iterator->pContext);
-				nDeleted++;
-			} else {
-				// Get the bounding rect of the children:
-				int nChild = Iterator->nGroup;
-				ASSERT(nChild >= 0 && nChild <= (int)m_Groups.size());
-				ASSERT(m_Groups[nChild].P == nGroup_); // verify child's parent to be valid
-				nDeleted += DeleteSelection(nChild);
-			}
-		}
-		m_Groups[nGroup_].O.clear();
+		m_pCurrentDrawable = NULL;
 	}
-
-	return nDeleted;
 }
-int CDrawableSelection::DeleteSelection()
+
+void CSpriteSelection::HoldOperation() 
 {
-	int nDeleted = DeleteSelection(0);
-
-	m_pLastSelected = NULL;
-	m_nCurrentGroup = 0;
-
-	if(m_bFloating) m_bFloating = false;
-	else Touch();
-	CONSOLE_DEBUG("%d objects left.\n", (*m_ppMainDrawable)->Objects());
-
-	return nDeleted;
+	if(m_eCurrentState==eResizing) ResizeTo(m_ptInitialPoint);
+	else if(m_eCurrentState==eMoving) MoveTo(m_ptInitialPoint);
 }
-void CDrawableSelection::Cancel()
+////////////////////////////////////////////////////////////////////////////
+// Actions:
+void CSpriteSelection::Cancel()
 {
 	if(m_bFloating && !m_bHoldSelection) {
 		DeleteSelection();
@@ -621,104 +275,400 @@ void CDrawableSelection::Cancel()
 		EndMoving(m_ptInitialPoint);
 	} else if(m_eCurrentState==eResizing) {
 		EndResizing(m_ptInitialPoint);
-	} else if(!m_bHoldSelection) {
-		vectorObject::iterator Iterator;
-		for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
-			for(Iterator = m_Groups[nChild].O.begin(); Iterator != m_Groups[nChild].O.end(); Iterator++) {
-				if(Iterator->pContext) {
-					Iterator->pContext->SelectContext(false);
-				}
+	} else {
+		CleanSelection();
+	}
+}
+void CSpriteSelection::CleanSelection() {
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		Iterator->pContext->SelectContext(false);
+	}
+	m_pLastSelected = NULL;
+	m_Objects.clear();
+}
+////////////////////////////////////////////////////////////////////////////
+// Operations:
+int CSpriteSelection::SetLayerSelection(int nLayer)
+{
+	if(m_bFloating) return 0;
+
+	// first sort selection
+	SortSelection();
+
+	int nSelected = 0;
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		if(Iterator->pContext->GetObjLayer() != m_nLayer) {
+			Iterator->pContext->SetObjLayer(m_nLayer);
+			nSelected++;
+		}
+	}
+
+	if(nSelected) {
+		m_nLayer = nLayer;
+		CONSOLE_DEBUG("%d objects moved to layer %d.\n", nSelected, nLayer);
+	}
+	return nSelected;
+}
+void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
+{
+	CONSOLE_DEBUG("Creating new group: '%s'..\n", szGroupName);
+	// go through all selected sprites adding them
+	// to the new group, and setting relationships:
+	CDrawableContext *pGroupContext = NULL;
+
+	CPoint ptPoint;
+	CRect rcRect;
+	GetBoundingRect(&rcRect);
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		pGroupContext = Iterator->pContext->SetGroup(szGroupName);
+		Iterator->pContext->GetPosition(ptPoint);
+		ptPoint -= rcRect.TopLeft();
+		Iterator->pContext->MoveTo(ptPoint);
+	}
+	if(pGroupContext) {
+		pGroupContext->MoveTo(rcRect.TopLeft());
+		CleanSelection();
+
+		pGroupContext->SelectContext();
+		m_pLastSelected = pGroupContext;
+		CRect Rect;
+		pGroupContext->GetAbsFinalRect(Rect);
+		m_Objects.push_back(SObjProp(this, pGroupContext, Rect));
+	}
+}
+// converts the currently selected group to a simple selection:
+void CSpriteSelection::GroupToSelection()
+{
+	//FIXME: do it
+}
+void CSpriteSelection::SelectionToTop()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(1);
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		Iterator->pContext->SetObjOrder(nNextOrder++);
+	}
+}
+void CSpriteSelection::SelectionToBottom()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(1, 0, m_Objects.size());
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		Iterator->pContext->SetObjOrder(nNextOrder++);
+	}
+}
+void CSpriteSelection::SelectionDown()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		int nNextOrder = Iterator->pContext->GetObjOrder() - 3;
+		if(nNextOrder < 0) nNextOrder = 0;
+		Iterator->pContext->SetObjOrder(nNextOrder);
+	}
+}
+void CSpriteSelection::SelectionUp()
+{
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	// we start by sorting the selected objects (in the selection):
+	SortSelection();
+	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		int nNextOrder = Iterator->pContext->GetObjOrder() + 3;
+		Iterator->pContext->SetObjOrder(nNextOrder);
+	}
+}
+
+void CSpriteSelection::FlipSelection()
+{
+/*
+	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(&rcBoundaries);
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		scontext->GetAbsFinalRect(RectTmp);
+
+		if(Iterator->eYChain == up) Iterator->eYChain = down;
+		else if(Iterator->eYChain == down) Iterator->eYChain = up;
+
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(scontext->GetSpriteType() != tEntity) {
+			if(scontext->isMirrored() && !scontext->isFlipped()) {
+				scontext->Mirror(false);
+				scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				scontext->Flip();
 			}
 		}
-		m_pLastSelected = NULL;
-		m_nCurrentGroup = 0;
-		m_Groups[0].O.clear();
+		Rect.top = rcBoundaries.top + (rcBoundaries.bottom - RectTmp.bottom);
+		Rect.bottom = rcBoundaries.bottom - (RectTmp.top - rcBoundaries.top);
+		Rect.left = RectTmp.left;
+		Rect.right = RectTmp.right;
+
+		Rect.NormalizeRect();
+
+		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
 	}
-}
-void CDrawableSelection::SetInitialMovingPoint(const CPoint &point_)
-{
-	m_ptInitialPoint = point_;
 
-	// adjust to check if the mouse is too close to the borders
-	// of the boundaries.
-	CRect rcBoundaries = m_rcSelection;
-
-	// Extend the rectangle to snap
-	rcBoundaries.bottom = rcBoundaries.bottom + m_nSnapSize - 1;
-	rcBoundaries.right = rcBoundaries.right + m_nSnapSize - 1;
-
-	rcBoundaries.top = (rcBoundaries.top/m_nSnapSize) * m_nSnapSize;
-	rcBoundaries.left = (rcBoundaries.left/m_nSnapSize) * m_nSnapSize;
-	rcBoundaries.right = (rcBoundaries.right/m_nSnapSize) * m_nSnapSize;
-	rcBoundaries.bottom = (rcBoundaries.bottom/m_nSnapSize) * m_nSnapSize;
-
-	// if the mouse is too close to the selection boundaries, we move it closer to the center
-	rcBoundaries.DeflateRect(m_nSnapSize/2 + 1, m_nSnapSize/2 + 1);
-
-	if(m_ptInitialPoint.x < rcBoundaries.left) m_ptInitialPoint.x = rcBoundaries.left;
-	else if(m_ptInitialPoint.x > rcBoundaries.right) m_ptInitialPoint.x = rcBoundaries.right;
-	if(m_ptInitialPoint.y < rcBoundaries.top) m_ptInitialPoint.y = rcBoundaries.top;
-	else if(m_ptInitialPoint.y > rcBoundaries.bottom) m_ptInitialPoint.y = rcBoundaries.bottom;
-
-	m_ptInitialPoint.Offset(-m_nSnapSize/2, -m_nSnapSize/2);
-}
-void CDrawableSelection::StartMoving(const CPoint &point_)
-{
-	m_eCurrentState = eMoving;
-	BuildRealSelectionBounds();
-	SetInitialMovingPoint(point_);
-}
-void CDrawableSelection::MoveTo(const CPoint &Point_)
-{
-	if(m_eCurrentState!=eMoving) return;
-
-	CRect rcOldBoundaries, rcNewBoundaries;
-	GetBoundingRect(&rcOldBoundaries);
-	rcNewBoundaries = m_rcSelection;
-
-	CPoint PointTmp = m_ptInitialPoint - Point_;
-	CPoint OffsetPoint(PointTmp.x%m_nSnapSize, PointTmp.y%m_nSnapSize);
-
-	int w = rcNewBoundaries.Width();
-	int h = rcNewBoundaries.Height();
-
-	rcNewBoundaries.left -= PointTmp.x;
-	rcNewBoundaries.left = m_nSnapSize*(rcNewBoundaries.left/m_nSnapSize);
-	rcNewBoundaries.top -= PointTmp.y;
-	rcNewBoundaries.top = m_nSnapSize*(rcNewBoundaries.top/m_nSnapSize);
-	rcNewBoundaries.right = rcNewBoundaries.left + w;
-	rcNewBoundaries.bottom = rcNewBoundaries.top + h;
-	
-	if(rcNewBoundaries.left == rcOldBoundaries.left && rcNewBoundaries.top == rcOldBoundaries.top) return;
-
-	vectorObject::const_iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		ResizeObject(*Iterator, m_rcSelection, rcNewBoundaries, true);
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(&m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
 	}
+
+	Touch();
+/**/
 }
-void CDrawableSelection::EndMoving(const CPoint &point_)
+void CSpriteSelection::MirrorSelection()
 {
-	if(m_eCurrentState!=eMoving) return;
-	MoveTo(point_);
+/*	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(&rcBoundaries);
 
-	// Next, find out if any changes have actually taken place:
-	CRect rcNewBoundaries;
-	rcNewBoundaries = m_rcSelection; // save start boundaries rect
-	BuildRealSelectionBounds(); // updates m_rcSelection
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		scontext->GetAbsFinalRect(RectTmp);
 
-	if(rcNewBoundaries != m_rcSelection || m_bFloating) Touch();
+		if(Iterator->eXChain == left) Iterator->eXChain = right;
+		else if(Iterator->eXChain == right) Iterator->eXChain = left;
 
-	m_bFloating = false;
-	m_eCurrentState = eNone;
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(scontext->GetSpriteType() != tEntity) {
+			if(!scontext->isMirrored() && scontext->isFlipped()) {
+				scontext->Flip(false);
+				scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				scontext->Mirror();
+			}
+		}
+		Rect.top = RectTmp.top;
+		Rect.bottom = RectTmp.bottom;
+		Rect.left = rcBoundaries.left + (rcBoundaries.right - RectTmp.right);
+		Rect.right = rcBoundaries.right - (RectTmp.left - rcBoundaries.left);
+
+		Rect.NormalizeRect();
+
+		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
+	}
+
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(&m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
+	}
+
+	Touch();
+/**/
 }
-// pauses all changes and restores original state on the move or resize operations.
-void CDrawableSelection::HoldOperation() 
+void CSpriteSelection::CWRotateSelection()
 {
-	if(m_eCurrentState==eResizing) ResizeTo(m_ptInitialPoint);
-	else if(m_eCurrentState==eMoving) MoveTo(m_ptInitialPoint);
+/*
+	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(&rcBoundaries);
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
+
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		scontext->GetAbsFinalRect(RectTmp);
+
+		_Chain cTmp = Iterator->eXChain;
+		Iterator->eXChain = Iterator->eYChain;
+		if(cTmp == left) Iterator->eYChain = up;
+		else if(cTmp == right) Iterator->eYChain = down;
+		else Iterator->eYChain = cTmp;
+
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(scontext->GetSpriteType() != tEntity) {
+			if(scontext->isMirrored() && scontext->isFlipped()) {
+				scontext->Flip(false);
+				scontext->Mirror(false);
+				scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				if(scontext->isMirrored() || scontext->isFlipped()) {
+					scontext->Flip();
+					scontext->Mirror();
+				}
+				scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			}
+			Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
+			Rect.bottom = rcBoundaries.top + (RectTmp.right - rcBoundaries.left);
+			Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
+			Rect.right = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.top);
+		} else {
+			Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
+			Rect.bottom = Rect.top + RectTmp.Height();
+			Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
+			Rect.right = Rect.left + RectTmp.Width();
+		}
+
+		Rect.NormalizeRect();
+
+		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
+	}
+
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(&m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
+	}
+
+	Touch();
+/**/
+}
+void CSpriteSelection::CCWRotateSelection()
+{
+/*
+	CRect rcBoundaries, RectTmp, Rect;
+	GetBoundingRect(&rcBoundaries);
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
+
+		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
+		scontext->GetAbsFinalRect(RectTmp);
+
+		_Chain cTmp = Iterator->eYChain;
+		Iterator->eYChain = Iterator->eXChain;
+		if(cTmp == up) Iterator->eXChain = left;
+		else if(cTmp == down) Iterator->eXChain = right;
+		else Iterator->eYChain = cTmp;
+
+		// no rotations nor transormations are allowed for entities 
+		// (that should be handled in the scripts instead)
+		if(scontext->GetSpriteType() != tEntity) {
+			if(scontext->isMirrored() && scontext->isFlipped()) {
+				scontext->Flip(false);
+				scontext->Mirror(false);
+				scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			} else {
+				if(scontext->isMirrored() || scontext->isFlipped()) {
+					scontext->Flip();
+					scontext->Mirror();
+				}
+				scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
+			}
+			Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
+			Rect.bottom = rcBoundaries.top + (rcBoundaries.right - RectTmp.left);
+			Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
+			Rect.right = rcBoundaries.left + (RectTmp.bottom - rcBoundaries.top);
+		} else {
+			Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
+			Rect.bottom = Rect.top + RectTmp.Height();
+			Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
+			Rect.right = Rect.left + RectTmp.Width();
+		}
+
+		Rect.NormalizeRect();
+
+		scontext->SetAbsFinalRect(Rect);
+		if(m_eCurrentState==eMoving) {
+			Iterator->rcRect = Rect; // for floating selections
+		}
+	}
+
+	if(m_eCurrentState==eMoving) {
+		GetBoundingRect(&m_rcSelection);
+		SetInitialMovingPoint(m_rcSelection.CenterPoint());
+	}
+
+	Touch();
+/**/
 }
 
-void CDrawableSelection::StartSelBox(const CPoint &point_) {
+int CSpriteSelection::DeleteSelection()
+{
+	int nDeleted = 0;
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		Iterator->pContext->SelectContext(false);
+		(*m_ppMainDrawable)->DeleteChildEx(Iterator->pContext);
+		nDeleted++;
+	}
+	m_Objects.clear();
+
+	m_pLastSelected = NULL;
+
+	if(m_bFloating) m_bFloating = false;
+	CONSOLE_DEBUG("%d objects left.\n", (*m_ppMainDrawable)->Objects());
+	return nDeleted;
+}
+void CSpriteSelection::SetSelectionName(LPCSTR szName)
+{
+	//FIXME: change the sprite set name
+}
+
+LPCSTR CSpriteSelection::GetSelectionName(LPSTR szName, int size)
+{
+	//FIXME: get the sprite set name
+	return szName;
+}
+////////////////////////////////////////////////////////////////////////////
+// Selection:
+SObjProp* CSpriteSelection::GetFirstSelection()
+{
+	m_CurrentSel = m_Objects.begin();
+	if(m_CurrentSel == m_Objects.end()) return NULL;
+	return (m_CurrentSel++).operator ->();
+}
+
+SObjProp* CSpriteSelection::GetNextSelection() 
+{
+	if(m_CurrentSel == NULL) return NULL;
+	if(m_CurrentSel == m_Objects.end()) return NULL;
+	return (m_CurrentSel++).operator ->();
+}
+
+void CSpriteSelection::StartSelBox(const CPoint &point_) {
 	m_rcSelection.left = point_.x;
 	m_rcSelection.top = point_.y;
 	m_rcSelection.right = point_.x;
@@ -729,131 +679,18 @@ void CDrawableSelection::StartSelBox(const CPoint &point_) {
 	m_bCanMove = false;		// the boundary box on the screen.
 
 }
-void CDrawableSelection::CancelSelBox() {
+void CSpriteSelection::CancelSelBox() {
 	if(m_eCurrentState!=eSelecting) return;
 	m_eCurrentState = eNone;
 }
-void CDrawableSelection::SizeSelBox(const CPoint &point_) {
+void CSpriteSelection::SizeSelBox(const CPoint &point_) {
 	if(m_eCurrentState!=eSelecting) return;
 	m_rcSelection.right = point_.x;
 	m_rcSelection.bottom = point_.y;
 }
 
-void CDrawableSelection::LockLayer(int nLayer, bool bLock)
+IPropertyEnabled* CSpriteSelection::EndSelBoxAdd(const CPoint &point_, int Chains_) 
 {
-	ASSERT(nLayer>=0 && nLayer<=MAX_LAYERS);
-
-	if(nLayer>=0 && nLayer<=MAX_LAYERS)
-		m_bLockedLayers[nLayer] = bLock;
-
-	if(bLock && m_nLayer == nLayer) {
-		// deselect all:
-		vectorObject::iterator Iterator;
-		for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
-			for(Iterator = m_Groups[nChild].O.begin(); Iterator != m_Groups[nChild].O.end(); Iterator++) {
-				if(Iterator->pContext) {
-					Iterator->pContext->SelectContext(false);
-				}
-			}
-		}
-		m_pLastSelected = NULL;
-		m_nCurrentGroup = 0;
-		m_Groups[0].O.clear();
-		m_nLayer = -1;
-	}
-}
-bool CDrawableSelection::isLocked(int nLayer)
-{
-	ASSERT(nLayer>=0 && nLayer<=MAX_LAYERS);
-
-	if(nLayer>=0 && nLayer<=MAX_LAYERS)
-		return m_bLockedLayers[nLayer];
-
-	return false;
-}
-bool CDrawableSelection::SelectedAt(const CPoint &point_)
-{
-	vectorObject::const_iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext) {
-			if(Iterator->pContext->isAt(point_)) return true;
-		} else {
-			int nChild = Iterator->nGroup;
-			CRect Rect;
-			GetBoundingRect(&Rect, nChild);
-			if(Rect.PtInRect(point_)) return true;
-		}
-	}
-	return false;
-}
-
-void CDrawableSelection::SubSelPoint(bool bAdd, const CPoint &point_, int Chains)
-{
-	vectorObject::reverse_iterator Iterator;
-	for(Iterator = m_Groups[0].O.rbegin(); Iterator != m_Groups[0].O.rend(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		if(Iterator->pContext->isAt(point_) && Iterator->bSubselected != bAdd) {
-			if(Chains==0 || !bAdd) {
-				if(Iterator->pContext == m_pLastSelected && !bAdd) m_pLastSelected = NULL;
-				if(bAdd) m_pLastSelected = Iterator->pContext;
-				Iterator->bSubselected = bAdd;
-			} else if(Chains>0) {
-				if(m_Groups[0].O.size()<=1) return; // ignore if there's only one object
-				if(Iterator->eXChain<4) Iterator->eXChain = (_Chain)((int)Iterator->eXChain+1);
-				else {
-					Iterator->eXChain = (_Chain)0;
-					if(Iterator->eYChain<4) Iterator->eYChain = (_Chain)((int)Iterator->eYChain+1);
-					else Iterator->eYChain = (_Chain)0;
-				}
-				m_pLastSelected = Iterator->pContext;
-				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
-			} else if(Chains<0) {
-				if(m_Groups[0].O.size()<=1) return; // ignore if there's only one object
-				if(Iterator->eXChain>0) Iterator->eXChain = (_Chain)((int)Iterator->eXChain-1);
-				else {
-					Iterator->eXChain = (_Chain)4;
-					if(Iterator->eYChain>0) Iterator->eYChain = (_Chain)((int)Iterator->eYChain-1);
-					else Iterator->eYChain = (_Chain)4;
-				}
-				m_pLastSelected = Iterator->pContext;
-				CONSOLE_DEBUG("XChain: %d, YChain: %d\n", (int)Iterator->eXChain, (int)Iterator->eYChain);
-			}
-			return;
-		}
-	}
-}
-
-void CDrawableSelection::EndSubSelBox(bool bAdd, const CPoint &point_, int Chains) 
-{
-	if(m_eCurrentState!=eSelecting) return;
-
-	m_rcSelection.right = point_.x;
-	m_rcSelection.bottom = point_.y;
-	m_eCurrentState = eNone;
-
-	m_rcSelection.NormalizeRect();
-	if(m_rcSelection.Width()<=1 && m_rcSelection.Height()<=1) {
-		SubSelPoint(bAdd, m_rcSelection.TopLeft(), Chains);
-		return;
-	}
-
-	vectorObject::reverse_iterator Iterator;
-	for(Iterator = m_Groups[0].O.rbegin(); Iterator != m_Groups[0].O.rend(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		if(Iterator->pContext->isIn(m_rcSelection)) {
-			if(Iterator->pContext == m_pLastSelected && !bAdd) m_pLastSelected = NULL;
-			if(bAdd) m_pLastSelected = Iterator->pContext;
-			Iterator->bSubselected = bAdd;
-		}
-	}
-}
-
-IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Chains) 
-{
-	if(m_bHoldSelection) {
-		EndSubSelBox(true, point_, Chains);
-		return NULL;
-	}
 	if(m_eCurrentState!=eSelecting) return NULL;
 
 	m_rcSelection.right = point_.x;
@@ -862,49 +699,76 @@ IPropertyEnabled* CDrawableSelection::EndSelBoxAdd(const CPoint &point_, int Cha
 
 	m_rcSelection.NormalizeRect();
 	if(m_rcSelection.Width()<=1 && m_rcSelection.Height()<=1) {
-		return SelPointAdd(m_rcSelection.TopLeft(), Chains);
+		return SelPointAdd(m_rcSelection.TopLeft(), Chains_);
 	}
-	int nLayer = m_Groups[0].O.empty() ? -1 : m_nLayer;
+	int nLayer = m_Objects.empty() ? -1 : m_nLayer;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
 		int nNewLayer = pDrawableContext->GetObjLayer();
 		if(m_pCurrentDrawable == NULL) m_pCurrentDrawable = pDrawableContext->GetSuperContext();
-		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
-			m_nLayer = nLayer = nNewLayer;
+		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
+			// Find in the selection:
+			if(true) {
+				m_nLayer = nLayer = nNewLayer;
+				pDrawableContext->SelectContext();
+				m_pLastSelected = pDrawableContext;
 
-			// try to find in the selected groups:
-			vectorObject::iterator Iterator;
-			int nChild = FindInGroup(&Iterator, pDrawableContext, 0);
-
-			// NEED TO FIX *** group selection should be better, and should handle chains too
-			if(nChild<0 || Iterator == m_Groups[nChild].O.end()) {
-				if(!SelectGroupWithIn(m_rcSelection, pDrawableContext)) {
-					CRect Rect;
-					pDrawableContext->GetRect(Rect);
-					pDrawableContext->SelectContext();
-
-					m_pLastSelected = pDrawableContext;
-	
-					m_nCurrentGroup = 0;
-					m_Groups[0].O.push_back(SObjProp(this, pDrawableContext, 0, Rect, relative, relative));
-				}
+				CRect Rect;
+				pDrawableContext->GetAbsFinalRect(Rect);
+				// We add the sprite as a new object to the selection:
+				m_Objects.push_back(SObjProp(this, pDrawableContext, Rect));
+			} else if(Chains_ > 0) {
+				// Change the chain of the object
+			} else if(Chains_ < 0) {
+				// Change the chain of the object
 			}
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildIn(m_rcSelection, &pDrawableContext);
 	}
-	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Groups[0].O.size(), (*m_ppMainDrawable)->Objects());
+	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
 	return NULL;
 }
-void CDrawableSelection::EndSelBoxRemove(const CPoint &point_) 
+IPropertyEnabled* CSpriteSelection::SelPointAdd(const CPoint &point_, int Chains_) 
 {
-	if(m_bHoldSelection) {
-		EndSubSelBox(false, point_, 0);
-		return;
-	}
+	int nLayer = m_Objects.empty() ? -1: m_nLayer; 
+	CDrawableContext *pDrawableContext = NULL;
 
+	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
+	while(pDrawableContext) {
+		int nNewLayer = pDrawableContext->GetObjLayer();
+		if(m_pCurrentDrawable == NULL) m_pCurrentDrawable = pDrawableContext->GetSuperContext();
+		// If the layer is not locked and the new context is in the same layer as the currently selected layer:
+		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
+			// Find in the selection:
+			if(true) {
+				m_nLayer = nLayer = nNewLayer;
+				CRect Rect;
+				pDrawableContext->GetAbsFinalRect(Rect);
+				// We add the sprite as a new object to the selection:
+				m_Objects.push_back(SObjProp(this, pDrawableContext, Rect));
+				m_pLastSelected = pDrawableContext; // set the last selection.
+	
+				pDrawableContext->SelectContext();
+				CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
+				CONSOLE_DEBUG("The selected object is on layer %d, and sublayer: %d.\n", pDrawableContext->GetObjLayer(), pDrawableContext->GetObjSubLayer());
+				return NULL;
+			} else if(Chains_ > 0) {
+				// Change the chain of the object
+			} else if(Chains_ < 0) {
+				// Change the chain of the object
+			}
+		}
+		pDrawableContext = NULL;
+		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
+	}
+	return NULL;
+}
+void CSpriteSelection::EndSelBoxRemove(const CPoint &point_) 
+{
 	if(m_eCurrentState!=eSelecting) return;
+
 	m_rcSelection.right = point_.x;
 	m_rcSelection.bottom = point_.y;
 	m_eCurrentState = eNone;
@@ -913,44 +777,57 @@ void CDrawableSelection::EndSelBoxRemove(const CPoint &point_)
 	if(m_rcSelection.Width()<=1 && m_rcSelection.Height()<=1) 
 		SelPointRemove(m_rcSelection.TopLeft());
 
-	int nLayer = m_Groups[0].O.empty() ? -1 : m_nLayer;
+	int nLayer = m_Objects.empty() ? -1 : m_nLayer;
 	CDrawableContext *pDrawableContext = NULL;
 	(*m_ppMainDrawable)->GetFirstChildIn(m_rcSelection, &pDrawableContext);
 	while(pDrawableContext) {
 		int nNewLayer = pDrawableContext->GetObjLayer();
-		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1 || m_bAllowMultiLayerSel)) {
+		if(m_pCurrentDrawable == NULL) m_pCurrentDrawable = pDrawableContext->GetSuperContext();
+		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
 			nLayer = nNewLayer;
-
-			if(pDrawableContext == m_pLastSelected) m_pLastSelected = NULL;
-
-			pDrawableContext->SelectContext(false);
-			vectorObject::iterator remove = 
-				remove_if(m_Groups[0].O.begin(), m_Groups[0].O.end(), bind2nd(m_equalContext, pDrawableContext));
-			if(remove != m_Groups[0].O.end()) {
-				m_nCurrentGroup = 0;
-				m_Groups[0].O.erase(remove, m_Groups[0].O.end());
+			// If we find it, remove the sprite:
+			vectorObject::iterator removed = 
+				remove_if(m_Objects.begin(), m_Objects.end(), bind2nd(m_equalContext, pDrawableContext));
+			if(removed != m_Objects.end()) {
+				// remove the selection:
+				if(pDrawableContext == m_pLastSelected) m_pLastSelected = NULL;
+				pDrawableContext->SelectContext(false);
+				m_Objects.erase(removed, m_Objects.end());
 			}
 		}
 		pDrawableContext = NULL;
 		(*m_ppMainDrawable)->GetNextChildIn(m_rcSelection, &pDrawableContext);
 	}
+	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
 }
-void CDrawableSelection::CleanSelection() {
-	vectorObject::iterator Iterator;
-	for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
-		for(Iterator = m_Groups[nChild].O.begin(); Iterator != m_Groups[nChild].O.end(); Iterator++) {
-			if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-			if(!m_bHoldSelection) Iterator->pContext->SelectContext(false);
-			else Iterator->bSubselected = false;
+void CSpriteSelection::SelPointRemove(const CPoint &point_) 
+{
+	int nLayer = m_Objects.empty() ? -1: m_nLayer; 
+	CDrawableContext *pDrawableContext = NULL;
+
+	(*m_ppMainDrawable)->GetFirstChildAt(point_, &pDrawableContext);
+	while(pDrawableContext) {
+		int nNewLayer = pDrawableContext->GetObjLayer();
+		// If the layer is not locked and the new context is in the same layer as the currently selected layer:
+		if(!isLocked(nNewLayer) && (nNewLayer == nLayer || nLayer == -1) && (pDrawableContext->GetParent() == m_pCurrentDrawable)) {
+			nLayer = nNewLayer;
+			// If we find it, remove the sprite:
+			vectorObject::iterator removed = 
+				remove_if(m_Objects.begin(), m_Objects.end(), bind2nd(m_equalContext, pDrawableContext));
+			if(removed != m_Objects.end()) {
+				// remove the selection:
+				if(m_pLastSelected == pDrawableContext) m_pLastSelected = NULL;
+				pDrawableContext->SelectContext(false);
+				m_Objects.erase(removed, m_Objects.end());
+				return;
+			}
 		}
-	}
-	m_pLastSelected = NULL;
-	if(!m_bHoldSelection) {
-		m_nCurrentGroup = 0;
-		m_Groups[0].O.clear();
+		pDrawableContext = NULL;
+		(*m_ppMainDrawable)->GetNextChildAt(point_, &pDrawableContext);
 	}
 }
-bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor)
+
+bool CSpriteSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoint &point_, CURSOR *pCursor)
 {
 	CPoint WorldPoint = point_;
 	// We get the world coordinates for the mouse position
@@ -975,16 +852,12 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 
 	// For each selected object, we check to see if the mouse is over it, also we build a bounding Rect:
 	vectorObject::const_iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext) {
-			Iterator->pContext->GetAbsFinalRect(RectTmp);
-		} else {
-			GetBoundingRect(&RectTmp, Iterator->nGroup);
-		}
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ASSERT(Iterator->pContext);
+		Iterator->pContext->GetAbsFinalRect(RectTmp);
 		if(RectTmp.PtInRect(WorldPoint) && m_bCanMove) m_CurrentCursor = eIDC_SIZEALL; // The cursor is ovet the object.
 		Rect.UnionRect(Rect, RectTmp);	// Bounding Rect
 	}
-	// NEET TO FIX *** (add mouse stuff over groups)
 
 	// Now that we have the full bounding Rect (in world coordinates) we convert it to View coordinates.
 	pGraphics_->WorldToView(&Rect);
@@ -1054,469 +927,163 @@ bool CDrawableSelection::GetMouseStateAt(const IGraphics *pGraphics_, const CPoi
 	*pCursor = m_CurrentCursor;
 	return ret;
 }
-
-void CDrawableSelection::SortSelection()
+////////////////////////////////////////////////////////////////////////////
+// Moving:
+void CSpriteSelection::SetInitialMovingPoint(const CPoint &point_)
 {
-	for(int nChild=0; nChild<(int)m_Groups.size(); nChild++) {
-		sort(m_Groups[nChild].O.begin(), m_Groups[nChild].O.end(), m_cmpSelection);
+	m_ptInitialPoint = point_;
+
+	// adjust to check if the mouse is too close to the borders
+	// of the boundaries.
+	CRect rcBoundaries = m_rcSelection;
+
+	// Extend the rectangle to snap
+	rcBoundaries.bottom = rcBoundaries.bottom + m_nSnapSize - 1;
+	rcBoundaries.right = rcBoundaries.right + m_nSnapSize - 1;
+
+	rcBoundaries.top = (rcBoundaries.top/m_nSnapSize) * m_nSnapSize;
+	rcBoundaries.left = (rcBoundaries.left/m_nSnapSize) * m_nSnapSize;
+	rcBoundaries.right = (rcBoundaries.right/m_nSnapSize) * m_nSnapSize;
+	rcBoundaries.bottom = (rcBoundaries.bottom/m_nSnapSize) * m_nSnapSize;
+
+	// if the mouse is too close to the selection boundaries, we move it closer to the center
+	rcBoundaries.DeflateRect(m_nSnapSize/2 + 1, m_nSnapSize/2 + 1);
+
+	if(m_ptInitialPoint.x < rcBoundaries.left) m_ptInitialPoint.x = rcBoundaries.left;
+	else if(m_ptInitialPoint.x > rcBoundaries.right) m_ptInitialPoint.x = rcBoundaries.right;
+	if(m_ptInitialPoint.y < rcBoundaries.top) m_ptInitialPoint.y = rcBoundaries.top;
+	else if(m_ptInitialPoint.y > rcBoundaries.bottom) m_ptInitialPoint.y = rcBoundaries.bottom;
+
+	m_ptInitialPoint.Offset(-m_nSnapSize/2, -m_nSnapSize/2);
+}
+void CSpriteSelection::StartMoving(const CPoint &point_)
+{
+	m_eCurrentState = eMoving;
+	BuildRealSelectionBounds();
+	SetInitialMovingPoint(point_);
+}
+void CSpriteSelection::MoveTo(const CPoint &Point_)
+{
+	if(m_eCurrentState!=eMoving) return;
+
+	CRect rcOldBoundaries, rcNewBoundaries;
+	GetBoundingRect(&rcOldBoundaries);
+	rcNewBoundaries = m_rcSelection;
+
+	CPoint PointTmp = m_ptInitialPoint - Point_;
+	CPoint OffsetPoint(PointTmp.x%m_nSnapSize, PointTmp.y%m_nSnapSize);
+
+	int w = rcNewBoundaries.Width();
+	int h = rcNewBoundaries.Height();
+
+	rcNewBoundaries.left -= PointTmp.x;
+	rcNewBoundaries.left = m_nSnapSize*(rcNewBoundaries.left/m_nSnapSize);
+	rcNewBoundaries.top -= PointTmp.y;
+	rcNewBoundaries.top = m_nSnapSize*(rcNewBoundaries.top/m_nSnapSize);
+	rcNewBoundaries.right = rcNewBoundaries.left + w;
+	rcNewBoundaries.bottom = rcNewBoundaries.top + h;
+	
+	if(rcNewBoundaries.left == rcOldBoundaries.left && rcNewBoundaries.top == rcOldBoundaries.top) return;
+
+	vectorObject::const_iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ResizeObject(*Iterator, m_rcSelection, rcNewBoundaries, true);
 	}
 }
-
-inline bool CDrawableSelection::BeginPaint(IGraphics *pGraphicsI, WORD wFlags)
+void CSpriteSelection::EndMoving(const CPoint &point_)
 {
-	ASSERT(m_ppMainDrawable);
-	if(!*m_ppMainDrawable) return false;
+	if(m_eCurrentState!=eMoving) return;
+	MoveTo(point_);
 
-	/* // For testing only:
-	static bool bret = false;
-	static DWORD qq = GetTickCount();
-	static float fAux = 1.00f;
+	// Next, find out if any changes have actually taken place:
+	CRect rcNewBoundaries;
+	rcNewBoundaries = m_rcSelection; // save start boundaries rect
+	BuildRealSelectionBounds(); // updates m_rcSelection
 
-	ARGBCOLOR argb = COLOR_ARGB((int)(255.0f*(0.5f+(fAux/2.0f))), 128, 128, 128);
-	int move = (int)(400.0f - 800.0f * fAux);
-	/**/
+	if(rcNewBoundaries != m_rcSelection) Touch();
 
-	CSprite::SetShowOptions(wFlags);
-	DWORD color = ::GetSysColor(COLOR_APPWORKSPACE);
-	pGraphicsI->SetFilterBkColor(COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)));
+	m_bFloating = false;
+	m_eCurrentState = eNone;
+}
+////////////////////////////////////////////////////////////////////////////
+// Resizing:
+void CSpriteSelection::StartResizing(const CPoint &point_)
+{
+	m_eCurrentState = eResizing;
+	BuildRealSelectionBounds(); // updates m_rcSelection
+	m_ptInitialPoint = point_;
+}
+void CSpriteSelection::ResizeTo(const CPoint &point_)
+{
+	if(m_eCurrentState!=eResizing) return;
 
-	// Activate the filters:
-	if((wFlags & GRAPHICS_FILTERS) == GRAPHICS_FILTERS) 
-		pGraphicsI->SetFilter(EnableFilters, (void*)true);
+	CRect rcNewBoundaries;
+	rcNewBoundaries = m_rcSelection;
 
-	/* // For testing only:
-	float pixelate = 17.0f - 16.0f * fAux;
-	pGraphicsI->SetFilter(Pixelate, &pixelate);
-	/*pGraphicsI->SetFilter(Alpha, &argb);
-	pGraphicsI->SetFilter(HorzMove, &move);
-	/**/
-	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
-	if(pGraphicsI->BeginPaint()) {
-		/* // For testing only:
-		if(GetTickCount() > qq + 60) {
-			qq = GetTickCount();
-			if(bret) fAux /= 0.8f;
-			else fAux *= 0.8f;
-			if(fAux<0.025f) {
-				fAux = 0.025f;
-				bret = true;
-			} else if(fAux>1.0f) {
-				fAux = 1.0f;
-				qq+=2000;
-				bret = false;
-			}
-		}
-		/**/
-		return true;
+	CPoint PointTmp = m_ptInitialPoint - point_;
+	//if(PointTmp.x == 0 && PointTmp.y == 0) return;
+
+	if(m_bCursorLeft) {
+		rcNewBoundaries.left -= PointTmp.x;
+		rcNewBoundaries.left = m_nSnapSize*((rcNewBoundaries.left+(m_nSnapSize/2))/m_nSnapSize);
+	} else if(m_bCursorRight) {
+		rcNewBoundaries.right -= PointTmp.x;
+		rcNewBoundaries.right = m_nSnapSize*((rcNewBoundaries.right+(m_nSnapSize/2))/m_nSnapSize);
 	}
-	return false;
-}
-inline bool CDrawableSelection::EndPaint(IGraphics *pGraphicsI)
-{
-	return pGraphicsI->EndPaint();
-}
-inline bool CDrawableSelection::DrawAll(IGraphics *pGraphicsI)
-{
-	bool bRet = true;
-	if(m_bHoldSelection) bRet &= (*m_ppMainDrawable)->DrawSelectedH(pGraphicsI);
-	else bRet &= (*m_ppMainDrawable)->Draw(pGraphicsI);
-	pGraphicsI->FlushFilters(true);
-	pGraphicsI->SetFilter(ClearFilters, NULL);
-
-	if(m_bShowGrid) 
-		bRet &= pGraphicsI->DrawGrid(16, COLOR_ARGB(100,0,0,255));
-
-	if(!m_rcClip.IsRectEmpty()) {
-		bRet &= pGraphicsI->DrawFrame(m_rcClip, m_rgbClipColor, COLOR_ARGB(255, 255, 0, 0));
-	}
-/*	if(m_nLayer != -1) { // Layer not locked:
-		// Get the current layer's size and draw a frame around it:
-		CRect Rect;
-		(*m_ppMainDrawable)->GetChild(m_nLayer)->GetRect(Rect);
-		if(!Rect.IsRectEmpty()) pGraphicsI->SelectingBox(Rect, COLOR_ARGB(128, 0, 255, 0)); 
-	}/**/
-
-	bRet &= Draw(pGraphicsI);
-
-	return bRet;
-}
-bool CDrawableSelection::SetClip(const CRect *pRect, ARGBCOLOR rgbColor)
-{
-	if(pRect) {
-		m_rcClip = *pRect;
-	} else {
-		m_rcClip.SetRect(0,0,0,0);
-	}
-	m_rgbClipColor = rgbColor;
-	return true;
-}
-
-bool CDrawableSelection::Paint(IGraphics *pGraphicsI, WORD wFlags)
-{
-	bool bRet = true;
-	if(BeginPaint(pGraphicsI, wFlags)) {
-		bRet &= DrawAll(pGraphicsI);
-		bRet &= EndPaint(pGraphicsI);
-	} else return false;
-	return bRet;
-}
-BITMAP* CDrawableSelection::Capture(IGraphics *pGraphicsI, float zoom)
-{
-	CSize szMap;
-	(*m_ppMainDrawable)->GetSize(szMap);
-
-	CRect RectFull(0, 0, (int)((float)szMap.cx*zoom), (int)((float)szMap.cy*zoom));
-	if(RectFull.Width()%2) RectFull.right++;
-
-	CRect RectPortion = RectFull;
-
-	// Standard bitmaps are expected to be in a 16 bits boundary
-	int bmWidthBytes = RectFull.Width() * sizeof(WORD); 
-	// Allocate enough memory for the complete 16 bits bitmap
-	BITMAP *pBitmap = (BITMAP*)new BYTE[sizeof(BITMAP) + RectFull.Height() * bmWidthBytes];
-
-	ZeroMemory(pBitmap, sizeof(BITMAP));
-	pBitmap->bmBits = (BYTE*)pBitmap + sizeof(BITMAP);
-	pBitmap->bmWidth = RectFull.Width();
-	pBitmap->bmHeight = RectFull.Height();
-	pBitmap->bmWidthBytes = bmWidthBytes;
-	pBitmap->bmBitsPixel = sizeof(WORD)*8;
-
-	CSprite::SetShowOptions(SPRITE_ENTITIES); // show entities
-	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
-	// BeginCapture() and EndCapture() return 16 bits bitmaps in the RGB555 format.
-	if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
-		(*m_ppMainDrawable)->Draw(pGraphicsI);
-		pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
-	}
-	while(RectPortion.bottom!= RectFull.bottom || RectPortion.right!=RectFull.right) {
-		if(RectPortion.right != RectFull.right) {
-			RectPortion.left = RectPortion.right;
-			RectPortion.right = RectFull.right;
-		} else {
-			RectPortion.left = RectFull.left;
-			RectPortion.right = RectFull.right;
-			RectPortion.top = RectPortion.bottom;
-			RectPortion.bottom = RectFull.bottom;
-		}
-		if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
-			(*m_ppMainDrawable)->Draw(pGraphicsI);
-			pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
-		}
-	} 
-
-	return pBitmap;
-}
-
-// if(zoom == 0) zooming is calculated automagically
-BITMAP* CDrawableSelection::CaptureSelection(IGraphics *pGraphicsI, float zoom)
-{
-	CRect RectFull;
-	GetBoundingRect(&RectFull);
-	if(zoom == 0) {
-		zoom = 1.0f / max((float)RectFull.Width()/100.0f, (float)RectFull.Height()/100.0f);
-		if(zoom > 3) zoom = 2;
-		else if(zoom > 1) zoom = 1;
-	}
-	ASSERT(zoom != 0);
-
-	RectFull.top = (int)((float)RectFull.top * zoom);
-	RectFull.bottom = (int)((float)RectFull.bottom * zoom);
-	RectFull.left = (int)((float)RectFull.left * zoom);
-	RectFull.right = (int)((float)RectFull.right * zoom);
-	if(RectFull.Width()%2) RectFull.right++;
-
-	CRect RectPortion = RectFull;
-
-	// Standard bitmaps are expected to be in a 16 bits boundary
-	int bmWidthBytes = RectFull.Width() * sizeof(WORD); 
-	// Allocate enough memory for the complete 16 bits bitmap Quest Designer Sprite Set
-	BITMAP *pBitmap = (BITMAP*)new BYTE[sizeof(BITMAP) + RectFull.Height() * bmWidthBytes];
-
-	ZeroMemory(pBitmap, sizeof(BITMAP));
-	pBitmap->bmBits = (BYTE*)pBitmap + sizeof(BITMAP);
-	pBitmap->bmWidth = RectFull.Width();
-	pBitmap->bmHeight = RectFull.Height();
-	pBitmap->bmWidthBytes = bmWidthBytes;
-	pBitmap->bmBitsPixel = sizeof(WORD)*8;
-
-	CSprite::SetShowOptions(SPRITE_ENTITIES); // show entities
-	pGraphicsI->SetClearColor(COLOR_ARGB(255,255,255,255));
-	// BeginCapture() and EndCapture() return 16 bits bitmaps in the RGB555 format.
-	if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
-		(*m_ppMainDrawable)->DrawSelected(pGraphicsI);
-		pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
-	}
-	while(RectPortion.bottom!= RectFull.bottom || RectPortion.right!=RectFull.right) {
-		if(RectPortion.right != RectFull.right) {
-			RectPortion.left = RectPortion.right;
-			RectPortion.right = RectFull.right;
-		} else {
-			RectPortion.left = RectFull.left;
-			RectPortion.right = RectFull.right;
-			RectPortion.top = RectPortion.bottom;
-			RectPortion.bottom = RectFull.bottom;
-		}
-		if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
-			(*m_ppMainDrawable)->DrawSelected(pGraphicsI);
-			pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
-		}
-	} 
-
-	return pBitmap;
-}
-void CDrawableSelection::CleanPasteGroups()
-{
-	// NEED TO FIX *** shouldn't we start on group 0:
-	for(int i=1; i<(int)m_Groups.size(); i++) {
-		m_nCurrentGroup = 0;
-		m_Groups[i].O.clear();
-	}
-}
-
-int CDrawableSelection::SetNextPasteGroup(LPCSTR szGroupName, int nNew)
-{
-	if(nNew >= 0 && nNew < (int)m_Groups.size()) m_nPasteGroup = nNew;
-	else if(nNew != -1) return m_nPasteGroup;
-
-	// find an empty existent group to paste the sprites:
-	for(int i=1; i<(int)m_Groups.size() && nNew==-1; i++) {
-		if(m_Groups[i].O.empty()) nNew = i;
-	}
-	// if no empty group was found, increase the number of groups:
-	if(nNew == -1) {
-		nNew = m_Groups.size();
-		m_Groups.resize(nNew + 4);		 // increase by 4 groups each time it's needed (increasing a vector's size is costly)
-	}
-	ASSERT(nNew >= 0 && nNew < (int)m_Groups.size());
-
-	// NEED TO FIX *** (If we are exlusively editing a group, we add the new paste group to that group:??)
-	if(m_bHoldSelection) {
-		m_Groups[nNew].P = m_nCurrentGroup; // the new group's parent is the current group.
-	}
-	m_Groups[nNew].Name = szGroupName;
-	m_nPasteGroup = nNew;
-
-	return m_nPasteGroup;
-}
-SObjProp* CDrawableSelection::GetFirstSelection()
-{
-	m_CurrentSel = m_Groups[0].O.begin();
-	if(m_CurrentSel == m_Groups[0].O.end()) return NULL;
-	return (m_CurrentSel++).operator ->();
-}
-
-SObjProp* CDrawableSelection::GetNextSelection() 
-{
-	if(m_CurrentSel == NULL) return NULL;
-	if(m_CurrentSel == m_Groups[0].O.end()) return NULL;
-	return (m_CurrentSel++).operator ->();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void CSpriteSelection::BuildRealSelectionBounds(int nGroup_)
-{
-	CRect RectTmp;
-	m_rcSelection.SetRectEmpty();
-	vectorObject::iterator Iterator;
-	// NEED TO FIX *** build from the current selection [m_nCurrentGroup] or from the main selection [0]??
-	for(Iterator = m_Groups[nGroup_].O.begin(); Iterator != m_Groups[nGroup_].O.end(); Iterator++) {
-		if(Iterator->pContext) {
-			Iterator->pContext->GetAbsFinalRect(RectTmp);
-		} else {
-			BuildRealSelectionBounds(Iterator->nGroup);
-			GetBoundingRect(&RectTmp, Iterator->nGroup);
-		}
-		// The main selection (nGroup_==0) updates the selection rect:
-		if(nGroup_ == 0) m_rcSelection.UnionRect(m_rcSelection, RectTmp);
-		// We need to keep the initial size and location of every selected object:
-		Iterator->rcRect = RectTmp;
-	}
-}
-
-void CSpriteSelection::SetSelectionName(LPCSTR szName)
-{
-	m_Groups[m_nCurrentGroup].Name = szName;
-}
-
-LPCSTR CSpriteSelection::GetSelectionName(LPSTR szName, int size)
-{
-	SObjProp *pSel = GetFirstSelection();
-	*szName = '\0';
-
-	if(m_nCurrentGroup>0 && m_nCurrentGroup<(int)m_Groups.size()) {
-		strncpy(szName+1, (LPCSTR)m_Groups[m_nCurrentGroup].Name.c_str(), size-2);
-		*szName = '@'; // To recognize them from regular sprites, Sprite Sets names internally start with '@' (as long as the name is not changed)
-	} else if(pSel) {
-		strncpy(szName, (LPCSTR)pSel->pContext->GetObjName(), size-1);
+	if(m_bCursorTop) {
+		rcNewBoundaries.top -= PointTmp.y;
+		rcNewBoundaries.top = m_nSnapSize*((rcNewBoundaries.top+(m_nSnapSize/2))/m_nSnapSize);
+	} else if(m_bCursorBottom) {
+		rcNewBoundaries.bottom -= PointTmp.y;
+		rcNewBoundaries.bottom = m_nSnapSize*((rcNewBoundaries.bottom+(m_nSnapSize/2))/m_nSnapSize);
 	}
 
-	szName[size - 1] = '\0';
-
-	return szName;
-}
-
-bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
-	CRect Rect(0,0,0,0);
-	CRect RectTmp;
-
-	// Always draws what's in group 0 (the current selection group)
-	int nSelected = (int)m_Groups[m_nCurrentGroup].O.size();
-	const CSpriteContext *scontext = NULL;
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[m_nCurrentGroup].O.begin(); Iterator != m_Groups[m_nCurrentGroup].O.end(); Iterator++) {
-		scontext = static_cast<const CSpriteContext*>(Iterator->pContext);
-		scontext->GetAbsFinalRect(RectTmp);
-		Rect.UnionRect(Rect, RectTmp); // Add the boundaries to the final Rect
-
-		if(nSelected>1) {
-			if(!m_bHighlightOnly && !m_bFloating) {
-				if(Iterator->bSubselected || !m_bHoldSelection) {
-					if(m_bHoldSelection) {
-						// if the object is subselected and the selection is held, draw in other color:
-						pGraphics_->FillRect(RectTmp, COLOR_ARGB(92,128,128,255));
-					} else if(scontext->GetDrawableObj()) {
-						pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
-					} else {
-						// fill in other color if it's a sprite set:
-						pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,192,96));
-					}
-					// draw a bounding rect over the selected object:
-					if(scontext->GetDrawableObj()) {
-						pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(200,255,255,225));
-					} else {
-						// Show Sprite Sets as orange selections:
-						pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(200,255,192,96));
-					}
-				}
-			}
-			if(!m_bHighlightOnly) {
-				// Draw the horizontal chain of the object:
-				CRect rcSpecial, rcArrow;
-				rcSpecial = RectTmp;
-				if(Iterator->eXChain == left) {
-					rcSpecial.right = rcSpecial.left+2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-				} else if(Iterator->eXChain == right) {
-					rcSpecial.left = rcSpecial.right-2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-				} else if(Iterator->eXChain == fixed) {
-					rcSpecial.right = rcSpecial.left+2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-					rcSpecial = RectTmp;
-					rcSpecial.left = rcSpecial.right-2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-				} else if(Iterator->eXChain == stretch) {
-					rcSpecial.top = rcSpecial.top+rcSpecial.Height()/2;
-					rcSpecial.bottom = rcSpecial.top+1;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-
-					rcArrow = rcSpecial;
-					rcArrow.bottom++;
-					rcArrow.top--;
-					rcArrow.left++;
-					rcArrow.right = rcArrow.left+1;
-					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
-
-					rcArrow = rcSpecial;
-					rcArrow.bottom++;
-					rcArrow.top--;
-					rcArrow.right--;
-					rcArrow.left = rcArrow.right-1;
-					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
-				}
-
-				// Draw the vertical chain of the object:
-				rcSpecial = RectTmp;
-				if(Iterator->eYChain == up) {
-					rcSpecial.bottom = rcSpecial.top+2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-				} else if(Iterator->eYChain == down) {
-					rcSpecial.top = rcSpecial.bottom-2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
-				} else if(Iterator->eYChain == fixed) {
-					rcSpecial.bottom = rcSpecial.top+2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-					rcSpecial = RectTmp;
-					rcSpecial.top = rcSpecial.bottom-2;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-				} else if(Iterator->eYChain == stretch) {
-					rcSpecial.left = rcSpecial.left+rcSpecial.Width()/2;
-					rcSpecial.right = rcSpecial.left+1;
-					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
-
-					rcArrow = rcSpecial;
-					rcArrow.right++;
-					rcArrow.left--;
-					rcArrow.top++;
-					rcArrow.bottom = rcArrow.top+1;
-					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
-
-					rcArrow = rcSpecial;
-					rcArrow.right++;
-					rcArrow.left--;
-					rcArrow.bottom--;
-					rcArrow.top = rcArrow.bottom-1;
-					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
-				}
-			}
-		}
+	// Any negative resizes will be transformed to the minumum unit (perhaps the current snap size)
+	if(rcNewBoundaries.Height()<m_nSnapSize && m_bCursorTop) {
+		int h = m_rcSelection.Height()%m_nSnapSize; if(h==0) h = m_nSnapSize;
+		rcNewBoundaries.bottom = m_rcSelection.bottom;
+		rcNewBoundaries.top = m_rcSelection.bottom - h;
+	} else if(rcNewBoundaries.Height()<m_nSnapSize && m_bCursorBottom) {
+		int h = m_rcSelection.Height()%m_nSnapSize; if(h==0) h = m_nSnapSize;
+		rcNewBoundaries.top = m_rcSelection.top;
+		rcNewBoundaries.bottom = m_rcSelection.top + h;
 	}
-	m_bCanMove = true;
-	m_bCanResize = true;
-
-	// Show the final boundary box:
-	if(!m_bFloating) {
-		if(m_bHighlightOnly) {
-			if(nSelected>0) {
-				// draw a bounding rect over the selected objects:
-				pGraphics_->FillRect(Rect, COLOR_ARGB(64,255,255,0));
-				pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,0,0));
-			}
-		} else {
-			if(nSelected>1) {
-				if(m_bHoldSelection) pGraphics_->SelectionBox(Rect, COLOR_ARGB(128,160,160,160));
-				else {
-					if(isGroup()) pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,192,96));
- 					else pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
-				}
-			} else if(nSelected==1) {
-				if(scontext->GetDrawableObj() == NULL) {
-					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,192,96));
-				} else if(scontext->isTiled()) {
-					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,255,200));
-				} else {
-					m_bCanResize = false;
-					pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,255,200));
-				}
-			}
-		}
+	if(rcNewBoundaries.Width()<m_nSnapSize && m_bCursorLeft) {
+		int w = m_rcSelection.Width()%m_nSnapSize; if(w==0) w = m_nSnapSize;
+		rcNewBoundaries.right = m_rcSelection.right;
+		rcNewBoundaries.left = m_rcSelection.right - w;
+	} else if(rcNewBoundaries.Width()<m_nSnapSize && m_bCursorRight) {
+		int w = m_rcSelection.Width()%m_nSnapSize; if(w==0) w = m_nSnapSize;
+		rcNewBoundaries.left = m_rcSelection.left;
+		rcNewBoundaries.right = m_rcSelection.left + w;
 	}
+	rcNewBoundaries.NormalizeRect();
 
-	if(m_eCurrentState==eSelecting) {
-		RectTmp = m_rcSelection;
-		RectTmp.NormalizeRect();
-		if(RectTmp.Width()>1 && RectTmp.Height()>1) {
-			pGraphics_->SelectingBox(m_rcSelection, COLOR_ARGB(128,255,255,255));
-		}
-	}/**/
-	return true;
+	vectorObject::const_iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		ResizeObject(*Iterator, m_rcSelection, rcNewBoundaries, true);
+	}
 }
+void CSpriteSelection::EndResizing(const CPoint &point_)
+{
+	if(m_eCurrentState!=eResizing) return;
+	ResizeTo(point_);
 
-// this function expects normalized rects
-// simpler, yet much better ResizeObject()
+	// Next, find out if any changes have actually taken place:
+	CRect rcNewBoundaries;
+	rcNewBoundaries = m_rcSelection; // save start boundaries rect
+	BuildRealSelectionBounds(); // updates m_rcSelection
+
+	if(rcNewBoundaries != m_rcSelection) Touch();
+
+	m_eCurrentState = eNone;
+}
+////////////////////////////////////////////////////////////////////////////
+// Moving/Resizing:
+// ResizeObject() expects normalized rects.
 void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOldBounds_, const CRect &rcNewBounds_, bool bAllowResize_)
 {
-	if(!ObjProp_.pContext) {
-		vectorObject::const_iterator Iterator;
-		for(Iterator = m_Groups[ObjProp_.nGroup].O.begin(); Iterator != m_Groups[ObjProp_.nGroup].O.end(); Iterator++) {
-			ResizeObject(*Iterator, rcOldBounds_, rcNewBounds_, bAllowResize_);
-		}
-//		GetBoundingRect(&RectTmp, ObjProp_.nGroup);
-		return;
-	}
+	ASSERT(ObjProp_.pContext);
 
 	CSpriteContext *scontext = static_cast<CSpriteContext*>(ObjProp_.pContext);
 	if(!scontext->isTiled()) bAllowResize_ = false;
@@ -1527,8 +1094,8 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 	if(w<=0 || h<=0) return;
 
 	float xFactor=1.0f, yFactor=1.0f;
-	_Chain xChain = ObjProp_.eXChain;
-	_Chain yChain = ObjProp_.eYChain;
+	_Chain xChain = scontext->GetXChain();
+	_Chain yChain = scontext->GetYChain();
 
 	if(!bAllowResize_) {
 		if(ObjProp_.rcRect.left == rcOldBounds_.left && ObjProp_.rcRect.right == rcOldBounds_.right) {
@@ -1604,7 +1171,7 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 	}
 
 	if(rcOldBounds_.Width() != rcNewBounds_.Width()) {
-		if(/*(bAllowResize_ && xChain == relative) ||*/ (bAllowResize_ && xChain == stretch)) {
+		if((bAllowResize_ && xChain == stretch)) {
 			w = Rect.Width();
 			Rect.left = m_nSnapSize*(Rect.left/m_nSnapSize);
 			if(Rect.Width() <= 0) Rect.left = Rect.right-m_nSnapSize;
@@ -1616,7 +1183,7 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 	}
 
 	if(rcOldBounds_.Height() != rcNewBounds_.Height()) {
-		if(/*(bAllowResize_ && yChain == relative) ||*/ (bAllowResize_ && yChain == stretch)) {
+		if((bAllowResize_ && yChain == stretch)) {
 			h = Rect.Height();
 			Rect.top = m_nSnapSize*(Rect.top/m_nSnapSize);
 			if(Rect.Height() <= 0) Rect.top = Rect.bottom-m_nSnapSize;
@@ -1631,7 +1198,316 @@ void CSpriteSelection::ResizeObject(const SObjProp &ObjProp_, const CRect &rcOld
 	// Updating ObjProp_ is very important, otherwise groups won't get updated:
 	scontext->SetAbsFinalRect(Rect);
 }
+////////////////////////////////////////////////////////////////////////////
+// Painting:
+inline bool CSpriteSelection::BeginPaint(IGraphics *pGraphicsI, WORD wFlags)
+{
+	ASSERT(m_ppMainDrawable);
+	if(!*m_ppMainDrawable) return false;
 
+	CSprite::SetShowOptions(wFlags);
+	DWORD color = ::GetSysColor(COLOR_APPWORKSPACE);
+	pGraphicsI->SetFilterBkColor(COLOR_ARGB(255, GetRValue(color), GetGValue(color), GetBValue(color)));
+
+	// Activate the filters:
+	if((wFlags & GRAPHICS_FILTERS) == GRAPHICS_FILTERS) 
+		pGraphicsI->SetFilter(EnableFilters, (void*)true);
+
+	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
+	if(pGraphicsI->BeginPaint()) {
+		return true;
+	}
+	return false;
+}
+inline bool CSpriteSelection::EndPaint(IGraphics *pGraphicsI)
+{
+	return pGraphicsI->EndPaint();
+}
+bool CSpriteSelection::Paint(IGraphics *pGraphicsI, WORD wFlags)
+{
+	bool bRet = true;
+	if(BeginPaint(pGraphicsI, wFlags)) {
+		bRet &= DrawAll(pGraphicsI);
+		bRet &= EndPaint(pGraphicsI);
+	} else return false;
+	return bRet;
+}
+inline bool CSpriteSelection::DrawAll(IGraphics *pGraphicsI)
+{
+	bool bRet = true;
+	if(m_bHoldSelection) bRet &= (*m_ppMainDrawable)->DrawSelectedH(pGraphicsI);
+	else bRet &= (*m_ppMainDrawable)->Draw(pGraphicsI);
+	pGraphicsI->FlushFilters(true);
+	pGraphicsI->SetFilter(ClearFilters, NULL);
+
+	if(m_bShowGrid) 
+		bRet &= pGraphicsI->DrawGrid(16, COLOR_ARGB(100,0,0,255));
+
+	if(!m_rcClip.IsRectEmpty()) {
+		bRet &= pGraphicsI->DrawFrame(m_rcClip, m_rgbClipColor, COLOR_ARGB(255, 255, 0, 0));
+	}
+	bRet &= Draw(pGraphicsI);
+
+	return bRet;
+}
+bool CSpriteSelection::Draw(const IGraphics *pGraphics_) {
+	CRect Rect(0,0,0,0);
+	CRect RectTmp;
+
+	// Always draws what's in group 0 (the current selection group)
+	int nSelected = (int)m_Objects.size();
+	const CSpriteContext *scontext = NULL;
+
+	vectorObject::iterator Iterator;
+	for(Iterator = m_Objects.begin(); Iterator != m_Objects.end(); Iterator++) {
+		scontext = static_cast<const CSpriteContext*>(Iterator->pContext);
+		scontext->GetAbsFinalRect(RectTmp);
+		Rect.UnionRect(Rect, RectTmp); // Add the boundaries to the final Rect
+
+		if(nSelected>1) {
+			if(!m_bHighlightOnly && !m_bFloating) {
+				if(Iterator->bSubselected || !m_bHoldSelection) {
+					if(m_bHoldSelection) {
+						// if the object is subselected and the selection is held, draw in other color:
+						pGraphics_->FillRect(RectTmp, COLOR_ARGB(92,128,128,255));
+					} else if(scontext->GetDrawableObj()) {
+						pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,255,225));
+					} else {
+						// fill in other color if it's a sprite set:
+						pGraphics_->FillRect(RectTmp, COLOR_ARGB(25,255,192,96));
+					}
+					// draw a bounding rect over the selected object:
+					if(scontext->GetDrawableObj()) {
+						pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(200,255,255,225));
+					} else {
+						// Show Sprite Sets as orange selections:
+						pGraphics_->BoundingBox(RectTmp, COLOR_ARGB(200,255,192,96));
+					}
+				}
+			}
+			if(!m_bHighlightOnly) {
+				// Draw the horizontal chain of the object:
+				CRect rcSpecial, rcArrow;
+				rcSpecial = RectTmp;
+				_Chain eXChain = scontext->GetXChain();
+				_Chain eYChain = scontext->GetYChain();
+
+				if(eXChain == left) {
+					rcSpecial.right = rcSpecial.left+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(eXChain == right) {
+					rcSpecial.left = rcSpecial.right-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(eXChain == fixed) {
+					rcSpecial.right = rcSpecial.left+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+					rcSpecial = RectTmp;
+					rcSpecial.left = rcSpecial.right-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+				} else if(eXChain == stretch) {
+					rcSpecial.top = rcSpecial.top+rcSpecial.Height()/2;
+					rcSpecial.bottom = rcSpecial.top+1;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+
+					rcArrow = rcSpecial;
+					rcArrow.bottom++;
+					rcArrow.top--;
+					rcArrow.left++;
+					rcArrow.right = rcArrow.left+1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+
+					rcArrow = rcSpecial;
+					rcArrow.bottom++;
+					rcArrow.top--;
+					rcArrow.right--;
+					rcArrow.left = rcArrow.right-1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+				}
+
+				// Draw the vertical chain of the object:
+				rcSpecial = RectTmp;
+				if(eYChain == up) {
+					rcSpecial.bottom = rcSpecial.top+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(eYChain == down) {
+					rcSpecial.top = rcSpecial.bottom-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,255,0,0));
+				} else if(eYChain == fixed) {
+					rcSpecial.bottom = rcSpecial.top+2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+					rcSpecial = RectTmp;
+					rcSpecial.top = rcSpecial.bottom-2;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+				} else if(eYChain == stretch) {
+					rcSpecial.left = rcSpecial.left+rcSpecial.Width()/2;
+					rcSpecial.right = rcSpecial.left+1;
+					pGraphics_->FillRect(rcSpecial, COLOR_ARGB(255,0,0,255));
+
+					rcArrow = rcSpecial;
+					rcArrow.right++;
+					rcArrow.left--;
+					rcArrow.top++;
+					rcArrow.bottom = rcArrow.top+1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+
+					rcArrow = rcSpecial;
+					rcArrow.right++;
+					rcArrow.left--;
+					rcArrow.bottom--;
+					rcArrow.top = rcArrow.bottom-1;
+					pGraphics_->FillRect(rcArrow, COLOR_ARGB(255,0,0,255));
+				}
+			}
+		}
+	}
+	m_bCanMove = true;
+	m_bCanResize = true;
+
+	// Show the final boundary box:
+	if(!m_bFloating) {
+		if(m_bHighlightOnly) {
+			if(nSelected>0) {
+				// draw a bounding rect over the selected objects:
+				pGraphics_->FillRect(Rect, COLOR_ARGB(64,255,255,0));
+				pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,0,0));
+			}
+		} else {
+			if(nSelected>1) {
+				if(m_bHoldSelection) pGraphics_->SelectionBox(Rect, COLOR_ARGB(128,160,160,160));
+				else {
+					if(isGroup()) pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,192,96));
+ 					else pGraphics_->SelectionBox(Rect, COLOR_ARGB(255,255,255,200));
+				}
+			} else if(nSelected==1) {
+				if(scontext->GetDrawableObj() == NULL) {
+					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,192,96));
+				} else if(scontext->isTiled()) {
+					pGraphics_->SelectionBox(Rect, COLOR_ARGB(200,255,255,200));
+				} else {
+					m_bCanResize = false;
+					pGraphics_->BoundingBox(Rect, COLOR_ARGB(255,255,255,200));
+				}
+			}
+		}
+	}
+
+	if(m_eCurrentState==eSelecting) {
+		RectTmp = m_rcSelection;
+		RectTmp.NormalizeRect();
+		if(RectTmp.Width()>1 && RectTmp.Height()>1) {
+			pGraphics_->SelectingBox(m_rcSelection, COLOR_ARGB(128,255,255,255));
+		}
+	}
+	return true;
+}
+////////////////////////////////////////////////////////////////////////////
+// Others:
+BITMAP* CSpriteSelection::Capture(IGraphics *pGraphicsI, float zoom)
+{
+	CSize szMap;
+	(*m_ppMainDrawable)->GetSize(szMap);
+
+	CRect RectFull(0, 0, (int)((float)szMap.cx*zoom), (int)((float)szMap.cy*zoom));
+	if(RectFull.Width()%2) RectFull.right++;
+
+	CRect RectPortion = RectFull;
+
+	// Standard bitmaps are expected to be in a 16 bits boundary
+	int bmWidthBytes = RectFull.Width() * sizeof(WORD); 
+	// Allocate enough memory for the complete 16 bits bitmap
+	BITMAP *pBitmap = (BITMAP*)new BYTE[sizeof(BITMAP) + RectFull.Height() * bmWidthBytes];
+
+	ZeroMemory(pBitmap, sizeof(BITMAP));
+	pBitmap->bmBits = (BYTE*)pBitmap + sizeof(BITMAP);
+	pBitmap->bmWidth = RectFull.Width();
+	pBitmap->bmHeight = RectFull.Height();
+	pBitmap->bmWidthBytes = bmWidthBytes;
+	pBitmap->bmBitsPixel = sizeof(WORD)*8;
+
+	CSprite::SetShowOptions(SPRITE_ENTITIES); // show entities
+	pGraphicsI->SetClearColor((*m_ppMainDrawable)->GetBkColor());
+	// BeginCapture() and EndCapture() return 16 bits bitmaps in the RGB555 format.
+	if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
+		(*m_ppMainDrawable)->Draw(pGraphicsI);
+		pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
+	}
+	while(RectPortion.bottom!= RectFull.bottom || RectPortion.right!=RectFull.right) {
+		if(RectPortion.right != RectFull.right) {
+			RectPortion.left = RectPortion.right;
+			RectPortion.right = RectFull.right;
+		} else {
+			RectPortion.left = RectFull.left;
+			RectPortion.right = RectFull.right;
+			RectPortion.top = RectPortion.bottom;
+			RectPortion.bottom = RectFull.bottom;
+		}
+		if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
+			(*m_ppMainDrawable)->Draw(pGraphicsI);
+			pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
+		}
+	} 
+
+	return pBitmap;
+}
+
+BITMAP* CSpriteSelection::CaptureSelection(IGraphics *pGraphicsI, float zoom)
+{
+	CRect RectFull;
+	GetBoundingRect(&RectFull);
+	if(zoom == 0) { // if(zoom == 0) zooming is calculated automagically:
+		zoom = 1.0f / max((float)RectFull.Width()/100.0f, (float)RectFull.Height()/100.0f);
+		if(zoom > 3) zoom = 2;
+		else if(zoom > 1) zoom = 1;
+	}
+	ASSERT(zoom != 0);
+
+	RectFull.top = (int)((float)RectFull.top * zoom);
+	RectFull.bottom = (int)((float)RectFull.bottom * zoom);
+	RectFull.left = (int)((float)RectFull.left * zoom);
+	RectFull.right = (int)((float)RectFull.right * zoom);
+	if(RectFull.Width()%2) RectFull.right++;
+
+	CRect RectPortion = RectFull;
+
+	// Standard bitmaps are expected to be in a 16 bits boundary
+	int bmWidthBytes = RectFull.Width() * sizeof(WORD); 
+	// Allocate enough memory for the complete 16 bits bitmap Quest Designer Sprite Set
+	BITMAP *pBitmap = (BITMAP*)new BYTE[sizeof(BITMAP) + RectFull.Height() * bmWidthBytes];
+
+	ZeroMemory(pBitmap, sizeof(BITMAP));
+	pBitmap->bmBits = (BYTE*)pBitmap + sizeof(BITMAP);
+	pBitmap->bmWidth = RectFull.Width();
+	pBitmap->bmHeight = RectFull.Height();
+	pBitmap->bmWidthBytes = bmWidthBytes;
+	pBitmap->bmBitsPixel = sizeof(WORD)*8;
+
+	CSprite::SetShowOptions(SPRITE_ENTITIES); // show entities
+	pGraphicsI->SetClearColor(COLOR_ARGB(255,255,255,255));
+	// BeginCapture() and EndCapture() return 16 bits bitmaps in the RGB555 format.
+	if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
+		(*m_ppMainDrawable)->DrawSelected(pGraphicsI);
+		pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
+	}
+	while(RectPortion.bottom!= RectFull.bottom || RectPortion.right!=RectFull.right) {
+		if(RectPortion.right != RectFull.right) {
+			RectPortion.left = RectPortion.right;
+			RectPortion.right = RectFull.right;
+		} else {
+			RectPortion.left = RectFull.left;
+			RectPortion.right = RectFull.right;
+			RectPortion.top = RectPortion.bottom;
+			RectPortion.bottom = RectFull.bottom;
+		}
+		if(pGraphicsI->BeginCapture(&RectPortion, zoom)) {
+			(*m_ppMainDrawable)->DrawSelected(pGraphicsI);
+			pGraphicsI->EndCapture((WORD*)pBitmap->bmBits, RectPortion, RectFull);
+		}
+	} 
+
+	return pBitmap;
+}
+////////////////////////////////////////////////////////////////////////////
+// Copy/Paste
 // pBitmap must point to a block of memory allocated by the Kernel (i.e. via CaptureSelection or similars)
 HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 {
@@ -1642,7 +1518,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	// we start by sorting the selected objects (in the selection):
 	SortSelection();
 
-	if(m_Groups[0].O.size() == 0) {
+	if(m_Objects.size() == 0) {
 		if(bDeleteBitmap && ppBitmap) {
 			*ppBitmap = NULL;
 			delete []pBitmap;
@@ -1661,9 +1537,9 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	// we need a map to hold every different object (to make an object index.)
 	std::map<CDrawableObject*, int> ObjectsNames;
 
-	vectorObject::iterator Iterator = m_Groups[0].O.begin();
-	for(int i=0; Iterator != m_Groups[0].O.end(); i++, Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
+	vectorObject::iterator Iterator = m_Objects.begin();
+	for(int i=0; Iterator != m_Objects.end(); i++, Iterator++) {
+		ASSERT(Iterator->pContext);
 
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		ASSERT(scontext);
@@ -1680,7 +1556,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		}
 
 		// if it has chains or transformations it will need mask: SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
-		if( pObjProp->eXChain != relative || pObjProp->eYChain != relative ||
+		if( scontext->GetXChain() != relative || scontext->GetYChain() != relative ||
 			scontext->isMirrored() || scontext->isFlipped() || scontext->Rotation() ) {
 			datasize += sizeof(_SpriteSet::_SpriteSetData02);
 		}
@@ -1736,7 +1612,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	strcat(CopyBoard->Info.Header.ID, "\nUntitled Sprite Set\nDescription goes here.");
 	CopyBoard->Info.Header.dwSignature = OLF_SPRITE_SET_SIGNATURE;
 	CopyBoard->Info.Header.dwSize = asize + bmpsize;
-	CopyBoard->Info.nSelected = (int)m_Groups[0].O.size();
+	CopyBoard->Info.nSelected = (int)m_Objects.size();
 
 	CopyBoard->Info.rcBoundaries = rcBoundaries;
 	CopyBoard->Info.rcBoundaries.OffsetRect(-rcBoundaries.TopLeft());
@@ -1761,9 +1637,9 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		IndexIterator++;
 	}
 
-	Iterator = m_Groups[0].O.begin();
-	for(i=0; Iterator != m_Groups[0].O.end(); i++, Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
+	Iterator = m_Objects.begin();
+	for(i=0; Iterator != m_Objects.end(); i++, Iterator++) {
+		ASSERT(Iterator->pContext);
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
 		ASSERT(scontext);
 		SObjProp *pObjProp = static_cast<SObjProp *>(Iterator.operator ->());
@@ -1790,11 +1666,11 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		}
 
 		// if it has chains or transformations it will need mask: SSD_CHAIN_X, SSD_CHAIN_Y, and SSD_TRANS
-		if( pObjProp->eXChain != relative || pObjProp->eYChain != relative ||
+		if( scontext->GetXChain() != relative || scontext->GetYChain() != relative ||
 			scontext->isMirrored() || scontext->isFlipped() || scontext->Rotation() ) {
 			Mask |= SSD_TRANS;
-			if(pObjProp->eXChain != relative) Mask |= SSD_CHAIN_X;
-			if(pObjProp->eYChain != relative) Mask |= SSD_CHAIN_Y;
+			if(scontext->GetXChain() != relative) Mask |= SSD_CHAIN_X;
+			if(scontext->GetYChain() != relative) Mask |= SSD_CHAIN_Y;
 			pSpriteSetData02 = (_SpriteSet::_SpriteSetData02 *)pData;
 			pData += sizeof(_SpriteSet::_SpriteSetData02);
 		}
@@ -1849,8 +1725,8 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 			pSpriteSetData02->rotation = scontext->Rotation();
 			pSpriteSetData02->mirrored = scontext->isMirrored();
 			pSpriteSetData02->flipped = scontext->isFlipped();
-			pSpriteSetData02->XChain = ((unsigned)pObjProp->eXChain - 1);
-			pSpriteSetData02->YChain = ((unsigned)pObjProp->eYChain - 1);
+			pSpriteSetData02->XChain = ((unsigned)scontext->GetXChain() - 1);
+			pSpriteSetData02->YChain = ((unsigned)scontext->GetYChain() - 1);
 		}
 		if(pSpriteSetData03) { // SSD_ALPHA
 			pSpriteSetData03->Alpha = scontext->getARGB().rgbAlpha;
@@ -1880,13 +1756,130 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	}
 	return hglbCopy;
 }
-CRect CSpriteSelection::PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoint *pPoint, bool bPaste) 
+bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
+{
+	ASSERT(pBuffer);
+	if(m_bHoldSelection) {
+		CONSOLE_PRINTF("Warning: Can not paste on held selection, release the selection first.\n");
+		return false;
+	}
+
+	CRect RetRect(0,0,0,0);
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
+	// is it a sprite set?
+	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
+		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer);
+		if(RetRect.IsRectNull()) {
+			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer);
+			if(RetRect.IsRectNull()) return false;
+		}
+	} else {
+		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
+			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
+			return false;
+		}
+		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer);
+		if(RetRect.IsRectNull()) return false;
+	}
+
+	if(m_Objects.empty()) {
+		EndMoving(point_);
+		CONSOLE_PRINTF("Paste error : Attempt to paste an empty Quest Designer Sprite Set!\n");
+		return false;
+	}
+
+	MoveTo(point_);
+
+	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Objects.size(), (*m_ppMainDrawable)->Objects());
+	return true;
+}
+bool CSpriteSelection::FastPaste(CSprite *pSprite, const CPoint &point_ )
 {
 	CRect RetRect(0,0,0,0);
 
-	// PasteSprite needs no paste group, so we clear the paste group if set:
-	m_nPasteGroup = 0;
-	m_nCurrentGroup = 0;
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+	RetRect = PasteSprite(pLayer, pSprite, &point_);
+	return (RetRect.IsRectNull() == false);
+}
+
+bool CSpriteSelection::FastPaste(LPCVOID pBuffer, const CPoint &point_ )
+{
+	CRect RetRect(0,0,0,0);
+
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
+	// is it a sprite set?
+	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
+		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &point_);
+		if(RetRect.IsRectNull()) {
+			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &point_);
+			if(RetRect.IsRectNull()) return false;
+		}
+	} else {
+		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
+			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
+			return false;
+		}
+		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer, &point_);
+		if(RetRect.IsRectNull()) return false;
+	}
+
+	return true;
+}
+bool CSpriteSelection::GetPastedSize(LPCVOID pBuffer, SIZE *pSize)
+{
+	pSize->cx = 0;
+	pSize->cy = 0;
+
+	CPoint Point(0,0);
+	CRect RetRect(0,0,0,0);
+
+	// get the current selected layer:
+	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
+
+	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
+	// is it a sprite set?
+	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
+		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &Point, false);
+		if(RetRect.IsRectNull()) {
+			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &Point, false);
+			if(RetRect.IsRectNull()) return false;
+		}
+	} else {
+		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
+			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
+			return false;
+		}
+		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer, &Point, false);
+		if(RetRect.IsRectNull()) return false;
+	}
+	pSize->cx = RetRect.Width();
+	pSize->cy = RetRect.Height();
+	return true;
+}
+bool CSpriteSelection::GetPastedSize(CSprite *pSprite, SIZE *pSize)
+{
+	CSize Size;
+
+	if(pSprite->GetSpriteType() == tMask) {
+		pSize->cx = 0;
+		pSize->cy = 0;
+		return false;
+	}
+
+	pSprite->GetSize(Size);
+	*pSize = Size;
+	return true;
+}
+CRect CSpriteSelection::PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoint *pPoint, bool bPaste) 
+{
+	CRect RetRect(0,0,0,0);
 
 	if(pSprite->GetSpriteType() == tMask) {
 		if(!pPoint && bPaste) CONSOLE_PRINTF("Paste error: Attempt to use mask '%s' as a sprite\n", pSprite->GetName());
@@ -1914,7 +1907,7 @@ CRect CSpriteSelection::PasteSprite(CLayer *pLayer, CSprite *pSprite, const CPoi
 		// NEED TO FIX *** (Pasted sprite sets within pasted data, should be pasted here)
 		pLayer->AddSpriteContext(pSpriteContext); // insert the sprite in the current layer
 		if(!pPoint) {
-			m_Groups[0].O.push_back(SObjProp(this, pSpriteContext, 0));
+			m_Objects.push_back(SObjProp(this, pSpriteContext, 0));
 			pSpriteContext->MoveTo(0, 0);
 			pSpriteContext->SelectContext();
 
@@ -1946,6 +1939,7 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 
 	ASSERT(pRawBuffer);
 
+	CDrawableContext *pGroupContext = NULL;
 	_SpriteSet *CopyBoard = (_SpriteSet*)pRawBuffer;
 
 	if(!pPoint && bPaste) CleanSelection();
@@ -1957,9 +1951,12 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 	UINT nLayer = -1;
 
 	char szSpriteSetName[200];
+	char szSpriteSetFinalName[200] = "";
 	// get the next availible paste group:
-	m_nCurrentGroup = SetNextPasteGroup(GetNameFromOLFile(&CopyBoard->Info.Header, szSpriteSetName, sizeof(szSpriteSetName)));
-	CONSOLE_DEBUG("Sprite Set '%s' to be pasted as group #%d\n", szSpriteSetName, m_nPasteGroup);
+	GetNameFromOLFile(&CopyBoard->Info.Header, szSpriteSetName, sizeof(szSpriteSetName));
+	if(bPaste) {
+		CONSOLE_DEBUG("Sprite Set '%s' to be pasted\n", szSpriteSetName);
+	}
 
 	for(UINT i=0; i<CopyBoard->Info.nSelected; i++) {
 
@@ -2017,7 +2014,6 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 
 		if(bPaste) {
 			// Fill sprite context data:
-
 			ARGBCOLOR rgbColor = COLOR_ARGB(255,128,128,128);
 			int rotation = 0;
 			bool mirrored = false;
@@ -2039,7 +2035,7 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 					RectTmp.bottom = RectTmp.top + pSpriteSetData01->Height;
 					pSpriteContext->Tile();
 					if(RectTmp.right < RectTmp.left || RectTmp.bottom < RectTmp.top) {
-						CONSOLE_PRINTF("Paste error: Corrupted Sprite: '%s' (in the Sprite Set '%s')\n", szName, szSpriteSetName);
+						CONSOLE_PRINTF("Paste error: Corrupted Sprite: '%s' (in the Sprite Set '%s')\n", szName, szSpriteSetFinalName);
 						continue;
 					}
 				} else {
@@ -2078,26 +2074,19 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 			pSpriteContext->Mirror(mirrored);
 			pSpriteContext->Flip(flipped);
 			pSpriteContext->ARGB(rgbColor);
+			pSpriteContext->SetXChain(XChain);
+			pSpriteContext->SetYChain(YChain);
+
+			if(i==0) {
+				for(int n=1; !*szSpriteSetFinalName || pLayer->GetChild(szSpriteSetFinalName); n++) {
+					sprintf(szSpriteSetFinalName, "%s-%d", szSpriteSetName, n);
+				}
+			}
 
 			pLayer->AddSpriteContext(pSpriteContext); // insert the sprite in the current layer
-			if(!pPoint) {
-				// the sprite absolute postion must be set after inserting it in the layer.
-				pSpriteContext->SelectContext();
-				pSpriteContext->SetAbsFinalRect(RectTmp);
-
-				if(m_nPasteGroup != 0) {
-					// push to the current paste group:
-					m_Groups[m_nPasteGroup].O.push_back(SObjProp(this, pSpriteContext, 0, RectTmp, XChain, YChain));
-				} else {
-					// push to the main group (the current selection group):
-					m_Groups[0].O.push_back(SObjProp(this, pSpriteContext, 0, RectTmp, XChain, YChain));
-				}
-			} else {
-				RectTmp.OffsetRect(*pPoint);
-				pSpriteContext->SetAbsFinalRect(RectTmp);
-				// push to the current paste group:
-				if(m_nPasteGroup != 0) m_Groups[m_nPasteGroup].O.push_back(SObjProp(this, pSpriteContext, 0, RectTmp, XChain, YChain));
-			}
+			pGroupContext = pSpriteContext->SetGroup(szSpriteSetFinalName);
+			// the sprite absolute postion must be set after inserting it in the layer.
+			pSpriteContext->SetAbsFinalRect(RectTmp);
 		} else {
 			if(pSpriteSetData01) { //SSD_WIDTHHEIGHT
 				ASSERT((pSpriteSetData->Mask & SSD_WIDTHHEIGHT) == SSD_WIDTHHEIGHT);
@@ -2119,23 +2108,17 @@ CRect CSpriteSelection::PasteSpriteSet(CLayer *pLayer, const LPBYTE pRawBuffer, 
 		RetRect.UnionRect(RetRect, RectTmp);
 	}
 
-	// After we have our sprite set pasted (probably as a new group), we now select it:
-	if(m_nPasteGroup != 0) { //If the paste group was the selection group, then it's already selected.
-		bool bSingle = false;
-		// there was only a single sprite in the sprite set, so we set the paste group to 0 and clear the used group:
-		if(m_Groups[m_nPasteGroup].O.size() <= 1) bSingle = true;
-
-		vectorObject::iterator Iterator;
-		for(Iterator = m_Groups[m_nPasteGroup].O.begin(); Iterator != m_Groups[m_nPasteGroup].O.end(); Iterator++) {
-			Iterator->pContext->SelectContext();
-			m_Groups[0].O.push_back(*Iterator);
-		}
-		if(bSingle) {
-			m_Groups[m_nPasteGroup].O.clear();
-			m_nCurrentGroup = m_nPasteGroup = 0;
+	if(pGroupContext) {
+		if(pPoint) {
+			pGroupContext->MoveTo(*pPoint);
+		} else {
+			pGroupContext->SelectContext();
+			m_pLastSelected = pGroupContext;
+			CRect Rect;
+			pGroupContext->GetAbsFinalRect(Rect);
+			m_Objects.push_back(SObjProp(this, pGroupContext, Rect)); // push to the selection
 		}
 	}
-
 	if(!pPoint && bPaste) {
 		m_bFloating = true;
 		StartMoving(CopyBoard->Info.rcBoundaries.CenterPoint());
@@ -2170,446 +2153,4 @@ CRect CSpriteSelection::PasteFile(CLayer *pLayer, LPCSTR szFilePath, const CPoin
 	fnFile.Close();
 
 	return RetRect;
-}
-bool CSpriteSelection::GetPastedSize(LPCVOID pBuffer, SIZE *pSize)
-{
-	pSize->cx = 0;
-	pSize->cy = 0;
-
-	CPoint Point(0,0);
-	CRect RetRect(0,0,0,0);
-
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-
-	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
-	// is it a sprite set?
-	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
-		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &Point, false);
-		if(RetRect.IsRectNull()) {
-			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &Point, false);
-			if(RetRect.IsRectNull()) return false;
-		}
-	} else {
-		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
-			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
-			return false;
-		}
-		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer, &Point, false);
-		if(RetRect.IsRectNull()) return false;
-	}
-	pSize->cx = RetRect.Width();
-	pSize->cy = RetRect.Height();
-	return true;
-}
-bool CSpriteSelection::GetPastedSize(CSprite *pSprite, SIZE *pSize)
-{
-	CSize Size;
-
-	if(pSprite->GetSpriteType() == tMask) {
-		pSize->cx = 0;
-		pSize->cy = 0;
-		return false;
-	}
-
-	pSprite->GetSize(Size);
-	*pSize = Size;
-	return true;
-}
-
-bool CSpriteSelection::FastPaste(CSprite *pSprite, const CPoint &point_ )
-{
-	CRect RetRect(0,0,0,0);
-
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-	RetRect = PasteSprite(pLayer, pSprite, &point_);
-	return (RetRect.IsRectNull() == false);
-}
-
-bool CSpriteSelection::FastPaste(LPCVOID pBuffer, const CPoint &point_ )
-{
-	CRect RetRect(0,0,0,0);
-
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-
-	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
-	// is it a sprite set?
-	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
-		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer, &point_);
-		if(RetRect.IsRectNull()) {
-			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer, &point_);
-			if(RetRect.IsRectNull()) return false;
-		}
-	} else {
-		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
-			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
-			return false;
-		}
-		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer, &point_);
-		if(RetRect.IsRectNull()) return false;
-	}
-
-	return true;
-}
-
-bool CSpriteSelection::Paste(LPCVOID pBuffer, const CPoint &point_)
-{
-	ASSERT(pBuffer);
-	if(m_bHoldSelection) {
-		CONSOLE_PRINTF("Warning: Can not paste on held selection, release the selection first.\n");
-		return false;
-	}
-
-	CRect RetRect(0,0,0,0);
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-
-	_SpriteSet *CopyBoard = (_SpriteSet*)pBuffer;
-	// is it a sprite set?
-	if(strncmp(CopyBoard->Info.Header.ID, OLF_SPRITE_SET_ID, sizeof(OLF_SPRITE_SET_ID)-1)) {
-		RetRect = PasteFile(pLayer, (LPCSTR)pBuffer);
-		if(RetRect.IsRectNull()) {
-			RetRect = PasteSprite(pLayer, (LPCSTR)pBuffer);
-			if(RetRect.IsRectNull()) return false;
-		}
-	} else {
-		if(CopyBoard->Info.Header.dwSignature != OLF_SPRITE_SET_SIGNATURE) {
-			CONSOLE_PRINTF("Paste error : Attempt to paste an invalid Quest Designer Sprite Set!\n");
-			return false;
-		}
-		RetRect = PasteSpriteSet(pLayer, (LPBYTE)pBuffer);
-		if(RetRect.IsRectNull()) return false;
-	}
-
-	if(m_Groups[m_nPasteGroup].O.empty()) {
-		EndMoving(point_);
-		if(m_nPasteGroup) CONSOLE_PRINTF("Paste error : Attempt to paste an empty Sprite!\n");
-		else CONSOLE_PRINTF("Paste error : Attempt to paste an empty Quest Designer Sprite Set!\n");
-		return false;
-	}
-
-	MoveTo(point_);
-
-	CONSOLE_DEBUG("%d of %d objects selected.\n", m_Groups[m_nPasteGroup].O.size(), (*m_ppMainDrawable)->Objects());
-	return true;
-}
-
-void CSpriteSelection::SelectionToGroup(LPCSTR szGroupName)
-{
-	CONSOLE_DEBUG("Creating new group: '%s'..\n", szGroupName);
-	// go through all selected sprites adding the orphans 
-	// to the new group, and setting relationships:
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		ASSERT(Iterator->pContext);
-		CDrawableContext *pGroupContext = Iterator->pContext->SetGroup(szGroupName);
-	}
-	// pGroupContext;
-	m_Groups[0].O.clear();
-//	Touch(); //FIXME: Selection shouldn't Mutate??
-}
-// converts the currently selected group to a simple selection:
-void CSpriteSelection::GroupToSelection()
-{
-	if(m_bHoldSelection) return;
-	if(m_nCurrentGroup < 1) return;
-
-	vectorObject::iterator Iterator;
-	int nParent = m_Groups[m_nCurrentGroup].P;
-
-	// Move the sprites from the current group to its parent:
-	for(Iterator = m_Groups[m_nCurrentGroup].O.begin(); Iterator != m_Groups[m_nCurrentGroup].O.end(); Iterator++) {
-		if(Iterator->pContext) Iterator->nGroup = nParent;
-		m_Groups[nParent].O.push_back(*Iterator);
-	}
-
-	// Delete the group:
-	m_Groups[m_nCurrentGroup].P = 0;
-	m_Groups[m_nCurrentGroup].O.clear();
-	m_Groups[m_nCurrentGroup].Name.clear();
-
-	m_nCurrentGroup = nParent;
-	Touch();
-}
-void CSpriteSelection::SelectionToTop()
-{
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-
-	// we start by sorting the selected objects (in the selection):
-	SortSelection();
-	int nNextOrder = pLayer->ReOrder(1);
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
-			Iterator->pContext->SetObjOrder(nNextOrder++);
-		}
-	}
-	Touch();
-}
-void CSpriteSelection::SelectionToBottom()
-{
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-
-	// we start by sorting the selected objects (in the selection):
-	SortSelection();
-	int nNextOrder = pLayer->ReOrder(1, 0, m_Groups[0].O.size());
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
-			Iterator->pContext->SetObjOrder(nNextOrder++);
-		}
-	}
-	Touch();
-}
-void CSpriteSelection::SelectionDown()
-{
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-
-	// we start by sorting the selected objects (in the selection):
-	SortSelection();
-	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
-			int nNextOrder = Iterator->pContext->GetObjOrder() - 3;
-			if(nNextOrder < 0) nNextOrder = 0;
-			Iterator->pContext->SetObjOrder(nNextOrder);
-		}
-	}
-	Touch();
-}
-void CSpriteSelection::SelectionUp()
-{
-	// get the current selected layer:
-	CLayer *pLayer = static_cast<CLayer*>((*m_ppMainDrawable)->GetChild(m_nLayer));
-
-	// we start by sorting the selected objects (in the selection):
-	SortSelection();
-	int nNextOrder = pLayer->ReOrder(2); // reorder everything leaving a space between objects.
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		if(m_bHoldSelection && Iterator->bSubselected || !m_bHoldSelection) {
-			int nNextOrder = Iterator->pContext->GetObjOrder() + 3;
-			Iterator->pContext->SetObjOrder(nNextOrder);
-		}
-	}
-	Touch();
-}
-
-void CSpriteSelection::FlipSelection()
-{
-	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(&rcBoundaries);
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
-		scontext->GetAbsFinalRect(RectTmp);
-
-		if(Iterator->eYChain == up) Iterator->eYChain = down;
-		else if(Iterator->eYChain == down) Iterator->eYChain = up;
-
-		// no rotations nor transormations are allowed for entities 
-		// (that should be handled in the scripts instead)
-		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
-			if(scontext->isMirrored() && !scontext->isFlipped()) {
-				scontext->Mirror(false);
-				scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-			} else {
-				scontext->Flip();
-			}
-		}
-		Rect.top = rcBoundaries.top + (rcBoundaries.bottom - RectTmp.bottom);
-		Rect.bottom = rcBoundaries.bottom - (RectTmp.top - rcBoundaries.top);
-		Rect.left = RectTmp.left;
-		Rect.right = RectTmp.right;
-
-		Rect.NormalizeRect();
-
-		scontext->SetAbsFinalRect(Rect);
-		if(m_eCurrentState==eMoving) {
-			Iterator->rcRect = Rect; // for floating selections
-		}
-	}
-
-	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(&m_rcSelection);
-		SetInitialMovingPoint(m_rcSelection.CenterPoint());
-	}
-
-	Touch();
-}
-void CSpriteSelection::MirrorSelection()
-{
-	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(&rcBoundaries);
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
-		scontext->GetAbsFinalRect(RectTmp);
-
-		if(Iterator->eXChain == left) Iterator->eXChain = right;
-		else if(Iterator->eXChain == right) Iterator->eXChain = left;
-
-		// no rotations nor transormations are allowed for entities 
-		// (that should be handled in the scripts instead)
-		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
-			if(!scontext->isMirrored() && scontext->isFlipped()) {
-				scontext->Flip(false);
-				scontext->Rotate((scontext->Rotation()-2)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-			} else {
-				scontext->Mirror();
-			}
-		}
-		Rect.top = RectTmp.top;
-		Rect.bottom = RectTmp.bottom;
-		Rect.left = rcBoundaries.left + (rcBoundaries.right - RectTmp.right);
-		Rect.right = rcBoundaries.right - (RectTmp.left - rcBoundaries.left);
-
-		Rect.NormalizeRect();
-
-		scontext->SetAbsFinalRect(Rect);
-		if(m_eCurrentState==eMoving) {
-			Iterator->rcRect = Rect; // for floating selections
-		}
-	}
-
-	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(&m_rcSelection);
-		SetInitialMovingPoint(m_rcSelection.CenterPoint());
-	}
-
-	Touch();
-}
-void CSpriteSelection::CWRotateSelection()
-{
-	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(&rcBoundaries);
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
-		scontext->GetAbsFinalRect(RectTmp);
-
-		_Chain cTmp = Iterator->eXChain;
-		Iterator->eXChain = Iterator->eYChain;
-		if(cTmp == left) Iterator->eYChain = up;
-		else if(cTmp == right) Iterator->eYChain = down;
-		else Iterator->eYChain = cTmp;
-
-		// no rotations nor transormations are allowed for entities 
-		// (that should be handled in the scripts instead)
-		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
-			if(scontext->isMirrored() && scontext->isFlipped()) {
-				scontext->Flip(false);
-				scontext->Mirror(false);
-				scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-			} else {
-				if(scontext->isMirrored() || scontext->isFlipped()) {
-					scontext->Flip();
-					scontext->Mirror();
-				}
-				scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-			}
-			Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
-			Rect.bottom = rcBoundaries.top + (RectTmp.right - rcBoundaries.left);
-			Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
-			Rect.right = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.top);
-		} else {
-			Rect.top = rcBoundaries.top + (RectTmp.left - rcBoundaries.left);
-			Rect.bottom = Rect.top + RectTmp.Height();
-			Rect.left = rcBoundaries.left + (rcBoundaries.bottom - RectTmp.bottom);
-			Rect.right = Rect.left + RectTmp.Width();
-		}
-
-		Rect.NormalizeRect();
-
-		scontext->SetAbsFinalRect(Rect);
-		if(m_eCurrentState==eMoving) {
-			Iterator->rcRect = Rect; // for floating selections
-		}
-	}
-
-	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(&m_rcSelection);
-		SetInitialMovingPoint(m_rcSelection.CenterPoint());
-	}
-
-	Touch();
-}
-void CSpriteSelection::CCWRotateSelection()
-{
-	CRect rcBoundaries, RectTmp, Rect;
-	GetBoundingRect(&rcBoundaries);
-
-	vectorObject::iterator Iterator;
-	for(Iterator = m_Groups[0].O.begin(); Iterator != m_Groups[0].O.end(); Iterator++) {
-		if(Iterator->pContext == NULL) continue; // NEED TO FIX *** add group stuff
-
-		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);
-		scontext->GetAbsFinalRect(RectTmp);
-
-		_Chain cTmp = Iterator->eYChain;
-		Iterator->eYChain = Iterator->eXChain;
-		if(cTmp == up) Iterator->eXChain = left;
-		else if(cTmp == down) Iterator->eXChain = right;
-		else Iterator->eYChain = cTmp;
-
-		// no rotations nor transormations are allowed for entities 
-		// (that should be handled in the scripts instead)
-		if(static_cast<CSprite*>(scontext->GetDrawableObj())->GetSpriteType() != tEntity) {
-			if(scontext->isMirrored() && scontext->isFlipped()) {
-				scontext->Flip(false);
-				scontext->Mirror(false);
-				scontext->Rotate((scontext->Rotation()-1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-			} else {
-				if(scontext->isMirrored() || scontext->isFlipped()) {
-					scontext->Flip();
-					scontext->Mirror();
-				}
-				scontext->Rotate((scontext->Rotation()+1)&(SROTATE_0|SROTATE_90|SROTATE_180|SROTATE_270));
-			}
-			Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
-			Rect.bottom = rcBoundaries.top + (rcBoundaries.right - RectTmp.left);
-			Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
-			Rect.right = rcBoundaries.left + (RectTmp.bottom - rcBoundaries.top);
-		} else {
-			Rect.top = rcBoundaries.top + (rcBoundaries.right - RectTmp.right);
-			Rect.bottom = Rect.top + RectTmp.Height();
-			Rect.left = rcBoundaries.left + (RectTmp.top - rcBoundaries.top);
-			Rect.right = Rect.left + RectTmp.Width();
-		}
-
-		Rect.NormalizeRect();
-
-		scontext->SetAbsFinalRect(Rect);
-		if(m_eCurrentState==eMoving) {
-			Iterator->rcRect = Rect; // for floating selections
-		}
-	}
-
-	if(m_eCurrentState==eMoving) {
-		GetBoundingRect(&m_rcSelection);
-		SetInitialMovingPoint(m_rcSelection.CenterPoint());
-	}
-
-	Touch();
 }

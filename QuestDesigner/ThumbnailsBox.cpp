@@ -216,7 +216,6 @@ void CThumbnailsBox::OnRefresh()
 	m_sSelected = "";
 	
 	m_SelectionI->CleanSelection();
-	m_SelectionI->CleanPasteGroups();
 	m_pThumbnails->CleanThumbnails();
 
 	CVFile vFile("Sprite Sets\\*.*");
