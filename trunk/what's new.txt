@@ -37,8 +37,8 @@ Open Legends Project V.0.8.8 (not yet released)
 > Bugfixing time! =D
 
 Open Legends Project v.0.8.7: (not yet released)
-> QD: (basic) Saving/Loading quest files.
-> QD: (basic) Saving/Loading map files.
+> QD: (basic, compatibility mode for OZ) Saving/Loading quest files.
+> QD: (basic, compatibility mode for OZ) Saving/Loading map files.
 
 Open Legends Project v.0.8.5: (September 8, 2004)
 * Name change due NoA request!
