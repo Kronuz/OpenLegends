@@ -22,6 +22,7 @@
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Main Open Legends core natives for the scripts
 	\date		August 10, 2003
+		- 10/11/05 Modified comments to match the new functions listed in OLScripts/functions.rtf
 
 	Improvements in the scripting engine since last Open Legends version:
 	[08/10/03] - The Abstract Virtual Machine now uses assembler code, so 
@@ -40,8 +41,30 @@
 	\endif
 
 	\todo
-		Check the strcpy(), strcat() functions in the core natives,
-		LittleBuddy has said these have some problems some times.
+		Considering the system listed in OLScripts/functions.rtf, do we really
+		need SetFilter? This should logically be stored inside a local Get/Set 
+		variable that refers to the current group.
+
+	\todo
+		Is the console group obsolete? It'd be more logical to implement it 
+		inside the core group, if so, it should be removed.
+
+	\todo
+		The new groups need implementation. These are:
+			core, float, general, entity, data and drawing (and mplayer).
+		Core and float handles the same thing as in OpenZelda, that is core 
+		small functions and mathematical operations.
+		General will handle key input, saving/loading, sounds, 
+		draw-location and Wipes.
+		Entity will handle collision detection, entity positioning, 
+		inter-entity messaging and general entity handling.
+		Data will handle the data storage functions for entities, animations, 
+		sprites and the world and maps.
+		Drawing handles animations, sprites, text and images.
+		(Mplayer is a sketch-group and will handle network-interaction 
+		in the future.)
+
+
 */
 
 /*!
@@ -63,7 +86,26 @@
 	\ingroup openlegends
 	Main Open Legends core functions.
 */
-
+/*!
+	\defgroup entity Open Legends Entity Handling Functions
+	\ingroup openlegends
+	Open Legends entity handling functions.
+*/
+/*!
+	\defgroup data Open Legends Data Storage Functions
+	\ingroup openlegends
+	Methods for storing and retrieving entity/sprite data.
+*/
+/*!
+	\defgroup drawing Open Legends Drawing Functions
+	\ingroup openlegends
+	Drawing functions for sprites, animations, text and images.
+*/
+/*!
+	\defgroup Mplayer Multiplayer Server/Client functions
+	\ingroup openlegends
+	Handles functions for multiplayer Server/Client interaction.
+*/
 #include "stdafx.h"
 
 #include "Script.h"
