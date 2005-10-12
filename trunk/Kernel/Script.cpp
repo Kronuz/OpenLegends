@@ -66,6 +66,11 @@
 
 
 */
+#include "stdafx.h"
+
+#include "Script.h"
+
+#include "GameManager.h"
 
 /*!
 	\defgroup openlegends Open Legends API functions
@@ -76,48 +81,46 @@
 	\ingroup openlegends
 	Core native functions for the Small language.
 */
+extern "C" AMX_NATIVE_INFO console_Natives[];
+extern "C" AMX_NATIVE_INFO core_Natives[];
 /*! 
 	\defgroup float Floating-point related Functions
 	\ingroup openlegends
 	Float tag type native functions.
 */
+extern "C" AMX_NATIVE_INFO float_Natives[];
+
+extern cell ConvertFloatToCell(float fValue);
+extern float fConvertCellToFloat(cell cellValue);
 /*!
 	\defgroup general General Open Legends Functions
 	\ingroup openlegends
 	Main Open Legends core functions.
 */
+
 /*!
 	\defgroup entity Open Legends Entity Handling Functions
 	\ingroup openlegends
 	Open Legends entity handling functions.
 */
+
 /*!
 	\defgroup data Open Legends Data Storage Functions
 	\ingroup openlegends
 	Methods for storing and retrieving entity/sprite data.
 */
+
 /*!
 	\defgroup drawing Open Legends Drawing Functions
 	\ingroup openlegends
 	Drawing functions for sprites, animations, text and images.
 */
+
 /*!
 	\defgroup Mplayer Multiplayer Server/Client functions
 	\ingroup openlegends
 	Handles functions for multiplayer Server/Client interaction.
 */
-#include "stdafx.h"
-
-#include "Script.h"
-
-#include "GameManager.h"
-
-extern "C" AMX_NATIVE_INFO console_Natives[];
-extern "C" AMX_NATIVE_INFO core_Natives[];
-extern "C" AMX_NATIVE_INFO float_Natives[];
-
-extern cell ConvertFloatToCell(float fValue);
-extern float fConvertCellToFloat(cell cellValue);
 
 #if defined OLDoc
 float GetTimeDelta(); /*!< 
