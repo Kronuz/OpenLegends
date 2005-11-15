@@ -186,6 +186,27 @@ inline ARGBCOLOR HSL2RGB(AHSLCOLOR hslColor)
 
 	return rgbColor;
 }
+/*
+Calculate ARGB from Hexadecimal string color (ex. "00FF34")
+*/
+inline ARGBCOLOR HEX2ARGB(char * hex)
+{
+	unsigned char color[4];
+	
+	for (int n = 0; n < 4; n++)
+	{
+		if ( 48 <= hex[n*2] && hex[n*2] <= 57)
+			color[n] = (hex[n*2]-48) * 16;
+		else if ( 65 <= hex[n*2] && hex[n*2] <= 71)
+			color[n] = (hex[n*2]-55) * 16;
+		if ( 48 <= hex[(n*2)+1] && hex[(n*2)+1] <= 57)
+			color[n] += ((hex[(n*2)+1])-48);
+		else if ( 65 <= hex[(n*2)+1] && hex[(n*2)+1] <= 71)
+			color[n] += ((hex[(n*2)+1])-55);
+
+	}
+	return COLOR_ARGB(color[0],color[1],color[2],color[3]);
+}
 
 enum GpxFilters { ClearFilters, EnableFilters, Pixelate, Colorize, Alpha, HorzMove, VertMove };
 
