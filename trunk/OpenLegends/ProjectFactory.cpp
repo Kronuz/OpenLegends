@@ -28,7 +28,7 @@
 
 #include "Console.h"
 
-const WORD IGame::Version = GRAPHICS_INTVER;
+const WORD IGame::Version = GAME_INTVER;
 CProjectFactory *CProjectFactory::_instance = NULL;
 
 CProjectFactory::CProjectFactory() :
