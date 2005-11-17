@@ -186,7 +186,7 @@ LRESULT CProjectFactory::BuildNextStep(WPARAM wParam, LPARAM lParam)
 	char szScriptFile[MAX_PATH];
 	char szCompiledFile[MAX_PATH];
 	if(m_iStep == 0) {
-		if(--m_iCnt1 == 0) 
+		if(m_iCnt1-- == 0) 
 			m_iStep++;
 	}
 	if(m_iStep == 0) {
