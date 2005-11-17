@@ -715,11 +715,6 @@ ISoundManager* CGameManager::GetSoundManager() const
 	return (ISoundManager*)m_pSoundManager;
 }
 
-IGraphics* CGameManager::GetGraphicsI() const
-{
-	return (IGraphics*)ms_ppGraphicsI;
-}
-
 const IScript* CGameManager::GetScript(int idx) const
 {
 	ASSERT(idx < (int)m_Scripts.size());
