@@ -161,7 +161,7 @@ public:
 	const IScript* GetScript(int idx) const;
 	const IScript* GetScript(CSprite *pSprite) const;
 	ISoundManager* GetSoundManager() const;
-	IGraphics* GetGraphicsI() const;
+	//IGraphics* GetGraphicsI() const; //This function may be useful for scripts in the future, it needs implementation!
 
 	// Object factory methods:
 	CSprite *ReferSprite(LPCSTR szName, _spt_type sptType, LPCSTR szFile_, int nLine_);  //!< Gets or makes a reference to a sprite.
