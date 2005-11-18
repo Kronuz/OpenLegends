@@ -76,6 +76,10 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 			debugarg = i;
 			break;
 		}
+		if(!_wcsicmp(argv[i], L"-l") || !_wcsicmp(argv[i], L"/l")) {
+			debugarg = i;
+			break;
+		}
 	}
 	szTitleInfo = szTitle + strlen(szTitle);
 
@@ -95,7 +99,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		}
 	}
 
-	if(g_bDebug) {
+	if(debugarg != 0) {
 		if(FAILED(LoadGame(szQuestFile))) PostMessage(g_hWnd, WM_CLOSE, 0, 0);
 	}
 
