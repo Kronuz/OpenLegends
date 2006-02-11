@@ -124,7 +124,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 		} else {
 			// Handle the next frame
 			Run();
-			if(g_bStop) PostMessage(g_hWnd, WM_CLOSE, 0, 0);
+			//if(g_bStop) PostMessage(g_hWnd, WM_CLOSE, 0, 0);
 		}
 	}
 
@@ -282,11 +282,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if(!g_pMapGroupI) 
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		break;
-	case WM_PAINT:
+	/*case WM_PAINT:					//Why would this message be useful for anything at all?
 		hdc = BeginPaint(hWnd, &ps);
+			Render();
 		EndPaint(hWnd, &ps);
-		Render();
-		break;
+		
+		break;*/
 	case WM_DESTROY:
 		g_bDebug = false;
 		ReleaseSemaphore(g_hSemaphore, 1, NULL);
@@ -456,7 +457,7 @@ HRESULT LoadGame(LPCSTR szQuest)
 	if(!CProjectFactory::Interface(g_hWnd)->LoadProject(g_szHomeDir)) return E_FAIL;
 
 	if(!CProjectFactory::Interface()->LoadWorld(szQuest)) return E_FAIL;
-	if((g_pMapGroupI = CProjectFactory::Interface()->FindMapGroup(2, 2))==NULL) return E_FAIL;
+	if((g_pMapGroupI = CProjectFactory::Interface()->FindMapGroup(2, 2)) == NULL) return E_FAIL;
 
 	if(!g_pMapGroupI->Load()) return E_FAIL;
 
@@ -479,35 +480,24 @@ HRESULT LoadGame(LPCSTR szQuest)
 	return S_OK;
 }
 //#endregion
-
 // Thread but also standard function for script debugging/non-debugging.
-DWORD WINAPI RunScripts(LPVOID lpParameter)
-{
+void RunScripts(LPVOID lpParameter){
 	RUNACTION action;
 	action.m_Ptr = lpParameter;
 	action.bJustWait = false;
 	IGame *pGameI = (IGame *)lpParameter;
-	do {
-		if(g_bDebug) {
-			WaitForSingleObject(g_hSemaphore, INFINITE);
-			if(!g_bDebug) return 0;
-			g_bClearToGo = false;
-			g_bRunningScripts = true;
-			action.hSemaphore = g_hSemaphore;
-		}
-
-		// run the scripts for the next frame:
+	action.hSemaphore = g_hSemaphore;
+	if(pGameI->QueueAccepting()){
 		g_pMapGroupI->Run(action);
-		// wait for all the scripts to finish:
-		g_bStop = pGameI->WaitScripts();
-
-		if(g_bDebug) {
-			g_bRunningScripts = false;
-			ReleaseSemaphore(g_hSemaphore, 1, NULL);
-		}
-	} while(g_bDebug && !g_bStop);
-
-	return 0;
+		// delete temporary stuff, such as primitives, temporary sprites, 
+		// and marked-as-deleted sprites.
+		g_pMapGroupI->CleanTemp();
+		// Then add new sprites created by the entity interface.
+		pGameI->FlushSprites(g_pMapGroupI);
+		
+		//Go for another run of the scripts.
+		pGameI->QueueFull();
+	}
 }
 
 void Render()
@@ -521,38 +511,24 @@ void Render()
 	IGame *pGameI = CProjectFactory::Interface(g_hWnd);
 	// Update timings and stuff for the animations
 	float fps = pGameI->UpdateFPS(60);
+	DWORD dwAux = 0;
 	if(fps != -1.0f) {
-		if(g_bDebug) ReleaseSemaphore(g_hSemaphore, 1, NULL);
 		///////////////////////////////////////////////////////////////////////////
 		// 1. RUN THE SCRIPTS
-		if(!g_bDebug) RunScripts((LPVOID)pGameI);
-		else if(!g_bRunningScripts && g_bClearToGo) {
-			if(dwStarting) { // Give time to the debugger to start...
-				nTimeLeft = dwStarting - GetTickCount();
-				if(nTimeLeft <= 0) dwStarting = 0;
-			} else {
-				// Run the scripts in a separated thread (for debugging capabilities also):
-				// check if the RunScripts thread is still active, if not create one
-				DWORD dwAux = 0;
-				if(g_hRunScripts) GetExitCodeThread(g_hRunScripts, &dwAux);
-				if(dwAux != STILL_ACTIVE) {
-					if(g_hRunScripts) CloseHandle(g_hRunScripts);
-					g_hRunScripts = ::CreateThread(NULL, 0, RunScripts, (LPVOID)pGameI, 0, &dwAux);
-				}
-			}
+		if(!g_bDebug || (!dwStarting && g_bDebug)) RunScripts((LPVOID)pGameI);
+		else {
+			nTimeLeft = dwStarting - GetTickCount();
+			if(nTimeLeft <= 0) dwStarting = 0;
 		}
-
 		///////////////////////////////////////////////////////////////////////////
 		// 2. DRAW THE WORLD
 		// wait until we are allowed to paint something (during debug or after running all the scripts):
-		if(g_bDebug) WaitForSingleObject(g_hSemaphore, INFINITE);
 		
 		// **** This should be set by the user in the scripts:
 		g_pGraphicsI->SetFilterBkColor(COLOR_RGB(0,0,0));
 
 		// Select the background color of the map (the first map when wiping):
 		g_pGraphicsI->SetClearColor(g_pMapGroupI->GetBkColor());
-
 		// Begin Painting:
 		if(g_pGraphicsI->BeginPaint()) {
 			// Draw the first map:
@@ -578,21 +554,11 @@ void Render()
 					g_pGraphicsI->DrawText(CPoint(10,25), COLOR_ARGB(255,255,225,128), "Start the debugger now! (%d seconds left)", nTimeLeft/1000);
 				}
 			}
+		
 			g_pGraphicsI->SetFilter(EnableFilters, (void*)bFilters);
-
+		
 			// End painting:
 			g_pGraphicsI->EndPaint();
-		}
-
-		///////////////////////////////////////////////////////////////////////////
-		// 3. CLEAN STUFF
-		// check if a complete frame has been drawn (without debugging in the middle):
-		if(!g_bRunningScripts) {
-			g_bClearToGo = true;
-
-			// if so, delete temporary stuff, such as primitives, temporary sprites, 
-			// and marked-as-deleted sprites.
-			g_pMapGroupI->CleanTemp();
 		}
 	}
 }
