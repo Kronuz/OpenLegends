@@ -35,6 +35,9 @@
 						* Reorganized the file.
 				July 15, 2005:
 						* Added CMutable Touch() calls
+				Feb, 2006 by Littlebuddy:
+						* Added a try{}catch(...){} to avoid OL crashing when it can't access a 
+						  sprite supercontext. (had some probs)
 
 	The interface CDrawableObject represents an object that can, somehow, be draw on
 	the screen. This drawing is done using a flyweight pool of "drawable" objects to save
@@ -849,9 +852,16 @@ inline bool CDrawableContext::isSelected() const
 
 inline CDrawableContext* CDrawableContext::GetSuperContext() const
 {
-	if(m_bSuperContext) return const_cast<CDrawableContext*>(this);
-	if(!m_pParent) return NULL;
-	return m_pParent->GetSuperContext();
+	try{
+		if(m_bSuperContext){
+			return const_cast<CDrawableContext*>(this);
+		}
+		if(!m_pParent) return NULL;
+		return m_pParent->GetSuperContext();
+	}
+	catch(...){
+		return NULL;
+	}
 }
 inline CDrawableContext* CDrawableContext::GetParent() const
 {
