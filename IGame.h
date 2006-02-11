@@ -396,9 +396,12 @@ interface IGame
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug) = 0;
 	virtual float UpdateFPS(float fpsLock = -1.0f) = 0;
-	virtual bool WaitScripts() = 0;
 	virtual void StopWaiting() = 0;
 	virtual bool isDebugging() = 0;
+	
+	virtual void FlushSprites(CMapGroup *pt) = 0; //!< Flushes temporary sprites into the map group so that they're drawn.
+	virtual void QueueFull() = 0;
+	virtual bool QueueAccepting() = 0;
 
 	virtual bool LoadProject(LPCSTR szFile) = 0;
 	virtual bool SaveProject(LPCSTR szFile) = 0;
