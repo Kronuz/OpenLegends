@@ -31,3 +31,4 @@
 #include <IGame.h>
 
 void RegisterNatives(AMX *amx);
+bool GetStringParam(AMX *amx, cell sParam, char* szString);

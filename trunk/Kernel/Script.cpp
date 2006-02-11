@@ -76,19 +76,18 @@
 	\defgroup openlegends Open Legends API functions
 	This is the API for Open Legends scripts.
 */
+
 /*!
 	\defgroup core Small's Core Functions
 	\ingroup openlegends
 	Core native functions for the Small language.
 */
-extern "C" AMX_NATIVE_INFO console_Natives[];
-extern "C" AMX_NATIVE_INFO core_Natives[];
+
 /*! 
 	\defgroup float Floating-point related Functions
 	\ingroup openlegends
 	Float tag type native functions.
 */
-extern "C" AMX_NATIVE_INFO float_Natives[];
 
 extern cell ConvertFloatToCell(float fValue);
 extern float fConvertCellToFloat(cell cellValue);
@@ -117,7 +116,7 @@ extern float fConvertCellToFloat(cell cellValue);
 */
 
 /*!
-	\defgroup Mplayer Multiplayer Server/Client functions
+	\defgroup mplayer Multiplayer Server/Client functions
 	\ingroup openlegends
 	Handles functions for multiplayer Server/Client interaction.
 */
@@ -146,7 +145,30 @@ float GetTimeDelta(); /*!<
 	...
 	\endcode
 */
+int DrawText(char text, int x, int y, int r=255, int g=255, int b=255, int a=255);/*!<
+	\ingroup drawing
+	\brief This function draws a string of text on-screen using a default font.
+
+	\return Always returns 0.
+
+	\remarks It accepts an onscreen x & y position which is relative to the top left corner of the game area
+		as well as the text to write and any other necessary variables.
+		
+
+		Only the drawing.inc file will be necessary for this include.
+*/
 #endif
+static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
+	//GetStringParam(amx,params[0], szString);
+	//GetStringParam(amx,params[3], szHex);
+	//char asdf[32];
+	//sprintf(asdf, "%d", params[1]);
+	//MessageBox(NULL, asdf, NULL, NULL);		
+	CGameManager::Instance()->TheSecretsOfDebugging();
+	return 0;
+}
+
+
 static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
 {
 	return ConvertFloatToCell(CGameManager::GetFPSDelta());
@@ -216,13 +238,33 @@ static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 }
 
 // Define a List of native General functions (Open Legends core natives)
+extern AMX_NATIVE_INFO core_Natives[] = {
+	{NULL, NULL}
+};
+extern AMX_NATIVE_INFO float_Natives[] = {
+	{NULL, NULL}
+};
 extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "UpdateWorldCo",  UpdateWorldCo },
 	{ "GetTimeDelta",  GetTimeDelta },
 	{ "SetFilter", SetFilter },
 	{ "FirstRun",  FirstRun},
+	{ "DebuggingStuff", DebuggingStuff},
 	{ NULL, NULL }        /* terminator */
 };
+extern AMX_NATIVE_INFO entity_Natives[] = {
+	{NULL, NULL}
+};
+extern AMX_NATIVE_INFO data_Natives[] = {
+	{NULL, NULL}
+};
+extern AMX_NATIVE_INFO drawing_Natives[] = {
+	{NULL, NULL}
+};
+extern AMX_NATIVE_INFO mplayer_Natives[] = {
+	{NULL, NULL}
+};
+
 
 //-----------------------------------------------------------------------------
 // Name: RegisterNatives()
@@ -232,12 +274,29 @@ extern AMX_NATIVE_INFO general_Natives[] = {
 void RegisterNatives(AMX *amx)
 {
 	// Register all the native functions
-//	amx_Register(amx, entity_Natives, -1);
-	amx_Register(amx, general_Natives, -1);
 	amx_Register(amx, core_Natives, -1);
-	amx_Register(amx, console_Natives, -1);
 	amx_Register(amx, float_Natives, -1);
-//	amx_Register(amx, animation_Natives, -1);
-//	amx_Register(amx, counter_Natives, -1);
+	amx_Register(amx, general_Natives, -1);
+	amx_Register(amx, entity_Natives, -1);
+	amx_Register(amx, data_Natives, -1);
+	amx_Register(amx, drawing_Natives, -1);
+	amx_Register(amx, mplayer_Natives, -1);
+	
+	
+//	amx_Register(amx, console_Natives, -1);
+	
+	
 }
+//-----------------------------------------------------------------------------
+// Name: GetStringParam()
+// Desc: 
+// 
+//-----------------------------------------------------------------------------
+bool GetStringParam(AMX *amx, cell sParam, char* szString){
+	cell *n;
 
+	amx_GetAddr(amx, sParam, &n);
+	amx_GetString(szString, n);
+
+	return true;
+}
