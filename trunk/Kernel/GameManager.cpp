@@ -24,6 +24,8 @@
 						* Creation date.
 				July 07, 2005 by Littlebuddy:
 						+ Linked ForEachMapGroup to it's corresponding CWorld function.
+				Feb, 2006 by Littlebuddy:
+						+ Added sprite buffer for script threads.
 
 	This file implements all the classes that manage the project,
 	this includes the methods to write and read from the 
@@ -54,7 +56,45 @@ IGraphics **CGameManager::ms_ppGraphicsI = NULL;
 		##funct.Callback(&Info, ##funct.lParam); \
 	}
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
+int arr=0;
+void CGameManager::TheSecretsOfDebugging(){
+	arr+=1;
+	CBString sName = "__pstn1";
+	CSize *size = new CSize;
+	CPoint pt;
+	int x; int y;
+	x=y=0;
+	CSprite *pSprite = CGameManager::Instance()->FindSprite(sName);
+	if(!pSprite) {
+		return;
+	}
+	
+	pSprite->GetSize(*size);
+			CSpriteContext *pSpriteContext = new CSpriteContext("");
+			pSpriteContext->SetDrawableObj(pSprite);
+			//if(pSprite->GetSpriteType() == tBackground) pSpriteContext->Tile();	
+			pSpriteContext->SetObjSubLayer(2);
+			pSpriteContext->SetTemp();
+			pSpriteContext->MoveTo(x*size->cx+arr, y*size->cy);
+			if(arr > 620) arr = 0;
+			m_SpriteBuffer.push_back(pSpriteContext); //*used to add objects*
+	return;
+}
+
+//Flush sprites to the correct location
+void CGameManager::FlushSprites(CMapGroup *pt){
+	CLayer *pLayer = static_cast<CLayer *>(pt->GetChild(3));
+	while(m_SpriteBuffer.begin() != m_SpriteBuffer.end()){
+		pLayer->AddSpriteContext(*m_SpriteBuffer.begin());
+		m_SpriteBuffer.erase(m_SpriteBuffer.begin());
+	}
+}
+void CGameManager::QueueFull(){
+	CScript::QueueFull();
+}
+bool CGameManager::QueueAccepting(){
+	return CScript::QueueAccepting();
+}
 
 CGameManager *CGameManager::_instance = NULL;
 
@@ -74,10 +114,10 @@ CGameManager::~CGameManager()
 	BEGIN_DESTRUCTOR
 	Close(true);
 	delete m_pDummyDebug;
-
+	
 	delete m_ArchiveIn;
 	if(m_ArchiveIn != m_ArchiveOut) delete m_ArchiveOut;
-
+	DeleteCriticalSection(&CScript::XCritical);
 	END_DESTRUCTOR
 }
 
@@ -457,11 +497,6 @@ void CGameManager::CleanUndefs()
 	m_UndefSprites.clear();
 }
 
-bool CGameManager::WaitScripts()
-{
-	return CScript::WaitScripts();
-}
-
 void CGameManager::StopWaiting()
 {
 	CScript::StopWaiting();
@@ -699,6 +734,7 @@ bool CGameManager::Configure(IGraphics **ppGraphicsI, bool bDebug)
 
 	ms_ppGraphicsI = ppGraphicsI; 
 	CScript::ms_bDebug = bDebug;
+	InitializeCriticalSection(&CScript::XCritical);
 	return true; 
 }
 
