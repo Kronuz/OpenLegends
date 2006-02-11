@@ -40,7 +40,7 @@
 
 // just one extra thread for now... I don't want to mess with multiple exlusion,
 // plus I don't think it's worth the time.
-#define MAX_THREADS 1	
+#define MAX_THREADS 1
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations
@@ -63,7 +63,7 @@ class CScriptThread
 {
 	DWORD m_dwStartTime;	// Time when it started running
 	bool m_bRun;			// Must the thread be running?
-	bool m_bRunning;		// Is the script running
+	bool m_bRunning;
 	bool m_bThreadUp;
 
 	HANDLE m_hThread;
@@ -78,7 +78,6 @@ class CScriptThread
 	static DWORD WINAPI ExecScript(LPVOID lpParameter);
 public:
 	bool Ready();
-	void RunScript(HSCRIPT hScript);
 	bool CreateThread();
 	void KillThread(DWORD dwMilliseconds = 0);
 	CScriptThread();
@@ -100,6 +99,10 @@ class CScript :
 {
 	// Static to all scripts:
 	static CScriptThread Threads[MAX_THREADS];
+	static bool m_bNewQueue;
+	static HANDLE m_hHandlerThread;
+	static int m_iHandlerUsage;
+	static DWORD WINAPI HandlerThread(LPVOID lpParameter);
 
 	// Script dependent:
 	AMX amx;
@@ -122,10 +125,16 @@ class CScript :
 	Scripts m_Scripts; // Keeps a list of all the current script's clones
 
 public:
-	static volatile bool ms_StopWaiting;
+	static CRITICAL_SECTION XCritical;		//TODO: Not working as intended? Multithreading crashes?
+	static std::vector<HSCRIPT> ScriptQueue;
+	
+	static void CreateHandler();
+	static void KillHandler();
+	static void NewQueue();
+	static bool QueueAccepting();
+	static void QueueFull();
+
 	static bool ms_bDebug;
-	static HANDLE Resources; // Thread resources availible
-	static bool WaitScripts();
 	static void StopWaiting();
 	static bool isDebugging();
 

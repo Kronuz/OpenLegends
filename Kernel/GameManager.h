@@ -123,7 +123,8 @@ public:
 	// Construction/Destruction:
 	CGameManager();
 	~CGameManager();
-
+	
+	void TheSecretsOfDebugging();
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
@@ -152,6 +153,14 @@ public:
 
 		return (*ms_ppGraphicsI)->SetFilter(eFilter, vParam);
 	}
+	
+	
+	void QueueFull();
+	bool QueueAccepting();
+
+	std::vector<CSpriteContext *> m_SpriteBuffer;
+
+	void FlushSprites(CMapGroup *pt);
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
 
@@ -201,7 +210,6 @@ protected:
 
 public:
 
-	bool WaitScripts();
 	void StopWaiting();
 	bool isDebugging();
 	float UpdateFPS(float fpsLock = -1.0f);

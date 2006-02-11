@@ -20,7 +20,9 @@
 /*! \file		SpriteManager.cpp
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the classes that maintain and run scripts.
-	\date		August 04, 2003:
+	\date		Jan-Feb, 2006:
+					* Extensive modification of script threading.
+				August 04, 2003:
 					* Initial addition to OL.
 				November 01, 2003:
 					* Debugger added.
@@ -108,20 +110,58 @@ int AMXAPI amx_ListUnresolved(AMX *amx, int number)
 }
 
 // All thread resources should be initialized to be unavailible.
-HANDLE CScript::Resources = CreateSemaphore( NULL, 0, MAX_THREADS, NULL );
+
 CScriptThread CScript::Threads[MAX_THREADS];
+std::vector<HSCRIPT> CScript::ScriptQueue;
+bool CScript::m_bNewQueue = true;
+HANDLE CScript::m_hHandlerThread = NULL;
+int CScript::m_iHandlerUsage = 0;
+CRITICAL_SECTION CScript::XCritical;
+
 bool CScript::ms_bDebug  = false; // debug by default
-volatile bool CScript::ms_StopWaiting = false;
+
+
+//Handle the queue
+void CScript::NewQueue(){
+	m_bNewQueue = true;
+}
+bool CScript::QueueAccepting(){
+	return m_bNewQueue;
+}
+void CScript::QueueFull(){
+	m_bNewQueue = false;
+	if(m_hHandlerThread == NULL) CScript::Threads[0].CreateThread(); //Create the first thread to initialize the thread handler.
+}
+
+void CScript::CreateHandler(){
+	if(m_hHandlerThread == NULL) m_hHandlerThread = ::CreateThread(NULL, 0, CScript::HandlerThread, NULL, 0, NULL);
+	m_iHandlerUsage++;
+}
+
+void CScript::KillHandler(){
+	if(--m_iHandlerUsage == 0) m_hHandlerThread = NULL; //Handler thread will die on it's own.
+}
+
+DWORD WINAPI CScript::HandlerThread(LPVOID lpParameter){
+	while(m_iHandlerUsage > 0){
+		for(int i=0; i<MAX_THREADS; i++){
+			Threads[i].Ready(); //Do a ready-check to find locked threads.
+			//The previous engine stored the execution time of each object and printed it, we don't want that, it's slow^2.
+		}
+		Sleep(10);	//Do the ready checks every 100ms to find any locked threads.
+	}
+	return 0;
+}
 
 CScriptThread::CScriptThread() : 
 	m_bRun(false), 
-	m_bThreadUp(false), 
-	m_bRunning(false), 
+	m_bThreadUp(false),  
+	m_bRunning(false),
 	m_hThread(NULL), 
 	m_hScript(NULL)
 { 
 	InitializeCriticalSection(&XCritical);
-	ScriptReady = CreateSemaphore( NULL, 0, 1, NULL );
+	CScript::CreateHandler();
 }
 
 CScriptThread::~CScriptThread() 
@@ -129,7 +169,7 @@ CScriptThread::~CScriptThread()
 	BEGIN_DESTRUCTOR
 	KillThread(1000);
 	DeleteCriticalSection(&XCritical);
-	CloseHandle(ScriptReady);
+	CScript::KillHandler();
 	END_DESTRUCTOR
 }
 
@@ -141,24 +181,29 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 	bool bRun = true;
 
 	EnterCriticalSection(&THIS->XCritical);
-	THIS->m_bThreadUp = true;
+		THIS->m_bThreadUp = true;
 	LeaveCriticalSection(&THIS->XCritical);
 
 	while(bRun) {
-		ReleaseSemaphore(CScript::Resources, 1, NULL);	// make this resource availible
-		WaitForSingleObject(THIS->ScriptReady, INFINITE); // wait for a script to be ready to run.
-		
+
+		//When we're out of scripts we should create a new queue and wait for it to fill up.
+		while(CScript::ScriptQueue.begin() == CScript::ScriptQueue.end() || CScript::QueueAccepting()){
+			if(!CScript::QueueAccepting()) CScript::NewQueue(); else Sleep(1);
+		}
+		EnterCriticalSection(&CScript::XCritical);					//Critical section, get and erase script from vector.									
+			THIS->m_hScript = *CScript::ScriptQueue.begin();
+			CScript::ScriptQueue.erase(CScript::ScriptQueue.begin());
+		LeaveCriticalSection(&CScript::XCritical);
+
 		EnterCriticalSection(&THIS->XCritical);
-		THIS->m_bRunning = true;
-		THIS->m_dwStartTime = GetTickCount();
-		if(THIS->m_hScript->m_pDebug) THIS->m_hScript->m_pDebug->m_dwDebugTime = 0;
+			THIS->m_dwStartTime = GetTickCount();
+			THIS->m_bRunning = true;
+			if(THIS->m_hScript->m_pDebug) THIS->m_hScript->m_pDebug->m_dwDebugTime = 0;
 		LeaveCriticalSection(&THIS->XCritical);
-		
-		CONSOLE_DEBUG("Running script '%s' (%x)...\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID);
 
 		// Run the script here.
 		cell ret = 0;
-		int err = amx_Exec(&THIS->m_hScript->amx, &ret, AMX_EXEC_MAIN, 0);
+		int err = amx_Exec(&(THIS->m_hScript->amx), &ret, AMX_EXEC_MAIN, 0);
 		DWORD dwDelta = GetTickCount() - THIS->m_dwStartTime;
 		if(THIS->m_hScript->m_pDebug) {
 			dwDelta -= THIS->m_hScript->m_pDebug->m_dwDebugTime;
@@ -179,17 +224,17 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 		THIS->m_hScript->error = ret; // save the termination error
 
 		#ifdef _DEBUG
-			//Sleep(rand()%800 + 50);  // simulate a buggy script. (just for testing)
-			if(THIS->m_hScript->m_pDebug) {
+			//Sleep(rand()%800 + 50);  // simulate a buggy script. (just for testing) -- Damn you, debug output is enough for simulating that! / Littlebuddy
+			/*if(THIS->m_hScript->m_pDebug) {
 				CONSOLE_DEBUG("Script '%s' (%x) finished: took %d milliseconds to end (%d ms debugging)\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, dwDelta, THIS->m_hScript->m_pDebug->m_dwDebugTime);
 			} else {
 				CONSOLE_DEBUG("Script '%s' (%x) finished: took %d milliseconds to end\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, dwDelta);
-			}
+			}*/
 		#endif
 
 		EnterCriticalSection(&THIS->XCritical);
-		THIS->m_bRunning = false;
-		bRun = THIS->m_bRun; // shall we continue running the thread?
+			THIS->m_bRunning = false;
+			bRun = THIS->m_bRun; // shall we continue running the thread?
 		LeaveCriticalSection(&THIS->XCritical);
 	}
 	return 0;
@@ -201,8 +246,8 @@ bool CScriptThread::Ready()
 
 	DWORD dwDelta = 0;
 	EnterCriticalSection(&XCritical);
-	bool bReady = (m_bThreadUp && !m_bRunning);
-	if(m_bThreadUp && m_bRunning) {
+	bool bReady = m_bThreadUp;
+	if(m_bRunning) {
 		dwDelta = GetTickCount();
 		if(m_hScript && m_hScript->m_pDebug) {
 			if(m_hScript->m_pDebug->m_bDebugging) {
@@ -215,12 +260,14 @@ bool CScriptThread::Ready()
 	LeaveCriticalSection(&XCritical);
 
 	// dwDelta in milliseconds
+	// These suck hard when debugging - Littlebuddy
 	if(dwDelta >= 500) { // the thread seems to be locked, kill the thread.
 		KillThread();
 		if(m_hScript) m_hScript->nKilled++;
 		CONSOLE_PRINTF("Script error in '%s' (%x): Script took too long to finish and thread was killed (%d ms)\n", m_hScript->amx.szFileName, m_hScript->ID, dwDelta);
 		CreateThread(); // Recover the thread for future uses
 	} else if(dwDelta >= 200) { // the script took too long to finish, try to abort.
+		CONSOLE_PRINTF("Script warning in '%s' (%x): Trying to abort (it's taking too long to finish: %d ms)\n", m_hScript->amx.szFileName, m_hScript->ID, dwDelta);
 		m_hScript->amx.flags |= AMX_FLAG_ABORT; // set the abort flag of the scrip.
 	} else if(dwDelta >= 10) { // taking too long....
 		if(dwDelta > m_hScript->dwTooLong) {
@@ -231,19 +278,11 @@ bool CScriptThread::Ready()
 	return bReady;
 }
 
-void CScriptThread::RunScript(HSCRIPT hScript) 
-{
-	ASSERT(hScript);
-	m_hScript = hScript;
-	ReleaseSemaphore(ScriptReady, 1, NULL); // tell the thread the script is ready to run.
-}
-
 bool CScriptThread::CreateThread() 
 {
 	if(m_hThread == NULL) {
 		m_bRun = true; // no thread, so mutex is not needed.
 		m_bThreadUp = false;
-		m_bRunning = false;
 		DWORD dwThreadID = 0;
 		m_hThread = ::CreateThread(NULL, 0, CScriptThread::ExecScript, (void*)this, 0, &dwThreadID);
 	}
@@ -254,8 +293,9 @@ void CScriptThread::KillThread(DWORD dwMilliseconds)
 {
 	if(m_hThread != NULL) {
 		EnterCriticalSection(&XCritical);
-		m_bRun = false;		
+		m_bRun = false;	
 		m_bThreadUp = false;
+		m_bRunning = false;
 		LeaveCriticalSection(&XCritical);
 
 		bool bTerminateThread = false;
@@ -427,18 +467,11 @@ bool CScript::RunScript(const CDrawableContext &context, RUNACTION action)
 				return false;
 			}
 		}
-		WaitForSingleObject(Resources, 300); // wait for a resource to free
-		ReleaseSemaphore(Resources, 1, NULL);
 	}
-	while(hScript) {
-		for(int i=0; i<MAX_THREADS; i++) {
-			if(Threads[i].Ready()) {
-				Threads[i].RunScript(hScript);
-				hScript = NULL;
-				break;
-			}
-		}
-		if(hScript) Sleep(10);
+
+
+	if(QueueAccepting() && hScript){
+		ScriptQueue.push_back(hScript); //Place the script in the queue.
 	}
 
 	m_nErrorLevel = S_SCRIPT_OK;
@@ -447,7 +480,6 @@ bool CScript::RunScript(const CDrawableContext &context, RUNACTION action)
 
 void CScript::StopWaiting()
 {
-	ms_StopWaiting = true;
 	Disconnect();
 }
 bool CScript::isDebugging()
@@ -455,23 +487,6 @@ bool CScript::isDebugging()
 	if(!ms_bDebug) return false;
 	return !Connected();
 }
-bool CScript::WaitScripts()
-{
-	WaitForSingleObject(Resources, 300); // wait for a resource to free
-	ReleaseSemaphore(Resources, 1, NULL);
-
-	int nReady;
-	while(!ms_StopWaiting) {
-		nReady = 0;
-		for(int i=0; i<MAX_THREADS; i++) {
-			if(Threads[i].Ready()) nReady++; // wait the thread to be ready to run (not running anything)
-		}
-		if(nReady == MAX_THREADS) break;
-		Sleep(10);
-	}
-	return ms_StopWaiting;
-}
-
 // check if the script needs to be compiled (based on the modification date of the files)
 bool CScript::NeedToCompile() const
 {
