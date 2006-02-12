@@ -20,12 +20,14 @@
 /*! \file		SpriteManager.cpp
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the classes that maintain and run scripts.
-	\date		Jan-Feb, 2006:
-					* Extensive modification of script threading.
-				August 04, 2003:
+	\date		August 04, 2003:
 					* Initial addition to OL.
 				November 01, 2003:
 					* Debugger added.
+				Jan-Feb, 2006:
+					* Extensive modification of script threading.
+				February 12, 2006:
+					* Added saving of pointer to current script handler in the AMX.
 */
 
 #include "stdafx.h"
@@ -203,6 +205,8 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 
 		// Run the script here.
 		cell ret = 0;
+		//Store the pointer to the script in the AMX-data.
+		amx_SetUserData(&(THIS->m_hScript->amx), HSCRIPTPOINTER, (void *)&(THIS->m_hScript));
 		int err = amx_Exec(&(THIS->m_hScript->amx), &ret, AMX_EXEC_MAIN, 0);
 		DWORD dwDelta = GetTickCount() - THIS->m_dwStartTime;
 		if(THIS->m_hScript->m_pDebug) {

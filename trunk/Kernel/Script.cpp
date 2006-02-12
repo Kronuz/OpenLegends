@@ -23,8 +23,11 @@
 	\brief		Main Open Legends core natives for the scripts
 	\date		August 10, 2003
 		- 10/11/05 Modified comments to match the new functions listed in OLScripts/functions.rtf
+				February 12, 2006:
+					~ Some work with the debug function, it's printing some debug-data to a text file for now (SLOW!)
 
 	Improvements in the scripting engine since last Open Legends version:
+	[xx/02/06] - Rewritten script threading, should be a lot faster now. - Littlebuddy
 	[08/10/03] - The Abstract Virtual Machine now uses assembler code, so 
 				 now the entities run about five times faster than they used
 				 to run in Open Legends 6.2.4.
@@ -67,10 +70,13 @@
 
 */
 #include "stdafx.h"
+#include <amx.h>
 
 #include "Script.h"
 
 #include "GameManager.h"
+#include "ScriptManager.h"
+#include "SpriteManager.h"
 
 /*!
 	\defgroup openlegends Open Legends API functions
@@ -158,16 +164,20 @@ int DrawText(char text, int x, int y, int r=255, int g=255, int b=255, int a=255
 		Only the drawing.inc file will be necessary for this include.
 */
 #endif
+
 static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//GetStringParam(amx,params[0], szString);
 	//GetStringParam(amx,params[3], szHex);
 	//char asdf[32];
 	//sprintf(asdf, "%d", params[1]);
-	//MessageBox(NULL, asdf, NULL, NULL);		
+	//MessageBox(NULL, asdf, NULL, NULL);
+	HSCRIPT hScript;
 	CGameManager::Instance()->TheSecretsOfDebugging();
+	hScript = GetThis(amx);
+	CONSOLE_DEBUG("%s, %s (%x) retrieved.\n",hScript->amx.szFileName, amx->szFileName,hScript->ID);
+	//((*pScript)->ID)
 	return 0;
 }
-
 
 static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
 {
