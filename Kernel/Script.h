@@ -36,6 +36,7 @@
 
 void RegisterNatives(AMX *amx);
 bool GetStringParam(AMX *amx, cell sParam, char* szString);
+CEntityData *GetRelevantEntityData(AMX *amx, cell *param);
 
 inline HSCRIPT GetThis(AMX *amx){
 	HSCRIPT *pScript;
@@ -48,4 +49,12 @@ inline CEntityData* GetEntityData(HSCRIPT hScript){
 }
 inline CSpriteContext* GetSpriteContext(HSCRIPT hScript){
 	return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID));
+}
+inline bool GetStringParam(AMX *amx, cell sParam, char* szString){
+	cell *n;
+
+	amx_GetAddr(amx, sParam, &n);
+	amx_GetString(szString, n);
+
+	return true;
 }

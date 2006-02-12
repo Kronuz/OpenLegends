@@ -25,7 +25,7 @@
 		- 10/11/05 Modified comments to match the new functions listed in OLScripts/functions.rtf
 				February 12, 2006:
 					~ Some work with the debug function, it's printing some debug-data to a text file for now (SLOW!)
-
+					* New functions have been implemented for context-based retrieval of entities ("this", CDrawableContext* or "name")
 	Improvements in the scripting engine since last Open Legends version:
 	[xx/02/06] - Rewritten script threading, should be a lot faster now. - Littlebuddy
 	[08/10/03] - The Abstract Virtual Machine now uses assembler code, so 
@@ -165,17 +165,56 @@ int DrawText(char text, int x, int y, int r=255, int g=255, int b=255, int a=255
 */
 #endif
 
+struct EntParamData{
+	LPCSTR szName;
+	CDrawableContext *context;
+};
+
+int CALLBACK FindNamedEntity(LPVOID lpVoid, LPARAM ret){
+	CMapGroup *pMapGroup = (CMapGroup *)lpVoid;
+	for(int i=0;pMapGroup->GetChild(i) != NULL; i++){
+		//Search each sprite in each layer in each group. YUCK!
+		((EntParamData *)ret)->context = pMapGroup->GetChild(i)->GetChild(((EntParamData *)ret)->szName);
+		if( ((EntParamData *)ret)->context != NULL ) return -1; //Not an error, we're done tho.
+	}
+	return 0;
+}
+
+CEntityData *GetRelevantEntityData(AMX *amx, cell param){
+	char szName[64] = "arasdfasdfgh";
+	GetStringParam(amx, param, &szName[0]); /*This is just commented out while debugging, can't inject variables to the function if it's here.*/
+	if(!strcmp(szName, "this")) return GetEntityData(GetThis(amx));
+	try{
+		((CDrawableContext *)param)->isSuperContext();
+		return static_cast<CSpriteContext *>((CDrawableContext *)param)->m_pEntityData;
+	}catch(...){
+		/*Find the entity through an extended search - THIS IS NOT RECOMMENDED! Avoid! Avoid! Avoid!*/
+		EntParamData foreachdata;
+		foreachdata.context = NULL;
+		foreachdata.szName = szName;
+		CGameManager::Instance()->ForEachMapGroup(FindNamedEntity, (LPARAM)&foreachdata);
+		if(foreachdata.context != NULL) return static_cast<CSpriteContext *>(foreachdata.context)->m_pEntityData;
+	}
+	return NULL;	//Couldn't find it.
+}
+
 static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//GetStringParam(amx,params[0], szString);
 	//GetStringParam(amx,params[3], szHex);
 	//char asdf[32];
 	//sprintf(asdf, "%d", params[1]);
 	//MessageBox(NULL, asdf, NULL, NULL);
-	HSCRIPT hScript;
-	CGameManager::Instance()->TheSecretsOfDebugging();
-	hScript = GetThis(amx);
-	CONSOLE_DEBUG("%s, %s (%x) retrieved.\n",hScript->amx.szFileName, amx->szFileName,hScript->ID);
-	//((*pScript)->ID)
+	//HSCRIPT hScript;
+	//CGameManager::Instance()->TheSecretsOfDebugging();
+	//hScript = GetThis(amx);
+	//CONSOLE_DEBUG("%s, %s (%x) retrieved.\n",hScript->amx.szFileName, amx->szFileName,hScript->ID);
+	//CEntityData *ent = GetEntityData(hScript);
+	//ent->SetString(((int)params[0]), "asdf!");
+	//CONSOLE_DEBUG("%s\n",ent->GetString((int)params[0]));
+	//CEntityData *ent = GetRelevantEntityData(amx, (cell));
+	//if(ent == NULL) return 0;
+	//ent->SetString("moomoo", "CowMan");
+	//CONSOLE_DEBUG("%s\n", ent->GetString("moomoo"));
 	return 0;
 }
 
@@ -296,17 +335,4 @@ void RegisterNatives(AMX *amx)
 //	amx_Register(amx, console_Natives, -1);
 	
 	
-}
-//-----------------------------------------------------------------------------
-// Name: GetStringParam()
-// Desc: 
-// 
-//-----------------------------------------------------------------------------
-bool GetStringParam(AMX *amx, cell sParam, char* szString){
-	cell *n;
-
-	amx_GetAddr(amx, sParam, &n);
-	amx_GetString(szString, n);
-
-	return true;
 }
