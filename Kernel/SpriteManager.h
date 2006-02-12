@@ -26,6 +26,8 @@
 				September 16, 2003
 				July 15, 2005:
 						* Added CMutable Touch() calls
+				February 12, 2006:
+						* Added CEntityData (Empty class.)
 
 	All sprites are almost the same, but to distinguish sprites that
 	can handle an advanced interaction (entities) from those which do not 
@@ -177,7 +179,34 @@ struct SEntityData : public SBackgroundData
 		for non-entity sprites.
 	*/
 };
+/////////////////////////////////////////////////////////////////////////////
+/*! \class		CEntityData
+	\brief		The entity data container.
+	\author		Littlebuddy
+	\version	1.0
+	\date		February 12, 2006
 
+	The CEntityData class interacts with the CSpriteContext class to store the
+	data for each entity in an effective way, allowing us to easily retrieve this
+	data.
+
+	\remarks
+	
+
+	\sa 
+	\todo Write the implementation of this class.
+*/
+class CEntityData{
+protected:
+	//Data-storage methods:
+	//Valuebased items
+	//Stringbased items
+	//Flags
+	
+public:
+
+
+};
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CSprite
 	\brief		The sprites base class.
@@ -540,7 +569,9 @@ public:
 	mutable int m_nFrame[CONTEXT_BUFFERS];
 
 	CSpriteContext(LPCSTR szName);
+	~CSpriteContext();
 
+	CEntityData *m_pEntityData;
 	void Mirror();
 	void Flip();
 	void Mirror(bool bMirror);	//!< Mirrors the object.

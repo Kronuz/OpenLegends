@@ -21,6 +21,9 @@
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Interface of the classes that maintain and run scripts.
 	\date		August 04, 2003
+				February 12, 2006:
+					* Forgot to mention a few variables were deleted in the last update.
+					* Added HSCRIPTPOINTER define for saving of pointer to current script handle.
 */
 
 #pragma once
@@ -41,6 +44,9 @@
 // just one extra thread for now... I don't want to mess with multiple exlusion,
 // plus I don't think it's worth the time.
 #define MAX_THREADS 1
+
+//The id for data used stored by the amx-engine.
+#define HSCRIPTPOINTER		1
 
 /////////////////////////////////////////////////////////////////////////////
 // Forward declarations

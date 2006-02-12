@@ -21,14 +21,31 @@
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Main Open Legends core natives for the scripts
 	\date		August 10, 2003
+				February 12, 2006:
+					* Added a few helper functions for retrival of sprite data.
 */
 
 #pragma once
 
 #include "WorldManager.h"
+#include "ScriptManager.h"
 
 #include <IArchiver.h>
 #include <IGame.h>
+#include <amx.h>
 
 void RegisterNatives(AMX *amx);
 bool GetStringParam(AMX *amx, cell sParam, char* szString);
+
+inline HSCRIPT GetThis(AMX *amx){
+	HSCRIPT *pScript;
+	amx_GetUserData(amx, HSCRIPTPOINTER, (void **)&pScript);
+	return *pScript;
+}
+
+inline CEntityData* GetEntityData(HSCRIPT hScript){
+	return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID))->m_pEntityData;
+}
+inline CSpriteContext* GetSpriteContext(HSCRIPT hScript){
+	return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID));
+}

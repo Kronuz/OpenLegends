@@ -41,6 +41,8 @@
 						* Added CMutable Touch() calls
 				July 19, 2005:
 						* Moved CSpriteSelection to the file SelectionManager.(cpp|h)
+				February 12, 2006:
+						* CEntityData creation in CSpriteContext (logical storage area since similar data will be manipulated.)
 
 	This file implements all the classes that manage the sprites,
 	including backgrounds, sprite sheets, animations, mask maps and
@@ -656,12 +658,18 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 	return bChanged;
 }
 
+CSpriteContext::~CSpriteContext(){
+	delete m_pEntityData;
+}
+
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
 	CDrawableContext(szName),
 	m_eXChain(relative),
 	m_eYChain(relative)
 {
 	DestroyStateCallback(CSpriteContext::DestroyCheckpoint, (LPARAM)this);
+	
+	m_pEntityData = new CEntityData;
 
 	memset(m_nFrame, -1, sizeof(m_nFrame));
 	Mirror(false);
