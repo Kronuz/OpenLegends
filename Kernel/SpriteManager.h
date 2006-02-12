@@ -27,7 +27,8 @@
 				July 15, 2005:
 						* Added CMutable Touch() calls
 				February 12, 2006:
-						* Added CEntityData (Empty class.)
+						* Added CEntityData
+						* Implemented CEntityData
 
 	All sprites are almost the same, but to distinguish sprites that
 	can handle an advanced interaction (entities) from those which do not 
@@ -68,6 +69,7 @@
 
 #include <map>
 #include <vector>
+#include "Misc.h"
 
 #define SPRITE_BOUNDS		0x0001	// show sprite boundaries?
 #define SPRITE_MASKS		0x0002	// show the sprite mask, if any?
@@ -188,24 +190,50 @@ struct SEntityData : public SBackgroundData
 
 	The CEntityData class interacts with the CSpriteContext class to store the
 	data for each entity in an effective way, allowing us to easily retrieve this
-	data.
-
-	\remarks
+	data. 
 	
+	\remarks
 
 	\sa 
 	\todo Write the implementation of this class.
 */
 class CEntityData{
 protected:
-	//Data-storage methods:
+	//Data-storage types:
 	//Valuebased items
+	typedef std::pair<int,		int>		vvPair;
+	typedef std::pair<CBString, int>		svPair;
 	//Stringbased items
-	//Flags
-	
+	typedef std::pair<int,		CBString>	vsPair;
+	typedef std::pair<CBString, CBString>	ssPair;
+	//Flags (Booleans)
+	typedef std::pair<int,		bool>		vfPair;
+	typedef std::pair<CBString, bool>		sfPair;
+
+	//Data-storage vectors:
+	std::vector<vvPair>	m_vvStorage;	//Value-based value storage.
+	std::vector<svPair>	m_svStorage;	//String-based value storage.
+	std::vector<vsPair>	m_vsStorage;	//Value-based string storage.
+	std::vector<ssPair>	m_ssStorage;	//String-based string storage.
+	std::vector<vfPair>	m_vfStorage;	//Value-based flag storage. 
+	std::vector<sfPair>	m_sfStorage;	//String-based flag storage.
 public:
 
-
+	//Storage retrieval:
+	int GetValue(int Id);	//Entity retrieved from is done elsewhere. Personal note.
+	int GetValue(LPCSTR Id);
+	bool GetFlag(int Id);
+	bool GetFlag(LPCSTR Id);
+	CBString GetString(int Id);
+	CBString GetString(LPCSTR Id);
+	
+	//Storage insertion: (Returns previously exists?true:false)
+	bool SetValue(	int Id,		int Value = 0);
+	bool SetValue(	LPCSTR Id,	int Value = 0);
+	bool SetFlag(	int Id,		bool Set = true);
+	bool SetFlag(	LPCSTR Id,	bool Set = true);
+	bool SetString(	int Id,		LPCSTR Text = "");
+	bool SetString(	LPCSTR Id,	LPCSTR Text = "");
 };
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CSprite

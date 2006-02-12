@@ -43,6 +43,7 @@
 						* Moved CSpriteSelection to the file SelectionManager.(cpp|h)
 				February 12, 2006:
 						* CEntityData creation in CSpriteContext (logical storage area since similar data will be manipulated.)
+						* Added implementation of CEntityData.
 
 	This file implements all the classes that manage the sprites,
 	including backgrounds, sprite sheets, animations, mask maps and
@@ -85,6 +86,138 @@ CBackground::CBackground(LPCSTR szName) :
 	CSprite(szName)
 {
 	m_SptType = tBackground;
+}
+
+int CEntityData::GetValue(int Id){
+	std::vector<vvPair>::iterator iter = m_vvStorage.begin();
+	for(;iter < m_vvStorage.end(); iter++){
+		if((*iter).first == Id) return (*iter).second;
+	}
+	return 0;
+}
+int CEntityData::GetValue(LPCSTR Id){
+	std::vector<svPair>::iterator iter = m_svStorage.begin();
+	for(;iter < m_svStorage.end(); iter++){
+		if(!(*iter).first.Compare(Id)) return (*iter).second;
+	}
+	return 0;	
+}
+
+CBString CEntityData::GetString(int Id){
+	std::vector<vsPair>::iterator iter = m_vsStorage.begin();
+	for(;iter < m_vsStorage.end(); iter++){
+		if((*iter).first == Id) return ((*iter).second);
+	}
+	return "";
+}
+CBString CEntityData::GetString(LPCSTR Id){
+	std::vector<ssPair>::iterator iter = m_ssStorage.begin();
+	for(;iter < m_ssStorage.end(); iter++){
+		if(!(*iter).first.Compare(Id)) return ((*iter).second);
+	}
+	return "";
+}
+
+bool CEntityData::GetFlag(int Id){
+	std::vector<vfPair>::iterator iter = m_vfStorage.begin();
+	for(;iter < m_vfStorage.end(); iter++){
+		if((*iter).first == Id) return (*iter).second;
+	}
+	return false;
+}
+bool CEntityData::GetFlag(LPCSTR Id){
+	std::vector<sfPair>::iterator iter = m_sfStorage.begin();
+	for(;iter < m_sfStorage.end(); iter++){
+		if(!(*iter).first.Compare(Id)) return (*iter).second;
+	}
+	return false;
+}
+
+bool CEntityData::SetValue(int Id, int Value){
+	std::vector<vvPair>::iterator iter = m_vvStorage.begin();
+	for(;iter < m_vvStorage.end(); iter++){
+		if((*iter).first == Id){
+			(*iter).second = Value;
+			return true;
+		}
+	}
+	vvPair obj;
+	obj.first = Id;
+	obj.second = Value;
+	m_vvStorage.push_back(obj);
+	return false;
+}
+bool CEntityData::SetValue(LPCSTR Id, int Value){
+	std::vector<svPair>::iterator iter = m_svStorage.begin();
+	for(;iter < m_svStorage.end(); iter++){
+		if(!(*iter).first.Compare(Id)){
+			(*iter).second = Value;
+			return true;
+		}
+	}
+	svPair obj;
+	obj.first = CBString(Id);
+	obj.second = Value;
+	m_svStorage.push_back(obj);
+	return false;
+}
+
+bool CEntityData::SetString(int Id, LPCSTR Text){
+	std::vector<vsPair>::iterator iter = m_vsStorage.begin();
+	for(;iter < m_vsStorage.end(); iter++){
+		if((*iter).first == Id){
+			(*iter).second = CBString(Text);
+			return true;
+		}
+	}
+	vsPair obj;
+	obj.first = Id;
+	obj.second = CBString(Text);
+	m_vsStorage.push_back(obj);
+	return false;
+}
+bool CEntityData::SetString(LPCSTR Id, LPCSTR Text){
+	std::vector<ssPair>::iterator iter = m_ssStorage.begin();
+	for(;iter < m_ssStorage.end(); iter++){
+		if(!(*iter).first.Compare(Id)){
+			(*iter).second = CBString(Text);
+			return true;
+		}
+	}
+	ssPair obj;
+	obj.first = CBString(Id);
+	obj.second = CBString(Text);
+	m_ssStorage.push_back(obj);
+	return false;
+}
+
+bool CEntityData::SetFlag(int Id, bool Set){
+	std::vector<vfPair>::iterator iter = m_vfStorage.begin();
+	for(;iter < m_vfStorage.end(); iter++){
+		if((*iter).first == Id){
+			(*iter).second = Set;
+			return true;
+		}
+	}
+	vfPair obj;
+	obj.first = Id;
+	obj.second = Set;
+	m_vfStorage.push_back(obj);
+	return false;
+}
+bool CEntityData::SetFlag(LPCSTR Id, bool Set){
+	std::vector<sfPair>::iterator iter = m_sfStorage.begin();
+	for(;iter < m_sfStorage.end(); iter++){
+		if(!(*iter).first.Compare(Id)){
+			(*iter).second = Set;
+			return true;
+		}
+	}
+	sfPair obj;
+	obj.first = CBString(Id);
+	obj.second = Set;
+	m_sfStorage.push_back(obj);
+	return false;
 }
 
 bool CBackground::NeedToDraw(const CDrawableContext &scontext) 
