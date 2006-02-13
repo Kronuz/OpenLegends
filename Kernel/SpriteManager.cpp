@@ -44,6 +44,8 @@
 				February 12, 2006:
 						* CEntityData creation in CSpriteContext (logical storage area since similar data will be manipulated.)
 						* Added implementation of CEntityData.
+				Feb 13, 2006:
+						+ Implemented CEntityData static functions for retrieval of indexed Contexts.
 
 	This file implements all the classes that manage the sprites,
 	including backgrounds, sprite sheets, animations, mask maps and
@@ -62,6 +64,8 @@
 bool g_bBounds = false;
 bool g_bMasks = false;
 bool g_bEntities = false;
+
+std::vector<CEntityData::contextPair> CEntityData::ms_ContextIndex;
 
 CSprite::CSprite(LPCSTR szName) :
 	m_bDefined(false),
@@ -86,6 +90,22 @@ CBackground::CBackground(LPCSTR szName) :
 	CSprite(szName)
 {
 	m_SptType = tBackground;
+}
+CDrawableContext* CEntityData::FindContext(LPCSTR szName){
+	std::vector<contextPair>::iterator iter = ms_ContextIndex.begin();
+	for(;iter < ms_ContextIndex.end(); iter++){
+		if(!(*iter).first.Compare(szName)){
+			try{
+				(*iter).second->isSuperContext();	//Throws an error if it fails.
+				return (*iter).second;
+			}catch(...){	//The context has probably been deleted, so restart the search and remove the crap.
+				ms_ContextIndex.erase(iter);
+				iter = ms_ContextIndex.begin();
+				iter--; //We have iter++ on continue
+			}
+		}
+	}
+	return NULL;	//Not found.
 }
 
 int CEntityData::GetValue(int Id){
