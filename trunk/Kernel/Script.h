@@ -23,6 +23,8 @@
 	\date		August 10, 2003
 				February 12, 2006:
 					* Added a few helper functions for retrival of sprite data.
+				Feb 13, 2006:
+					+ Optimized retrieval of contexts (avoids searching full database, indexes used names.)
 */
 
 #pragma once
@@ -33,6 +35,11 @@
 #include <IArchiver.h>
 #include <IGame.h>
 #include <amx.h>
+
+struct EntParamData{
+	LPCSTR szName;
+	CDrawableContext *context;
+};
 
 void RegisterNatives(AMX *amx);
 bool GetStringParam(AMX *amx, cell sParam, char* szString);

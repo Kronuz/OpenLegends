@@ -29,6 +29,8 @@
 				February 12, 2006:
 						* Added CEntityData
 						* Implemented CEntityData
+				Feb 13, 2006:
+						* Added static functions and variables for optimized retrieval of contexts through CEntityData.
 
 	All sprites are almost the same, but to distinguish sprites that
 	can handle an advanced interaction (entities) from those which do not 
@@ -81,6 +83,7 @@ enum _Chain { relative=0, stretch=1, left=3, right=2, up=2, down=3, fixed=4 };
 extern bool g_bBounds;
 extern bool g_bMasks;
 extern bool g_bEntities;
+
 
 /*! \brief Enumaration of all sprite types.
 
@@ -195,9 +198,15 @@ struct SEntityData : public SBackgroundData
 	\remarks
 
 	\sa 
-	\todo Write the implementation of this class.
+	\todo Some more testing would be useful.
 */
 class CEntityData{
+public:
+	typedef std::pair<CBString, CDrawableContext*> contextPair;
+	static std::vector<contextPair> ms_ContextIndex;
+	static CDrawableContext* FindContext(LPCSTR szName);
+	static void InsertContext(LPCSTR szName, CDrawableContext *context);
+
 protected:
 	//Data-storage types:
 	//Valuebased items
@@ -235,6 +244,12 @@ public:
 	bool SetString(	int Id,		LPCSTR Text = "");
 	bool SetString(	LPCSTR Id,	LPCSTR Text = "");
 };
+inline void CEntityData::InsertContext(LPCSTR szName, CDrawableContext *context){
+	contextPair pair;
+	pair.first = CBString(szName);
+	pair.second = context;
+	ms_ContextIndex.push_back(pair);
+}
 /////////////////////////////////////////////////////////////////////////////
 /*! \class		CSprite
 	\brief		The sprites base class.

@@ -26,6 +26,8 @@
 				February 12, 2006:
 					~ Some work with the debug function, it's printing some debug-data to a text file for now (SLOW!)
 					* New functions have been implemented for context-based retrieval of entities ("this", CDrawableContext* or "name")
+				Feb 13, 2006:
+					+ Optimized retrieval of contexts (avoids searching full database, indexes used names.)
 	Improvements in the scripting engine since last Open Legends version:
 	[xx/02/06] - Rewritten script threading, should be a lot faster now. - Littlebuddy
 	[08/10/03] - The Abstract Virtual Machine now uses assembler code, so 
@@ -163,12 +165,21 @@ int DrawText(char text, int x, int y, int r=255, int g=255, int b=255, int a=255
 
 		Only the drawing.inc file will be necessary for this include.
 */
-#endif
+CDrawableContext *GetEntity(char name);/*!<
+	\ingroup entity
+	\brief This function returns a pointer to the CDrawableContext. 
 
-struct EntParamData{
-	LPCSTR szName;
-	CDrawableContext *context;
-};
+	\return Returns a pointer to an entity, should not be modified.
+
+	\remarks It's preffered if you store the entity name in a variable which you later refer to it by, as this ups
+		the speed of the entity searching. 
+		It's done through an extensive search and should be used to retrieve the entity name as few times as 
+		possible. (entity names should be used as few times as possible in any case, using the return value of 
+		GetEntity or the "this" command is much faster.)
+
+
+*/
+#endif
 
 int CALLBACK FindNamedEntity(LPVOID lpVoid, LPARAM ret){
 	CMapGroup *pMapGroup = (CMapGroup *)lpVoid;
@@ -180,20 +191,31 @@ int CALLBACK FindNamedEntity(LPVOID lpVoid, LPARAM ret){
 	return 0;
 }
 
+CDrawableContext *GetContext(LPCSTR szName){
+		CDrawableContext *context = NULL;
+		context = CEntityData::FindContext(szName);
+		if(context != NULL) return context;
+
+		/*Find the entity through an extended search - THIS IS NOT RECOMMENDED! Avoid! Avoid! Avoid!*/
+		EntParamData foreachdata;
+		foreachdata.context = NULL;
+		foreachdata.szName = szName;
+		CGameManager::Instance()->ForEachMapGroup(FindNamedEntity, (LPARAM)&foreachdata);
+		CEntityData::InsertContext(szName, foreachdata.context);	//Any previously unused context is inserted for faster searching later on.
+		return foreachdata.context;
+}
+
 CEntityData *GetRelevantEntityData(AMX *amx, cell param){
-	char szName[64] = "arasdfasdfgh";
+	char szName[64];
+	//Note to self: The below function hasn't been tested with live variables yet, should be done asap.
 	GetStringParam(amx, param, &szName[0]); /*This is just commented out while debugging, can't inject variables to the function if it's here.*/
 	if(!strcmp(szName, "this")) return GetEntityData(GetThis(amx));
 	try{
 		((CDrawableContext *)param)->isSuperContext();
 		return static_cast<CSpriteContext *>((CDrawableContext *)param)->m_pEntityData;
 	}catch(...){
-		/*Find the entity through an extended search - THIS IS NOT RECOMMENDED! Avoid! Avoid! Avoid!*/
-		EntParamData foreachdata;
-		foreachdata.context = NULL;
-		foreachdata.szName = szName;
-		CGameManager::Instance()->ForEachMapGroup(FindNamedEntity, (LPARAM)&foreachdata);
-		if(foreachdata.context != NULL) return static_cast<CSpriteContext *>(foreachdata.context)->m_pEntityData;
+		CDrawableContext *context = GetContext(szName);
+		if(context != NULL) return static_cast<CSpriteContext *>(context)->m_pEntityData;
 	}
 	return NULL;	//Couldn't find it.
 }
@@ -211,11 +233,17 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//CEntityData *ent = GetEntityData(hScript);
 	//ent->SetString(((int)params[0]), "asdf!");
 	//CONSOLE_DEBUG("%s\n",ent->GetString((int)params[0]));
-	//CEntityData *ent = GetRelevantEntityData(amx, (cell));
+	//CEntityData *ent = GetRelevantEntityData(amx, (cell)GetContext("argh"));
 	//if(ent == NULL) return 0;
 	//ent->SetString("moomoo", "CowMan");
 	//CONSOLE_DEBUG("%s\n", ent->GetString("moomoo"));
 	return 0;
+}
+
+static cell AMX_NATIVE_CALL GetEntity(AMX *amx, cell *params){
+	char *szName = new char;
+	GetStringParam(amx, params[0],szName);
+	return (cell)GetContext(szName);
 }
 
 static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
