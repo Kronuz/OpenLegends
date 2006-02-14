@@ -21,11 +21,14 @@
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Implementation of the CGameManager class.
 	\date		April 16, 2003:
-						* Creation date.
+					* Creation date.
 				July 07, 2005 by Littlebuddy:
-						+ Linked ForEachMapGroup to it's corresponding CWorld function.
+					+ Linked ForEachMapGroup to it's corresponding CWorld function.
 				Feb, 2006 by Littlebuddy:
-						+ Added sprite buffer for script threads.
+					+ Added sprite buffer for script threads.
+				Feb 14, 2006:
+					+ Sprite buffer now uses std::pair<CSpriteContext*, int> to also store layer to draw sprite in.
+					+ DrawSprite() has been added as an inline boolean function.
 
 	This file implements all the classes that manage the project,
 	this includes the methods to write and read from the 
@@ -77,15 +80,19 @@ void CGameManager::TheSecretsOfDebugging(){
 			pSpriteContext->SetTemp();
 			pSpriteContext->MoveTo(x*size->cx+arr, y*size->cy);
 			if(arr > 620) arr = 0;
-			m_SpriteBuffer.push_back(pSpriteContext); //*used to add objects*
+			BufferPair Pair;
+			Pair.first = pSpriteContext;
+			Pair.second = 3;
+			m_SpriteBuffer.push_back(Pair); //*used to add objects*
 	return;
 }
 
 //Flush sprites to the correct location
 void CGameManager::FlushSprites(CMapGroup *pt){
-	CLayer *pLayer = static_cast<CLayer *>(pt->GetChild(3));
+	
 	while(m_SpriteBuffer.begin() != m_SpriteBuffer.end()){
-		pLayer->AddSpriteContext(*m_SpriteBuffer.begin());
+		CLayer *pLayer = static_cast<CLayer *>(pt->GetChild((*m_SpriteBuffer.begin()).second));
+		pLayer->AddSpriteContext((*m_SpriteBuffer.begin()).first);
 		m_SpriteBuffer.erase(m_SpriteBuffer.begin());
 	}
 }

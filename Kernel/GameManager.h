@@ -20,7 +20,7 @@
 /*! \file		GameManager.h 
 	\author		Germán Méndez Bravo (Kronuz)
 	\brief		Interface of the CGameManager class.
-	\date		April 15, 2003
+	\date		April 15, 2003 //Check GameManager.cpp for updates.
 
 	This file defines the classes needed to handle the game project.
 	The project manager is in charge of pretty much everything that has
@@ -96,6 +96,8 @@ class CGameManager :
 protected:
 	CWorld m_World;
 	std::vector<CSpriteSheet*> m_SpriteSheets;
+	typedef std::pair<CSpriteContext *, int> BufferPair;
+	std::vector<BufferPair> m_SpriteBuffer;
 
 	typedef std::pair<CBString, SUndefSprite> pairUndefSprite;
 	std::map<CBString, SUndefSprite> m_UndefSprites;
@@ -153,14 +155,33 @@ public:
 
 		return (*ms_ppGraphicsI)->SetFilter(eFilter, vParam);
 	}
-	
+	inline bool DrawSprite(LPCSTR spriteName, int coordType, int x, int y, int subLayer, int layer, LPCSTR rgba, float scale, int rot){
+			CSprite *pSprite = FindSprite(spriteName);
+			if(!pSprite) {
+				return false;
+			}
+			CSpriteContext *pSpriteContext = new CSpriteContext("");
+			pSpriteContext->SetDrawableObj(pSprite);
+			//if(pSprite->GetSpriteType() == tBackground) pSpriteContext->Tile();	
+			pSpriteContext->SetObjSubLayer(subLayer);
+			pSpriteContext->SetTemp();
+			if(1==1) {	//TODO: Apply different coordinate types.
+				pSpriteContext->MoveTo(x, y);
+			}
+			pSpriteContext->Rotate(rot);
+			pSpriteContext->ARGB(HEX2ARGB(rgba));
+			BufferPair Pair;
+			Pair.first = pSpriteContext;
+			Pair.second = layer;
+			m_SpriteBuffer.push_back(Pair); //*used to add objects*
+			return true;
+	}
 	
 	void QueueFull();
 	bool QueueAccepting();
 
-	std::vector<CSpriteContext *> m_SpriteBuffer;
-
 	void FlushSprites(CMapGroup *pt);
+
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
 

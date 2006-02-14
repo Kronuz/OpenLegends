@@ -28,6 +28,9 @@
 					* New functions have been implemented for context-based retrieval of entities ("this", CDrawableContext* or "name")
 				Feb 13, 2006:
 					+ Optimized retrieval of contexts (avoids searching full database, indexes used names.)
+				Feb 14, 2006:
+					+ The file has been re-ordered a bit for readability.
+					* The DrawSprite() function has been added and tested. some features are yet to be implemented in it however. (noted.)
 	Improvements in the scripting engine since last Open Legends version:
 	[xx/02/06] - Rewritten script threading, should be a lot faster now. - Littlebuddy
 	[08/10/03] - The Abstract Virtual Machine now uses assembler code, so 
@@ -80,107 +83,13 @@
 #include "ScriptManager.h"
 #include "SpriteManager.h"
 
+extern cell ConvertFloatToCell(float fValue);
+extern float fConvertCellToFloat(cell cellValue);
+
 /*!
 	\defgroup openlegends Open Legends API functions
 	This is the API for Open Legends scripts.
 */
-
-/*!
-	\defgroup core Small's Core Functions
-	\ingroup openlegends
-	Core native functions for the Small language.
-*/
-
-/*! 
-	\defgroup float Floating-point related Functions
-	\ingroup openlegends
-	Float tag type native functions.
-*/
-
-extern cell ConvertFloatToCell(float fValue);
-extern float fConvertCellToFloat(cell cellValue);
-/*!
-	\defgroup general General Open Legends Functions
-	\ingroup openlegends
-	Main Open Legends core functions.
-*/
-
-/*!
-	\defgroup entity Open Legends Entity Handling Functions
-	\ingroup openlegends
-	Open Legends entity handling functions.
-*/
-
-/*!
-	\defgroup data Open Legends Data Storage Functions
-	\ingroup openlegends
-	Methods for storing and retrieving entity/sprite data.
-*/
-
-/*!
-	\defgroup drawing Open Legends Drawing Functions
-	\ingroup openlegends
-	Drawing functions for sprites, animations, text and images.
-*/
-
-/*!
-	\defgroup mplayer Multiplayer Server/Client functions
-	\ingroup openlegends
-	Handles functions for multiplayer Server/Client interaction.
-*/
-
-#if defined OLDoc
-float GetTimeDelta(); /*!< 
-	\ingroup general
-	\brief This function obtains the current delta time for the frame being rendered.
-
-	\return Delta time passed since last frame (in seconds)
-
-	\remarks Each frame a delta time is calculated to do all the needed operations.
-		This delta is the lapse of time that has been passed since the last
-		frame was rendered. Delta is calculated as follows: MillisecondsSinceLastFrame / 1000
-		Although this is not always entirely true, since when the delta time comes to be
-		higher than 0.05 (i.e. more than 50 milliseconds since have been past since last frame) 
-		the delta time remains at 0.05 thus slowing the whole game down, instead of dropping frames.
-
-		To use this function you should include both general and float header files.
-
-	<b>Example:</b>
-	\code
-	...
-	new float: timer;
-	timer += GetTimeDelta();          
-	...
-	\endcode
-*/
-int DrawText(char text, int x, int y, int r=255, int g=255, int b=255, int a=255);/*!<
-	\ingroup drawing
-	\brief This function draws a string of text on-screen using a default font.
-
-	\return Always returns 0.
-
-	\remarks It accepts an onscreen x & y position which is relative to the top left corner of the game area
-		as well as the text to write and any other necessary variables.
-		
-
-		Only the drawing.inc file will be necessary for this include.
-*/
-CDrawableContext *GetEntity(char name);/*!<
-	\ingroup entity
-	\brief This function returns a pointer to the CDrawableContext. 
-
-	\return Returns a pointer to an entity, should not be modified.
-
-	\remarks It's preffered if you store the entity name in a variable which you later refer to it by, as this ups
-		the speed of the entity searching. 
-		It's done through an extensive search and should be used to retrieve the entity name as few times as 
-		possible. (entity names should be used as few times as possible in any case, using the return value of 
-		GetEntity or the "this" command is much faster.)
-
-
-*/
-#endif
-
 int CALLBACK FindNamedEntity(LPVOID lpVoid, LPARAM ret){
 	CMapGroup *pMapGroup = (CMapGroup *)lpVoid;
 	for(int i=0;pMapGroup->GetChild(i) != NULL; i++){
@@ -220,32 +129,29 @@ CEntityData *GetRelevantEntityData(AMX *amx, cell param){
 	return NULL;	//Couldn't find it.
 }
 
-static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
-	//GetStringParam(amx,params[0], szString);
-	//GetStringParam(amx,params[3], szHex);
-	//char asdf[32];
-	//sprintf(asdf, "%d", params[1]);
-	//MessageBox(NULL, asdf, NULL, NULL);
-	//HSCRIPT hScript;
-	//CGameManager::Instance()->TheSecretsOfDebugging();
-	//hScript = GetThis(amx);
-	//CONSOLE_DEBUG("%s, %s (%x) retrieved.\n",hScript->amx.szFileName, amx->szFileName,hScript->ID);
-	//CEntityData *ent = GetEntityData(hScript);
-	//ent->SetString(((int)params[0]), "asdf!");
-	//CONSOLE_DEBUG("%s\n",ent->GetString((int)params[0]));
-	//CEntityData *ent = GetRelevantEntityData(amx, (cell)GetContext("argh"));
-	//if(ent == NULL) return 0;
-	//ent->SetString("moomoo", "CowMan");
-	//CONSOLE_DEBUG("%s\n", ent->GetString("moomoo"));
-	return 0;
-}
+/*!
+	\defgroup core Small's Core Functions
+	\ingroup openlegends
+	Core native functions for the Small language.
+*/
 
-static cell AMX_NATIVE_CALL GetEntity(AMX *amx, cell *params){
-	char *szName = new char;
-	GetStringParam(amx, params[0],szName);
-	return (cell)GetContext(szName);
-}
+extern AMX_NATIVE_INFO core_Natives[] = {
+	{NULL, NULL}
+};
+/*! 
+	\defgroup float Floating-point related Functions
+	\ingroup openlegends
+	Float tag type native functions.
+*/
+extern AMX_NATIVE_INFO float_Natives[] = {
+	{NULL, NULL}
+};
 
+/*!
+	\defgroup general General Open Legends Functions
+	\ingroup openlegends
+	Main Open Legends core functions.
+*/
 static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
 {
 	return ConvertFloatToCell(CGameManager::GetFPSDelta());
@@ -304,23 +210,31 @@ static cell AMX_NATIVE_CALL SetFilter(AMX *amx, cell *params)
 	return 0;
 }
 
-//-----------------------------------------------------------------------------
-// Name: FirstRun()
-//-----------------------------------------------------------------------------
 static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 {
 	if(amx) return amx->firstrun;
 	
 	return 0;	
 }
-
-// Define a List of native General functions (Open Legends core natives)
-extern AMX_NATIVE_INFO core_Natives[] = {
-	{NULL, NULL}
-};
-extern AMX_NATIVE_INFO float_Natives[] = {
-	{NULL, NULL}
-};
+static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
+	//GetStringParam(amx,params[0], szString);
+	//GetStringParam(amx,params[3], szHex);
+	//char asdf[32];
+	//sprintf(asdf, "%d", params[1]);
+	//MessageBox(NULL, asdf, NULL, NULL);
+	//HSCRIPT hScript;
+	//CGameManager::Instance()->TheSecretsOfDebugging();
+	//hScript = GetThis(amx);
+	//CONSOLE_DEBUG("%s, %s (%x) retrieved.\n",hScript->amx.szFileName, amx->szFileName,hScript->ID);
+	//CEntityData *ent = GetEntityData(hScript);
+	//ent->SetString(((int)params[0]), "asdf!");
+	//CONSOLE_DEBUG("%s\n",ent->GetString((int)params[0]));
+	//CEntityData *ent = GetRelevantEntityData(amx, (cell)GetContext("argh"));
+	//if(ent == NULL) return 0;
+	//ent->SetString("moomoo", "CowMan");
+	//CONSOLE_DEBUG("%s\n", ent->GetString("moomoo"));
+	return 0;
+}
 extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "UpdateWorldCo",  UpdateWorldCo },
 	{ "GetTimeDelta",  GetTimeDelta },
@@ -329,20 +243,61 @@ extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "DebuggingStuff", DebuggingStuff},
 	{ NULL, NULL }        /* terminator */
 };
+
+/*!
+	\defgroup entity Open Legends Entity Handling Functions
+	\ingroup openlegends
+	Open Legends entity handling functions.
+*/
+static cell AMX_NATIVE_CALL GetEntity(AMX *amx, cell *params){
+	char *szName = new char;
+	GetStringParam(amx, params[1],szName);
+	return (cell)GetContext(szName);
+}
 extern AMX_NATIVE_INFO entity_Natives[] = {
+	{"GetEntity", GetEntity},
 	{NULL, NULL}
 };
+/*!
+	\defgroup data Open Legends Data Storage Functions
+	\ingroup openlegends
+	Methods for storing and retrieving entity/sprite data.
+*/
+
 extern AMX_NATIVE_INFO data_Natives[] = {
 	{NULL, NULL}
 };
+/*!
+	\defgroup drawing Open Legends Drawing Functions
+	\ingroup openlegends
+	Drawing functions for sprites, animations, text and images.
+*/
+static cell AMX_NATIVE_CALL DrawSprite(AMX *amx, cell *params){
+	//(string)Spritename, (enum)CoordType, x, y, subLayer=2, Layer=3, rgba="FFFFFF", scale=1.0, rotation=0.0)
+	char *szSprite = new char; GetStringParam(amx, params[1], szSprite);
+	int coordType = params[2];
+	int x = params[3];
+	int y = params[4];
+	int subLayer = params[5];
+	int Layer = params[6];
+	char *szRgba = new char; GetStringParam(amx, params[7], szRgba);
+	float fScale = fConvertCellToFloat(params[8]);
+	int Rot = params[9];
+	return CGameManager::Instance()->DrawSprite(szSprite, coordType, x, y, subLayer, Layer, szRgba, fScale, Rot);
+}
 extern AMX_NATIVE_INFO drawing_Natives[] = {
+	{"DrawSprite", DrawSprite},
 	{NULL, NULL}
 };
+/*!
+	\defgroup mplayer Multiplayer Server/Client functions
+	\ingroup openlegends
+	Handles functions for multiplayer Server/Client interaction.
+*/
+
 extern AMX_NATIVE_INFO mplayer_Natives[] = {
 	{NULL, NULL}
 };
-
-
 //-----------------------------------------------------------------------------
 // Name: RegisterNatives()
 // Desc: 
@@ -364,3 +319,78 @@ void RegisterNatives(AMX *amx)
 	
 	
 }
+//-----------------------------------------------------------------------------
+#if defined OLDoc
+float GetTimeDelta(); /*!< 
+	\ingroup general
+	\brief This function obtains the current delta time for the frame being rendered.
+
+	\return Delta time passed since last frame (in seconds)
+
+	\remarks Each frame a delta time is calculated to do all the needed operations.
+		This delta is the lapse of time that has been passed since the last
+		frame was rendered. Delta is calculated as follows: MillisecondsSinceLastFrame / 1000
+		Although this is not always entirely true, since when the delta time comes to be
+		higher than 0.05 (i.e. more than 50 milliseconds since have been past since last frame) 
+		the delta time remains at 0.05 thus slowing the whole game down, instead of dropping frames.
+
+		To use this function you should include both general and float header files.
+
+	<b>Example:</b>
+	\code
+	...
+	new float: timer;
+	timer += GetTimeDelta();          
+	...
+	\endcode
+*/
+int DrawText(char text, int x, int y, int r=255, int g=255, int b=255, int a=255);/*!<
+	\ingroup drawing
+	\brief This function draws a string of text on-screen using a default font.
+
+	\return Always returns 0.
+
+	\remarks It accepts an onscreen x & y position which is relative to the top left corner of the game area
+		as well as the text to write and any other necessary variables.
+		TODO: Function doesn't exist yet!
+
+		Only the drawing.inc file will be necessary for this include.
+*/
+bool DrawSprite(char spriteName, int coordType, int x, int y, int subLayer=2, int Layer=3, char szRgba="80808080", float fScale=1.0, int Rot=0.0);/*!<
+	\ingroup drawing
+	\brief This function draws a sprite named spritename on-screen with a few settings available.
+
+	\return Returns true if sprite was found, false if not.
+
+	\remarks It accepts spriteName as a string, coordType as either _worldcoords, _groupcoords or _screencoords, x,y as location.
+	subLayer is the layer you draw on(higher is above), Layer is the layer you draw on (standard 3, higher on top), szRgba is a 
+	string modding the color with which the text is drawn, fScale mods objects size(where 1.0 is normal size) and 
+	fRot rotates the sprite counting in degrees.
+
+	TODO: fScale implementation. coordType implementation.
+*/
+CDrawableContext *GetEntity(char name);/*!<
+	\ingroup entity
+	\brief This function returns a pointer to the CDrawableContext. 
+
+	\return Returns a pointer to an entity, should not be modified.
+
+	\remarks It's preffered if you store the entity name in a variable which you later refer to it by, as this ups
+		the speed of the entity searching. 
+		It's done through an extensive search and should be used to retrieve the entity name as few times as 
+		possible. (entity names should be used as few times as possible in any case, using the return value of 
+		GetEntity or the "this" command is much faster.)
+*/
+int SetFilter();/*!< todo: WRITE DOCUMENTATION.
+
+*/
+bool FirstRun();/*!<
+	\ingroup entity
+	\brief Returns true if it's the first time you run the script
+
+	\return boolean (integer)
+
+	\remarks The return value is true if it's the first time you run the script, thus you can use it multiple
+		times in the same script and still have it return "true" (1) if it hasn't been run before.
+*/
+#endif
