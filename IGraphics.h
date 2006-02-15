@@ -189,7 +189,7 @@ inline ARGBCOLOR HSL2RGB(AHSLCOLOR hslColor)
 /*
 Calculate ARGB from Hexadecimal string color (ex. "00FF34")
 */
-inline ARGBCOLOR HEX2ARGB(char * hex)
+inline ARGBCOLOR HEX2ARGB(LPCSTR hex)
 {
 	unsigned char color[4];
 	
