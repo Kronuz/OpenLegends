@@ -235,12 +235,17 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//CONSOLE_DEBUG("%s\n", ent->GetString("moomoo"));
 	return 0;
 }
+static cell AMX_NATIVE_CALL Wipe(AMX *amx, cell *params){
+	int dir = params[1];
+	return CGameManager::Instance()->Wipe(dir);
+}
 extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "UpdateWorldCo",  UpdateWorldCo },
 	{ "GetTimeDelta",  GetTimeDelta },
 	{ "SetFilter", SetFilter },
-	{ "FirstRun",  FirstRun},
-	{ "DebuggingStuff", DebuggingStuff},
+	{ "FirstRun",  FirstRun },
+	{ "DebuggingStuff", DebuggingStuff },
+	{ "Wipe", Wipe },
 	{ NULL, NULL }        /* terminator */
 };
 
@@ -343,6 +348,20 @@ float GetTimeDelta(); /*!<
 	timer += GetTimeDelta();          
 	...
 	\endcode
+*/
+bool Wipe(int dir, char entity="this", int x=16, int y=16); /*!<
+	\ingroup general
+	\brief This function allows you to wipe between groups.
+
+	\return returns false if failed, true if successful or already wiping.
+
+	\remarks _direction is an enum found in the general include file /TODO: ADD IT!/ which relates to
+		the different directions you can wipe to. The actual wipe creates a wipe-effect from one group
+		to a different one, where dir indicates in which direction you are wiping. Example:
+		if(GetValue("this", "_y") < 2) Wipe(_north); 
+		The entity term can be used to move a different entity than the one you are using. 
+		x and y can modify the minimum location from the edge that the entity will be moved to. 
+		(the new group coordinates will be relative to the x and y pos delta between the two groups wiped between.)
 */
 int DrawText(char text, int x, int y, int r=255, int g=255, int b=255, int a=255);/*!<
 	\ingroup drawing

@@ -94,7 +94,16 @@ class CGameManager :
 	static IGraphics **ms_ppGraphicsI;
 
 protected:
+	//Active group
+	CMapGroup *m_pActiveMapGroup;
+	
+	//Wipe data
+	CMapGroup *m_pWipeTarget;
+	CPoint *m_pWipeOffset;
+	bool m_bWiping;
+
 	CWorld m_World;
+
 	std::vector<CSpriteSheet*> m_SpriteSheets;
 	typedef std::pair<CSpriteContext *, int> BufferPair;
 	std::vector<BufferPair> m_SpriteBuffer;
@@ -127,6 +136,14 @@ public:
 	~CGameManager();
 	
 	void TheSecretsOfDebugging();
+	inline void SetActiveGroup(CMapGroup *pMapGroup){
+		m_pActiveMapGroup = pMapGroup;
+	}
+	CMapGroup* Wiping();
+	inline CPoint* GetWipeOffset(){
+		return m_pWipeOffset;	//No check is really necessary, it'll only be used when a wipe is running.
+	}
+	inline bool Wipe(int dir);
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
@@ -180,8 +197,7 @@ public:
 	void QueueFull();
 	bool QueueAccepting();
 
-	void FlushSprites(CMapGroup *pt);
-
+	void FlushSprites();
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
 
