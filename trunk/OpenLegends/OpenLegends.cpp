@@ -16,6 +16,7 @@ DWORD g_dwLastTick;
 float g_rDelta;
 IGraphics *g_pGraphicsI = NULL;
 CMapGroup *g_pMapGroupI = NULL;
+CMapGroup *g_pSecondMapGroupI = NULL;
 
 int g_nXScreenSize = 640;
 int g_nYScreenSize = 480;
@@ -232,8 +233,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static float fZoom;
 
 	int wmId, wmEvent;
-	PAINTSTRUCT ps;
-	HDC hdc;
+	//PAINTSTRUCT ps;	//These have been useless for I-don't-know-how-long.
+	//HDC hdc;
 
 	switch (message) 
 	{
@@ -487,13 +488,13 @@ void RunScripts(LPVOID lpParameter){
 	action.bJustWait = false;
 	IGame *pGameI = (IGame *)lpParameter;
 	action.hSemaphore = g_hSemaphore;
-	if(pGameI->QueueAccepting()){
+	if(pGameI->QueueAccepting() && g_pSecondMapGroupI == NULL){//Avoid doing scripts while wiping. (Nevermind if we finish running ones.)
 		g_pMapGroupI->Run(action);
 		// delete temporary stuff, such as primitives, temporary sprites, 
 		// and marked-as-deleted sprites.
 		g_pMapGroupI->CleanTemp();
 		// Then add new sprites created by the entity interface.
-		pGameI->FlushSprites(g_pMapGroupI);
+		pGameI->FlushSprites();
 		
 		//Go for another run of the scripts.
 		pGameI->QueueFull();
@@ -513,6 +514,9 @@ void Render()
 	float fps = pGameI->UpdateFPS(60);
 	DWORD dwAux = 0;
 	if(fps != -1.0f) {
+		
+		pGameI->SetActiveGroup(g_pMapGroupI);
+
 		///////////////////////////////////////////////////////////////////////////
 		// 1. RUN THE SCRIPTS
 		if(!g_bDebug || (!dwStarting && g_bDebug)) RunScripts((LPVOID)pGameI);
@@ -523,7 +527,10 @@ void Render()
 		///////////////////////////////////////////////////////////////////////////
 		// 2. DRAW THE WORLD
 		// wait until we are allowed to paint something (during debug or after running all the scripts):
-		
+
+		// Update any running wipe. (g_pSecondMapGroupI will return to NULL once done.)
+		g_pSecondMapGroupI=pGameI->Wiping();
+
 		// **** This should be set by the user in the scripts:
 		g_pGraphicsI->SetFilterBkColor(COLOR_RGB(0,0,0));
 
@@ -539,9 +546,19 @@ void Render()
 
 			//If wiping, set the filters for the second map, 
 			//select the background color of the second map, and draw the second map:
-			//g_pGraphicsI->SetFilter();
-			//g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
-			//g_pSecondMapGroupI->Draw(g_pGraphicsI);
+			if(g_pSecondMapGroupI != NULL){
+				//Get wipe data.
+
+				//g_pGraphicsI->SetFilter(); //????
+				CPoint *pt = pGameI->GetWipeOffset();
+				CPoint *wpt;	g_pGraphicsI->GetWorldPosition(wpt);
+				
+				g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
+				
+				wpt += pt;	g_pGraphicsI->SetWorldPosition(wpt);
+				g_pSecondMapGroupI->Draw(g_pGraphicsI);
+				wpt -= pt;	g_pGraphicsI->SetWorldPosition(wpt);
+			}
 
 			bool bFilters = g_pGraphicsI->SetFilter(EnableFilters, (void*)false);
 			// Draw information about the frame rate and other things:

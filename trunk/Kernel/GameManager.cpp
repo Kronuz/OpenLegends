@@ -87,11 +87,62 @@ void CGameManager::TheSecretsOfDebugging(){
 	return;
 }
 
-//Flush sprites to the correct location
-void CGameManager::FlushSprites(CMapGroup *pt){
+CMapGroup* CGameManager::Wiping(){
+	if(!m_bWiping) return NULL;	//Cool part is, Wiping is totally separated from script threads and will be smooth no matter what the script-fps is.
 	
+	
+	
+	
+	
+	return m_pWipeTarget;
+}
+bool CGameManager::Wipe(int dir){
+	if(m_bWiping) return true;
+	ASSERT(ms_ppGraphicsI);
+	ASSERT(*ms_ppGraphicsI);
+	if(!(*ms_ppGraphicsI)) return false;
+	CRect mapRect;
+	CPoint mapPos;
+	m_pActiveMapGroup->GetMapGroupRect(mapRect);
+	(*ms_ppGraphicsI)->GetWorldPosition(&mapPos);
+	/*SCRIPT ENUM:
+		north = 0
+		west = 1
+		south = 2
+		east = 3
+	*/
+	mapPos.x /= DEF_MAPSIZEX; //These mods make sure we find the correct location if the player
+	mapPos.y /= DEF_MAPSIZEY; //has walked down a bit and crossed an imaginary group border for the group next to his location.
+	CMapGroup *pTargetGroup = NULL;
+	switch(dir){
+		case 0: //north ^
+			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.top-1);
+			break;
+		case 1: //west <--
+			pTargetGroup = FindMapGroup(mapRect.left-1, mapRect.top+mapPos.y);
+			break;
+		case 2: //south \/
+			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.bottom+1);
+			break;
+		case 3: //east -->
+			pTargetGroup = FindMapGroup(mapRect.right+1, mapRect.top+mapPos.y);
+			break;
+		default: return false;
+	}
+	if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
+	m_pWipeTarget = pTargetGroup;
+	CPoint groupPos, targetPos;
+	m_pActiveMapGroup->GetAbsPosition(groupPos);
+	m_pWipeTarget->GetAbsPosition(targetPos);
+	//groupPos += mapPos; //Offset to find the correct location to draw the target group.
+	CPoint *delta = new CPoint(groupPos.x - targetPos.x, groupPos.y - targetPos.y);
+	m_pWipeOffset = delta;
+	m_bWiping = true;	//The wipe will happen. (Do this when all data has been finalized.)
+}
+//Flush sprites to the correct location
+void CGameManager::FlushSprites(){
 	while(m_SpriteBuffer.begin() != m_SpriteBuffer.end()){
-		CLayer *pLayer = static_cast<CLayer *>(pt->GetChild((*m_SpriteBuffer.begin()).second));
+		CLayer *pLayer = static_cast<CLayer *>(m_pActiveMapGroup->GetChild((*m_SpriteBuffer.begin()).second));
 		pLayer->AddSpriteContext((*m_SpriteBuffer.begin()).first);
 		m_SpriteBuffer.erase(m_SpriteBuffer.begin());
 	}
@@ -110,6 +161,7 @@ CGameManager::CGameManager() :
 	m_World("New Quest"),
 	m_pDummyDebug(NULL)
 {
+	m_bWiping = false;
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 	m_pSoundManager = CSoundManager::Instance();
