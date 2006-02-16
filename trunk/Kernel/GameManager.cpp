@@ -38,6 +38,7 @@
 #include "stdafx.h"
 #include "GameManager.h"
 #include "ScriptManager.h"
+#include "Script.h"
 #include "Debugger.h"
 
 #include "ArchiveText.h"
@@ -87,13 +88,48 @@ void CGameManager::TheSecretsOfDebugging(){
 	return;
 }
 
+CDrawableContext* CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
+	CSpriteContext *pSpriteContext = new CSpriteContext(szName);
+	pSpriteContext->SetObjSubLayer(0); //Bottom layer.
+	CSprite *pSprite = FindSprite(szScript);
+	if(pSprite == NULL){
+		pSprite = ReferSprite("__NULLSprite", tEntity, "", -1);
+		SEntityData *pEntityData = new SEntityData;
+		memset(pEntityData, 0, sizeof(SEntityData));
+		SSpriteData *pSpriteData = pEntityData;
+		pSpriteData->nSubLayer = 2;
+		pSprite->SetSpriteData(pSpriteData);
+		pEntityData->pScript = MakeScript(szScript);
+		if(!pEntityData->pScript->SourceExists()){
+			CONSOLE_PRINTF("Script Warning: Couldn't find the script file for the entity %s, assumed abstract.\n", szScript);
+			//We still do not return here, it's possible that the user only requires an abstract entity to refer to for data storage.
+		}
+		//We do not have to link this entity to a sprite sheet, it's an abstract entity necessary only for scripts lacking sprite linkage.
+	}
+	if(pSprite == NULL) return NULL; //error?
+	pSpriteContext->SetDrawableObj(pSprite);
+	((CLayer *)(*m_ppActiveMapGroup)->GetChild(0))->AddSpriteContext(pSpriteContext);//There should never really be a need to create an entity outside of the active mapgroup.
+																					 //If all else fails, you can create it when you get there. :P
+	return (CDrawableContext *)pSpriteContext;
+}
+
 CMapGroup* CGameManager::Wiping(){
 	if(!m_bWiping) return NULL;	//Cool part is, Wiping is totally separated from script threads and will be smooth no matter what the script-fps is.
 	
-	
-	
-	
-	
+	// Last Wipe Frame:
+	if(!m_bWiping){
+		CDrawableContext *pt = CEntityData::FindContext("_world");		//Can't fail unless it's been deleted, this should never fail.
+		pt->GetParent()->PopChild(pt);									//Remove the world script from it's current parent.
+		((CLayer *)m_pWipeTarget->GetChild(0))->AddSpriteContext((CSpriteContext *)pt);	//Add the same script into the new group instead.
+		
+		if((pt = CEntityData::FindContext("_group")) != NULL) pt->GetParent()->KillChild(pt);
+
+		Scripts::InitializeSpecialEntities(m_pWipeTarget->GetName());
+
+		*m_ppActiveMapGroup = m_pWipeTarget;
+		return NULL;
+	}
+
 	return m_pWipeTarget;
 }
 bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
@@ -103,7 +139,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 	if(!(*ms_ppGraphicsI)) return false;
 	CRect mapRect;
 	CPoint mapPos;
-	m_pActiveMapGroup->GetMapGroupRect(mapRect);
+	(*m_ppActiveMapGroup)->GetMapGroupRect(mapRect);
 	(*ms_ppGraphicsI)->GetWorldPosition(&mapPos);
 	/*SCRIPT ENUM:
 		north = 0
@@ -132,7 +168,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 	if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
 	m_pWipeTarget = pTargetGroup;
 	CPoint groupPos, targetPos;
-	m_pActiveMapGroup->GetAbsPosition(groupPos);
+	(*m_ppActiveMapGroup)->GetAbsPosition(groupPos);
 	m_pWipeTarget->GetAbsPosition(targetPos);
 	//groupPos += mapPos; //Offset to find the correct location to draw the target group.
 	CPoint *delta = new CPoint(groupPos.x - targetPos.x, groupPos.y - targetPos.y);
@@ -143,7 +179,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 //Flush sprites to the correct location
 void CGameManager::FlushSprites(){
 	while(m_SpriteBuffer.begin() != m_SpriteBuffer.end()){
-		CLayer *pLayer = static_cast<CLayer *>(m_pActiveMapGroup->GetChild((*m_SpriteBuffer.begin()).second));
+		CLayer *pLayer = static_cast<CLayer *>((*m_ppActiveMapGroup)->GetChild((*m_SpriteBuffer.begin()).second));
 		pLayer->AddSpriteContext((*m_SpriteBuffer.begin()).first);
 		m_SpriteBuffer.erase(m_SpriteBuffer.begin());
 	}
@@ -152,6 +188,8 @@ void CGameManager::QueueFull(){
 	CScript::QueueFull();
 }
 bool CGameManager::QueueAccepting(){
+	if(m_ppActiveMapGroup == NULL) return false;
+	Scripts::InitializeSpecialEntities((*m_ppActiveMapGroup)->GetName());	//This makes sure _world and _group exists before we begin drawing and such.
 	return CScript::QueueAccepting();
 }
 
@@ -163,6 +201,7 @@ CGameManager::CGameManager() :
 	m_pDummyDebug(NULL)
 {
 	m_bWiping = false;
+	m_ppActiveMapGroup = NULL;
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;
 	m_pSoundManager = CSoundManager::Instance();
@@ -275,8 +314,10 @@ CScript *CGameManager::MakeScript(LPCSTR szName)
 		sFileTitle.SetAt(sFileTitle.GetLength()-1, '#');
 		pScript->SetTitle(sFileTitle);
 		if(!pScript->SourceExists()) {
-			delete pScript;
-			return NULL; // couldn't find the script file
+			CONSOLE_DEBUG("No script found for %d using path %s, assumed abstract object.\n", (DWORD)pScript, sPath);
+//			delete pScript;
+//			return NULL; // couldn't find the script file
+			pScript->m_bRunScript = false;
 		}
 	}
 

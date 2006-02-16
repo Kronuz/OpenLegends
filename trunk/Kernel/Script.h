@@ -40,28 +40,47 @@ struct EntParamData{
 	LPCSTR szName;
 	CDrawableContext *context;
 };
-
 void RegisterNatives(AMX *amx);
-bool GetStringParam(AMX *amx, cell sParam, char* szString);
-CEntityData *GetRelevantEntityData(AMX *amx, cell *param);
 
-inline HSCRIPT GetThis(AMX *amx){
-	HSCRIPT *pScript;
-	amx_GetUserData(amx, HSCRIPTPOINTER, (void **)&pScript);
-	return *pScript;
-}
+namespace Scripts{
+	bool GetStringParam(AMX *amx, cell sParam, char* szString);	
+	CDrawableContext* GetContext(LPCSTR szName, bool extensive = true);
+	void InitializeSpecialEntities(LPCSTR Groupname);
+	int CALLBACK FindNamedEntity(LPVOID lpVoid, LPARAM ret);
 
-inline CEntityData* GetEntityData(HSCRIPT hScript){
-	return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID))->m_pEntityData;
-}
-inline CSpriteContext* GetSpriteContext(HSCRIPT hScript){
-	return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID));
-}
-inline bool GetStringParam(AMX *amx, cell sParam, char* szString){
-	cell *n;
+	inline HSCRIPT GetThis(AMX *amx){							//Abstract entities can never use this.
+		HSCRIPT *pScript;
+		amx_GetUserData(amx, HSCRIPTPOINTER, (void **)&pScript);
+		return *pScript;
+	}
 
-	amx_GetAddr(amx, sParam, &n);
-	amx_GetString(szString, n);
+	inline CEntityData* GetEntityData(HSCRIPT hScript){			//Abstract entities can never use this.
+		return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID))->m_pEntityData;
+	}
+	inline CSpriteContext* GetSpriteContext(HSCRIPT hScript){	//Abstract entities can never use this.
+		return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID));
+	}
+	inline bool GetStringParam(AMX *amx, cell sParam, char* szString){
+		cell *n;
 
-	return true;
+		amx_GetAddr(amx, sParam, &n);
+		amx_GetString(szString, n);	
+
+		return true;
+	}
+
+	inline CEntityData* GetRelevantEntityData(AMX *amx, cell param){
+		char szName[64];
+		//Note to self: The below function hasn't been tested with live variables yet, should be done asap.
+		GetStringParam(amx, param, &szName[0]); /*This is just commented out while debugging, can't inject variables to the function if it's here.*/
+		if(!strcmp(szName, "this")) return GetEntityData(GetThis(amx));
+		try{
+			((CDrawableContext *)param)->isSuperContext();
+			return static_cast<CSpriteContext *>((CDrawableContext *)param)->m_pEntityData;
+		}catch(...){
+			CDrawableContext *context = GetContext(szName);
+			if(context != NULL) return static_cast<CSpriteContext *>(context)->m_pEntityData;
+		}
+		return NULL;	//Couldn't find it.
+	}
 }

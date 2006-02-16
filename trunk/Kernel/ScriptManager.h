@@ -118,6 +118,7 @@ class CScript :
 	int m_nErrorLevel;
 
 	bool m_bInitialized;
+	
 	int m_nKilled;
 
 	mutable bool m_bCompiledFilePath;
@@ -131,6 +132,8 @@ class CScript :
 	Scripts m_Scripts; // Keeps a list of all the current script's clones
 
 public:
+	bool m_bRunScript;
+
 	static CRITICAL_SECTION XCritical;		//TODO: Not working as intended? Multithreading crashes?
 	static std::vector<HSCRIPT> ScriptQueue;
 	

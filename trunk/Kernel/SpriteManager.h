@@ -226,6 +226,8 @@ protected:
 	std::vector<ssPair>	m_ssStorage;	//String-based string storage.
 	std::vector<vfPair>	m_vfStorage;	//Value-based flag storage. 
 	std::vector<sfPair>	m_sfStorage;	//String-based flag storage.
+
+
 public:
 
 	//Storage retrieval:
@@ -243,6 +245,16 @@ public:
 	bool SetFlag(	LPCSTR Id,	bool Set = true);
 	bool SetString(	int Id,		LPCSTR Text = "");
 	bool SetString(	LPCSTR Id,	LPCSTR Text = "");
+
+	//Storage clearing:
+	inline void ClearData(){
+		m_vvStorage.clear();
+		m_svStorage.clear();
+		m_vsStorage.clear();
+		m_ssStorage.clear();
+		m_vfStorage.clear();
+		m_sfStorage.clear();
+	}
 };
 inline void CEntityData::InsertContext(LPCSTR szName, CDrawableContext *context){
 	contextPair pair;

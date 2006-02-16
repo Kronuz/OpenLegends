@@ -47,7 +47,7 @@
 		issuing a warning (defend against infinite loops and stuff)
 
 	\endif
-
+	
 	\todo
 		Considering the system listed in OLScripts/functions.rtf, do we really
 		need SetFilter? This should logically be stored inside a local Get/Set 
@@ -83,6 +83,8 @@
 #include "ScriptManager.h"
 #include "SpriteManager.h"
 
+using namespace Scripts;
+
 extern cell ConvertFloatToCell(float fValue);
 extern float fConvertCellToFloat(cell cellValue);
 
@@ -90,21 +92,21 @@ extern float fConvertCellToFloat(cell cellValue);
 	\defgroup openlegends Open Legends API functions
 	This is the API for Open Legends scripts.
 */
-int CALLBACK FindNamedEntity(LPVOID lpVoid, LPARAM ret){
+int CALLBACK Scripts::FindNamedEntity(LPVOID lpVoid, LPARAM ret){	//Callback for extensive entity search.
 	CMapGroup *pMapGroup = (CMapGroup *)lpVoid;
 	for(int i=0;pMapGroup->GetChild(i) != NULL; i++){
-		//Search each sprite in each layer in each group. YUCK!
+		//Search each sprite context in each layer in each group. YUCK!
 		((EntParamData *)ret)->context = pMapGroup->GetChild(i)->GetChild(((EntParamData *)ret)->szName);
 		if( ((EntParamData *)ret)->context != NULL ) return -1; //Not an error, we're done tho.
 	}
 	return 0;
 }
 
-CDrawableContext *GetContext(LPCSTR szName){
+CDrawableContext* Scripts::GetContext(LPCSTR szName, bool extensive){
 		CDrawableContext *context = NULL;
 		context = CEntityData::FindContext(szName);
 		if(context != NULL) return context;
-
+		if(!extensive) return NULL;
 		/*Find the entity through an extended search - THIS IS NOT RECOMMENDED! Avoid! Avoid! Avoid!*/
 		EntParamData foreachdata;
 		foreachdata.context = NULL;
@@ -114,21 +116,23 @@ CDrawableContext *GetContext(LPCSTR szName){
 		return foreachdata.context;
 }
 
-CEntityData *GetRelevantEntityData(AMX *amx, cell param){
-	char szName[64];
-	//Note to self: The below function hasn't been tested with live variables yet, should be done asap.
-	GetStringParam(amx, param, &szName[0]); /*This is just commented out while debugging, can't inject variables to the function if it's here.*/
-	if(!strcmp(szName, "this")) return GetEntityData(GetThis(amx));
-	try{
-		((CDrawableContext *)param)->isSuperContext();
-		return static_cast<CSpriteContext *>((CDrawableContext *)param)->m_pEntityData;
-	}catch(...){
-		CDrawableContext *context = GetContext(szName);
-		if(context != NULL) return static_cast<CSpriteContext *>(context)->m_pEntityData;
+void Scripts::InitializeSpecialEntities(LPCSTR Groupname){	//Called per frame when a new queue is created to make sure they exist.
+	if(GetContext("_world", false) == NULL){//It's added to CEntityData on creation, so do a quicksearch.
+		CDrawableContext *context = CGameManager::Instance()->CreateEntity("_world", "_world");
+		if(context == NULL){
+			CONSOLE_PRINTF("Scrip Error: The _world entity script could not be created!");
+		}
+		CEntityData::InsertContext("_world", context);
 	}
-	return NULL;	//Couldn't find it.
+	if(GetContext("_group", false) == NULL){
+		if(strlen(Groupname) < 1) Groupname = " ";
+		CDrawableContext *context = CGameManager::Instance()->CreateEntity("_world", Groupname);
+		if(context == NULL){
+			CONSOLE_PRINTF("Script Warning: The group script for Group %s could not be created.", Groupname);
+		}
+		CEntityData::InsertContext("_group", context);	//It would be possible to use the CMapGroup drawcontext inheritance, but this allows for a bit more flexibility.
+	}													//Not to mention someone deleting the _group entity wouldn't delete the whole group :P
 }
-
 /*!
 	\defgroup core Small's Core Functions
 	\ingroup openlegends
@@ -216,6 +220,7 @@ static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 	
 	return 0;	
 }
+int g=0;
 static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//GetStringParam(amx,params[0], szString);
 	//GetStringParam(amx,params[3], szHex);
@@ -226,13 +231,20 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//CGameManager::Instance()->TheSecretsOfDebugging();
 	//hScript = GetThis(amx);
 	//CONSOLE_DEBUG("%s, %s (%x) retrieved.\n",hScript->amx.szFileName, amx->szFileName,hScript->ID);
-	//CEntityData *ent = GetEntityData(hScript);
-	//ent->SetString(((int)params[0]), "asdf!");
+	//CEntityData *ent = GetRelevantEntityData(amx, (cell)GetContext("_world"));
+	//ent->SetString(1, "_world set");
 	//CONSOLE_DEBUG("%s\n",ent->GetString((int)params[0]));
-	//CEntityData *ent = GetRelevantEntityData(amx, (cell)GetContext("argh"));
+	//ent = GetRelevantEntityData(amx, (cell)GetContext("_group"));
+	//ent->SetString(1, "_group set");
 	//if(ent == NULL) return 0;
 	//ent->SetString("moomoo", "CowMan");
-	//CONSOLE_DEBUG("%s\n", ent->GetString("moomoo"));
+	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
+	//ent = GetRelevantEntityData(amx, (cell)GetContext("_world"));
+	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
+	//if(g > 5) return 0;
+	//g+=1;
+	//CGameManager::Instance()->CreateEntity("","alpha");
+
 	return 0;
 }
 static cell AMX_NATIVE_CALL Wipe(AMX *amx, cell *params){
@@ -260,8 +272,19 @@ static cell AMX_NATIVE_CALL GetEntity(AMX *amx, cell *params){
 	GetStringParam(amx, params[1],szName);
 	return (cell)GetContext(szName);
 }
+static cell AMX_NATIVE_CALL CreateEntity(AMX *amx, cell *params){
+	char *szName = new char;
+	char *szScript = new char;
+	GetStringParam(amx, params[1], szScript);
+	GetStringParam(amx, params[2], szName);
+	CDrawableContext *pt = CGameManager::Instance()->CreateEntity(szName, szScript);
+	if(pt == NULL) return NULL;
+	CEntityData::InsertContext(szName, pt);
+	return (cell)pt;
+}
 extern AMX_NATIVE_INFO entity_Natives[] = {
 	{"GetEntity", GetEntity},
+	{"CreateEntity", CreateEntity},
 	{NULL, NULL}
 };
 /*!
@@ -391,15 +414,26 @@ bool DrawSprite(char spriteName, int coordType, int x, int y, int subLayer=2, in
 */
 CDrawableContext *GetEntity(char name);/*!<
 	\ingroup entity
-	\brief This function returns a pointer to the CDrawableContext. 
+	\brief This function returns a pointer to the CDrawableContext.
 
-	\return Returns a pointer to an entity, should not be modified.
+	\return Returns a pointer to an entity, should not be modified. Returns 0 if not found.
 
 	\remarks It's preffered if you store the entity name in a variable which you later refer to it by, as this ups
 		the speed of the entity searching. 
 		It's done through an extensive search and should be used to retrieve the entity name as few times as 
 		possible. (entity names should be used as few times as possible in any case, using the return value of 
 		GetEntity or the "this" command is much faster.)
+*/
+CDrawableContext *CreateEntity(char szScript = "", char szName = "");/*!<
+	\ingroup entity
+	\brief Creates entity using script szScript and names it szName.
+
+	\return Returns a pointer to an entity, should not be modified. Returns 0 if not found.
+
+	\remarks This function is used to create an instance of a script named szScript. This script may or may not
+	exist as an entity linked to a sprite in the project. This means that it's possible to create an "unscripted" entity
+	acting as an abstract storage object.
+	The return value of CreateEntity matches that of GetEntity.
 */
 int SetFilter();/*!< todo: WRITE DOCUMENTATION.
 

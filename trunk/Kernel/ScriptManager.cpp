@@ -329,7 +329,8 @@ CScript::CScript() :
 	m_bInitialized(false), 
 	m_bCompiledFilePath(false),
 	m_nErrorLevel(S_SCRIPT_OK),
-	m_nKilled(0)
+	m_nKilled(0),
+	m_bRunScript(true)
 {
 }
 CScript::~CScript() 
@@ -347,7 +348,10 @@ CScript::~CScript()
 
 bool CScript::InitScript()
 {
-	if(m_bInitialized) return true;
+	if(m_bInitialized || !m_bRunScript){
+		m_bInitialized = true;
+		return true;
+	}
 	
 	ASSERT(m_pProgram == NULL && m_pDebug == NULL); 
 
@@ -435,6 +439,11 @@ bool CScript::RunScript(const CDrawableContext &context, RUNACTION action)
 	// action.m_Ptr should have a pointer to the parent Map Group when not counting.
 	CMapGroup *pMapGroupI = reinterpret_cast<CMapGroup*>(action.m_Ptr);
 
+	if(!m_bRunScript){
+		m_nErrorLevel = S_SCRIPT_OK;
+		return false;
+	}
+
 	HSCRIPT hScript = (HSCRIPT)context.m_pPtr;
 	if(!hScript) {
 		Scripts::iterator Iterator = m_Scripts.find((DWORD)&context);
@@ -461,7 +470,7 @@ bool CScript::RunScript(const CDrawableContext &context, RUNACTION action)
 			hScript = Iterator->second;
 		}
 	}
-	
+
 	if(hScript) {
 		if(hScript->nKilled) {
 			if(hScript->nKilled==1) m_nKilled++;
