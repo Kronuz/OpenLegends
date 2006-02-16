@@ -424,7 +424,9 @@ bool CEntity::Run(const CDrawableContext &context, RUNACTION action)
 	if(pEntityData->pScript)
 		pEntityData->pScript->RunScript(context, action);
 	else {
-		CONSOLE_DEBUG("The entity %s has no script.\n", pEntityData->pScript);
+		//CONSOLE_DEBUG("The entity %s has no script.\n", pEntityData->pScript);
+		//TODO: Disable this message after one run to avoid game-slowdowns.
+		//Disabled for now.
 	}
 	
 	return true;
