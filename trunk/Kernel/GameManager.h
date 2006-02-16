@@ -143,7 +143,7 @@ public:
 	inline CPoint* GetWipeOffset(){
 		return m_pWipeOffset;	//No check is really necessary, it'll only be used when a wipe is running.
 	}
-	inline bool Wipe(int dir);
+	bool Wipe(int dir, LPCSTR szName, int x, int y);
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
