@@ -551,13 +551,13 @@ void Render()
 
 				//g_pGraphicsI->SetFilter(); //????
 				CPoint *pt = pGameI->GetWipeOffset();
-				CPoint *wpt;	g_pGraphicsI->GetWorldPosition(wpt);
+				CPoint *wpt = new CPoint;	g_pGraphicsI->GetWorldPosition(wpt);
 				
 				g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
 				
-				wpt += pt;	g_pGraphicsI->SetWorldPosition(wpt);
+				(*wpt) += (*pt);	g_pGraphicsI->SetWorldPosition(wpt);
 				g_pSecondMapGroupI->Draw(g_pGraphicsI);
-				wpt -= pt;	g_pGraphicsI->SetWorldPosition(wpt);
+				(*wpt) -= (*pt);	g_pGraphicsI->SetWorldPosition(wpt);
 			}
 
 			bool bFilters = g_pGraphicsI->SetFilter(EnableFilters, (void*)false);

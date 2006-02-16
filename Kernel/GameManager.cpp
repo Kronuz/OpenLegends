@@ -96,7 +96,7 @@ CMapGroup* CGameManager::Wiping(){
 	
 	return m_pWipeTarget;
 }
-bool CGameManager::Wipe(int dir){
+bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 	if(m_bWiping) return true;
 	ASSERT(ms_ppGraphicsI);
 	ASSERT(*ms_ppGraphicsI);
@@ -138,6 +138,7 @@ bool CGameManager::Wipe(int dir){
 	CPoint *delta = new CPoint(groupPos.x - targetPos.x, groupPos.y - targetPos.y);
 	m_pWipeOffset = delta;
 	m_bWiping = true;	//The wipe will happen. (Do this when all data has been finalized.)
+	return true;
 }
 //Flush sprites to the correct location
 void CGameManager::FlushSprites(){

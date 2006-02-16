@@ -237,7 +237,8 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 }
 static cell AMX_NATIVE_CALL Wipe(AMX *amx, cell *params){
 	int dir = params[1];
-	return CGameManager::Instance()->Wipe(dir);
+	char *szName = new char; GetStringParam(amx, params[2], szName);
+	return CGameManager::Instance()->Wipe(dir, szName, params[3], params[4]);
 }
 extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "UpdateWorldCo",  UpdateWorldCo },
