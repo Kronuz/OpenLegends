@@ -488,7 +488,7 @@ void RunScripts(LPVOID lpParameter){
 	action.bJustWait = false;
 	IGame *pGameI = (IGame *)lpParameter;
 	action.hSemaphore = g_hSemaphore;
-	if(pGameI->QueueAccepting() && g_pSecondMapGroupI == NULL){//Avoid doing scripts while wiping. (Nevermind if we finish running ones.)
+	if(g_pSecondMapGroupI == NULL && pGameI->QueueAccepting()){//Avoid doing scripts while wiping. (Nevermind if we finish running ones.)
 		g_pMapGroupI->Run(action);
 		// delete temporary stuff, such as primitives, temporary sprites, 
 		// and marked-as-deleted sprites.
@@ -515,7 +515,7 @@ void Render()
 	DWORD dwAux = 0;
 	if(fps != -1.0f) {
 		
-		pGameI->SetActiveGroup(g_pMapGroupI);
+		pGameI->SetActiveGroup(&g_pMapGroupI);	//This way, we can update the mapgroup we're working with without actually requesting a change.
 
 		///////////////////////////////////////////////////////////////////////////
 		// 1. RUN THE SCRIPTS

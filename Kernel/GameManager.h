@@ -95,7 +95,7 @@ class CGameManager :
 
 protected:
 	//Active group
-	CMapGroup *m_pActiveMapGroup;
+	CMapGroup **m_ppActiveMapGroup;
 	
 	//Wipe data
 	CMapGroup *m_pWipeTarget;
@@ -135,9 +135,12 @@ public:
 	CGameManager();
 	~CGameManager();
 	
-	void TheSecretsOfDebugging();
-	inline void SetActiveGroup(CMapGroup *pMapGroup){
-		m_pActiveMapGroup = pMapGroup;
+	void TheSecretsOfDebugging(); //The secret function! =o
+
+	CDrawableContext* CreateEntity(LPCSTR szName, LPCSTR szScript);
+
+	inline void SetActiveGroup(CMapGroup **pMapGroup){
+		m_ppActiveMapGroup = pMapGroup;
 	}
 	CMapGroup* Wiping();
 	inline CPoint* GetWipeOffset(){
