@@ -40,6 +40,7 @@
 #include "ScriptManager.h"
 #include "Script.h"
 #include "Debugger.h"
+#include <math.h>
 
 #include "ArchiveText.h"
 
@@ -115,9 +116,18 @@ CDrawableContext* CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
 
 CMapGroup* CGameManager::Wiping(){
 	if(!m_bWiping) return NULL;	//Cool part is, Wiping is totally separated from script threads and will be smooth no matter what the script-fps is.
+	bool xDone = true;
+	bool yDone = true;
+	if((int)m_fWipeOffX < abs(m_pWipeOffset->x)){ m_fWipeOffX += GetFPSDelta()*(float)(DEF_MAPSIZEX/1.0); xDone = false;}
+	if((int)m_fWipeOffY < abs(m_pWipeOffset->y)){ m_fWipeOffY += GetFPSDelta()*(float)(DEF_MAPSIZEY/1.0); yDone = false;}
 	
+	if(xDone && yDone) m_bWiping = false;
+
 	// Last Wipe Frame:
+	//m_bWiping = false;
 	if(!m_bWiping){
+		CScript::CleanQueue();
+		this->ClearSpriteBuffer();
 		CDrawableContext *pt = CEntityData::FindContext("_world");		//Can't fail unless it's been deleted, this should never fail.
 		pt->GetParent()->PopChild(pt);									//Remove the world script from it's current parent.
 		((CLayer *)m_pWipeTarget->GetChild(0))->AddSpriteContext((CSpriteContext *)pt);	//Add the same script into the new group instead.
@@ -127,18 +137,22 @@ CMapGroup* CGameManager::Wiping(){
 		Scripts::InitializeSpecialEntities(m_pWipeTarget->GetName());
 
 		*m_ppActiveMapGroup = m_pWipeTarget;
+		m_pWipeTarget = NULL;
 		return NULL;
 	}
 
 	return m_pWipeTarget;
 }
 bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
+	//THIS FUNCTION IS NOT FINISHED, THE PER-CASE SWITCH HAS NOT BEEN COMPLETED FOR EACH CASE.
 	if(m_bWiping) return true;
 	ASSERT(ms_ppGraphicsI);
 	ASSERT(*ms_ppGraphicsI);
 	if(!(*ms_ppGraphicsI)) return false;
 	CRect mapRect;
 	CPoint mapPos;
+	m_fWipeOffX = 0;
+	m_fWipeOffY = 0;
 	(*m_ppActiveMapGroup)->GetMapGroupRect(mapRect);
 	(*ms_ppGraphicsI)->GetWorldPosition(&mapPos);
 	/*SCRIPT ENUM:
@@ -150,29 +164,61 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 	mapPos.x /= DEF_MAPSIZEX; //These mods make sure we find the correct location if the player
 	mapPos.y /= DEF_MAPSIZEY; //has walked down a bit and crossed an imaginary group border for the group next to his location.
 	CMapGroup *pTargetGroup = NULL;
+	CPoint *delta;
+	CRect groupRect, targetRect = NULL;
 	switch(dir){
 		case 0: //north ^
-			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.top-1);
+			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.top);
+			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
+	
+			m_pWipeTarget = pTargetGroup;
+			
+			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
+			m_pWipeTarget->GetMapGroupRect(targetRect);
+			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
+			delta = new CPoint((targetRect.left - groupRect.left)*DEF_MAPSIZEX, (targetRect.top - groupRect.top)*DEF_MAPSIZEY);
+			m_pWipeOffset = delta;
 			break;
 		case 1: //west <--
-			pTargetGroup = FindMapGroup(mapRect.left-1, mapRect.top+mapPos.y);
+			pTargetGroup = FindMapGroup(mapRect.left, mapRect.top+mapPos.y);
+			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
+	
+			m_pWipeTarget = pTargetGroup;
+
+			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
+			m_pWipeTarget->GetMapGroupRect(targetRect);
+			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
+			delta = new CPoint((targetRect.left - groupRect.left)*DEF_MAPSIZEX, (targetRect.top - groupRect.top)*DEF_MAPSIZEY);
 			break;
 		case 2: //south \/
-			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.bottom+1);
+			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.bottom);
+			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
+	
+			m_pWipeTarget = pTargetGroup;
+
+			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
+			m_pWipeTarget->GetMapGroupRect(targetRect);
+			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
+			delta = new CPoint(( groupRect.left - targetRect.left)*DEF_MAPSIZEX, (groupRect.top - targetRect.top)*DEF_MAPSIZEY);
 			break;
 		case 3: //east -->
-			pTargetGroup = FindMapGroup(mapRect.right+1, mapRect.top+mapPos.y);
+			pTargetGroup = FindMapGroup(mapRect.right, mapRect.top+mapPos.y);
+			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
+	
+			m_pWipeTarget = pTargetGroup;
+
+			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
+			m_pWipeTarget->GetMapGroupRect(targetRect);
+			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
+			delta = new CPoint((targetRect.left - groupRect.left)*DEF_MAPSIZEX, (targetRect.top - groupRect.top)*DEF_MAPSIZEY);
+
 			break;
 		default: return false;
 	}
-	if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
-	m_pWipeTarget = pTargetGroup;
-	CPoint groupPos, targetPos;
-	(*m_ppActiveMapGroup)->GetAbsPosition(groupPos);
-	m_pWipeTarget->GetAbsPosition(targetPos);
-	//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-	CPoint *delta = new CPoint(groupPos.x - targetPos.x, groupPos.y - targetPos.y);
+	if(!m_pWipeTarget->IsLoaded()) m_pWipeTarget->Load();
 	m_pWipeOffset = delta;
+	CScript::CleanQueue();	//No scripts will be run during the wipe.
+	ClearSpriteBuffer();
 	m_bWiping = true;	//The wipe will happen. (Do this when all data has been finalized.)
 	return true;
 }

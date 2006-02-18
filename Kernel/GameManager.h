@@ -52,6 +52,7 @@
 #include "WorldManager.h"
 
 #include <map>
+#include <math.h>
 #include <vector>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -100,6 +101,8 @@ protected:
 	//Wipe data
 	CMapGroup *m_pWipeTarget;
 	CPoint *m_pWipeOffset;
+	float m_fWipeOffX;
+	float m_fWipeOffY;
 	bool m_bWiping;
 
 	CWorld m_World;
@@ -144,7 +147,12 @@ public:
 	}
 	CMapGroup* Wiping();
 	inline CPoint* GetWipeOffset(){
-		return m_pWipeOffset;	//No check is really necessary, it'll only be used when a wipe is running.
+		return new CPoint(m_pWipeOffset->x - (int)m_fWipeOffX, m_pWipeOffset->y + (int)m_fWipeOffY);
+			//No check is really necessary, it'll only be used when a wipe is running.
+	}
+	inline CPoint* GetCurrentWipeOffset(){
+		return new CPoint((int)m_fWipeOffX, (int)m_fWipeOffY);
+		
 	}
 	bool Wipe(int dir, LPCSTR szName, int x, int y);
 	inline static int GetPauseLevel() { return 0; } // ACA
@@ -201,6 +209,9 @@ public:
 	bool QueueAccepting();
 
 	void FlushSprites();
+	inline void ClearSpriteBuffer(){
+		m_SpriteBuffer.clear();
+	}
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
 

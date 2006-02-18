@@ -119,6 +119,7 @@ bool CScript::m_bNewQueue = true;
 HANDLE CScript::m_hHandlerThread = NULL;
 int CScript::m_iHandlerUsage = 0;
 CRITICAL_SECTION CScript::XCritical;
+bool CScript::m_bClearing = true;
 
 bool CScript::ms_bDebug  = false; // debug by default
 
@@ -128,11 +129,17 @@ void CScript::NewQueue(){
 	m_bNewQueue = true;
 }
 bool CScript::QueueAccepting(){
+	m_bClearing = false;
 	return m_bNewQueue;
 }
 void CScript::QueueFull(){
 	m_bNewQueue = false;
 	if(m_hHandlerThread == NULL) CScript::Threads[0].CreateThread(); //Create the first thread to initialize the thread handler.
+}
+
+void CScript::CleanQueue(){
+	if(ScriptQueue.begin() != ScriptQueue.end()) ScriptQueue.clear();
+	m_bClearing = true;
 }
 
 void CScript::CreateHandler(){
