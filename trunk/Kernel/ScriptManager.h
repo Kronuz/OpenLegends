@@ -109,6 +109,7 @@ class CScript :
 	static HANDLE m_hHandlerThread;
 	static int m_iHandlerUsage;
 	static DWORD WINAPI HandlerThread(LPVOID lpParameter);
+	static bool m_bClearing;
 
 	// Script dependent:
 	AMX amx;
@@ -142,6 +143,7 @@ public:
 	static void NewQueue();
 	static bool QueueAccepting();
 	static void QueueFull();
+	static void CleanQueue();
 
 	static bool ms_bDebug;
 	static void StopWaiting();

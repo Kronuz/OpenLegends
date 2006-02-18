@@ -241,9 +241,10 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
 	//ent = GetRelevantEntityData(amx, (cell)GetContext("_world"));
 	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
-	//if(g > 5) return 0;
-	//g+=1;
+	if(g > 50) CGameManager::Instance()->Wipe(2, "", 16, 16);
+	g+=1;
 	//CGameManager::Instance()->CreateEntity("","alpha");
+	
 
 	return 0;
 }

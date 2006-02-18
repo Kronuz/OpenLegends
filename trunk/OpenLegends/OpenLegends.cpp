@@ -539,7 +539,15 @@ void Render()
 		// Begin Painting:
 		if(g_pGraphicsI->BeginPaint()) {
 			// Draw the first map:
-			g_pMapGroupI->Draw(g_pGraphicsI);
+			if(g_pSecondMapGroupI != NULL){
+				CPoint *pt = pGameI->GetCurrentWipeOffset();
+				CPoint *wpt = new CPoint;	g_pGraphicsI->GetWorldPosition(wpt);
+				
+				(*wpt) += (*pt); g_pGraphicsI->SetWorldPosition(wpt);
+				g_pMapGroupI->Draw(g_pGraphicsI);
+				(*wpt) -= (*pt); g_pGraphicsI->SetWorldPosition(wpt);
+
+			} else g_pMapGroupI->Draw(g_pGraphicsI);
 
 			// flush the first map or filters to the back buffer:
 			g_pGraphicsI->FlushFilters(true);
