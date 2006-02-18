@@ -678,7 +678,8 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 
 	vfFile.Close();
 
-	CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+	if(bRet) CONSOLE_PRINTF("Done! (%d milliseconds)\n", GetTickCount()-dwInitTicks);
+	else CONSOLE_PRINTF("Error loading quest.");
 	return bRet;
 }
 
