@@ -325,6 +325,7 @@ public:
 	bool _Close(bool bForce);
 
 	CMapPos m_StartPosition;
+	CMapPos m_CurrentPosition;
 	CSize m_szWorldSize;
 	CSize m_szMapSize;
 

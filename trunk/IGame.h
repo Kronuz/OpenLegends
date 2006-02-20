@@ -403,7 +403,7 @@ interface IGame
 	virtual void QueueFull() = 0;
 	virtual bool QueueAccepting() = 0;
 
-	virtual void SetActiveGroup(CMapGroup **pMapGroup) = 0; //!< Store the active group for some special-case functions.
+	virtual bool LoadStart(CMapGroup **ppMapGroup) = 0; //!< Store the active group for some special-case functions.
 	virtual CMapGroup* Wiping() = 0;
 	virtual CPoint* GetWipeOffset() = 0;	//!< Return the current wipe offset for the second map group.
 	virtual CPoint* GetCurrentWipeOffset() = 0;	//!< Returns the wipe offset for the main group. 

@@ -142,12 +142,21 @@ public:
 
 	CDrawableContext* CreateEntity(LPCSTR szName, LPCSTR szScript);
 
-	inline void SetActiveGroup(CMapGroup **pMapGroup){
-		m_ppActiveMapGroup = pMapGroup;
+	inline bool LoadStart(CMapGroup **ppMapGroup){
+	
+		m_ppActiveMapGroup = ppMapGroup; //This position auto-updates in Open Legends thanks to this connection. =)
+		
+		m_World.m_StartPosition.GetMapGroup(m_ppActiveMapGroup);
+		CPoint StartPos; m_World.m_StartPosition.GetPosition(StartPos);
+
+		m_World.m_CurrentPosition.SetPosition(*m_ppActiveMapGroup,StartPos, 3, 2);
+		if(!(*m_ppActiveMapGroup)->Load()) return false;
+
+		return true;
 	}
 	CMapGroup* Wiping();
 	inline CPoint* GetWipeOffset(){
-		return new CPoint(m_pWipeOffset->x - (int)m_fWipeOffX, m_pWipeOffset->y + (int)m_fWipeOffY);
+		return new CPoint(-m_pWipeOffset->x + (int)m_fWipeOffX, -m_pWipeOffset->y + (int)m_fWipeOffY);
 			//No check is really necessary, it'll only be used when a wipe is running.
 	}
 	inline CPoint* GetCurrentWipeOffset(){
@@ -158,12 +167,15 @@ public:
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
-	inline static void UpdateWorldCo(int x, int y) {
+	inline void UpdateWorldCo(int x, int y) {
 		ASSERT(ms_ppGraphicsI);
 		ASSERT(*ms_ppGraphicsI);
 		if(!(*ms_ppGraphicsI)) return;
 
 		CPoint Point(x,y);
+
+		m_World.m_CurrentPosition.SetPosition(Point);
+
 		CRect rcVisible, rcWorld;
 		(*ms_ppGraphicsI)->GetVisibleRect(&rcVisible);
 		(*ms_ppGraphicsI)->GetWorldRect(&rcWorld);

@@ -108,6 +108,16 @@ CDrawableContext* CEntityData::FindContext(LPCSTR szName){
 	return NULL;	//Not found.
 }
 
+void CEntityData::RemoveContext(LPCSTR szName){
+	std::vector<contextPair>::iterator iter = ms_ContextIndex.begin();
+	for(;iter < ms_ContextIndex.end(); iter++){
+		if(!(*iter).first.Compare(szName)){
+			ms_ContextIndex.erase(iter);
+			return;
+		}
+	}
+}
+
 int CEntityData::GetValue(int Id){
 	std::vector<vvPair>::iterator iter = m_vvStorage.begin();
 	for(;iter < m_vvStorage.end(); iter++){

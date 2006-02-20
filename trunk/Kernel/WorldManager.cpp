@@ -701,7 +701,8 @@ CWorld::CWorld(LPCSTR szName) :
 	CDocumentObject(),
 	m_szMapSize(DEF_MAPSIZEX, DEF_MAPSIZEY),
 	m_szWorldSize(DEF_MAXMAPSX, DEF_MAXMAPSY),
-	m_StartPosition(this) // Warning C4355: CMapPos constructor isn't calling any members of 'this')
+	m_StartPosition(this), // Warning C4355: CMapPos constructor isn't calling any members of 'this')
+	m_CurrentPosition(this)
 {
 	m_ArchiveIn = new CWorldTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;

@@ -126,7 +126,7 @@ void Scripts::InitializeSpecialEntities(LPCSTR Groupname){	//Called per frame wh
 	}
 	if(GetContext("_group", false) == NULL){
 		if(strlen(Groupname) < 1) Groupname = " ";
-		CDrawableContext *context = CGameManager::Instance()->CreateEntity("_world", Groupname);
+		CDrawableContext *context = CGameManager::Instance()->CreateEntity("_group", Groupname);
 		if(context == NULL){
 			CONSOLE_PRINTF("Script Warning: The group script for Group %s could not be created.", Groupname);
 		}
@@ -163,7 +163,14 @@ static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
 
 static cell AMX_NATIVE_CALL UpdateWorldCo(AMX *amx, cell *params)
 {
-	CGameManager::UpdateWorldCo(params[1], params[2]);
+	CGameManager::Instance()->UpdateWorldCo(params[1], params[2]);
+	
+	//Special case entity, it will always exist.
+	char World[6] = "World";
+	CEntityData *world = Scripts::GetRelevantEntityData(NULL, (cell)World, true);
+	world->SetValue("_x", params[1]);
+	world->SetValue("_y", params[2]);
+	
 	return 0;
 }
 static cell AMX_NATIVE_CALL SetFilter(AMX *amx, cell *params)
@@ -241,7 +248,7 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
 	//ent = GetRelevantEntityData(amx, (cell)GetContext("_world"));
 	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
-	if(g > 50) CGameManager::Instance()->Wipe(2, "", 16, 16);
+	if(g > 50) CGameManager::Instance()->Wipe(3, "", 16, 16);
 	g+=1;
 	//CGameManager::Instance()->CreateEntity("","alpha");
 	
