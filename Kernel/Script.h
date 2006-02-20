@@ -69,10 +69,11 @@ namespace Scripts{
 		return true;
 	}
 
-	inline CEntityData* GetRelevantEntityData(AMX *amx, cell param){
+	inline CEntityData* GetRelevantEntityData(AMX *amx, cell param, bool converted = false){
 		char szName[64];
 		//Note to self: The below function hasn't been tested with live variables yet, should be done asap.
-		GetStringParam(amx, param, &szName[0]); /*This is just commented out while debugging, can't inject variables to the function if it's here.*/
+		if(converted) strcpy(&szName[0], (char *)param);
+		else GetStringParam(amx, param, &szName[0]);
 		if(!strcmp(szName, "this")) return GetEntityData(GetThis(amx));
 		try{
 			((CDrawableContext *)param)->isSuperContext();

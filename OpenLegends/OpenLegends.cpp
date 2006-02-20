@@ -458,9 +458,17 @@ HRESULT LoadGame(LPCSTR szQuest)
 	if(!CProjectFactory::Interface(g_hWnd)->LoadProject(g_szHomeDir)) return E_FAIL;
 
 	if(!CProjectFactory::Interface()->LoadWorld(szQuest)) return E_FAIL;
-	if((g_pMapGroupI = CProjectFactory::Interface()->FindMapGroup(2, 2)) == NULL) return E_FAIL;
+	
+	//This way, we can update the mapgroup we're working with without actually requesting a change.
+	if(!CProjectFactory::Interface(g_hWnd)->LoadStart(&g_pMapGroupI)) return E_FAIL;	
+	
 
-	if(!g_pMapGroupI->Load()) return E_FAIL;
+
+	//Old loading methods.
+	//if((g_pMapGroupI = CProjectFactory::Interface()->FindMapGroup(2, 2)) == NULL) return E_FAIL;
+	//if(!g_pMapGroupI->Load()) return E_FAIL;
+
+	
 
 	CSize szMap;
 	g_pMapGroupI->GetSize(szMap);
@@ -514,8 +522,6 @@ void Render()
 	float fps = pGameI->UpdateFPS(60);
 	DWORD dwAux = 0;
 	if(fps != -1.0f) {
-		
-		pGameI->SetActiveGroup(&g_pMapGroupI);	//This way, we can update the mapgroup we're working with without actually requesting a change.
 
 		///////////////////////////////////////////////////////////////////////////
 		// 1. RUN THE SCRIPTS

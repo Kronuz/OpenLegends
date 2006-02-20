@@ -206,6 +206,7 @@ public:
 	static std::vector<contextPair> ms_ContextIndex;
 	static CDrawableContext* FindContext(LPCSTR szName);
 	static void InsertContext(LPCSTR szName, CDrawableContext *context);
+	static void RemoveContext(LPCSTR szName);
 
 protected:
 	//Data-storage types:

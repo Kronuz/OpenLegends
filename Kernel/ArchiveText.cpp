@@ -744,8 +744,11 @@ bool CWorldTxtArch::ReadProperties(CVFile &vfFile)
 	ReadStringFromFile(sQuestName, vfFile);
 	bool bFinalVersion = (ReadLongFromFile(vfFile)==1);
 	bool bSaveSounds = (ReadLongFromFile(vfFile)==1);
+	m_pWorld->m_szMapSize.cx = 320;
+	m_pWorld->m_szMapSize.cy = 240;
 
 	CPoint Point(lStartX, lStartY);
+	m_pWorld->m_StartPosition.SetAbsPosition(Point, 3, 2);
 	if(m_pWorld->m_StartPosition.SetAbsPosition(Point) == -1) {
 		CONSOLE_PRINTF("World error: invalid start location...\n");
 	}
