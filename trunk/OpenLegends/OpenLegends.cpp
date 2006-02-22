@@ -235,7 +235,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	int wmId, wmEvent;
 	//PAINTSTRUCT ps;	//These have been useless for I-don't-know-how-long.
 	//HDC hdc;
-
+	
 	switch (message) 
 	{
 	case WM_COMMAND:
@@ -303,6 +303,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			g_hRunScripts = NULL;
 		}
 		PostQuitMessage(0);
+		break;
+	case WM_KEYDOWN:
+		CProjectFactory::Interface(g_hWnd)->MapInput((int)wParam, lParam, true);
+		Render();
+		break;
+	case WM_KEYUP:
+		CProjectFactory::Interface(g_hWnd)->MapInput((int)wParam, lParam, false);
+		Render();
+		break;
+	case WM_MOUSEMOVE:
+		CProjectFactory::Interface(g_hWnd)->MapInput(LOWORD(lParam), HIWORD(lParam), wParam);
+		Render();
 		break;
 	case WM_SIZE:
 		OnSize();
@@ -455,6 +467,15 @@ HRESULT LoadGame(LPCSTR szQuest)
 		CProjectFactory::Interface(g_hWnd)->Configure(&g_pGraphicsI, g_bDebug);
 	}
 
+	//eKeys Keys;
+	int keyMap[MAXKEYS];
+	keyMap[KEY_RIGHT]	= VK_RIGHT;
+	keyMap[KEY_LEFT]	= VK_LEFT;
+	keyMap[KEY_UP]		= VK_UP;
+	keyMap[KEY_DOWN]	= VK_DOWN;
+
+	CProjectFactory::Interface(g_hWnd)->SetupKeyMap(keyMap);
+
 	if(!CProjectFactory::Interface(g_hWnd)->LoadProject(g_szHomeDir)) return E_FAIL;
 
 	if(!CProjectFactory::Interface()->LoadWorld(szQuest)) return E_FAIL;
@@ -504,6 +525,8 @@ void RunScripts(LPVOID lpParameter){
 		// Then add new sprites created by the entity interface.
 		pGameI->FlushSprites();
 		
+		pGameI->UpdateInput();
+
 		//Go for another run of the scripts.
 		pGameI->QueueFull();
 	}
@@ -522,7 +545,6 @@ void Render()
 	float fps = pGameI->UpdateFPS(60);
 	DWORD dwAux = 0;
 	if(fps != -1.0f) {
-
 		///////////////////////////////////////////////////////////////////////////
 		// 1. RUN THE SCRIPTS
 		if(!g_bDebug || (!dwStarting && g_bDebug)) RunScripts((LPVOID)pGameI);
