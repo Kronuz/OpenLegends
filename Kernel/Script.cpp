@@ -257,7 +257,7 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 }
 static cell AMX_NATIVE_CALL Wipe(AMX *amx, cell *params){
 	int dir = params[1];
-	char *szName = new char; GetStringParam(amx, params[2], szName);
+	char szName[256]; GetStringParam(amx, params[2], &szName[0]);
 	return CGameManager::Instance()->Wipe(dir, szName, params[3], params[4]);
 }
 extern AMX_NATIVE_INFO general_Natives[] = {
@@ -276,15 +276,15 @@ extern AMX_NATIVE_INFO general_Natives[] = {
 	Open Legends entity handling functions.
 */
 static cell AMX_NATIVE_CALL GetEntity(AMX *amx, cell *params){
-	char *szName = new char;
-	GetStringParam(amx, params[1],szName);
+	char szName[256];
+	GetStringParam(amx, params[1],&szName[0]);
 	return (cell)GetContext(szName);
 }
 static cell AMX_NATIVE_CALL CreateEntity(AMX *amx, cell *params){
-	char *szName = new char;
-	char *szScript = new char;
-	GetStringParam(amx, params[1], szScript);
-	GetStringParam(amx, params[2], szName);
+	char szName[256];
+	char szScript[256];
+	GetStringParam(amx, params[1], &szScript[0]);
+	GetStringParam(amx, params[2], &szName[0]);
 	CDrawableContext *pt = CGameManager::Instance()->CreateEntity(szName, szScript);
 	if(pt == NULL) return NULL;
 	CEntityData::InsertContext(szName, pt);
@@ -311,16 +311,19 @@ extern AMX_NATIVE_INFO data_Natives[] = {
 */
 static cell AMX_NATIVE_CALL DrawSprite(AMX *amx, cell *params){
 	//(string)Spritename, (enum)CoordType, x, y, subLayer=2, Layer=3, rgba="FFFFFF", scale=1.0, rotation=0.0)
-	char *szSprite = new char; GetStringParam(amx, params[1], szSprite);
+	char szSprite[256];
+	GetStringParam(amx, params[1], &szSprite[0]);
 	int coordType = params[2];
 	int x = params[3];
 	int y = params[4];
 	int subLayer = params[5];
 	int Layer = params[6];
-	char *szRgba = new char; GetStringParam(amx, params[7], szRgba);
+	char szRgba[256];
+	GetStringParam(amx, params[7], &szRgba[0]);
 	float fScale = fConvertCellToFloat(params[8]);
 	int Rot = params[9];
 	return CGameManager::Instance()->DrawSprite(szSprite, coordType, x, y, subLayer, Layer, szRgba, fScale, Rot);
+	
 }
 extern AMX_NATIVE_INFO drawing_Natives[] = {
 	{"DrawSprite", DrawSprite},
@@ -357,7 +360,14 @@ void RegisterNatives(AMX *amx)
 	
 }
 //-----------------------------------------------------------------------------
-#if defined OLDoc
+#if defined OLDoc 
+
+Limitations/*!<
+	\ingroup general
+	\brief Description of limitations.
+
+	\remarks Entity/Sprite name length: 255 characters. Should be sufficient for anything.
+*/
 float GetTimeDelta(); /*!< 
 	\ingroup general
 	\brief This function obtains the current delta time for the frame being rendered.

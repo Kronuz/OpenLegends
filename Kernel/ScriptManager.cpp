@@ -194,7 +194,6 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 	LeaveCriticalSection(&THIS->XCritical);
 
 	while(bRun) {
-
 		//When we're out of scripts we should create a new queue and wait for it to fill up.
 		while(CScript::ScriptQueue.begin() == CScript::ScriptQueue.end() || CScript::QueueAccepting()){
 			if(!CScript::QueueAccepting()) CScript::NewQueue(); else Sleep(1);
@@ -209,7 +208,7 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 			THIS->m_bRunning = true;
 			if(THIS->m_hScript->m_pDebug) THIS->m_hScript->m_pDebug->m_dwDebugTime = 0;
 		LeaveCriticalSection(&THIS->XCritical);
-
+		
 		// Run the script here.
 		cell ret = 0;
 		//Store the pointer to the script in the AMX-data.
@@ -219,7 +218,7 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 		if(THIS->m_hScript->m_pDebug) {
 			dwDelta -= THIS->m_hScript->m_pDebug->m_dwDebugTime;
 		}
-
+		
 		if(err == AMX_ERR_EXIT) {
 			THIS->m_hScript->nKilled++;
 			CONSOLE_PRINTF("Script error in '%s' (%x): Script took too long to finish and was forced to exit (%d ms)\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, dwDelta);
@@ -233,7 +232,7 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 				CONSOLE_PRINTF("Script warning in '%s' (%x): Abnormal script termination: %d (0x%x)\n", THIS->m_hScript->amx.szFileName, THIS->m_hScript->ID, (int)ret, (int)ret);
 		}
 		THIS->m_hScript->error = ret; // save the termination error
-
+		
 		#ifdef _DEBUG
 			//Sleep(rand()%800 + 50);  // simulate a buggy script. (just for testing) -- Damn you, debug output is enough for simulating that! / Littlebuddy
 			/*if(THIS->m_hScript->m_pDebug) {
