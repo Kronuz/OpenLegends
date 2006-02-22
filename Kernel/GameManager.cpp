@@ -89,6 +89,34 @@ void CGameManager::TheSecretsOfDebugging(){
 	return;
 }
 
+void CGameManager::SetupKeyMap(int KeyMap[MAXKEYS]){
+	for(int i=0; i < MAXKEYS; i++)m_KeyMap[i] = KeyMap[i];
+}
+
+void CGameManager::MapInput(int xCoord, int yCoord, WPARAM virtKey){
+	//Reminder:
+	//http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/windowsuserinterface/userinput/mouseinput/mouseinputreference/mouseinputmessages/wm_mousemove.asp
+	//CONSOLE_DEBUG("Mouse Input: %d, %d\n", xCoord, yCoord);
+	m_QueuedMouse[0] = xCoord;
+	m_QueuedMouse[1] = yCoord;
+	m_QueuedMouse[2] = (int)virtKey;
+}
+void CGameManager::MapInput(int chrCode, LPARAM keydata, bool down){
+	//char a[2];
+	//ToAscii(chrCode, NULL, NULL, (LPWORD)&a[0], NULL);
+
+	//This might come in handy:
+	//http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/WindowsUserInterface/UserInput/VirtualKeyCodes.asp
+	m_QueuedInput[chrCode] = down?m_QueuedInput[chrCode]+1:0;
+	CONSOLE_DEBUG("%d\n", chrCode);
+}
+void CGameManager::UpdateInput(){
+	//Translate keyboard input based on keyboard mappings.
+
+	//Translate mouse input.
+
+}
+
 CDrawableContext* CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
 	CSpriteContext *pSpriteContext = new CSpriteContext(szName);
 	pSpriteContext->SetObjSubLayer(0); //Bottom layer.

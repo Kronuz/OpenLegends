@@ -101,11 +101,18 @@ protected:
 	//Wipe data
 	CMapGroup *m_pWipeTarget;
 	CPoint *m_pWipeOffset;
-	float m_fWipeOffX;
-	float m_fWipeOffY;
+	double m_fWipeOffX;
+	double m_fWipeOffY;
 	bool m_bWiping;
 
 	CWorld m_World;
+
+	//Keyboard/Mouse input.
+	int m_QueuedInput[256];		//WM_*KEY* is 0-FF, so 256 chars should be enough.
+	int m_TranslatedInput[256];	//This input is active for the scripts and will have an enum for keys. (LEFT, RIGHT, UP, DOWN, ACT1, ACT2, ACT3, ACT4, etc.)
+	int m_QueuedMouse[3];	//X, Y and Key (LEFT, MIDDLE, RIGHT mouse button)
+	int m_ActiveMouse[3];
+	char m_KeyMap[MAXKEYS];	//This is the active key map for key translations.
 
 	std::vector<CSpriteSheet*> m_SpriteSheets;
 	typedef std::pair<CSpriteContext *, int> BufferPair;
@@ -141,6 +148,15 @@ public:
 	void TheSecretsOfDebugging(); //The secret function! =o
 
 	CDrawableContext* CreateEntity(LPCSTR szName, LPCSTR szScript);
+	
+	//These two accept input from mouse and chars
+	void MapInput(int chrCode, LPARAM keydata, bool down);
+	void MapInput(int xCoord, int yCoord, WPARAM virtKey);
+
+	//This updates input once the scripts have finished running for the current frame.
+	void UpdateInput();	
+
+	void SetupKeyMap(int KeyMap[MAXKEYS]);
 
 	inline bool LoadStart(CMapGroup **ppMapGroup){
 	

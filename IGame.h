@@ -42,6 +42,22 @@ typedef enum tagCase { UpperCase, LowerCase } CASE;
 #define GREEN_SLIDER	0x4000FF00
 #define BLUE_SLIDER		0x40FF0000
 
+#define KEY_LEFT		0
+#define KEY_RIGHT		1
+#define KEY_UP			2
+#define KEY_DOWN		3
+#define KEY_ACT1		4
+#define KEY_ACT2		5
+#define KEY_ACT3		6
+#define KEY_ACT4		7
+#define KEY_ACT5		8
+#define KEY_ACT6		9
+#define KEY_ACT7		10
+#define KEY_AUX1		11
+#define KEY_AUX2		12
+//KEY_AUX2 + 1
+#define MAXKEYS			13
+
 struct SInfo
 {
 	InfoType eType;
@@ -402,6 +418,11 @@ interface IGame
 	virtual void FlushSprites() = 0; //!< Flushes temporary sprites into the map group so that they're drawn.
 	virtual void QueueFull() = 0;
 	virtual bool QueueAccepting() = 0;
+
+	virtual void MapInput(int chrCode, LPARAM keydata, bool down) = 0;
+	virtual void MapInput(int xCoord, int yCoord, WPARAM virtKey) = 0;
+	virtual void UpdateInput() = 0;
+	virtual void SetupKeyMap(int keyMap[MAXKEYS]) = 0;
 
 	virtual bool LoadStart(CMapGroup **ppMapGroup) = 0; //!< Store the active group for some special-case functions.
 	virtual CMapGroup* Wiping() = 0;
