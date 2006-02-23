@@ -233,8 +233,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static float fZoom;
 
 	int wmId, wmEvent;
-	//PAINTSTRUCT ps;	//These have been useless for I-don't-know-how-long.
-	//HDC hdc;
+	PAINTSTRUCT ps;	
+	HDC hdc;
 	
 	switch (message) 
 	{
@@ -283,12 +283,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if(!g_pMapGroupI) 
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		break;
-	/*case WM_PAINT:					//Why would this message be useful for anything at all?
+	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 			Render();
 		EndPaint(hWnd, &ps);
-		
-		break;*/
+		break;
 	case WM_DESTROY:
 		g_bDebug = false;
 		ReleaseSemaphore(g_hSemaphore, 1, NULL);
@@ -313,6 +312,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Render();
 		break;
 	case WM_MOUSEMOVE:
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
 		CProjectFactory::Interface(g_hWnd)->MapInput(LOWORD(lParam), HIWORD(lParam), wParam);
 		Render();
 		break;

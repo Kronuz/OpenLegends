@@ -224,7 +224,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
 			m_pWipeTarget->GetMapGroupRect(targetRect);
 			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint(0, (targetRect.bottom - (groupRect.top + 1))*DEF_MAPSIZEY);
+			delta = new CPoint(0, (targetRect.bottom - (groupRect.top + 1))*m_World.m_szMapSize.cy*(m_World.m_bLegacyQuest?2:1));
 			m_pWipeOffset = delta;
 			break;
 		case 1: //west <--
@@ -236,7 +236,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
 			m_pWipeTarget->GetMapGroupRect(targetRect);
 			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint((targetRect.left - groupRect.left)*DEF_MAPSIZEX, 0);
+			delta = new CPoint((targetRect.left - groupRect.left)*m_World.m_szMapSize.cx*(m_World.m_bLegacyQuest?2:1), 0);
 			break;
 		case 2: //south \/
 			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.bottom);
@@ -247,7 +247,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
 			m_pWipeTarget->GetMapGroupRect(targetRect);
 			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint(0, (targetRect.top - groupRect.top)*DEF_MAPSIZEY);
+			delta = new CPoint(0, (targetRect.top - groupRect.top)*m_World.m_szMapSize.cy*(m_World.m_bLegacyQuest?2:1));
 			break;
 		case 3: //east -->
 			pTargetGroup = FindMapGroup(mapRect.right, mapRect.top+mapPos.y);
@@ -258,7 +258,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
 			m_pWipeTarget->GetMapGroupRect(targetRect);
 			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint((targetRect.left - groupRect.left)*DEF_MAPSIZEX, 0);
+			delta = new CPoint((targetRect.left - groupRect.left)*m_World.m_szMapSize.cx*(m_World.m_bLegacyQuest?2:1), 0);
 
 			break;
 		default: return false;
