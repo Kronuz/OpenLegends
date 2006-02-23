@@ -64,6 +64,7 @@
 #include <Core.h>
 #include "Memento.h"
 
+
 #include <vector>
 #include <map>
 #include <functional>
@@ -184,6 +185,7 @@ private:
 	int _MergeChildren(CDrawableContext *object);
 
 protected:
+
 	std::vector<CDrawableContext *> m_Children;
 	bool m_bSuperContext;
 //-------------------------------------

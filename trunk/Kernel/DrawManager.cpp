@@ -42,7 +42,6 @@
 
 #include <IGame.h>
 
-
 // This functions are used to sort the contexs list before rendering to the screen.
 inline bool CDrawableContext::ContextSubLayerCompare::operator()(const CDrawableContext *a, const CDrawableContext *b) const
 {
@@ -436,9 +435,12 @@ inline bool CDrawableContext::CleanTempContext::operator()(CDrawableContext *pDr
 		return true;
 
 	// Start cleaning:
-	for_each(
-		pDrawableContext->m_Children.begin(), pDrawableContext->m_Children.end(), 
-		CleanTempContext(pDrawableContext));
+	// I had to rewrite this feature because for_each running forward creates problems when you remove stuff in the middle of it.
+	std::vector<CDrawableContext *>::iterator iter = pDrawableContext->m_Children.end();
+	while(iter != pDrawableContext->m_Children.begin()){
+		iter--;
+		CleanTempContext(pDrawableContext).operator()(*iter);
+	}
 
 	if(pDrawableContext->isTemp() || pDrawableContext->isDeleted()) {
 		CDrawableContext *pParent = pDrawableContext->m_pParent;

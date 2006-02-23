@@ -115,7 +115,7 @@ CThumbnails::CThumbnails() :
 
 	// Build all layers for the map:
 	CLayer *pLayer = NULL;
-	for(int i=0; i<MAX_SUBLAYERS; i++) {
+	for(int i=0; i<MAX_LAYERS; i++) {
 		pLayer = new CLayer;
 		pLayer->SetName(g_szLayerNames[i]);
 		pLayer->SetObjSubLayer(i);	// tell the newly created layer what layer it is.
@@ -126,7 +126,7 @@ void CThumbnails::CleanThumbnails()
 {
 	// Clean all layers of the map:
 	CLayer *pLayer = NULL;
-	for(int i=0; i<MAX_SUBLAYERS; i++) {
+	for(int i=0; i<MAX_LAYERS; i++) {
 		pLayer = static_cast<CLayer *>(GetChild(i));
 		pLayer->Clean();
 	}
@@ -151,11 +151,12 @@ CMapGroup::CMapGroup() :
 
 	// Build all layers for the map:
 	CLayer *pLayer = NULL;
-	for(int i=0; i<MAX_SUBLAYERS; i++) {
+	for(int i=0; i<MAX_LAYERS; i++) {
 		pLayer = new CLayer;
 		pLayer->SetName(g_szLayerNames[i]);
 		pLayer->SetObjSubLayer(i);	// tell the newly created layer what layer it is.
 		AddChild(pLayer);			// add the new layer to the map group
+		pLayer->AddSpriteContext(new CSpriteContext(""));
 	}
 }
 CMapGroup::~CMapGroup()
@@ -373,7 +374,7 @@ bool CMapGroup::_Close(bool bForce)
 	Clean();
 	// Build all layers for the map:
 	CLayer *pLayer = NULL;
-	for(int i=0; i<MAX_SUBLAYERS; i++) {
+	for(int i=0; i<MAX_LAYERS; i++) {
 		pLayer = new CLayer;
 		pLayer->SetName(g_szLayerNames[i]);
 		pLayer->SetObjSubLayer(i);	// tell the newly created layer what layer it is.
@@ -483,8 +484,8 @@ void CMapGroup::SetMapGroupSize(const CSize &MapGroupSize)
 	m_rcPosition.bottom = m_rcPosition.top + MapGroupSize.cy;
 	// now, set the size (in bytes) of the drawable context.
 	CDrawableContext::SetSize(
-		m_rcPosition.Width() * m_pWorld->m_szMapSize.cx, 
-		m_rcPosition.Height() * m_pWorld->m_szMapSize.cy
+		m_rcPosition.Width() * m_pWorld->m_szMapSize.cx * (m_pWorld->m_bLegacyQuest?2:1), 
+		m_rcPosition.Height() * m_pWorld->m_szMapSize.cy *  (m_pWorld->m_bLegacyQuest?2:1)
 	);
 }
 void CMapGroup::OffsetMapGroup(int x, int y)
@@ -702,7 +703,8 @@ CWorld::CWorld(LPCSTR szName) :
 	m_szMapSize(DEF_MAPSIZEX, DEF_MAPSIZEY),
 	m_szWorldSize(DEF_MAXMAPSX, DEF_MAXMAPSY),
 	m_StartPosition(this), // Warning C4355: CMapPos constructor isn't calling any members of 'this')
-	m_CurrentPosition(this)
+	m_CurrentPosition(this),
+	m_bLegacyQuest(false)
 {
 	m_ArchiveIn = new CWorldTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;

@@ -154,7 +154,7 @@ public:
 
 	void SetLoadPoint(int x, int y);
 	void SetLoadPoint(const CPoint &point_);
-	bool AddSpriteContext(CSpriteContext *pSpriteContext);
+	bool AddSpriteContext(CSpriteContext *pSpriteContext, bool useLoadPt = true);
 
 	virtual CDrawableContext* MakeGroup(LPCSTR szGroupName);
 
@@ -173,11 +173,11 @@ inline void CLayer::SetLoadPoint(const CPoint &point_)
 {
 	m_ptLoadPoint = point_;
 }
-inline bool CLayer::AddSpriteContext(CSpriteContext *sprite)
+inline bool CLayer::AddSpriteContext(CSpriteContext *sprite, bool useLoadPt)
 {
 	CPoint Point;
 	sprite->GetPosition(Point);
-	Point += m_ptLoadPoint;
+	if(useLoadPt) Point += m_ptLoadPoint;
 	sprite->MoveTo(Point);
 	return AddChild(sprite);
 }
@@ -320,7 +320,6 @@ class CWorld :
 {
 	typedef std::vector<CMapGroup*>::iterator iterMapGroup;
 	std::vector<CMapGroup*> m_MapGroups;
-
 public:
 	bool _Close(bool bForce);
 
@@ -328,6 +327,7 @@ public:
 	CMapPos m_CurrentPosition;
 	CSize m_szWorldSize;
 	CSize m_szMapSize;
+	bool m_bLegacyQuest;
 
 	CWorld(LPCSTR szName);
 	~CWorld();

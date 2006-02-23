@@ -112,9 +112,26 @@ void CGameManager::MapInput(int chrCode, LPARAM keydata, bool down){
 }
 void CGameManager::UpdateInput(){
 	//Translate keyboard input based on keyboard mappings.
-
+	for(int i=0; i<MAXKEYS; i++){
+		m_TranslatedInput[i] = m_QueuedInput[m_KeyMap[i]]?m_TranslatedInput[i]+1:0;
+	}
 	//Translate mouse input.
-
+	m_ActiveMouse[0] = m_QueuedMouse[0];
+	m_ActiveMouse[1] = m_QueuedMouse[1];
+	switch(m_QueuedMouse[2]){
+		case VK_LBUTTON:
+			m_ActiveMouse[2] = 1;
+			break;
+		case VK_RBUTTON:
+			m_ActiveMouse[2] = 2;
+			break;
+		case VK_MBUTTON:
+			m_ActiveMouse[2] = 3;
+			break;
+		default:
+			m_ActiveMouse[2] = 0;
+			break;
+	}
 }
 
 CDrawableContext* CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
@@ -137,7 +154,7 @@ CDrawableContext* CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
 	}
 	if(pSprite == NULL) return NULL; //error?
 	pSpriteContext->SetDrawableObj(pSprite);
-	((CLayer *)(*m_ppActiveMapGroup)->GetChild(0))->AddSpriteContext(pSpriteContext);//There should never really be a need to create an entity outside of the active mapgroup.
+	((CLayer *)(*m_ppActiveMapGroup)->GetChild(0))->AddSpriteContext(pSpriteContext, false);//There should never really be a need to create an entity outside of the active mapgroup.
 																					 //If all else fails, you can create it when you get there. :P
 	return (CDrawableContext *)pSpriteContext;
 }
@@ -158,7 +175,7 @@ CMapGroup* CGameManager::Wiping(){
 		this->ClearSpriteBuffer();
 		CDrawableContext *pt = CEntityData::FindContext("_world");		//Can't fail unless it's been deleted, this should never fail.
 		pt->GetParent()->PopChild(pt);									//Remove the world script from it's current parent.
-		((CLayer *)m_pWipeTarget->GetChild(0))->AddSpriteContext((CSpriteContext *)pt);	//Add the same script into the new group instead.
+		((CLayer *)m_pWipeTarget->GetChild(0))->AddSpriteContext((CSpriteContext *)pt, false);	//Add the same script into the new group instead.
 		
 		if((pt = CEntityData::FindContext("_group")) != NULL) {
 			CEntityData::RemoveContext("_group");
@@ -257,7 +274,7 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 void CGameManager::FlushSprites(){
 	while(m_SpriteBuffer.begin() != m_SpriteBuffer.end()){
 		CLayer *pLayer = static_cast<CLayer *>((*m_ppActiveMapGroup)->GetChild((*m_SpriteBuffer.begin()).second));
-		pLayer->AddSpriteContext((*m_SpriteBuffer.begin()).first);
+		pLayer->AddSpriteContext((*m_SpriteBuffer.begin()).first, false);
 		m_SpriteBuffer.erase(m_SpriteBuffer.begin());
 	}
 }
@@ -277,6 +294,12 @@ CGameManager::CGameManager() :
 	m_World("New Quest"),
 	m_pDummyDebug(NULL)
 {
+	for(int i=0; i<MAXKEYS; i++) m_TranslatedInput[i] = 0;
+	for(int i=0; i<256; i++) m_QueuedInput[i] = 0;
+	for(int i=0; i<3; i++){
+		m_ActiveMouse[i] = 0;
+		m_QueuedMouse[i] = 0;
+	}
 	m_bWiping = false;
 	m_ppActiveMapGroup = NULL;
 	m_ArchiveIn = new CProjectTxtArch(this);

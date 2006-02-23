@@ -120,6 +120,7 @@ class CSpriteSheet;
 class CLayer;
 class CBackground;
 class CScript;
+class CSpriteContext;
 
 typedef CBackground CMaskMap;
 
