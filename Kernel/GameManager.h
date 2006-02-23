@@ -108,11 +108,11 @@ protected:
 	CWorld m_World;
 
 	//Keyboard/Mouse input.
-	int m_QueuedInput[256];		//WM_*KEY* is 0-FF, so 256 chars should be enough.
-	int m_TranslatedInput[256];	//This input is active for the scripts and will have an enum for keys. (LEFT, RIGHT, UP, DOWN, ACT1, ACT2, ACT3, ACT4, etc.)
-	int m_QueuedMouse[3];	//X, Y and Key (LEFT, MIDDLE, RIGHT mouse button)
+	int m_QueuedInput[256];			//WM_*KEY* is 0-FF, so 256 chars should be enough.
+	int m_TranslatedInput[MAXKEYS];	//This input is active for the scripts and will have an enum for keys. (LEFT, RIGHT, UP, DOWN, ACT1, ACT2, ACT3, ACT4, etc.)
+	int m_QueuedMouse[3];			//X, Y and Key (LEFT, MIDDLE, RIGHT mouse button)
 	int m_ActiveMouse[3];
-	char m_KeyMap[MAXKEYS];	//This is the active key map for key translations.
+	char m_KeyMap[MAXKEYS];			//This is the active key map for key translations.
 
 	std::vector<CSpriteSheet*> m_SpriteSheets;
 	typedef std::pair<CSpriteContext *, int> BufferPair;
@@ -156,6 +156,23 @@ public:
 	//This updates input once the scripts have finished running for the current frame.
 	void UpdateInput();	
 
+	inline int GetInput(int Key){
+		if(Key >= MAXKEYS) return -1;
+		return m_TranslatedInput[Key];
+	}
+	
+	inline CPoint* GetMousePos(){
+		ASSERT(ms_ppGraphicsI);
+		ASSERT(*ms_ppGraphicsI);
+		if(!(*ms_ppGraphicsI)) return NULL;
+		CPoint pt;
+		(*ms_ppGraphicsI)->GetWorldPosition(&pt);
+		return new CPoint(m_ActiveMouse[0]+pt.x, m_ActiveMouse[1]+pt.y);
+	}
+	inline int GetMouseKey(){
+		return m_ActiveMouse[2];
+	}
+
 	void SetupKeyMap(int KeyMap[MAXKEYS]);
 
 	inline bool LoadStart(CMapGroup **ppMapGroup){
@@ -170,6 +187,7 @@ public:
 
 		return true;
 	}
+
 	CMapGroup* Wiping();
 	inline CPoint* GetWipeOffset(){
 		return new CPoint(-m_pWipeOffset->x + (int)m_fWipeOffX, -m_pWipeOffset->y + (int)m_fWipeOffY);
@@ -221,18 +239,25 @@ public:
 			//if(pSprite->GetSpriteType() == tBackground) pSpriteContext->Tile();	
 			pSpriteContext->SetObjSubLayer(subLayer);
 			pSpriteContext->SetTemp();
-			if(1==1) {	//TODO: Apply different coordinate types.
-				pSpriteContext->MoveTo(x, y);
-			}
+			if(coordType==1) {	//TODO: Apply different coordinate types.
+				CPoint pt(0,0);
+				ASSERT(ms_ppGraphicsI);
+				ASSERT(*ms_ppGraphicsI);
+				if((*ms_ppGraphicsI)) (*ms_ppGraphicsI)->GetWorldPosition(&pt);
+				pSpriteContext->MoveTo(x+pt.x, y+pt.y);
+			} else pSpriteContext->MoveTo(x, y);
 			pSpriteContext->Rotate(rot);
 			pSpriteContext->ARGB(HEX2ARGB(rgba));
 			BufferPair Pair;
 			Pair.first = pSpriteContext;
 			Pair.second = layer;
-			m_SpriteBuffer.push_back(Pair); //*used to add objects*
+			m_SpriteBuffer.push_back(Pair); //used to add objects
+			
 			return true;
 	}
-	
+	inline CMapGroup* GetActiveMapGroup(){
+		return *m_ppActiveMapGroup;
+	}
 	void QueueFull();
 	bool QueueAccepting();
 

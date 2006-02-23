@@ -78,6 +78,7 @@
 #include <amx.h>
 
 #include "Script.h"
+#include <Interfaces.h>
 
 #include "GameManager.h"
 #include "ScriptManager.h"
@@ -156,6 +157,30 @@ extern AMX_NATIVE_INFO float_Natives[] = {
 	\ingroup openlegends
 	Main Open Legends core functions.
 */
+static cell AMX_NATIVE_CALL GetGroupWidth(AMX *amx, cell *params){
+	CMapGroup *group = CGameManager::Instance()->GetActiveMapGroup();
+	CRect grouprect;
+	group->GetRect(grouprect);
+	return grouprect.Width();
+}
+static cell AMX_NATIVE_CALL GetGroupHeight(AMX *amx, cell *params){
+	CMapGroup *group = CGameManager::Instance()->GetActiveMapGroup();
+	CRect grouprect;
+	group->GetRect(grouprect);
+	return grouprect.Height();
+}
+static cell AMX_NATIVE_CALL GetInput(AMX *amx, cell *params){
+	return CGameManager::Instance()->GetInput(params[1]);
+}
+static cell AMX_NATIVE_CALL GetMouseX(AMX *amx, cell *params){
+	return CGameManager::Instance()->GetMousePos()->x;
+}
+static cell AMX_NATIVE_CALL GetMouseY(AMX *amx, cell *params){
+	return CGameManager::Instance()->GetMousePos()->y;
+}
+static cell AMX_NATIVE_CALL GetMouseKey(AMX *amx, cell *params){
+	return CGameManager::Instance()->GetMouseKey();
+}
 static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
 {
 	return ConvertFloatToCell(CGameManager::GetFPSDelta());
@@ -227,7 +252,8 @@ static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 	
 	return 0;	
 }
-int g=0;
+int a = 32;
+int b = 32;
 static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//GetStringParam(amx,params[0], szString);
 	//GetStringParam(amx,params[3], szHex);
@@ -248,9 +274,26 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
 	//ent = GetRelevantEntityData(amx, (cell)GetContext("_world"));
 	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
-	if(g > 50) CGameManager::Instance()->Wipe(3, "", 16, 16);
-	g+=1;
+	if(CGameManager::Instance()->GetInput(KEY_LEFT)){
+		a-=3;
+	}
+	if(CGameManager::Instance()->GetInput(KEY_RIGHT)){
+		a+=3;
+	}
+	if(CGameManager::Instance()->GetInput(KEY_UP)){
+		b-=3;
+	}
+	if(CGameManager::Instance()->GetInput(KEY_DOWN)){
+		b+=3;
+	}
+	char sprite[] = "__pstn1";
+	char color[] = "80808080";
+	if(CGameManager::Instance()->GetMouseKey()){
+		CGameManager::Instance()->DrawSprite(sprite, 0, (int)GetMouseX(NULL,NULL), (int)GetMouseY(NULL,NULL), 2, 4, color, 1.0f, 0);
+	}
+	CGameManager::Instance()->DrawSprite(sprite, 0, a, b, 2, 4, color, 1.0f, 0);
 	//CGameManager::Instance()->CreateEntity("","alpha");
+	CGameManager::Instance()->UpdateWorldCo(a,b);
 	
 
 	return 0;
@@ -267,6 +310,10 @@ extern AMX_NATIVE_INFO general_Natives[] = {
 	{ "FirstRun",  FirstRun },
 	{ "DebuggingStuff", DebuggingStuff },
 	{ "Wipe", Wipe },
+	{ "GetMouseKey", GetMouseKey },
+	{ "GetMouseX", GetMouseX },
+	{ "GetMouseY", GetMouseY },
+	{ "GetInput", GetInput },
 	{ NULL, NULL }        /* terminator */
 };
 
@@ -322,8 +369,7 @@ static cell AMX_NATIVE_CALL DrawSprite(AMX *amx, cell *params){
 	GetStringParam(amx, params[7], &szRgba[0]);
 	float fScale = fConvertCellToFloat(params[8]);
 	int Rot = params[9];
-	return CGameManager::Instance()->DrawSprite(szSprite, coordType, x, y, subLayer, Layer, szRgba, fScale, Rot);
-	
+	return 0;//return CGameManager::Instance()->DrawSprite(szSprite, coordType, x, y, subLayer, Layer, szRgba, fScale, Rot);
 }
 extern AMX_NATIVE_INFO drawing_Natives[] = {
 	{"DrawSprite", DrawSprite},
@@ -464,5 +510,53 @@ bool FirstRun();/*!<
 
 	\remarks The return value is true if it's the first time you run the script, thus you can use it multiple
 		times in the same script and still have it return "true" (1) if it hasn't been run before.
+*/
+int GetGroupWidth();/*!<
+	\ingroup general
+	\brief Returns width of active group.
+
+	\return Returns the width of the currently active group, matches coordinates.
+
+	\remarks
+*/
+int GetGroupHeight();/*!<
+	\ingroup general
+	\brief Returns height of active group.
+
+	\return Returns the height of the currently active group, matches coordinates.
+
+	\remarks
+*/
+int GetInput(int Key);/*!<
+	\ingroup general
+	\brief Returns 1 or higher if a key has been pushed.
+
+	\return Returned value increases by one for each frame the key has been held.
+
+	\remarks
+*/
+int GetMouseX();/*!<
+	\ingroup general
+	\brief Returns group coordinates for where mouse is.
+
+	\return Returned value is the group coordinate for X.
+
+	\remarks
+*/
+int GetMouseY();/*!<
+	\ingroup general
+	\brief Returns group coordinates for where mouse is.
+
+	\return Returned value is the group coordinate for Y.
+
+	\remarks
+*/
+int GetMouseKey();/*!<
+	\ingroup general
+	\brief Returns an enumeration indicating which mouse button is pushed.
+
+	\return Returns an indicator as to which key is being pushed. Match with an enumerator.
+
+	\remarks 
 */
 #endif
