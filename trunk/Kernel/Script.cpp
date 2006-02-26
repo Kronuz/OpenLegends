@@ -103,36 +103,44 @@ int CALLBACK Scripts::FindNamedEntity(LPVOID lpVoid, LPARAM ret){	//Callback for
 	return 0;
 }
 
-CDrawableContext* Scripts::GetContext(LPCSTR szName, bool extensive){
-		CDrawableContext *context = NULL;
-		context = CEntityData::FindContext(szName);
-		if(context != NULL) return context;
+CSpriteContext* Scripts::GetContext(AMX *amx, cell param, bool extensive, bool converted){
+		char szName[256];
+		
+		if(converted) strcpy(szName, (char *)param);
+		else GetStringParam(amx, param, szName);
+
+		if(!strcmp("this", szName)) return GetSpriteContextByHandle(GetThis(amx));
+
+		CDrawableContext *context = CEntityData::FindContext(szName);
+		if(context != NULL) return static_cast<CSpriteContext *>(context);
+		
+	
 		if(!extensive) return NULL;
 		/*Find the entity through an extended search - THIS IS NOT RECOMMENDED! Avoid! Avoid! Avoid!*/
+		//I doubt this location will be reached anymore.
 		EntParamData foreachdata;
 		foreachdata.context = NULL;
 		foreachdata.szName = szName;
 		CGameManager::Instance()->ForEachMapGroup(FindNamedEntity, (LPARAM)&foreachdata);
 		CEntityData::InsertContext(szName, foreachdata.context);	//Any previously unused context is inserted for faster searching later on.
-		return foreachdata.context;
+		return static_cast<CSpriteContext *>(foreachdata.context);
+
 }
 
 void Scripts::InitializeSpecialEntities(LPCSTR Groupname){	//Called per frame when a new queue is created to make sure they exist.
-	if(GetContext("_world", false) == NULL){//It's added to CEntityData on creation, so do a quicksearch.
-		CDrawableContext *context = CGameManager::Instance()->CreateEntity("_world", "_world");
-		if(context == NULL){
+	if(GetContext(NULL, (cell)SPECIALENTITYWORLD, false, true) == NULL){//It's added to CEntityData on creation, so do a quicksearch.
+		CGameManager::Instance()->CreateEntity(SPECIALENTITYWORLD, SPECIALENTITYWORLD);
+		if(GetContext(NULL, (cell)SPECIALENTITYWORLD, false, true) == NULL){
 			CONSOLE_PRINTF("Scrip Error: The _world entity script could not be created!");
 		}
-		CEntityData::InsertContext("_world", context);
 	}
-	if(GetContext("_group", false) == NULL){
-		if(strlen(Groupname) < 1) Groupname = " ";
-		CDrawableContext *context = CGameManager::Instance()->CreateEntity("_group", Groupname);
-		if(context == NULL){
+	if(GetContext(NULL, (cell)SPECIALENTITYGROUP, false, true) == NULL){
+		CGameManager::Instance()->CreateEntity(SPECIALENTITYGROUP, Groupname);
+		if(GetContext(NULL, (cell)SPECIALENTITYGROUP, false, true) == NULL){
 			CONSOLE_PRINTF("Script Warning: The group script for Group %s could not be created.", Groupname);
 		}
-		CEntityData::InsertContext("_group", context);	//It would be possible to use the CMapGroup drawcontext inheritance, but this allows for a bit more flexibility.
-	}													//Not to mention someone deleting the _group entity wouldn't delete the whole group :P
+		
+	}	
 }
 /*!
 	\defgroup core Small's Core Functions
@@ -159,15 +167,15 @@ extern AMX_NATIVE_INFO float_Natives[] = {
 */
 static cell AMX_NATIVE_CALL GetGroupWidth(AMX *amx, cell *params){
 	CMapGroup *group = CGameManager::Instance()->GetActiveMapGroup();
-	CRect grouprect;
-	group->GetRect(grouprect);
-	return grouprect.Width();
+	CSize size;
+	group->GetSize(size);
+	return size.cx;
 }
 static cell AMX_NATIVE_CALL GetGroupHeight(AMX *amx, cell *params){
 	CMapGroup *group = CGameManager::Instance()->GetActiveMapGroup();
-	CRect grouprect;
-	group->GetRect(grouprect);
-	return grouprect.Height();
+	CSize size;
+	group->GetSize(size);
+	return size.cy;
 }
 static cell AMX_NATIVE_CALL GetInput(AMX *amx, cell *params){
 	return CGameManager::Instance()->GetInput(params[1]);
@@ -191,7 +199,7 @@ static cell AMX_NATIVE_CALL UpdateWorldCo(AMX *amx, cell *params)
 	CGameManager::Instance()->UpdateWorldCo(params[1], params[2]);
 	
 	//Special case entity, it will always exist.
-	char World[6] = "World";
+	char World[] = SPECIALENTITYWORLD;
 	CEntityData *world = Scripts::GetRelevantEntityData(NULL, (cell)World, true);
 	world->SetValue("_x", params[1]);
 	world->SetValue("_y", params[2]);
@@ -252,69 +260,67 @@ static cell AMX_NATIVE_CALL FirstRun(AMX *amx, cell *params)
 	
 	return 0;	
 }
-int a = 32;
-int b = 32;
+static cell AMX_NATIVE_CALL Wipe(AMX *amx, cell *params){
+	int dir = params[1];
+	return CGameManager::Instance()->Wipe(dir, GetContext(amx, params[2]), params[3], params[4]);
+}
 static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
-	//GetStringParam(amx,params[0], szString);
-	//GetStringParam(amx,params[3], szHex);
-	//char asdf[32];
-	//sprintf(asdf, "%d", params[1]);
-	//MessageBox(NULL, asdf, NULL, NULL);
-	//HSCRIPT hScript;
-	//CGameManager::Instance()->TheSecretsOfDebugging();
-	//hScript = GetThis(amx);
-	//CONSOLE_DEBUG("%s, %s (%x) retrieved.\n",hScript->amx.szFileName, amx->szFileName,hScript->ID);
-	//CEntityData *ent = GetRelevantEntityData(amx, (cell)GetContext("_world"));
-	//ent->SetString(1, "_world set");
-	//CONSOLE_DEBUG("%s\n",ent->GetString((int)params[0]));
-	//ent = GetRelevantEntityData(amx, (cell)GetContext("_group"));
-	//ent->SetString(1, "_group set");
-	//if(ent == NULL) return 0;
-	//ent->SetString("moomoo", "CowMan");
-	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
-	//ent = GetRelevantEntityData(amx, (cell)GetContext("_world"));
-	//CONSOLE_DEBUG("%s\n", ent->GetString(1));
+	CEntityData *d = GetRelevantEntityData(amx, (cell)"this", true);
+	int x = d->GetValue("_x");
+	int y = d->GetValue("_y");
 	if(CGameManager::Instance()->GetInput(KEY_LEFT)){
-		a-=3;
+		d->SetValue("_x", x-3);
+		x = d->GetValue("_x");
 	}
 	if(CGameManager::Instance()->GetInput(KEY_RIGHT)){
-		a+=3;
+		d->SetValue("_x", x+3);
+		x = d->GetValue("_x");
 	}
 	if(CGameManager::Instance()->GetInput(KEY_UP)){
-		b-=3;
+		d->SetValue("_y", y-3);
+		y = d->GetValue("_y");
 	}
 	if(CGameManager::Instance()->GetInput(KEY_DOWN)){
-		b+=3;
+		d->SetValue("_y", y+3);
+		y = d->GetValue("_y");
 	}
+	
+	CDrawableContext *transfer = GetContext(amx, (cell)"this", true, true);
+	if(x > GetGroupWidth(NULL, NULL)) CGameManager::Instance()->Wipe(3, transfer, 64, 64);
+	else if(x < 0) CGameManager::Instance()->Wipe(1, transfer, 64, 64);
+	else if(y > GetGroupHeight(NULL, NULL)) CGameManager::Instance()->Wipe(2, transfer, 64, 64);
+	else if(y < 0) CGameManager::Instance()->Wipe(0, transfer, 64, 64);
 	char sprite[] = "__pstn1";
-	char color[] = "80808080";
+	char color[] = "FF808080";
 	if(CGameManager::Instance()->GetMouseKey()){
 		CGameManager::Instance()->DrawSprite(sprite, 0, (int)GetMouseX(NULL,NULL), (int)GetMouseY(NULL,NULL), 2, 4, color, 1.0f, 0);
 	}
-	CGameManager::Instance()->DrawSprite(sprite, 0, a, b, 2, 4, color, 1.0f, 0);
-	//CGameManager::Instance()->CreateEntity("","alpha");
-	CGameManager::Instance()->UpdateWorldCo(a,b);
-	
+	CGameManager::Instance()->DrawSprite(sprite, 0, x, y, 2, 4, color, 1.0f, 0);
+	cell t[3];
+	t[1] = x;
+	t[2] = y;
+	//d = GetRelevantEntityData(amx, (cell)SPECIALENTITYWORLD, true);
+	//d->SetValue("_x", x);
+	//d->SetValue("_y", y);
+	UpdateWorldCo(NULL, t);
 
 	return 0;
 }
-static cell AMX_NATIVE_CALL Wipe(AMX *amx, cell *params){
-	int dir = params[1];
-	char szName[256]; GetStringParam(amx, params[2], &szName[0]);
-	return CGameManager::Instance()->Wipe(dir, szName, params[3], params[4]);
-}
+
 extern AMX_NATIVE_INFO general_Natives[] = {
-	{ "UpdateWorldCo",  UpdateWorldCo },
-	{ "GetTimeDelta",  GetTimeDelta },
-	{ "SetFilter", SetFilter },
-	{ "FirstRun",  FirstRun },
-	{ "DebuggingStuff", DebuggingStuff },
-	{ "Wipe", Wipe },
-	{ "GetMouseKey", GetMouseKey },
-	{ "GetMouseX", GetMouseX },
-	{ "GetMouseY", GetMouseY },
-	{ "GetInput", GetInput },
-	{ NULL, NULL }        /* terminator */
+	{ "GetGroupHeight"	, GetGroupHeight },
+	{ "GetGroupWidth"	, GetGroupWidth },
+	{ "UpdateWorldCo"	, UpdateWorldCo },
+	{ "GetTimeDelta"	, GetTimeDelta },
+	{ "SetFilter"		, SetFilter },
+	{ "FirstRun"		, FirstRun },
+	{ "DebuggingStuff"	, DebuggingStuff },
+	{ "Wipe"			, Wipe },
+	{ "GetMouseKey"		, GetMouseKey },
+	{ "GetMouseX"		, GetMouseX },
+	{ "GetMouseY"		, GetMouseY },
+	{ "GetInput"		, GetInput },
+	{ NULL				, NULL }        /* terminator */
 };
 
 /*!
@@ -322,23 +328,18 @@ extern AMX_NATIVE_INFO general_Natives[] = {
 	\ingroup openlegends
 	Open Legends entity handling functions.
 */
-static cell AMX_NATIVE_CALL GetEntity(AMX *amx, cell *params){
-	char szName[256];
-	GetStringParam(amx, params[1],&szName[0]);
-	return (cell)GetContext(szName);
-}
 static cell AMX_NATIVE_CALL CreateEntity(AMX *amx, cell *params){
 	char szName[256];
 	char szScript[256];
 	GetStringParam(amx, params[1], &szScript[0]);
 	GetStringParam(amx, params[2], &szName[0]);
-	CDrawableContext *pt = CGameManager::Instance()->CreateEntity(szName, szScript);
-	if(pt == NULL) return NULL;
-	CEntityData::InsertContext(szName, pt);
-	return (cell)pt;
+	CBString string = CGameManager::Instance()->CreateEntity(szName, szScript);
+	if(strlen(string) < 1) return 0;
+	strcpy(szName, string);
+	amx_SetString(&params[2], szName, false);
+	return 1;
 }
 extern AMX_NATIVE_INFO entity_Natives[] = {
-	{"GetEntity", GetEntity},
 	{"CreateEntity", CreateEntity},
 	{NULL, NULL}
 };
@@ -347,8 +348,144 @@ extern AMX_NATIVE_INFO entity_Natives[] = {
 	\ingroup openlegends
 	Methods for storing and retrieving entity/sprite data.
 */
+static cell AMX_NATIVE_CALL sGetString(AMX *amx, cell *params){
+	//bool sGetString(szName, szID, szOutput);
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	char szValue[256]; GetStringParam(amx, params[2], &szValue[0]);
+	CBString ret = data->GetString(szValue);
+	char szSet[1024]; strcpy(szSet, ret);
+	
+	amx_SetString(&params[3], szSet, false);
+	
+	return 1; //Boolean true.
+}
+static cell AMX_NATIVE_CALL vGetString(AMX *amx, cell *params){
+	//bool vGetString(szName, ID, szOutput);
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	CBString ret = data->GetString(params[2]);
+	char szSet[1024]; strcpy(szSet, ret);
+	
+	amx_SetString(&params[3], szSet, false);
+	
+	return 1;
+}
+
+static cell AMX_NATIVE_CALL sSetString(AMX *amx, cell *params){
+	//bool sSetString(szName, szID, szText);
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	char szID[256]; GetStringParam(amx, params[2], &szID[0]);
+	char szText[1024]; GetStringParam(amx, params[3], &szText[0]);
+	
+	data->SetString(szID, szText);
+
+	return 1;
+}
+static cell AMX_NATIVE_CALL vSetString(AMX *amx, cell *params){
+	//bool sSetString(szName, ID, szText);
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	char szText[1024]; GetStringParam(amx, params[3], &szText[0]);
+	
+	data->SetString(params[2], szText);
+
+	return 1;
+}
+
+static cell AMX_NATIVE_CALL sGetValue(AMX *amx, cell *params){
+	//int sGetValue(szName, szID); //-1 May indicate failure!
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return -1; //indicate failure.
+	
+	char szID[256]; GetStringParam(amx, params[2], &szID[0]);
+	
+	return data->GetValue(szID);
+}
+static cell AMX_NATIVE_CALL vGetValue(AMX *amx, cell *params){
+	//int vGetValue(szName, ID); //-1 May indicate failure!
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return -1; //indicate failure.
+	
+	return data->GetValue(params[2]);
+}
+
+static cell AMX_NATIVE_CALL sSetValue(AMX *amx, cell *params){
+	//bool sSetValue(szName, szID, Value);
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	char szID[256]; GetStringParam(amx, params[2], &szID[0]);
+	
+	data->SetValue(szID, params[3]);
+	
+	return 1;
+}
+static cell AMX_NATIVE_CALL vSetValue(AMX *amx, cell *params){
+	//bool vSetValue(szName, ID, Value);
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	data->SetValue(params[2], params[3]);
+	
+	return 1;
+}
+
+static cell AMX_NATIVE_CALL sGetFlag(AMX *amx, cell *params){
+	//int sGetFlag(szName, szID); //-1 indicates failure.
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return -1; //indicate failure.
+	
+	char szID[256]; GetStringParam(amx, params[2], &szID[0]);
+	
+	return (int)data->GetFlag(szID);
+}
+static cell AMX_NATIVE_CALL vGetFlag(AMX *amx, cell *params){
+	//int vGetFlag(szName, ID); //-1 indicates failure.
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return -1; //indicate failure.
+	
+	return (int)data->GetFlag(params[2]);
+}
+
+static cell AMX_NATIVE_CALL sSetFlag(AMX *amx, cell *params){
+	//bool sSetFlag(szName, szID, bVal); //0 indicates failure.
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	char szID[256]; GetStringParam(amx, params[2], &szID[0]);
+	data->SetFlag(szID, (params[3]>0)?true:false);
+	
+	return 1;
+}
+static cell AMX_NATIVE_CALL vSetFlag(AMX *amx, cell *params){
+	//bool vSetFlag(szName, ID, bVal); //0 indicates failure.
+	CEntityData *data = GetRelevantEntityData(amx, params[1]);
+	if(!data) return 0; //indicate failure.
+	
+	data->SetFlag(params[2], (params[3]>0)?true:false);
+	
+	return 1;
+}
 
 extern AMX_NATIVE_INFO data_Natives[] = {
+	{ "sGetString", sGetString },
+	{ "vGetString", vGetString },
+	{ "sSetString", sSetString },
+	{ "vSetString", vSetString },
+	{ "sGetValue", sGetValue },
+	{ "vGetValue", vGetValue },
+	{ "sSetValue", sSetValue },
+	{ "vSetValue", vSetValue },
+	{ "sGetFlag", sGetFlag },
+	{ "vGetFlag", vGetFlag },
+	{ "sSetFlag", sSetFlag },
+	{ "vSetFlag", vSetFlag },
 	{NULL, NULL}
 };
 /*!
@@ -369,7 +506,7 @@ static cell AMX_NATIVE_CALL DrawSprite(AMX *amx, cell *params){
 	GetStringParam(amx, params[7], &szRgba[0]);
 	float fScale = fConvertCellToFloat(params[8]);
 	int Rot = params[9];
-	return 0;//return CGameManager::Instance()->DrawSprite(szSprite, coordType, x, y, subLayer, Layer, szRgba, fScale, Rot);
+	return CGameManager::Instance()->DrawSprite(szSprite, coordType, x, y, subLayer, Layer, szRgba, fScale, Rot);
 }
 extern AMX_NATIVE_INFO drawing_Natives[] = {
 	{"DrawSprite", DrawSprite},
@@ -476,28 +613,15 @@ bool DrawSprite(char spriteName, int coordType, int x, int y, int subLayer=2, in
 
 	TODO: fScale implementation. coordType implementation.
 */
-CDrawableContext *GetEntity(char name);/*!<
-	\ingroup entity
-	\brief This function returns a pointer to the CDrawableContext.
-
-	\return Returns a pointer to an entity, should not be modified. Returns 0 if not found.
-
-	\remarks It's preffered if you store the entity name in a variable which you later refer to it by, as this ups
-		the speed of the entity searching. 
-		It's done through an extensive search and should be used to retrieve the entity name as few times as 
-		possible. (entity names should be used as few times as possible in any case, using the return value of 
-		GetEntity or the "this" command is much faster.)
-*/
-CDrawableContext *CreateEntity(char szScript = "", char szName = "");/*!<
+CDrawableContext *CreateEntity(char szScript, char szName);/*!<
 	\ingroup entity
 	\brief Creates entity using script szScript and names it szName.
 
-	\return Returns a pointer to an entity, should not be modified. Returns 0 if not found.
+	\return Returns name of entity in szName, if empty a name is created. 0 on fail, 1 on success.
 
 	\remarks This function is used to create an instance of a script named szScript. This script may or may not
 	exist as an entity linked to a sprite in the project. This means that it's possible to create an "unscripted" entity
 	acting as an abstract storage object.
-	The return value of CreateEntity matches that of GetEntity.
 */
 int SetFilter();/*!< todo: WRITE DOCUMENTATION.
 
@@ -557,6 +681,22 @@ int GetMouseKey();/*!<
 
 	\return Returns an indicator as to which key is being pushed. Match with an enumerator.
 
-	\remarks 
+	\remarks
+*/
+/* THESE FUNCTIONS NEED DOCUMENTATION.
+vGetValue()
+vSetValue()
+sGetValue()
+sSetValue()
+
+vGetString()
+vSetString()
+sGetString()
+sSetString()
+
+vGetFlag()
+vSetFlag()
+sGetFlag()
+sSetFlag()
 */
 #endif

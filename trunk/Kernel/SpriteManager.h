@@ -231,7 +231,7 @@ protected:
 
 
 public:
-
+	CSpriteContext *m_pParent;
 	//Storage retrieval:
 	int GetValue(int Id);	//Entity retrieved from is done elsewhere. Personal note.
 	int GetValue(LPCSTR Id);
@@ -247,6 +247,11 @@ public:
 	bool SetFlag(	LPCSTR Id,	bool Set = true);
 	bool SetString(	int Id,		LPCSTR Text = "");
 	bool SetString(	LPCSTR Id,	LPCSTR Text = "");
+	
+	void UpdateVariables();
+	void UpdateSpecialVariable(LPCSTR Id, int Value, bool in = true);
+	void UpdateSpecialVariable(LPCSTR Id, LPCSTR Text, bool in = true);
+	void UpdateSpecialVariable(LPCSTR Id, bool Set, bool in = true);
 
 	//Storage clearing:
 	inline void ClearData(){
