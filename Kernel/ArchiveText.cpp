@@ -623,7 +623,7 @@ bool CMapGroupTxtArch::ReadObject(CVFile &vfFile)
 				sFile.Format("\\screens\\%d-%d%s.lnd", MapGroupRect.left + i, MapGroupRect.top + j, sLayer);
 				vfFile2.SetFilePath(sPath + sFile);	
 
-				pLayer->SetLoadPoint(pWorld->m_szMapSize.cx*i*(pWorld->m_bLegacyQuest?2:1), pWorld->m_szMapSize.cy*j*(pWorld->m_bLegacyQuest?2:1));
+				pLayer->SetLoadPoint(pWorld->m_szMapSize.cx*i, pWorld->m_szMapSize.cy*j);
 				if(!pLayer->Load(vfFile2)) {
 					if(nLayer == DEFAULT_LAYER) {
 						CONSOLE_PRINTF("Map error in '%s': Couldn't load the screen!\n", vfFile2.GetFileName());
@@ -674,10 +674,7 @@ bool CWorldTxtArch::ReadObject(CVFile &vfFile)
 	CBString sID;
 	ReadStringFromFile(sID, vfFile);
 	if( sID == "Open Zelda Quest Designer Map File" ) {
-		m_pWorld->m_szMapSize.cx = 320;	//Coordinates on a screen are based on this.
-		m_pWorld->m_szMapSize.cy = 240; //Coordinates in the world are based on 640x480.
-		//Problems concerning this may have to be fixed as they come up, it's regrettable,
-		//But I'm not certain enough on where the changes are to fix them specifically.
+		
 		m_pWorld->m_bLegacyQuest = true;
 		if(ReadMaps(vfFile)) {
 			if(ReadMapGroups(vfFile)) {
@@ -755,7 +752,7 @@ bool CWorldTxtArch::ReadProperties(CVFile &vfFile)
 	bool bFinalVersion = (ReadLongFromFile(vfFile)==1);
 	bool bSaveSounds = (ReadLongFromFile(vfFile)==1);
 
-	CPoint Point(lStartX, lStartY);
+	CPoint Point(lStartX*(m_pWorld->m_bLegacyQuest?2:1), lStartY*(m_pWorld->m_bLegacyQuest?2:1));
 	m_pWorld->m_StartPosition.SetAbsPosition(Point, 3, 2);
 	if(m_pWorld->m_StartPosition.SetAbsPosition(Point) == -1) {
 		CONSOLE_PRINTF("World error: invalid start location...\n");
@@ -882,8 +879,8 @@ bool CWorldTxtArch::LoadThumbnail(CMapGroup *pMapGroup)
 	CRect rcPosition;
 	pMapGroup->GetMapGroupRect(rcPosition);
 
-	int nMapWidth = m_pWorld->m_szMapSize.cx*2 / 4;
-	int nMapHeight = m_pWorld->m_szMapSize.cy*2 / 4;
+	int nMapWidth = m_pWorld->m_szMapSize.cx / 4;
+	int nMapHeight = m_pWorld->m_szMapSize.cy / 4;
 
 	int nWidth = rcPosition.Width() * nMapWidth;
 	int nHeight = rcPosition.Height()* nMapHeight;

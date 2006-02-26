@@ -134,7 +134,7 @@ void CGameManager::UpdateInput(){
 	}
 }
 
-CDrawableContext* CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
+const CBString CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
 	CSpriteContext *pSpriteContext = new CSpriteContext(szName);
 	pSpriteContext->SetObjSubLayer(0); //Bottom layer.
 	CSprite *pSprite = FindSprite(szScript);
@@ -145,53 +145,228 @@ CDrawableContext* CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
 		SSpriteData *pSpriteData = pEntityData;
 		pSpriteData->nSubLayer = 2;
 		pSprite->SetSpriteData(pSpriteData);
-		pEntityData->pScript = MakeScript(szScript);
+		if(strlen(szScript) < 1) pEntityData->pScript = MakeScript(" ");
+		else pEntityData->pScript = MakeScript(szScript);
 		if(!pEntityData->pScript->SourceExists()){
 			CONSOLE_PRINTF("Script Warning: Couldn't find the script file for the entity %s, assumed abstract.\n", szScript);
 			//We still do not return here, it's possible that the user only requires an abstract entity to refer to for data storage.
 		}
 		//We do not have to link this entity to a sprite sheet, it's an abstract entity necessary only for scripts lacking sprite linkage.
 	}
-	if(pSprite == NULL) return NULL; //error?
+	if(pSprite == NULL) return CBString(""); //error?
 	pSpriteContext->SetDrawableObj(pSprite);
 	((CLayer *)(*m_ppActiveMapGroup)->GetChild(0))->AddSpriteContext(pSpriteContext, false);//There should never really be a need to create an entity outside of the active mapgroup.
 																					 //If all else fails, you can create it when you get there. :P
-	return (CDrawableContext *)pSpriteContext;
+	return pSpriteContext->GetName();
 }
 
 CMapGroup* CGameManager::Wiping(){
 	if(!m_bWiping) return NULL;	//Cool part is, Wiping is totally separated from script threads and will be smooth no matter what the script-fps is.
-	bool xDone = true;
-	bool yDone = true;
-	if(abs((int)m_fWipeOffX) < abs(m_pWipeOffset->x)){ m_fWipeOffX += GetFPSDelta()*(float)(DEF_MAPSIZEX/1.0)*((m_pWipeOffset->x < 0)?-1.0:1.0); xDone = false;}
-	if(abs((int)m_fWipeOffY) < abs(m_pWipeOffset->y)){ m_fWipeOffY += GetFPSDelta()*(float)(DEF_MAPSIZEY/1.0)*((m_pWipeOffset->y < 0)?-1.0:1.0); yDone = false;}
+	m_pWipeTarget->CleanTemp();
+	bool Done = false;
+	if(!m_bWiping2){
+		if(m_wipeDir == 1 || m_wipeDir == 3){
+			if(abs((int)m_fWipeOffY) < abs(m_WipeOffset.y)){ 
+				m_fWipeOffY += GetFPSDelta()*(float)(m_World.m_szMapSize.cy)*((m_WipeOffset.y < 0)?-1.0:1.0);
+			} else if(abs((int)m_fWipeOffX) < abs(m_WipeOffset.x)){
+				m_fWipeOffY = m_WipeOffset.y;
+				m_fWipeOffX += GetFPSDelta()*(float)(m_World.m_szMapSize.cx)*((m_WipeOffset.x < 0)?-1.0:1.0); 
+			} else {
+				m_fWipeOffX = m_WipeOffset.x;
+				m_bWiping2 = true;
+			}
+		} else {
+			if(abs((int)m_fWipeOffX) < abs(m_WipeOffset.x)){
+				m_fWipeOffX += GetFPSDelta()*(float)(m_World.m_szMapSize.cx)*((m_WipeOffset.x < 0)?-1.0:1.0);
+			} else if(abs((int)m_fWipeOffY) < abs(m_WipeOffset.y)){
+				m_fWipeOffX = m_WipeOffset.x;
+				m_fWipeOffY += GetFPSDelta()*(float)(m_World.m_szMapSize.cy)*((m_WipeOffset.y < 0)?-1.0:1.0);
+			} else {
+				m_fWipeOffY = m_WipeOffset.y;
+				m_bWiping2 = true;
+			}
+		}
+	}else{
+		if(abs((int)m_fWipeOff2Y) < abs(m_WipeOffset2.y)){ 
+			m_fWipeOff2Y += GetFPSDelta()*(float)(m_World.m_szMapSize.cy)*((m_WipeOffset2.y < 0)?-1.0:1.0);
+			
+		} else if(abs((int)m_fWipeOff2X) < abs(m_WipeOffset2.x)){ 
+			m_fWipeOff2X += GetFPSDelta()*(float)(m_World.m_szMapSize.cx)*((m_WipeOffset2.x < 0)?-1.0:1.0); 
+		} else Done = true;
+	}
 	
-	if(xDone && yDone) m_bWiping = false;
+	if(Done) m_bWiping = false;
 
 	// Last Wipe Frame:
 	//m_bWiping = false;
 	if(!m_bWiping){
 		CScript::CleanQueue();
 		this->ClearSpriteBuffer();
-		CDrawableContext *pt = CEntityData::FindContext("_world");		//Can't fail unless it's been deleted, this should never fail.
+		CDrawableContext *pt = CEntityData::FindContext(SPECIALENTITYWORLD);		//Can't fail unless it's been deleted, this should never fail.
 		pt->GetParent()->PopChild(pt);									//Remove the world script from it's current parent.
 		((CLayer *)m_pWipeTarget->GetChild(0))->AddSpriteContext((CSpriteContext *)pt, false);	//Add the same script into the new group instead.
 		
-		if((pt = CEntityData::FindContext("_group")) != NULL) {
-			CEntityData::RemoveContext("_group");
+		if((pt = CEntityData::FindContext(SPECIALENTITYGROUP)) != NULL) {
+			CEntityData::RemoveContext(SPECIALENTITYGROUP);
 			pt->GetParent()->KillChild(pt);
 		}
-
 		Scripts::InitializeSpecialEntities(m_pWipeTarget->GetName());
-
+		CPoint curpt, targetpt;
+		(*m_ppActiveMapGroup)->GetAbsPosition(curpt);
+		m_pWipeTarget->GetAbsPosition(targetpt);
+		targetpt -= curpt;
+		UpdateWorldCo(targetpt.x, targetpt.y); //!!!
 		*m_ppActiveMapGroup = m_pWipeTarget;
 		m_pWipeTarget = NULL;
-		return NULL;
+		m_bWiping2 = false;
+		m_WipeOffset = CPoint(0,0);
+		m_fWipeOffX = 0;
+		m_fWipeOffY = 0;
 	}
 
 	return m_pWipeTarget;
 }
-bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
+void CGameManager::BeginWipe(CDrawableContext *entity, int edgex, int edgey){
+	if(!entity) return;
+	CRect groupRect, targetRect;
+	CPoint targetpt, curlpt, entpos, targetscreen;
+	(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
+	m_pWipeTarget->GetMapGroupRect(targetRect);
+	
+	(*ms_ppGraphicsI)->GetWorldPosition(&curlpt);
+	m_pWipeTarget->GetAbsPosition(targetpt);
+
+	int layer;
+	int worldX = m_World.m_szMapSize.cx;
+	int worldY = m_World.m_szMapSize.cy;
+	CPoint abspos = CPoint(curlpt.x + groupRect.left*worldX, curlpt.y + groupRect.top*worldY);
+	CPoint eabspos = CPoint(entpos.x + groupRect.left*worldX, entpos.y + groupRect.top*worldY);
+	
+	layer = entity->GetParent()->GetObjSubLayer();
+	entity->GetPosition(entpos);
+
+	//Convert the entity position for the new group
+	entpos.x -= (targetRect.left - groupRect.left)*worldX;
+	entpos.y -= (targetRect.top - groupRect.top)*worldY;
+		
+	//Pop the entity
+	entity->GetParent()->PopChild(entity);
+	
+	m_WipeOffset = CPoint(0,0);
+	m_WipeOffset2 = CPoint(0,0);
+	if(m_wipeDir == 0){
+		//targetscreen.y -= worldY;
+		m_StaticWipeOffset = CPoint((targetRect.left - groupRect.left)*worldX - curlpt.x,-worldY*targetRect.Height());
+		m_WipeOffset.y = -480;
+
+		if(abspos.x > targetRect.left*worldX){
+			if(abspos.x < (targetRect.right-1)*worldX){
+				m_WipeOffset.x = -(eabspos.x - curlpt.x);
+			} else {
+				m_WipeOffset.x = -(abspos.x - (targetRect.right-1)*worldX);
+				if(entpos.x > targetRect.Width()*worldX - worldX/2 || entpos.x < worldX/2);
+				else { 
+					m_WipeOffset2.x = entpos.x - (groupRect.left - targetRect.left)*worldX - worldX/2;
+				}
+			}
+		} else {
+			m_WipeOffset.x += (targetRect.left*worldX - abspos.x);
+			if(entpos.x > targetRect.Width()*worldX - worldX/2 || entpos.x < worldX/2);
+			else {
+				m_WipeOffset2.x = entpos.x - worldX/2;
+			}
+		}
+
+		if(entity != NULL){
+			entity->MoveTo(entpos.x,targetRect.Height()*worldY-edgey);
+			static_cast<CLayer *>(m_pWipeTarget->GetChild(layer))->AddSpriteContext(static_cast<CSpriteContext *>(entity), false);
+		}
+	}
+	else if(m_wipeDir == 2){
+		//targetscreen.y += worldY;
+		m_StaticWipeOffset = CPoint((targetRect.left - groupRect.left)*worldX - curlpt.x,worldY);
+		m_WipeOffset.y = 480;
+		
+		if(abspos.x > targetRect.left*worldX){
+			if(abspos.x < (targetRect.right-1)*worldX){
+				m_WipeOffset.x = -(eabspos.x - curlpt.x);
+			} else {
+				m_WipeOffset.x = -(abspos.x - (targetRect.right-1)*worldX);
+				if(entpos.x > targetRect.Width()*worldX - worldX/2 || entpos.x < worldX/2);
+				else { 
+					m_WipeOffset2.x = entpos.x - (groupRect.left - targetRect.left)*worldX - worldX/2;
+				}
+			}
+		} else {
+			m_WipeOffset.x += (targetRect.left*worldX - abspos.x);
+			if(entpos.x > targetRect.Width()*worldX - worldX/2 || entpos.x < worldX/2);
+			else {
+				m_WipeOffset2.x = entpos.x - worldX/2;
+			}
+		}
+
+		if(entity != NULL){
+			entity->MoveTo(entpos.x, edgey);
+			static_cast<CLayer *>(m_pWipeTarget->GetChild(layer))->AddSpriteContext(static_cast<CSpriteContext *>(entity), false);
+		}
+	}
+	else if(m_wipeDir == 1){
+		m_StaticWipeOffset = CPoint(-worldX*targetRect.Width(),(targetRect.top - groupRect.top)*worldY - curlpt.y);
+		m_WipeOffset.x = -640;
+		
+		if(abspos.y > targetRect.top*worldY){
+			if(abspos.y < (targetRect.bottom-1)*worldY){
+				m_WipeOffset.y = -(eabspos.y - curlpt.y);
+			} else {
+				m_WipeOffset.y = -(abspos.y - (targetRect.bottom-1)*worldY);
+				if(entpos.y > targetRect.Height()*worldY - worldY/2 || entpos.y < worldY/2);
+				else { 
+					m_WipeOffset2.y = entpos.y - (groupRect.top - targetRect.top)*worldY - worldY/2;
+				}
+			}
+		} else {
+			m_WipeOffset.y += (targetRect.top*worldY - abspos.y);
+			if(entpos.y > targetRect.Height()*worldY - worldY/2 || entpos.y < worldY/2);
+			else {
+				m_WipeOffset2.y = entpos.y - worldY/2;
+			}
+		}
+			
+		if(entity != NULL){
+			entity->MoveTo(targetRect.Width()*worldX - edgex, entpos.y);
+			static_cast<CLayer *>(m_pWipeTarget->GetChild(layer))->AddSpriteContext(static_cast<CSpriteContext *>(entity), false);
+		}
+	}
+	else{ 
+		//targetscreen.x += worldX;
+		m_StaticWipeOffset = CPoint(worldX, (targetRect.top - groupRect.top)*worldY - curlpt.y);
+		m_WipeOffset.x = 640;
+		
+		if(abspos.y > targetRect.top*worldY){
+			if(abspos.y < (targetRect.bottom-1)*worldY){
+				m_WipeOffset.y = -(eabspos.y - curlpt.y);
+			} else {
+				m_WipeOffset.y = -(abspos.y - (targetRect.bottom-1)*worldY);
+				if(entpos.y > targetRect.Height()*worldY - worldY/2 || entpos.y < worldY/2);
+				else { 
+					m_WipeOffset2.y = entpos.y - (groupRect.top - targetRect.top)*worldY - worldY/2;
+				}
+			}
+		} else {
+			m_WipeOffset.y += (targetRect.top*worldY - abspos.y);
+			if(entpos.y > targetRect.Height()*worldY - worldY/2 || entpos.y < worldY/2);
+			else {
+				m_WipeOffset2.y = entpos.y - worldY/2;
+			}
+		}
+
+		if(entity != NULL){
+			entity->MoveTo(edgex,entpos.y);
+			static_cast<CLayer *>(m_pWipeTarget->GetChild(layer))->AddSpriteContext(static_cast<CSpriteContext *>(entity), false);
+		}
+	}
+}
+bool CGameManager::Wipe(int dir, CDrawableContext *context, int edgedistX, int edgedistY){
 	//THIS FUNCTION IS NOT FINISHED, THE PER-CASE SWITCH HAS NOT BEEN COMPLETED FOR EACH CASE.
 	if(m_bWiping) return true;
 	ASSERT(ms_ppGraphicsI);
@@ -201,70 +376,46 @@ bool CGameManager::Wipe(int dir, LPCSTR szName, int edgedistX, int edgedistY){
 	CPoint mapPos;
 	m_fWipeOffX = 0;
 	m_fWipeOffY = 0;
+	m_fWipeOff2X = 0;
+	m_fWipeOff2Y = 0;
 	(*m_ppActiveMapGroup)->GetMapGroupRect(mapRect);
-	(*ms_ppGraphicsI)->GetWorldPosition(&mapPos);
+	CEntityData *data = Scripts::GetRelevantEntityData(NULL, (cell)SPECIALENTITYWORLD, true);
+	mapPos.x = data->GetValue("_x");
+	mapPos.y = data->GetValue("_y");
+	
+	mapPos.x /= m_World.m_szMapSize.cx; //These mods make sure we find the correct location if the player
+	mapPos.y /= m_World.m_szMapSize.cy; //has walked down a bit and crossed an imaginary group border for the group next to his location.
+
 	/*SCRIPT ENUM:
 		north = 0
 		west = 1
 		south = 2
-		east = 3
-	*/
-	mapPos.x /= m_World.m_szMapSize.cx; //These mods make sure we find the correct location if the player
-	mapPos.y /= m_World.m_szMapSize.cy; //has walked down a bit and crossed an imaginary group border for the group next to his location.
-	CMapGroup *pTargetGroup = NULL;
-	CPoint *delta;
-	CRect groupRect, targetRect = NULL;
+		east = 3*/
 	switch(dir){
 		case 0: //north ^
-			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.top-1);
-			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
-	
-			m_pWipeTarget = pTargetGroup;
-			
-			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
-			m_pWipeTarget->GetMapGroupRect(targetRect);
-			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint(0, (targetRect.bottom - (groupRect.top + 1))*m_World.m_szMapSize.cy*(m_World.m_bLegacyQuest?2:1));
-			m_pWipeOffset = delta;
+			m_pWipeTarget = FindMapGroup(mapRect.left+mapPos.x, mapRect.top-1);
+			if(m_pWipeTarget == NULL) return false;	//No group in this location, map design flaw.
 			break;
 		case 1: //west <--
-			pTargetGroup = FindMapGroup(mapRect.left-1, mapRect.top+mapPos.y);
-			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
-	
-			m_pWipeTarget = pTargetGroup;
-
-			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
-			m_pWipeTarget->GetMapGroupRect(targetRect);
-			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint((targetRect.left - groupRect.left)*m_World.m_szMapSize.cx*(m_World.m_bLegacyQuest?2:1), 0);
+			m_pWipeTarget = FindMapGroup(mapRect.left-1, mapRect.top+mapPos.y);
+			if(m_pWipeTarget == NULL) return false;	//No group in this location, map design flaw.
 			break;
 		case 2: //south \/
-			pTargetGroup = FindMapGroup(mapRect.left+mapPos.x, mapRect.bottom);
-			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
-	
-			m_pWipeTarget = pTargetGroup;
-
-			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
-			m_pWipeTarget->GetMapGroupRect(targetRect);
-			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint(0, (targetRect.top - groupRect.top)*m_World.m_szMapSize.cy*(m_World.m_bLegacyQuest?2:1));
+			m_pWipeTarget = FindMapGroup(mapRect.left+mapPos.x, mapRect.bottom);
+			if(m_pWipeTarget == NULL) return false;	//No group in this location, map design flaw.
 			break;
 		case 3: //east -->
-			pTargetGroup = FindMapGroup(mapRect.right, mapRect.top+mapPos.y);
-			if(pTargetGroup == NULL) return false;	//No group in this location, map design flaw.
-	
-			m_pWipeTarget = pTargetGroup;
-
-			(*m_ppActiveMapGroup)->GetMapGroupRect(groupRect);
-			m_pWipeTarget->GetMapGroupRect(targetRect);
-			//groupPos += mapPos; //Offset to find the correct location to draw the target group.
-			delta = new CPoint((targetRect.left - groupRect.left)*m_World.m_szMapSize.cx*(m_World.m_bLegacyQuest?2:1), 0);
-
+			m_pWipeTarget = FindMapGroup(mapRect.right, mapRect.top+mapPos.y);
+			if(m_pWipeTarget == NULL) return false;	//No group in this location, map design flaw.	
 			break;
+
 		default: return false;
 	}
+	m_wipeDir = dir;
 	if(!m_pWipeTarget->IsLoaded()) m_pWipeTarget->Load();
-	m_pWipeOffset = delta;
+	
+	BeginWipe(context, edgedistX, edgedistY);
+
 	CScript::CleanQueue();	//No scripts will be run during the wipe.
 	ClearSpriteBuffer();
 	m_bWiping = true;	//The wipe will happen. (Do this when all data has been finalized.)
@@ -300,7 +451,9 @@ CGameManager::CGameManager() :
 		m_ActiveMouse[i] = 0;
 		m_QueuedMouse[i] = 0;
 	}
+	m_bPlaying = false;
 	m_bWiping = false;
+	m_bWiping2 = false;
 	m_ppActiveMapGroup = NULL;
 	m_ArchiveIn = new CProjectTxtArch(this);
 	m_ArchiveOut = m_ArchiveIn;

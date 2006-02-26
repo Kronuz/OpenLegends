@@ -40,11 +40,15 @@ struct EntParamData{
 	LPCSTR szName;
 	CDrawableContext *context;
 };
+
+#define SPECIALENTITYWORLD "_world"
+#define SPECIALENTITYGROUP "_group"
+
 void RegisterNatives(AMX *amx);
 
 namespace Scripts{
 	bool GetStringParam(AMX *amx, cell sParam, char* szString);	
-	CDrawableContext* GetContext(LPCSTR szName, bool extensive = true);
+	CSpriteContext* GetContext(AMX *amx, cell param, bool extensive = true, bool converted = false);
 	void InitializeSpecialEntities(LPCSTR Groupname);
 	int CALLBACK FindNamedEntity(LPVOID lpVoid, LPARAM ret);
 
@@ -57,7 +61,7 @@ namespace Scripts{
 	inline CEntityData* GetEntityData(HSCRIPT hScript){			//Abstract entities can never use this.
 		return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID))->m_pEntityData;
 	}
-	inline CSpriteContext* GetSpriteContext(HSCRIPT hScript){	//Abstract entities can never use this.
+	inline CSpriteContext* GetSpriteContextByHandle(HSCRIPT hScript){	//Abstract entities can never use this.
 		return static_cast<CSpriteContext *>((CDrawableContext *)(hScript->ID));
 	}
 	inline bool GetStringParam(AMX *amx, cell sParam, char* szString){
@@ -70,18 +74,7 @@ namespace Scripts{
 	}
 
 	inline CEntityData* GetRelevantEntityData(AMX *amx, cell param, bool converted = false){
-		char szName[64];
 		//Note to self: The below function hasn't been tested with live variables yet, should be done asap.
-		if(converted) strcpy(&szName[0], (char *)param);
-		else GetStringParam(amx, param, &szName[0]);
-		if(!strcmp(szName, "this")) return GetEntityData(GetThis(amx));
-		try{
-			((CDrawableContext *)param)->isSuperContext();
-			return static_cast<CSpriteContext *>((CDrawableContext *)param)->m_pEntityData;
-		}catch(...){
-			CDrawableContext *context = GetContext(szName);
-			if(context != NULL) return static_cast<CSpriteContext *>(context)->m_pEntityData;
-		}
-		return NULL;	//Couldn't find it.
+		return GetContext(amx, param, true, converted)->m_pEntityData;
 	}
 }

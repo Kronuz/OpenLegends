@@ -59,6 +59,7 @@
 
 #include "GameManager.h"
 #include "ScriptManager.h"
+#include "Script.h"
 #include "ArchiveText.h"
 
 bool g_bBounds = false;
@@ -91,18 +92,58 @@ CBackground::CBackground(LPCSTR szName) :
 {
 	m_SptType = tBackground;
 }
+
+void CEntityData::UpdateVariables(){
+	CPoint pos;
+	if(strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){	//We won't do the same checks for this entity.
+		m_pParent->GetPosition(pos);
+		SetValue("_x", pos.x);
+		SetValue("_y", pos.y);
+	}
+}
+void CEntityData::UpdateSpecialVariable(LPCSTR Id, int Value, bool in){
+	if(in){
+		if(!strcmp("_x", Id)){
+			CPoint pos;
+			m_pParent->GetPosition(pos);
+			pos.x = Value;
+			m_pParent->MoveTo(pos);
+			if(!strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){
+				CPoint *pt = CGameManager::Instance()->GetWorldCo();
+				CGameManager::Instance()->UpdateWorldCo(pos.x, pos.y);
+			}
+		} else if (!strcmp("_y", Id)){
+			CPoint pos;
+			m_pParent->GetPosition(pos);
+			pos.y = Value;
+			m_pParent->MoveTo(pos);
+			if(!strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){
+				CPoint *pt = CGameManager::Instance()->GetWorldCo();
+				CGameManager::Instance()->UpdateWorldCo(pos.x, pos.y);
+			}
+		}
+		
+	} else {
+		if(!strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){
+			CPoint *pt = CGameManager::Instance()->GetWorldCo();
+			if(!pt) return;
+			SetValue("_x", pt->x);
+			SetValue("_y", pt->y);
+		}
+	}
+}
+void CEntityData::UpdateSpecialVariable(LPCSTR Id, LPCSTR Text, bool in){
+
+}
+void CEntityData::UpdateSpecialVariable(LPCSTR Id, bool Set, bool in){
+
+}
+
 CDrawableContext* CEntityData::FindContext(LPCSTR szName){
 	std::vector<contextPair>::iterator iter = ms_ContextIndex.begin();
 	for(;iter < ms_ContextIndex.end(); iter++){
 		if(!(*iter).first.Compare(szName)){
-			try{
-				(*iter).second->isSuperContext();	//Throws an error if it fails.
-				return (*iter).second;
-			}catch(...){	//The context has probably been deleted, so restart the search and remove the crap.
-				ms_ContextIndex.erase(iter);
-				iter = ms_ContextIndex.begin();
-				iter--; //We have iter++ on continue
-			}
+			return (*iter).second;
 		}
 	}
 	return NULL;	//Not found.
@@ -126,6 +167,7 @@ int CEntityData::GetValue(int Id){
 	return 0;
 }
 int CEntityData::GetValue(LPCSTR Id){
+	UpdateSpecialVariable(Id, NULL, false);
 	std::vector<svPair>::iterator iter = m_svStorage.begin();
 	for(;iter < m_svStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)) return (*iter).second;
@@ -141,6 +183,7 @@ CBString CEntityData::GetString(int Id){
 	return "";
 }
 CBString CEntityData::GetString(LPCSTR Id){
+	UpdateSpecialVariable(Id, NULL, false);
 	std::vector<ssPair>::iterator iter = m_ssStorage.begin();
 	for(;iter < m_ssStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)) return ((*iter).second);
@@ -156,6 +199,7 @@ bool CEntityData::GetFlag(int Id){
 	return false;
 }
 bool CEntityData::GetFlag(LPCSTR Id){
+	UpdateSpecialVariable(Id, NULL, false);
 	std::vector<sfPair>::iterator iter = m_sfStorage.begin();
 	for(;iter < m_sfStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)) return (*iter).second;
@@ -179,6 +223,7 @@ bool CEntityData::SetValue(int Id, int Value){
 }
 bool CEntityData::SetValue(LPCSTR Id, int Value){
 	std::vector<svPair>::iterator iter = m_svStorage.begin();
+	UpdateSpecialVariable(Id, Value);
 	for(;iter < m_svStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)){
 			(*iter).second = Value;
@@ -189,6 +234,7 @@ bool CEntityData::SetValue(LPCSTR Id, int Value){
 	obj.first = CBString(Id);
 	obj.second = Value;
 	m_svStorage.push_back(obj);
+	
 	return false;
 }
 
@@ -208,6 +254,7 @@ bool CEntityData::SetString(int Id, LPCSTR Text){
 }
 bool CEntityData::SetString(LPCSTR Id, LPCSTR Text){
 	std::vector<ssPair>::iterator iter = m_ssStorage.begin();
+	UpdateSpecialVariable(Id, Text);
 	for(;iter < m_ssStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)){
 			(*iter).second = CBString(Text);
@@ -218,6 +265,7 @@ bool CEntityData::SetString(LPCSTR Id, LPCSTR Text){
 	obj.first = CBString(Id);
 	obj.second = CBString(Text);
 	m_ssStorage.push_back(obj);
+	
 	return false;
 }
 
@@ -237,6 +285,7 @@ bool CEntityData::SetFlag(int Id, bool Set){
 }
 bool CEntityData::SetFlag(LPCSTR Id, bool Set){
 	std::vector<sfPair>::iterator iter = m_sfStorage.begin();
+	UpdateSpecialVariable(Id, Set);
 	for(;iter < m_sfStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)){
 			(*iter).second = Set;
@@ -247,6 +296,7 @@ bool CEntityData::SetFlag(LPCSTR Id, bool Set){
 	obj.first = CBString(Id);
 	obj.second = Set;
 	m_sfStorage.push_back(obj);
+	
 	return false;
 }
 
@@ -834,7 +884,19 @@ CSpriteContext::CSpriteContext(LPCSTR szName) :
 {
 	DestroyStateCallback(CSpriteContext::DestroyCheckpoint, (LPARAM)this);
 	
-	m_pEntityData = new CEntityData;
+	
+	if(CGameManager::Instance()->isPlaying()){
+		m_pEntityData = new CEntityData;
+		
+		if(strlen(szName) < 1){
+			char szName[256];
+			sprintf(szName, "%p", (DWORD)this);
+			SetName(szName);
+			CEntityData::InsertContext(szName, static_cast<CDrawableContext *>(this));	
+		} else CEntityData::InsertContext(szName, static_cast<CDrawableContext *>(this));	
+		m_pEntityData->m_pParent = this;
+	}
+	
 
 	memset(m_nFrame, -1, sizeof(m_nFrame));
 	Mirror(false);

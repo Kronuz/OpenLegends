@@ -484,8 +484,8 @@ void CMapGroup::SetMapGroupSize(const CSize &MapGroupSize)
 	m_rcPosition.bottom = m_rcPosition.top + MapGroupSize.cy;
 	// now, set the size (in bytes) of the drawable context.
 	CDrawableContext::SetSize(
-		m_rcPosition.Width() * m_pWorld->m_szMapSize.cx * (m_pWorld->m_bLegacyQuest?2:1), 
-		m_rcPosition.Height() * m_pWorld->m_szMapSize.cy *  (m_pWorld->m_bLegacyQuest?2:1)
+		m_rcPosition.Width() * m_pWorld->m_szMapSize.cx, 
+		m_rcPosition.Height() * m_pWorld->m_szMapSize.cy
 	);
 }
 void CMapGroup::OffsetMapGroup(int x, int y)
@@ -603,7 +603,7 @@ int CMapPos::GetMapGroup(CMapGroup **_ppMapGroup) const
 		return -1;
 	}
 	*_ppMapGroup = pMapGroup;
-	return m_nLayer;
+	return 1;
 }
 
 int CMapPos::GetLayer() const 
@@ -654,7 +654,8 @@ int CMapPos::SetMapGroup(const CMapGroup *_pMapGroup)
 {
 	if(!_pMapGroup) return -1;
 	m_sMapID = _pMapGroup->GetMapGroupID();
-	return GetLayer();
+	CMapGroup *tmp = NULL;
+	return GetMapGroup(&tmp);
 }
 
 int CMapPos::SetPosition(const CPoint &_Point) 
@@ -674,7 +675,7 @@ int CMapPos::SetPosition(const CPoint &_Point)
 	if(_Point.y > rcMap.Height() * ms_pWorld->m_szMapSize.cy) return -1;
 
 	m_LocalPoint = _Point;
-	return m_nLayer;
+	return 1;
 }
 
 int CMapPos::SetLayer(int _nLayer) 

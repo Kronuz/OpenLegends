@@ -379,6 +379,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 //#endregion
 
 //#region Game loading stuff 
+
+void FixClip(CMapGroup *pMapGroupI, CMapGroup *pSecondMapGroupI = NULL){
+
+	CSize szMap;
+	pMapGroupI->GetSize(szMap);
+	if(pSecondMapGroupI != NULL){	//The clip needs to be fixed so it matches the wipe.
+		CSize szMap2;
+		pSecondMapGroupI->GetSize(szMap2);
+		szMap+=szMap2;
+	}
+	// We need to recalculate the window's size and position:
+	CRect rcWindow;
+	GetWindowRect(g_hWnd, &rcWindow);
+	float fZoom = OnSizing(-1, &rcWindow);
+
+	CRect rcClip, rcClient;
+	rcClient.SetRect(0, 0, (int)((float)g_nXScreenSize * fZoom), (int)((float)g_nYScreenSize * fZoom));
+	rcClip.SetRect(0, 0, szMap.cx, szMap.cy);
+	g_pGraphicsI->SetWindowView(g_hWnd, fZoom, &rcClient, &rcClip);
+
+	MoveWindow(g_hWnd, rcWindow.left, rcWindow.top, rcWindow.Width(), rcWindow.Height(), TRUE);
+}
+
 float OnSizing(int nType, CRect *prcWindow)
 {
 	CRect rcClient, rcWindow;
@@ -496,24 +519,12 @@ HRESULT LoadGame(LPCSTR szQuest)
 
 	
 
-	CSize szMap;
-	g_pMapGroupI->GetSize(szMap);
-
-	// We need to recalculate the window's size and position:
-	CRect rcWindow;
-	GetWindowRect(g_hWnd, &rcWindow);
-	float fZoom = OnSizing(-1, &rcWindow);
-
-	CRect rcClip, rcClient;
-	rcClient.SetRect(0, 0, (int)((float)g_nXScreenSize * fZoom), (int)((float)g_nYScreenSize * fZoom));
-	rcClip.SetRect(0, 0, szMap.cx, szMap.cy);
-	g_pGraphicsI->SetWindowView(g_hWnd, fZoom, &rcClient, &rcClip);
-
-	MoveWindow(g_hWnd, rcWindow.left, rcWindow.top, rcWindow.Width(), rcWindow.Height(), TRUE);
+	FixClip(g_pMapGroupI);
 	if(g_bDebug) ShowWindow(g_hWnd, SW_SHOW);
 
 	return S_OK;
 }
+
 //#endregion
 // Thread but also standard function for script debugging/non-debugging.
 void RunScripts(LPVOID lpParameter){
@@ -549,7 +560,15 @@ void Render()
 	// Update timings and stuff for the animations
 	float fps = pGameI->UpdateFPS(60);
 	DWORD dwAux = 0;
+
+
 	if(fps != -1.0f) {
+		CPoint wpt;	
+		g_pGraphicsI->GetWorldPosition(&wpt);
+		CMapGroup *pCurrentGroup = g_pMapGroupI;
+		// Update any running wipe. (g_pSecondMapGroupI will return to NULL once done.)
+		if((g_pSecondMapGroupI=pGameI->Wiping()) != NULL || g_pMapGroupI != pCurrentGroup) FixClip(g_pMapGroupI, g_pSecondMapGroupI);
+
 		///////////////////////////////////////////////////////////////////////////
 		// 1. RUN THE SCRIPTS
 		if(!g_bDebug || (!dwStarting && g_bDebug)) RunScripts((LPVOID)pGameI);
@@ -557,12 +576,11 @@ void Render()
 			nTimeLeft = dwStarting - GetTickCount();
 			if(nTimeLeft <= 0) dwStarting = 0;
 		}
+		
 		///////////////////////////////////////////////////////////////////////////
 		// 2. DRAW THE WORLD
 		// wait until we are allowed to paint something (during debug or after running all the scripts):
-
-		// Update any running wipe. (g_pSecondMapGroupI will return to NULL once done.)
-		g_pSecondMapGroupI=pGameI->Wiping();
+		
 
 		// **** This should be set by the user in the scripts:
 		g_pGraphicsI->SetFilterBkColor(COLOR_RGB(0,0,0));
@@ -573,12 +591,10 @@ void Render()
 		if(g_pGraphicsI->BeginPaint()) {
 			// Draw the first map:
 			if(g_pSecondMapGroupI != NULL){
-				CPoint *pt = pGameI->GetCurrentWipeOffset();
-				CPoint *wpt = new CPoint;	g_pGraphicsI->GetWorldPosition(wpt);
-				
-				(*wpt) += (*pt); g_pGraphicsI->SetWorldPosition(wpt);
+				CPoint pt = *(pGameI->GetCurrentWipeOffset());	
+				pt += wpt; g_pGraphicsI->SetWorldPosition(&pt);
 				g_pMapGroupI->Draw(g_pGraphicsI);
-				(*wpt) -= (*pt); g_pGraphicsI->SetWorldPosition(wpt);
+				g_pGraphicsI->SetWorldPosition(&wpt);
 
 			} else g_pMapGroupI->Draw(g_pGraphicsI);
 
@@ -588,19 +604,21 @@ void Render()
 			//If wiping, set the filters for the second map, 
 			//select the background color of the second map, and draw the second map:
 			if(g_pSecondMapGroupI != NULL){
-				//Get wipe data.
+				g_pGraphicsI->SetFilterBkColor(COLOR_RGB(0,0,0));
+
+				// Select the background color of the map (the first map when wiping):
+				g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
 
 				//g_pGraphicsI->SetFilter(); //????
-				CPoint *pt = pGameI->GetWipeOffset();
-				CPoint *wpt = new CPoint;	g_pGraphicsI->GetWorldPosition(wpt);
+				CPoint pt = *(pGameI->GetWipeOffset());
 				
-				g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
-				
-				(*wpt) += (*pt);	g_pGraphicsI->SetWorldPosition(wpt);
+				g_pGraphicsI->SetWorldPosition(&pt);
 				g_pSecondMapGroupI->Draw(g_pGraphicsI);
-				(*wpt) -= (*pt);	g_pGraphicsI->SetWorldPosition(wpt);
-			}
+				g_pGraphicsI->SetWorldPosition(&wpt);
 
+				g_pGraphicsI->FlushFilters(true);	
+			}
+			
 			bool bFilters = g_pGraphicsI->SetFilter(EnableFilters, (void*)false);
 			// Draw information about the frame rate and other things:
 			g_pGraphicsI->DrawText(CPoint(10,10), COLOR_ARGB(255,255,255,255), "%4.1f fps", fps);

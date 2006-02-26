@@ -602,6 +602,7 @@ bool CDrawableContext::KillChild(CDrawableContext *pDrawableContext_)
 
 	// Search for the requested child and if found, kill it (its own children get killed too)
 	if(PopChild(pDrawableContext_)) {
+		CEntityData::RemoveContext(pDrawableContext_->GetName());
 		delete pDrawableContext_;
 		return true;
 	}

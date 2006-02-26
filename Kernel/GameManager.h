@@ -95,15 +95,30 @@ class CGameManager :
 	static IGraphics **ms_ppGraphicsI;
 
 protected:
+	bool m_bPlaying;
+
 	//Active group
 	CMapGroup **m_ppActiveMapGroup;
 	
 	//Wipe data
 	CMapGroup *m_pWipeTarget;
-	CPoint *m_pWipeOffset;
+	
+	//This offsets the group without moving it.
+	CPoint m_StaticWipeOffset;
+
+	//We need two offsets because we may have to move in a ¨|_ motion to align with the entity.
+	CPoint m_WipeOffset;	
+	CPoint m_WipeOffset2;
+	
+
 	double m_fWipeOffX;
 	double m_fWipeOffY;
+	double m_fWipeOff2X;
+	double m_fWipeOff2Y;
+	int m_wipeSpeed;
 	bool m_bWiping;
+	bool m_bWiping2;
+	int m_wipeDir;
 
 	CWorld m_World;
 
@@ -147,7 +162,7 @@ public:
 	
 	void TheSecretsOfDebugging(); //The secret function! =o
 
-	CDrawableContext* CreateEntity(LPCSTR szName, LPCSTR szScript);
+	const CBString CreateEntity(LPCSTR szName, LPCSTR szScript);
 	
 	//These two accept input from mouse and chars
 	void MapInput(int chrCode, LPARAM keydata, bool down);
@@ -176,7 +191,8 @@ public:
 	void SetupKeyMap(int KeyMap[MAXKEYS]);
 
 	inline bool LoadStart(CMapGroup **ppMapGroup){
-	
+		m_bPlaying = true;
+
 		m_ppActiveMapGroup = ppMapGroup; //This position auto-updates in Open Legends thanks to this connection. =)
 		
 		m_World.m_StartPosition.GetMapGroup(m_ppActiveMapGroup);
@@ -189,15 +205,15 @@ public:
 	}
 
 	CMapGroup* Wiping();
+	void BeginWipe(CDrawableContext *entity, int edgex, int edgey);
 	inline CPoint* GetWipeOffset(){
-		return new CPoint(-m_pWipeOffset->x + (int)m_fWipeOffX, -m_pWipeOffset->y + (int)m_fWipeOffY);
-			//No check is really necessary, it'll only be used when a wipe is running.
+		return new CPoint((int)m_fWipeOffX + (int)m_fWipeOff2X - m_StaticWipeOffset.x, (int)m_fWipeOffY + (int)m_fWipeOff2Y - m_StaticWipeOffset.y);
 	}
 	inline CPoint* GetCurrentWipeOffset(){
-		return new CPoint((int)m_fWipeOffX, (int)m_fWipeOffY);
+		return new CPoint((int)m_fWipeOffX + (int)m_fWipeOff2X, (int)m_fWipeOffY + (int)m_fWipeOff2Y);
 		
 	}
-	bool Wipe(int dir, LPCSTR szName, int x, int y);
+	bool Wipe(int dir, CDrawableContext *context, int x, int y);
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
@@ -208,7 +224,7 @@ public:
 
 		CPoint Point(x,y);
 
-		m_World.m_CurrentPosition.SetPosition(Point);
+		m_World.m_CurrentPosition.SetPosition(*m_ppActiveMapGroup, Point);
 
 		CRect rcVisible, rcWorld;
 		(*ms_ppGraphicsI)->GetVisibleRect(&rcVisible);
@@ -221,6 +237,15 @@ public:
 		else if(Point.y > rcWorld.bottom-rcVisible.Height()) Point.y = rcWorld.bottom-rcVisible.Height();
 
 		(*ms_ppGraphicsI)->SetWorldPosition(&Point);
+	}
+	inline CPoint *GetWorldCo(){
+		ASSERT(ms_ppGraphicsI);
+		ASSERT(*ms_ppGraphicsI);
+		if(!(*ms_ppGraphicsI)) return NULL;
+
+		CPoint *pt = new CPoint;
+		m_World.m_CurrentPosition.GetPosition(*pt);
+		return pt;
 	}
 	inline static bool SetFilter(GpxFilters eFilter, void *vParam) {
 		ASSERT(ms_ppGraphicsI);
@@ -258,6 +283,7 @@ public:
 	inline CMapGroup* GetActiveMapGroup(){
 		return *m_ppActiveMapGroup;
 	}
+	
 	void QueueFull();
 	bool QueueAccepting();
 
@@ -267,6 +293,10 @@ public:
 	}
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
+
+	inline bool isPlaying(){
+		return m_bPlaying;
+	}
 
 	void SetProjectName(LPCSTR szName);
 	LPCSTR GetProjectName() const;

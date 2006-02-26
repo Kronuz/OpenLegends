@@ -32,6 +32,7 @@
 
 #include "stdafx.h"
 #include "ScriptManager.h"
+#include "SpriteManager.h"
 
 #include "Script.h"
 #include "Debugger.h"
@@ -157,7 +158,7 @@ DWORD WINAPI CScript::HandlerThread(LPVOID lpParameter){
 			Threads[i].Ready(); //Do a ready-check to find locked threads.
 			//The previous engine stored the execution time of each object and printed it, we don't want that, it's slow^2.
 		}
-		Sleep(10);	//Do the ready checks every 100ms to find any locked threads.
+		Sleep(10);	//Do the ready checks every 10ms to find any locked threads.
 	}
 	return 0;
 }
@@ -209,6 +210,8 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 			if(THIS->m_hScript->m_pDebug) THIS->m_hScript->m_pDebug->m_dwDebugTime = 0;
 		LeaveCriticalSection(&THIS->XCritical);
 		
+		Scripts::GetSpriteContextByHandle(THIS->m_hScript)->m_pEntityData->UpdateVariables();
+
 		// Run the script here.
 		cell ret = 0;
 		//Store the pointer to the script in the AMX-data.
