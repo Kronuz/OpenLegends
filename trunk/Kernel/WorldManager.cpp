@@ -704,7 +704,6 @@ CWorld::CWorld(LPCSTR szName) :
 	m_szMapSize(DEF_MAPSIZEX, DEF_MAPSIZEY),
 	m_szWorldSize(DEF_MAXMAPSX, DEF_MAXMAPSY),
 	m_StartPosition(this), // Warning C4355: CMapPos constructor isn't calling any members of 'this')
-	m_CurrentPosition(this),
 	m_bLegacyQuest(false)
 {
 	m_ArchiveIn = new CWorldTxtArch(this);

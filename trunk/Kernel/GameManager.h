@@ -50,6 +50,7 @@
 #include "SpriteManager.h"
 #include "SoundManager.h"
 #include "WorldManager.h"
+#include "Script.h"
 
 #include <map>
 #include <math.h>
@@ -176,13 +177,13 @@ public:
 		return m_TranslatedInput[Key];
 	}
 	
-	inline CPoint* GetMousePos(){
+	inline CPoint GetMousePos(){
 		ASSERT(ms_ppGraphicsI);
 		ASSERT(*ms_ppGraphicsI);
 		if(!(*ms_ppGraphicsI)) return NULL;
 		CPoint pt;
 		(*ms_ppGraphicsI)->GetWorldPosition(&pt);
-		return new CPoint(m_ActiveMouse[0]+pt.x, m_ActiveMouse[1]+pt.y);
+		return CPoint(m_ActiveMouse[0]+pt.x, m_ActiveMouse[1]+pt.y);
 	}
 	inline int GetMouseKey(){
 		return m_ActiveMouse[2];
@@ -197,38 +198,44 @@ public:
 		
 		m_World.m_StartPosition.GetMapGroup(m_ppActiveMapGroup);
 		CPoint StartPos; m_World.m_StartPosition.GetPosition(StartPos);
-
-		m_World.m_CurrentPosition.SetPosition(*m_ppActiveMapGroup,StartPos, 3, 2);
 		if(!(*m_ppActiveMapGroup)->Load()) return false;
+		Scripts::InitializeSpecialEntities((*m_ppActiveMapGroup)->GetName());
+		
 
 		return true;
 	}
 
 	CMapGroup* Wiping();
 	void BeginWipe(CDrawableContext *entity, int edgex, int edgey);
-	inline CPoint* GetWipeOffset(){
-		return new CPoint((int)m_fWipeOffX + (int)m_fWipeOff2X - m_StaticWipeOffset.x, (int)m_fWipeOffY + (int)m_fWipeOff2Y - m_StaticWipeOffset.y);
+	inline CPoint GetWipeOffset(){
+		return CPoint((int)m_fWipeOffX + (int)m_fWipeOff2X - m_StaticWipeOffset.x, (int)m_fWipeOffY + (int)m_fWipeOff2Y - m_StaticWipeOffset.y);
 	}
-	inline CPoint* GetCurrentWipeOffset(){
-		return new CPoint((int)m_fWipeOffX + (int)m_fWipeOff2X, (int)m_fWipeOffY + (int)m_fWipeOff2Y);
+	inline CPoint GetCurrentWipeOffset(){
+		return CPoint((int)m_fWipeOffX + (int)m_fWipeOff2X, (int)m_fWipeOffY + (int)m_fWipeOff2Y);
 		
 	}
 	bool Wipe(int dir, CDrawableContext *context, int x, int y);
 	inline static int GetPauseLevel() { return 0; } // ACA
 	inline static float GetFPSDelta() { return ms_fDelta; }
 	inline static DWORD GetLastTick() { return ms_dwLastTick; }
-	inline void UpdateWorldCo(int x, int y) {
+	inline void UpdateWorldCo(int x, int y, LPCSTR szGroup = "") {
 		ASSERT(ms_ppGraphicsI);
 		ASSERT(*ms_ppGraphicsI);
 		if(!(*ms_ppGraphicsI)) return;
 
 		CPoint Point(x,y);
 
-		m_World.m_CurrentPosition.SetPosition(*m_ppActiveMapGroup, Point);
+		//Change group if necessary.
+		CMapGroup *pGroup = NULL;
+		if(strlen(szGroup) > 0 && !strcmp(szGroup, (*m_ppActiveMapGroup)->GetName()) && (pGroup = FindMapGroup(szGroup)) != NULL) *m_ppActiveMapGroup = pGroup;
 
 		CRect rcVisible, rcWorld;
 		(*ms_ppGraphicsI)->GetVisibleRect(&rcVisible);
 		(*ms_ppGraphicsI)->GetWorldRect(&rcWorld);
+		
+		CEntityData *data = Scripts::GetRelevantEntityData(NULL, (cell)SPECIALENTITYWORLD, true);
+		data->SetValue("_x", x, false);
+		data->SetValue("_y", y, false);
 
 		Point.Offset(-rcVisible.Width()/2, -rcVisible.Height()/2);
 		if(Point.x < 0) Point.x = 0;
@@ -238,13 +245,15 @@ public:
 
 		(*ms_ppGraphicsI)->SetWorldPosition(&Point);
 	}
-	inline CPoint *GetWorldCo(){
+	inline CPoint GetWorldCo(){
 		ASSERT(ms_ppGraphicsI);
 		ASSERT(*ms_ppGraphicsI);
 		if(!(*ms_ppGraphicsI)) return NULL;
 
-		CPoint *pt = new CPoint;
-		m_World.m_CurrentPosition.GetPosition(*pt);
+		CPoint pt;
+		CEntityData *data = Scripts::GetRelevantEntityData(NULL, (cell)SPECIALENTITYWORLD, true);
+		pt.x = data->GetValue("_x");
+		pt.y = data->GetValue("_y");
 		return pt;
 	}
 	inline static bool SetFilter(GpxFilters eFilter, void *vParam) {
@@ -288,9 +297,6 @@ public:
 	bool QueueAccepting();
 
 	void FlushSprites();
-	inline void ClearSpriteBuffer(){
-		m_SpriteBuffer.clear();
-	}
 
 	virtual bool Configure(IGraphics **ppGraphicsI, bool bDebug);
 

@@ -92,7 +92,275 @@ CBackground::CBackground(LPCSTR szName) :
 {
 	m_SptType = tBackground;
 }
+/*
+This is the data we will need to store a quest in motion.
 
+Serialized storage:
+
+(NON CONSTANT WORLD DATA, ex. Current Location ... )
+
+(EACH MAPGROUP)[
+	INT MAPGROUP ID SIZE (4 BYTE)	// This is the ID given to the mapgroup on creation/naming
+	MAPGROUP ID DATA
+	
+	INT CONTEXT COUNT (4 BYTE)	// Contains the context count.
+
+	(EACH CONTEXT)[
+		INT CONTEXT ID (8 BYTE)		// We will need a unique ID for each context
+									// This ID is NOT the context name.
+		INT PARENT ID (8 BYTE)		// ID of the parent may also be a necessity in certain cases.
+		(EACH VECTOR (6 Vectors))[	// All other data can be stored in the vectors.
+			INT VECTOR SIZE
+			(EACH VECTOR OBJECT)[
+				INT OBJECT 1 SIZE (4 BYTE)
+				OBJECT 1 DATA
+				INT OBJECT 2 SIZE (4 BYTE)
+				OBJECT 2 DATA
+			]
+		]
+	]
+]
+*//*
+int main()
+{
+	char a[] = "Moo!";
+	byte b = *(byte *)(malloc(sizeof(a)));
+	for(int i=0; i < sizeof(a); i++){
+		(&b)[i] = ((byte *)(&a))[i];
+	}
+	cout << a << endl;
+	for(int i=0; i < sizeof(b); i++){
+		a[i] = ((char *)(&b))[i];
+	}
+	cout << a << endl;
+	std::cin >> a;
+	return 0;
+}
+
+*//*
+
+int main()
+{
+	int a = 25522;
+	byte b = *(byte *)(malloc(sizeof(a)));
+	for(int i=0; i <= sizeof(a); i++){
+		(&b)[i] = ((byte *)(&a))[i];
+	}
+	cout << a << endl;
+	a = ((int *)(&b))[0];
+	cout << a << endl;
+	std::cin >> a;
+	return 0;
+}
+
+*/
+bool CEntityData::SerializeEntityData(BYTE **b, int *size){
+	int vvSize = 0;
+	std::vector<vvPair>::iterator v1 = m_vvStorage.begin();
+	while(v1 != m_vvStorage.end()){
+		vvSize += sizeof((*v1).first) + sizeof((*v1).second) + sizeof(int)*2;
+		v1++;
+	}
+	//vvSize += sizeof(int);
+	BYTE *vvByteArray = (BYTE *)malloc(vvSize);
+	//ToByteArray(vvByteArray, vvSize - sizeof(int));
+	vvSize = 0;
+	v1 = m_vvStorage.begin();
+	while(v1 != m_vvStorage.end()){
+
+		int objSize = sizeof((*v1).first);
+		ToByteArray(vvByteArray+vvSize, objSize);
+		vvSize += sizeof(int);
+		ToByteArray(vvByteArray+vvSize, (*v1).first);
+		vvSize += sizeof((*v1).first);
+
+		objSize = sizeof((*v1).second);
+		ToByteArray(vvByteArray+vvSize, objSize);
+		vvSize += sizeof(int);
+		ToByteArray(vvByteArray+vvSize, (*v1).second);
+		vvSize += sizeof((*v1).second);
+
+		v1++;
+	}
+	
+	int svSize = 0;
+	std::vector<svPair>::iterator v2 = m_svStorage.begin();
+	while(v2 != m_svStorage.end()){
+		svSize += strlen((*v2).first) + sizeof((*v2).second) + sizeof(int)*2;
+		v2++;
+	}
+	//svSize += sizeof(int);
+	BYTE *svByteArray = (BYTE *)malloc(svSize);
+	//ToByteArray(svByteArray, svSize - sizeof(int));
+	svSize = 0;
+	v2 = m_svStorage.begin();
+	while(v2 != m_svStorage.end()){
+
+		int objSize = strlen((*v2).first);
+		ToByteArray(svByteArray + svSize, objSize);
+		svSize += sizeof(int);
+		ToByteArray(svByteArray + svSize, (*v2).first);
+		svSize += strlen((*v2).first);
+
+		objSize = sizeof((*v2).second);
+		ToByteArray(svByteArray + svSize, objSize);
+		svSize += sizeof(int);
+		ToByteArray(svByteArray + svSize, (*v2).second);	
+		svSize += sizeof((*v2).second);
+		
+		v2++;
+	}
+
+	int vsSize = 0;
+	std::vector<vsPair>::iterator v3 = m_vsStorage.begin();
+	while(v3 != m_vsStorage.end()){
+		vsSize += sizeof((*v3).first) + strlen((*v3).second) + sizeof(int)*2;
+		v3++;
+	}
+	//vsSize+=sizeof(int);
+	BYTE *vsByteArray = (BYTE *)malloc(vsSize);
+	//ToByteArray(vsByteArray, vsSize - sizeof(int));
+	vsSize = 0;
+	v3 = m_vsStorage.begin();
+	while(v3 != m_vsStorage.end()){
+		int objSize = sizeof((*v3).first);
+		ToByteArray(vsByteArray + vsSize, objSize);
+		svSize += sizeof(int);
+		ToByteArray(vsByteArray + vsSize, (*v3).first);
+		svSize += sizeof((*v3).first);
+
+		objSize = strlen((*v3).second);
+		ToByteArray(vsByteArray + vsSize, objSize);
+		svSize += sizeof(int);
+		ToByteArray(vsByteArray + vsSize, (*v3).second);	
+		svSize += strlen((*v3).second);
+
+		 v3++;
+	}
+
+	int ssSize = 0;
+	std::vector<ssPair>::iterator v4 = m_ssStorage.begin();
+	while(v4 != m_ssStorage.end()){
+		ssSize += strlen((*v4).first) + strlen((*v4).second) + sizeof(int)*2;
+		v4++;
+	}
+	//ssSize+=sizeof(int);
+	BYTE *ssByteArray = (BYTE *)malloc(ssSize);
+	//ToByteArray(ssByteArray, ssSize - sizeof(int));
+	ssSize = 0;
+	v4 = m_ssStorage.begin();
+	while(v4 != m_ssStorage.end()){
+		int objSize = strlen((*v4).first);
+		ToByteArray(ssByteArray + ssSize, objSize);
+		ssSize += sizeof(int);
+		ToByteArray(ssByteArray + ssSize, (*v4).first);
+		ssSize += strlen((*v4).first);
+
+		objSize = strlen((*v4).second);
+		ToByteArray(ssByteArray + ssSize, objSize);
+		ssSize += sizeof(int);
+		ToByteArray(ssByteArray + ssSize, (*v4).second);	
+		ssSize += strlen((*v4).second);
+
+		v4++;
+	}
+
+	int vfSize = 0;
+	std::vector<vfPair>::iterator v5 = m_vfStorage.begin();
+	while(v5 != m_vfStorage.end()){
+		vfSize += sizeof((*v5).first) + sizeof((*v5).second) + sizeof(int)*2;
+	}
+	//vfSize += sizeof(int);
+	BYTE *vfByteArray = (BYTE *)malloc(vfSize);
+	//ToByteArray(vfByteArray, vfSize - sizeof(int));
+	vfSize = 0;
+	v5 = m_vfStorage.begin();
+	while(v5 != m_vfStorage.end()){
+		int objSize = sizeof((*v5).first);
+		ToByteArray(vfByteArray + vfSize, objSize);
+		vfSize += sizeof(int);
+		ToByteArray(vfByteArray + vfSize, (*v5).first);
+		vfSize += sizeof(int);
+
+		objSize = sizeof((*v5).second);
+		ToByteArray(vfByteArray + vfSize, objSize);
+		vfSize += sizeof(int);
+		ToByteArray(vfByteArray + vfSize, (*v5).second);
+
+		v5++;
+	}
+
+	int sfSize = 0;
+	std::vector<sfPair>::iterator v6 = m_sfStorage.begin();
+	while(v6 != m_sfStorage.end()){
+		sfSize += strlen((*v6).first) + sizeof((*v6).second) + sizeof(int)*2;
+	}
+	//sfSize += sizeof(int);
+	BYTE *sfByteArray = (BYTE *)malloc(sfSize);
+	//ToByteArray(sfByteArray, sfSize - sizeof(int));
+	sfSize = 0;
+	v6 = m_sfStorage.begin();
+	while(v6 != m_sfStorage.end()){
+		int objSize = strlen((*v6).first);
+		ToByteArray(sfByteArray + sfSize, objSize);
+		sfSize += sizeof(int);
+		ToByteArray(sfByteArray + sfSize, (*v6).first);
+		sfSize += strlen((*v6).first);
+
+		objSize = sizeof((*v6).second);
+		ToByteArray(sfByteArray + sfSize, objSize);
+		sfSize += sizeof(int);
+		ToByteArray(sfByteArray + sfSize, (*v6).second);
+
+		v6++;
+	}
+	*size = vvSize + svSize + 
+		   vsSize + ssSize + 
+		   vfSize + sfSize + 
+		   sizeof(int)*6;
+	(*b) = (BYTE *)malloc(*size);
+	int pt = 0;
+
+	ToByteArray(*b + pt, vvSize);
+	pt += sizeof(int);
+	(*b)[pt] = *vvByteArray;
+	pt += vvSize;
+	ToByteArray(*b + pt, svSize);
+	pt += sizeof(int);
+	(*b)[pt] = *svByteArray;
+	pt += svSize;
+	ToByteArray(*b + pt, vsSize);
+	pt += sizeof(int);
+	(*b)[pt] = *vsByteArray;
+	pt += vsSize;
+	ToByteArray(*b + pt, ssSize);
+	pt += sizeof(int);
+	(*b)[pt] = *ssByteArray;
+	pt += ssSize;
+	ToByteArray(*b + pt, vfSize);
+	pt += sizeof(int);
+	(*b)[pt] = *vfByteArray;
+	pt += vfSize;
+	ToByteArray(*b + pt, sfSize);
+	pt += sizeof(int);
+	(*b)[pt] = *sfByteArray;
+	pt += sfSize;
+	
+	free( vvByteArray);
+	free( svByteArray);
+	free( vsByteArray);
+	free( ssByteArray);
+	free( vfByteArray);
+	free( sfByteArray);
+
+	free( *b);
+
+	return true;
+}
+
+bool CEntityData::DeSerializeEntityData(BYTE *b){
+	return false;
+}
 void CEntityData::UpdateVariables(){
 	CPoint pos;
 	if(strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){	//We won't do the same checks for this entity.
@@ -109,7 +377,7 @@ void CEntityData::UpdateSpecialVariable(LPCSTR Id, int Value, bool in){
 			pos.x = Value;
 			m_pParent->MoveTo(pos);
 			if(!strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){
-				CPoint *pt = CGameManager::Instance()->GetWorldCo();
+				//CPoint pt = CGameManager::Instance()->GetWorldCo();
 				CGameManager::Instance()->UpdateWorldCo(pos.x, pos.y);
 			}
 		} else if (!strcmp("_y", Id)){
@@ -118,18 +386,10 @@ void CEntityData::UpdateSpecialVariable(LPCSTR Id, int Value, bool in){
 			pos.y = Value;
 			m_pParent->MoveTo(pos);
 			if(!strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){
-				CPoint *pt = CGameManager::Instance()->GetWorldCo();
+				//CPoint pt = CGameManager::Instance()->GetWorldCo();
 				CGameManager::Instance()->UpdateWorldCo(pos.x, pos.y);
 			}
-		}
-		
-	} else {
-		if(!strcmp(m_pParent->GetName(), SPECIALENTITYWORLD)){
-			CPoint *pt = CGameManager::Instance()->GetWorldCo();
-			if(!pt) return;
-			SetValue("_x", pt->x);
-			SetValue("_y", pt->y);
-		}
+		}	
 	}
 }
 void CEntityData::UpdateSpecialVariable(LPCSTR Id, LPCSTR Text, bool in){
@@ -142,8 +402,13 @@ void CEntityData::UpdateSpecialVariable(LPCSTR Id, bool Set, bool in){
 CDrawableContext* CEntityData::FindContext(LPCSTR szName){
 	std::vector<contextPair>::iterator iter = ms_ContextIndex.begin();
 	for(;iter < ms_ContextIndex.end(); iter++){
-		if(!(*iter).first.Compare(szName)){
-			return (*iter).second;
+		try{
+			if(!(*iter).first.Compare(szName)) 
+				return (*iter).second;
+		} catch (...){
+			(*iter).first = CBString("");
+			(*iter).second = NULL;
+			ms_ContextIndex.erase(iter);
 		}
 	}
 	return NULL;	//Not found.
@@ -221,9 +486,9 @@ bool CEntityData::SetValue(int Id, int Value){
 	m_vvStorage.push_back(obj);
 	return false;
 }
-bool CEntityData::SetValue(LPCSTR Id, int Value){
+bool CEntityData::SetValue(LPCSTR Id, int Value, bool update){
 	std::vector<svPair>::iterator iter = m_svStorage.begin();
-	UpdateSpecialVariable(Id, Value);
+	if(update) UpdateSpecialVariable(Id, Value);
 	for(;iter < m_svStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)){
 			(*iter).second = Value;
@@ -252,9 +517,9 @@ bool CEntityData::SetString(int Id, LPCSTR Text){
 	m_vsStorage.push_back(obj);
 	return false;
 }
-bool CEntityData::SetString(LPCSTR Id, LPCSTR Text){
+bool CEntityData::SetString(LPCSTR Id, LPCSTR Text, bool update){
 	std::vector<ssPair>::iterator iter = m_ssStorage.begin();
-	UpdateSpecialVariable(Id, Text);
+	if(update) UpdateSpecialVariable(Id, Text);
 	for(;iter < m_ssStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)){
 			(*iter).second = CBString(Text);
@@ -283,9 +548,9 @@ bool CEntityData::SetFlag(int Id, bool Set){
 	m_vfStorage.push_back(obj);
 	return false;
 }
-bool CEntityData::SetFlag(LPCSTR Id, bool Set){
+bool CEntityData::SetFlag(LPCSTR Id, bool Set, bool update){
 	std::vector<sfPair>::iterator iter = m_sfStorage.begin();
-	UpdateSpecialVariable(Id, Set);
+	if(update) UpdateSpecialVariable(Id, Set);
 	for(;iter < m_sfStorage.end(); iter++){
 		if(!(*iter).first.Compare(Id)){
 			(*iter).second = Set;
@@ -510,10 +775,10 @@ CSpriteSheet::~CSpriteSheet()
 
 	/*
 	for_each(m_Sprites.begin(), m_Sprites.end(), ptr_delete());
-	/*/
+	*/
 	mapSprite::iterator Iterator = m_Sprites.begin();
 	while(Iterator != m_Sprites.end()) {
-		delete Iterator->second;
+		delete (*Iterator).second;
 		Iterator++;
 	}
 	/**/
@@ -531,7 +796,7 @@ int CSpriteSheet::ForEachSprite(SIMPLEPROC ForEach, LPARAM lParam)
 	BuildCatalog();
 
 	vectorSprite::iterator Iterator = m_Catalog.begin();
-	while(Iterator != m_Catalog.end()) {
+	while(Iterator < m_Catalog.end()) {
 		ASSERT(*Iterator);
 		int aux = ForEach((LPVOID)(*Iterator), lParam);
 		if(aux < 0) return aux-cnt;
@@ -874,7 +1139,7 @@ bool CSpriteContext::SetProperties(SPropertyList &PL)
 }
 
 CSpriteContext::~CSpriteContext(){
-	delete m_pEntityData;
+	if(m_pEntityData) delete m_pEntityData;
 }
 
 CSpriteContext::CSpriteContext(LPCSTR szName) : 
@@ -883,20 +1148,8 @@ CSpriteContext::CSpriteContext(LPCSTR szName) :
 	m_eYChain(relative)
 {
 	DestroyStateCallback(CSpriteContext::DestroyCheckpoint, (LPARAM)this);
-	
-	
-	if(CGameManager::Instance()->isPlaying()){
-		m_pEntityData = new CEntityData;
-		
-		if(strlen(szName) < 1){
-			char szName[256];
-			sprintf(szName, "%p", (DWORD)this);
-			SetName(szName);
-			CEntityData::InsertContext(szName, static_cast<CDrawableContext *>(this));	
-		} else CEntityData::InsertContext(szName, static_cast<CDrawableContext *>(this));	
-		m_pEntityData->m_pParent = this;
-	}
-	
+
+	m_pEntityData = NULL;
 
 	memset(m_nFrame, -1, sizeof(m_nFrame));
 	Mirror(false);

@@ -258,6 +258,8 @@ protected:
 	virtual void WriteState(StateData *data);
 	static int CALLBACK DestroyCheckpoint(LPVOID Interface, LPARAM lParam);
 
+
+	void ReferToEntityData(CDrawableObject *pDrawableObj);
 public:
 
 	// These aren't needed to be saved as states:
@@ -373,7 +375,7 @@ public:
 	bool PopChild(CDrawableContext *pDrawableContext_);
 	bool PopChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
 
-	bool KillChild(CDrawableContext *pDrawableContext_);
+	bool KillChild(CDrawableContext *pDrawableContext_, bool doPop = true);
 	bool KillChildEx(CDrawableContext *pDrawableContext_); // extensive search of the object in children
 
 	bool DeleteChild(CDrawableContext *pDrawableContext_);
@@ -897,7 +899,8 @@ inline CDrawableContext* CDrawableContext::GetChild(LPCSTR szName) const
 
 inline void CDrawableContext::SetDrawableObj(CDrawableObject *pDrawableObj) 
 { 
-	m_pDrawableObj = pDrawableObj; 
+	m_pDrawableObj = pDrawableObj;
+	ReferToEntityData(pDrawableObj);
 }
 inline CDrawableObject* CDrawableContext::GetDrawableObj() const
 { 

@@ -197,7 +197,7 @@ DWORD WINAPI CScriptThread::ExecScript(LPVOID lpParameter)
 	while(bRun) {
 		//When we're out of scripts we should create a new queue and wait for it to fill up.
 		while(CScript::ScriptQueue.begin() == CScript::ScriptQueue.end() || CScript::QueueAccepting()){
-			if(!CScript::QueueAccepting()) CScript::NewQueue(); else Sleep(1);
+			if(!CScript::QueueAccepting()) CScript::NewQueue(); else Sleep(5);
 		}
 		EnterCriticalSection(&CScript::XCritical);					//Critical section, get and erase script from vector.									
 			THIS->m_hScript = *CScript::ScriptQueue.begin();
@@ -298,6 +298,7 @@ bool CScriptThread::CreateThread()
 		m_bThreadUp = false;
 		DWORD dwThreadID = 0;
 		m_hThread = ::CreateThread(NULL, 0, CScriptThread::ExecScript, (void*)this, 0, &dwThreadID);
+		//::SetThreadPriority(m_hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 	}
 	return (m_hThread != NULL);
 }

@@ -39,6 +39,7 @@
 
 #include "stdafx.h"
 #include "DrawManager.h"
+#include "GameManager.h"
 
 #include <IGame.h>
 
@@ -437,15 +438,18 @@ inline bool CDrawableContext::CleanTempContext::operator()(CDrawableContext *pDr
 	// Start cleaning:
 	// I had to rewrite this feature because for_each running forward creates problems when you remove stuff in the middle of it.
 	std::vector<CDrawableContext *>::iterator iter = pDrawableContext->m_Children.end();
-	while(iter != pDrawableContext->m_Children.begin()){
+	while(iter > pDrawableContext->m_Children.begin()){
 		iter--;
-		CleanTempContext(pDrawableContext).operator()(*iter);
+		if(!CleanTempContext(pDrawableContext).operator()(*iter))
+			pDrawableContext->m_Children.erase(iter);
 	}
 
 	if(pDrawableContext->isTemp() || pDrawableContext->isDeleted()) {
 		CDrawableContext *pParent = pDrawableContext->m_pParent;
+
 		//FIXME: what about objects in groups, they should be poped from the supercontext as well??
-		VERIFY(pParent && pParent->KillChild(pDrawableContext));
+		VERIFY(pParent && pParent->KillChild(pDrawableContext, false));
+		return false;
 	}
 	return true;
 }
@@ -570,8 +574,8 @@ bool CDrawableContext::PopChild(CDrawableContext *pDrawableContext_)
 		find(m_Children.begin(), m_Children.end(), pDrawableContext_);
 	if(Iterator != m_Children.end()) {
 		ASSERT((*Iterator) == pDrawableContext_);
-		m_bValidMap = false; //FIXME: this is probably not needed
-		m_eSorted[(*Iterator)->m_nSubLayer] = noOrder; //FIXME: this is probably not needed
+		//m_bValidMap = false; //FIXME: this is probably not needed
+		//m_eSorted[(*Iterator)->m_nSubLayer] = noOrder; //FIXME: this is probably not needed
 		(*Iterator)->m_pParent = NULL; // this will be an orphan child.
 		VERIFY(m_Children.erase(Iterator) != m_Children.end());
 		return true;
@@ -596,13 +600,13 @@ bool CDrawableContext::PopChildEx(CDrawableContext *pDrawableContext_)
 	return false;
 
 }
-bool CDrawableContext::KillChild(CDrawableContext *pDrawableContext_)
+bool CDrawableContext::KillChild(CDrawableContext *pDrawableContext_, bool doPop)
 {
 	ASSERT(pDrawableContext_);
 
 	// Search for the requested child and if found, kill it (its own children get killed too)
-	if(PopChild(pDrawableContext_)) {
-		CEntityData::RemoveContext(pDrawableContext_->GetName());
+	if(doPop?PopChild(pDrawableContext_):1) {
+		if( static_cast<CSpriteContext *>(pDrawableContext_)->m_pEntityData != NULL )CEntityData::RemoveContext(pDrawableContext_->GetName());
 		delete pDrawableContext_;
 		return true;
 	}
@@ -861,5 +865,22 @@ void CDrawableContext::WasSaved()
 			(*Iterator)->WasSaved();
 		}
 		Iterator++;
+	}
+}
+
+void CDrawableContext::ReferToEntityData(CDrawableObject *pDrawableObj){
+	if((static_cast<CSprite *>(pDrawableObj))->GetSpriteType() == tEntity){
+		CSpriteContext *spritecontext = static_cast<CSpriteContext *>(this);
+		if(CGameManager::Instance()->isPlaying()){
+			if(!spritecontext->m_pEntityData) spritecontext->m_pEntityData = new CEntityData;
+			CBString szName = GetName();
+			if(strlen(szName) < 1){
+				char szName[256];
+				sprintf(szName, "%p", (DWORD)this);
+				SetName(szName);
+				CEntityData::InsertContext(szName, this);	
+			} else CEntityData::InsertContext(szName, this);	
+			spritecontext->m_pEntityData->m_pParent = spritecontext;
+		}
 	}
 }

@@ -426,8 +426,8 @@ interface IGame
 
 	virtual bool LoadStart(CMapGroup **ppMapGroup) = 0; //!< Store the active group for some special-case functions.
 	virtual CMapGroup* Wiping() = 0;
-	virtual CPoint* GetWipeOffset() = 0;	//!< Return the current wipe offset for the second map group.
-	virtual CPoint* GetCurrentWipeOffset() = 0;	//!< Returns the wipe offset for the main group. 
+	virtual CPoint GetWipeOffset() = 0;	//!< Return the current wipe offset for the second map group.
+	virtual CPoint GetCurrentWipeOffset() = 0;	//!< Returns the wipe offset for the main group. 
 
 	virtual bool LoadProject(LPCSTR szFile) = 0;
 	virtual bool SaveProject(LPCSTR szFile) = 0;

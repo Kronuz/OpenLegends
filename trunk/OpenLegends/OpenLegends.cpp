@@ -501,6 +501,7 @@ HRESULT LoadGame(LPCSTR szQuest)
 	keyMap[KEY_LEFT]	= VK_LEFT;
 	keyMap[KEY_UP]		= VK_UP;
 	keyMap[KEY_DOWN]	= VK_DOWN;
+	keyMap[KEY_ACT1]    = 0x41;
 
 	CProjectFactory::Interface(g_hWnd)->SetupKeyMap(keyMap);
 
@@ -558,7 +559,7 @@ void Render()
 	
 	IGame *pGameI = CProjectFactory::Interface(g_hWnd);
 	// Update timings and stuff for the animations
-	float fps = pGameI->UpdateFPS(60);
+	float fps = pGameI->UpdateFPS(200);
 	DWORD dwAux = 0;
 
 
@@ -591,7 +592,7 @@ void Render()
 		if(g_pGraphicsI->BeginPaint()) {
 			// Draw the first map:
 			if(g_pSecondMapGroupI != NULL){
-				CPoint pt = *(pGameI->GetCurrentWipeOffset());	
+				CPoint pt = (pGameI->GetCurrentWipeOffset());	
 				pt += wpt; g_pGraphicsI->SetWorldPosition(&pt);
 				g_pMapGroupI->Draw(g_pGraphicsI);
 				g_pGraphicsI->SetWorldPosition(&wpt);
@@ -610,7 +611,7 @@ void Render()
 				g_pGraphicsI->SetClearColor(g_pSecondMapGroupI->GetBkColor());
 
 				//g_pGraphicsI->SetFilter(); //????
-				CPoint pt = *(pGameI->GetWipeOffset());
+				CPoint pt = (pGameI->GetWipeOffset());
 				
 				g_pGraphicsI->SetWorldPosition(&pt);
 				g_pSecondMapGroupI->Draw(g_pGraphicsI);

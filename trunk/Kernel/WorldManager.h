@@ -323,11 +323,12 @@ class CWorld :
 public:
 	bool _Close(bool bForce);
 
+	//This will need to be saved
 	CMapPos m_StartPosition;
-	CMapPos m_CurrentPosition;
 	CSize m_szWorldSize;
 	CSize m_szMapSize;
 	bool m_bLegacyQuest;
+	//--------------------------
 
 	CWorld(LPCSTR szName);
 	~CWorld();
