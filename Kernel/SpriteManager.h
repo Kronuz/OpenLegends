@@ -208,8 +208,8 @@ public:
 	static CDrawableContext* FindContext(LPCSTR szName);
 	static void InsertContext(LPCSTR szName, CDrawableContext *context);
 	static void RemoveContext(LPCSTR szName);
-
 protected:
+
 	//Data-storage types:
 	//Valuebased items
 	typedef std::pair<int,		int>		vvPair;
@@ -229,7 +229,24 @@ protected:
 	std::vector<vfPair>	m_vfStorage;	//Value-based flag storage. 
 	std::vector<sfPair>	m_sfStorage;	//String-based flag storage.
 
-
+protected:
+	inline void ToByteArray(BYTE *b, int num){
+		for(int i=0; i < sizeof(int); i++) b[i] = ((BYTE *)(&num))[i];
+	}
+	inline void ToByteArray(BYTE *b, CBString string){
+		for(unsigned int i=0; i < strlen(string); i++) b[i] = ((const BYTE *)((LPCSTR)string))[i];
+	}
+	inline void FromByteArray(BYTE *b, int *num){
+		//Return an integer using the following 4 bytes (sizeof(int)) starting at b
+		*num = *(int *)b;
+	}
+	inline void FromByteArray(BYTE *b, CBString **str){
+		int len = 0;
+		FromByteArray(b, &len);
+		*str = (CBString *)malloc(len);
+		BYTE *target = (BYTE *)*str;
+		for(int i=0; i < len; i++) target[i] = b[i+sizeof(int)];
+	}
 public:
 	CSpriteContext *m_pParent;
 	//Storage retrieval:
@@ -242,11 +259,11 @@ public:
 	
 	//Storage insertion: (Returns previously exists?true:false)
 	bool SetValue(	int Id,		int Value = 0);
-	bool SetValue(	LPCSTR Id,	int Value = 0);
+	bool SetValue(	LPCSTR Id,	int Value = 0,    bool update = true);
 	bool SetFlag(	int Id,		bool Set = true);
-	bool SetFlag(	LPCSTR Id,	bool Set = true);
+	bool SetFlag(	LPCSTR Id,	bool Set = true,  bool update = true);
 	bool SetString(	int Id,		LPCSTR Text = "");
-	bool SetString(	LPCSTR Id,	LPCSTR Text = "");
+	bool SetString(	LPCSTR Id,	LPCSTR Text = "", bool update = true);
 	
 	void UpdateVariables();
 	void UpdateSpecialVariable(LPCSTR Id, int Value, bool in = true);
@@ -262,6 +279,13 @@ public:
 		m_vfStorage.clear();
 		m_sfStorage.clear();
 	}
+	bool SerializeEntityData(BYTE **b, int *size);	/*!<
+		This takes a pointer to a NULL pointer for the byte, and an integer pointer for the size.
+		Both are OUT.
+	*/
+	bool CEntityData::DeSerializeEntityData(BYTE *b); /*!<
+		Accepts a pointer to the stored data.
+	*/
 };
 inline void CEntityData::InsertContext(LPCSTR szName, CDrawableContext *context){
 	contextPair pair;
@@ -630,10 +654,13 @@ protected:
 public:
 	mutable int m_nFrame[CONTEXT_BUFFERS];
 
+	//This will need to be saved on an in-game save.
+	CEntityData *m_pEntityData;
+
 	CSpriteContext(LPCSTR szName);
 	~CSpriteContext();
 
-	CEntityData *m_pEntityData;
+
 	void Mirror();
 	void Flip();
 	void Mirror(bool bMirror);	//!< Mirrors the object.

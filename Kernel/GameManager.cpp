@@ -65,7 +65,7 @@ int arr=0;
 void CGameManager::TheSecretsOfDebugging(){
 	arr+=1;
 	CBString sName = "__pstn1";
-	CSize *size = new CSize;
+	CSize size = CSize(0,0);
 	CPoint pt;
 	int x; int y;
 	x=y=0;
@@ -74,13 +74,13 @@ void CGameManager::TheSecretsOfDebugging(){
 		return;
 	}
 	
-	pSprite->GetSize(*size);
+	pSprite->GetSize(size);
 			CSpriteContext *pSpriteContext = new CSpriteContext("");
 			pSpriteContext->SetDrawableObj(pSprite);
 			//if(pSprite->GetSpriteType() == tBackground) pSpriteContext->Tile();	
 			pSpriteContext->SetObjSubLayer(2);
 			pSpriteContext->SetTemp();
-			pSpriteContext->MoveTo(x*size->cx+arr, y*size->cy);
+			pSpriteContext->MoveTo(x*size.cx+arr, y*size.cy);
 			if(arr > 620) arr = 0;
 			BufferPair Pair;
 			Pair.first = pSpriteContext;
@@ -108,7 +108,7 @@ void CGameManager::MapInput(int chrCode, LPARAM keydata, bool down){
 	//This might come in handy:
 	//http://msdn.microsoft.com/library/default.asp?url=/library/en-us/winui/winui/WindowsUserInterface/UserInput/VirtualKeyCodes.asp
 	m_QueuedInput[chrCode] = down?m_QueuedInput[chrCode]+1:0;
-	CONSOLE_DEBUG("%d\n", chrCode);
+	//CONSOLE_DEBUG("%d\n", chrCode);
 }
 void CGameManager::UpdateInput(){
 	//Translate keyboard input based on keyboard mappings.
@@ -152,8 +152,13 @@ const CBString CGameManager::CreateEntity(LPCSTR szName, LPCSTR szScript){
 			//We still do not return here, it's possible that the user only requires an abstract entity to refer to for data storage.
 		}
 		//We do not have to link this entity to a sprite sheet, it's an abstract entity necessary only for scripts lacking sprite linkage.
+		if(pSprite == NULL) {
+			delete pSpriteContext;
+			delete pEntityData;
+			return CBString(""); //error?
+		}
 	}
-	if(pSprite == NULL) return CBString(""); //error?
+	
 	pSpriteContext->SetDrawableObj(pSprite);
 	((CLayer *)(*m_ppActiveMapGroup)->GetChild(0))->AddSpriteContext(pSpriteContext, false);//There should never really be a need to create an entity outside of the active mapgroup.
 																					 //If all else fails, you can create it when you get there. :P
@@ -201,7 +206,6 @@ CMapGroup* CGameManager::Wiping(){
 	//m_bWiping = false;
 	if(!m_bWiping){
 		CScript::CleanQueue();
-		this->ClearSpriteBuffer();
 		CDrawableContext *pt = CEntityData::FindContext(SPECIALENTITYWORLD);		//Can't fail unless it's been deleted, this should never fail.
 		pt->GetParent()->PopChild(pt);									//Remove the world script from it's current parent.
 		((CLayer *)m_pWipeTarget->GetChild(0))->AddSpriteContext((CSpriteContext *)pt, false);	//Add the same script into the new group instead.
@@ -417,17 +421,26 @@ bool CGameManager::Wipe(int dir, CDrawableContext *context, int edgedistX, int e
 	BeginWipe(context, edgedistX, edgedistY);
 
 	CScript::CleanQueue();	//No scripts will be run during the wipe.
-	ClearSpriteBuffer();
 	m_bWiping = true;	//The wipe will happen. (Do this when all data has been finalized.)
 	return true;
 }
 //Flush sprites to the correct location
-void CGameManager::FlushSprites(){
+void CGameManager::FlushSprites(){	
 	while(m_SpriteBuffer.begin() != m_SpriteBuffer.end()){
 		CLayer *pLayer = static_cast<CLayer *>((*m_ppActiveMapGroup)->GetChild((*m_SpriteBuffer.begin()).second));
 		pLayer->AddSpriteContext((*m_SpriteBuffer.begin()).first, false);
 		m_SpriteBuffer.erase(m_SpriteBuffer.begin());
 	}
+	for(int i=0; i < MAX_LAYERS; i++){
+		//(static_cast<CLayer *>((*m_ppActiveMapGroup)->GetChild(i)))->
+	}
+	//////AAAAAAAAAAAAA
+	/////AAAAAAAAAA
+	//AWDAOWFHAWFO ! NOTICE THIS LINE!
+	///   || ||
+	//////|| ||
+	///// \/ \/
+	//TestSave();
 }
 void CGameManager::QueueFull(){
 	CScript::QueueFull();

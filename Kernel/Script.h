@@ -46,6 +46,8 @@ struct EntParamData{
 
 void RegisterNatives(AMX *amx);
 
+void TestSave();
+
 namespace Scripts{
 	bool GetStringParam(AMX *amx, cell sParam, char* szString);	
 	CSpriteContext* GetContext(AMX *amx, cell param, bool extensive = true, bool converted = false);

@@ -181,10 +181,10 @@ static cell AMX_NATIVE_CALL GetInput(AMX *amx, cell *params){
 	return CGameManager::Instance()->GetInput(params[1]);
 }
 static cell AMX_NATIVE_CALL GetMouseX(AMX *amx, cell *params){
-	return CGameManager::Instance()->GetMousePos()->x;
+	return CGameManager::Instance()->GetMousePos().x;
 }
 static cell AMX_NATIVE_CALL GetMouseY(AMX *amx, cell *params){
-	return CGameManager::Instance()->GetMousePos()->y;
+	return CGameManager::Instance()->GetMousePos().y;
 }
 static cell AMX_NATIVE_CALL GetMouseKey(AMX *amx, cell *params){
 	return CGameManager::Instance()->GetMouseKey();
@@ -196,14 +196,9 @@ static cell AMX_NATIVE_CALL GetTimeDelta(AMX *amx, cell *params)
 
 static cell AMX_NATIVE_CALL UpdateWorldCo(AMX *amx, cell *params)
 {
-	CGameManager::Instance()->UpdateWorldCo(params[1], params[2]);
-	
-	//Special case entity, it will always exist.
-	char World[] = SPECIALENTITYWORLD;
-	CEntityData *world = Scripts::GetRelevantEntityData(NULL, (cell)World, true);
-	world->SetValue("_x", params[1]);
-	world->SetValue("_y", params[2]);
-	
+	char szGroup[256];
+	GetStringParam(amx, params[3], szGroup);
+	CGameManager::Instance()->UpdateWorldCo(params[1], params[2], szGroup);
 	return 0;
 }
 static cell AMX_NATIVE_CALL SetFilter(AMX *amx, cell *params)
@@ -264,8 +259,18 @@ static cell AMX_NATIVE_CALL Wipe(AMX *amx, cell *params){
 	int dir = params[1];
 	return CGameManager::Instance()->Wipe(dir, GetContext(amx, params[2]), params[3], params[4]);
 }
+
+CEntityData *moomoo = NULL;
+void TestSave(){
+	if(!moomoo) return;
+	BYTE **pt = new BYTE *;
+	int size;
+	moomoo->SerializeEntityData(pt, &size);
+	delete pt;
+}
 static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	CEntityData *d = GetRelevantEntityData(amx, (cell)"this", true);
+	moomoo = d;
 	int x = d->GetValue("_x");
 	int y = d->GetValue("_y");
 	if(CGameManager::Instance()->GetInput(KEY_LEFT)){
@@ -287,22 +292,19 @@ static cell AMX_NATIVE_CALL DebuggingStuff(AMX *amx, cell *params){
 	
 	CDrawableContext *transfer = GetContext(amx, (cell)"this", true, true);
 	if(x > GetGroupWidth(NULL, NULL)) CGameManager::Instance()->Wipe(3, transfer, 64, 64);
-	else if(x < 0) CGameManager::Instance()->Wipe(1, transfer, 64, 64);
+	else if(x <= 0) CGameManager::Instance()->Wipe(1, transfer, 64, 64);
 	else if(y > GetGroupHeight(NULL, NULL)) CGameManager::Instance()->Wipe(2, transfer, 64, 64);
-	else if(y < 0) CGameManager::Instance()->Wipe(0, transfer, 64, 64);
+	else if(y <= 0) CGameManager::Instance()->Wipe(0, transfer, 64, 64);
 	char sprite[] = "__pstn1";
 	char color[] = "FF808080";
 	if(CGameManager::Instance()->GetMouseKey()){
 		CGameManager::Instance()->DrawSprite(sprite, 0, (int)GetMouseX(NULL,NULL), (int)GetMouseY(NULL,NULL), 2, 4, color, 1.0f, 0);
 	}
-	CGameManager::Instance()->DrawSprite(sprite, 0, x, y, 2, 4, color, 1.0f, 0);
-	cell t[3];
-	t[1] = x;
-	t[2] = y;
+	CGameManager::Instance()->DrawSprite(sprite, 0, x, y, 2, 3, color, 1.0f, 0);
 	//d = GetRelevantEntityData(amx, (cell)SPECIALENTITYWORLD, true);
 	//d->SetValue("_x", x);
 	//d->SetValue("_y", y);
-	UpdateWorldCo(NULL, t);
+	CGameManager::Instance()->UpdateWorldCo(x, y);
 
 	return 0;
 }
