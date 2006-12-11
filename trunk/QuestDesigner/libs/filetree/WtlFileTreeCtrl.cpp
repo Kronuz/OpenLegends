@@ -642,7 +642,7 @@ HTREEITEM CWtlFileTreeCtrl::InsertFileItem(const std::string sFile, const std::s
 {
 	// Retreive the icon indexes for the specified file/folder
 	std::string sFullPath = sPath;
-	if( sFullPath[ sFullPath.length() - 1 ] != '\\' && !sFullPath.empty())
+	if( !sFullPath.empty() && sFullPath[ sFullPath.length() - 1 ] != '\\')
 		sFullPath += "\\";
 	sFullPath += sFile;
 
@@ -789,10 +789,11 @@ void CWtlFileTreeCtrl::DisplayPath( const std::string sPath, HTREEITEM hParent, 
     TCHAR fname[_MAX_FNAME];
     TCHAR ext[_MAX_EXT];
 
+	int i;
 	int nChildren = 0;
 
 	// Now add all the directories to the tree control
-	for( int i = 0; i < (int)DirectoryPaths.size(); i++ )
+	for( i = 0; i < (int)DirectoryPaths.size(); i++ )
 	{
 		_tsplitpath( DirectoryPaths[i].c_str(), NULL, NULL, fname, ext );
 		_tmakepath( path_buffer, NULL, NULL, fname, ext);

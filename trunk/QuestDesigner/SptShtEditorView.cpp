@@ -297,8 +297,8 @@ void CSptShtEditorView::UpdateSnapSize(int _SnapSize)
 
 void CSptShtEditorView::Render(WPARAM wParam)
 {
-	static anim = 0;
-	static animq = 1;
+	static int anim = 0;
+	static int animq = 1;
 	static DWORD dwOldTicks = 0;
 	DWORD dwTicks = GetTickCount();
 

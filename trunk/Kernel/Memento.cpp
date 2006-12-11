@@ -29,7 +29,7 @@
 #include "stdafx.h"
 #include "Memento.h"
 
-inline bool CMemento::CheckpointDestroy::operator()(const State* &a, const UINT b) const
+inline bool CMemento::CheckpointDestroy::operator()(State* &a, const UINT b) const
 {
 	ASSERT(a);
 	ASSERT(m_pMemento);

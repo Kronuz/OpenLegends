@@ -385,6 +385,8 @@ int CDrawableContext::ReOrder(int nStep, int nRoomAt, int nRoomSize)
 // We build a layer's map to speed things up a little (or rather a lot):
 void CDrawableContext::PreSort() 
 {
+	int i;
+
 	// First, we sort all the elements by their sublayer:
 	stable_sort(m_Children.begin(), m_Children.end(), m_cmpSubLayer);
 
@@ -395,7 +397,7 @@ void CDrawableContext::PreSort()
 		if((*Iterator)->m_nSubLayer != -1) break;
 		Iterator++;
 	}
-	for(int i=0; i<MAX_SUBLAYERS && Iterator!=m_Children.end(); i++) {
+	for(i=0; i<MAX_SUBLAYERS && Iterator!=m_Children.end(); i++) {
 		m_LayersMap[i+1] = Iterator;
 		while(Iterator != m_Children.end()) {
 			if((*Iterator)->m_nSubLayer != i) break;

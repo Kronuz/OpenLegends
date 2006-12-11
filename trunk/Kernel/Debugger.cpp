@@ -171,53 +171,53 @@ void CDebugScript::ListCommands(LPCSTR command)
 		command = "";
 
 	Send("201\r\n"); // start multiline information.
-	if(stricmp(command,"break")==0) {
+	if(_stricmp(command,"break")==0) {
 		Send(
 			"\tBREAK\t\tlist all breakpoints\r\n"
 			"\tBREAK n file\tset a breakpoint at line \"n\" in file \"file\"\r\n"
 			"\tBREAK func\tset a breakpoint at function with name \"func\"\r\n"
 			"\tBREAK var\tset a breakpoint at variable \"var\"\r\n"
 			"\tBREAK var[i]\tset a breakpoint at array element \"var[i]\"\r\n");
-	} else if(stricmp(command,"cbreak")==0) {
+	} else if(_stricmp(command,"cbreak")==0) {
 		Send(
 			"\tCBREAK n\tremove breakpoint number \"n\"\r\n"
 			"\tCBREAK *\tremove all breakpoints\r\n");
-	} else if(stricmp(command,"cw")==0 || stricmp(command,"cwatch")==0) {
+	} else if(_stricmp(command,"cw")==0 || _stricmp(command,"cwatch")==0) {
 		Send(
 			"\tCWATCH may be abbreviated to CW\r\n\r\n"
 			"\tCWATCH n\tremove watch number \"n\"\r\n"
 			"\tCWATCH *\tremove all watches\r\n");
-	} else if(stricmp(command,"d")==0 || stricmp(command,"disp")==0) {
+	} else if(_stricmp(command,"d")==0 || _stricmp(command,"disp")==0) {
 		Send(
 			"\tDISP may be abbreviated to D\r\n\r\n"
 			"\tDISP\t\tdisplay all variables that are currently in scope\r\n"
 			"\tDISP var\tdisplay the value of variable \"var\"\r\n"
 			"\tDISP var[i]\tdisplay the value of array element \"var[i]\"\r\n");
-	} else if(stricmp(command,"file")==0) {
+	} else if(_stricmp(command,"file")==0) {
 		Send(
 			"\tFILE\t\tlist all files that this program is composed off\r\n"
 			"\tFILE name\tset the current file to \"name\"\r\n");
-	} else if(stricmp(command,"g")==0 || stricmp(command,"go")==0) {
+	} else if(_stricmp(command,"g")==0 || _stricmp(command,"go")==0) {
 		Send(
 			"\tGO may be abbreviated to G\r\n\r\n"
 			"\tGO\t\trun until the next breakpoint or program termination\r\n"
 			"\tGO RET\t\trun until the end of the current function\r\n"
 			"\tGO n\t\trun until line number \"n\"\r\n");
 	} else if(
-		stricmp(command,"stop")==0 ||
-		stricmp(command,"calls")==0 ||
-		stricmp(command,"n")==0 || stricmp(command,"next")==0 ||
-		stricmp(command,"quit")==0 ||
-		stricmp(command,"s")==0 || stricmp(command,"step")==0 ||
-		stricmp(command,"o")==0 || stricmp(command,"out")==0 )
+		_stricmp(command,"stop")==0 ||
+		_stricmp(command,"calls")==0 ||
+		_stricmp(command,"n")==0 || _stricmp(command,"next")==0 ||
+		_stricmp(command,"quit")==0 ||
+		_stricmp(command,"s")==0 || _stricmp(command,"step")==0 ||
+		_stricmp(command,"o")==0 || _stricmp(command,"out")==0 )
 	{
 		Send(
 			"\tno additional information\r\n");
-	} else if(stricmp(command,"type")==0) {
+	} else if(_stricmp(command,"type")==0) {
 		Send(
 			"\tTYPE var STRING\tdisplay \"var\" as string\r\n"
 			"\tTYPE var STD\tset default display format\r\n");
-	} else if(stricmp(command,"watch")==0 || stricmp(command,"w")==0) {
+	} else if(_stricmp(command,"watch")==0 || _stricmp(command,"w")==0) {
 		Send(
 			"\tWATCH may be abbreviated to W\r\n\r\n"
 			"\tWATCH var\tset a new watch at variable \"var\"\r\n"
@@ -250,42 +250,42 @@ void CDebugScript::Dispatch(LPCSTR szCommand)
 
 	BeginSend();
 	ms_eCommand = NONE;
-	if(!stricmp(szCommand, "break")) {
+	if(!_stricmp(szCommand, "break")) {
 		if(ms_DebuggingScript == NULL) ms_bBreakRequest = true;
 		else nError = 1;
 	} 
 	else 
-	if(!stricmp(szCommand, "go") || !stricmp(szCommand, "g")) {
+	if(!_stricmp(szCommand, "go") || !_stricmp(szCommand, "g")) {
 		if(ms_DebuggingScript == NULL) nError = 0;
 		else ms_eCommand = GO;
 	} 
 	else 
-	if(!stricmp(szCommand, "next") || !stricmp(szCommand, "n")) {
+	if(!_stricmp(szCommand, "next") || !_stricmp(szCommand, "n")) {
 		if(ms_DebuggingScript == NULL) ms_bBreakRequest = true;
 		else ms_eCommand = STEP_OVER;
 	} 
 	else 
-	if(!stricmp(szCommand, "step") || !stricmp(szCommand, "s")) {
+	if(!_stricmp(szCommand, "step") || !_stricmp(szCommand, "s")) {
 		if(ms_DebuggingScript == NULL) ms_bBreakRequest = true;
 		else ms_eCommand = STEP_IN;
 	} 
 	else 
-	if(!stricmp(szCommand, "out") || !stricmp(szCommand, "o")) {
+	if(!_stricmp(szCommand, "out") || !_stricmp(szCommand, "o")) {
 		if(ms_DebuggingScript == NULL) ms_bBreakRequest = true;
 		else ms_eCommand = STEP_OUT;
 	} 
 	else 
-	if(!stricmp(szCommand, "quit")) {
+	if(!_stricmp(szCommand, "quit")) {
 		Send("101 Bye.\r\n");
 		ms_eCommand = QUIT;
 	} 
 	else
-	if(!stricmp(szCommand, "stop")) {
+	if(!_stricmp(szCommand, "stop")) {
 		Send("101 Bye.\r\n");
 		ms_eCommand = STOP;
 	} 
 	else 
-	if(!stricmp(szCommand, "ping")) {
+	if(!_stricmp(szCommand, "ping")) {
 		Send("200 Pong\r\n");
 	} 
 	else nError = -1;
@@ -293,10 +293,10 @@ void CDebugScript::Dispatch(LPCSTR szCommand)
 	// Help commands:
 	if(nError == -1) {
 		nError = 0;
-		if(!stricmp(szCommand, "help")) ListCommands();
-		else if(!strnicmp(szCommand, "help ", 5)) ListCommands(&szCommand[5]);
-		else if(!stricmp(szCommand, "?")) ListCommands();
-		else if(!strnicmp(szCommand, "? ", 2)) ListCommands(&szCommand[2]);
+		if(!_stricmp(szCommand, "help")) ListCommands();
+		else if(!_strnicmp(szCommand, "help ", 5)) ListCommands(&szCommand[5]);
+		else if(!_stricmp(szCommand, "?")) ListCommands();
+		else if(!_strnicmp(szCommand, "? ", 2)) ListCommands(&szCommand[2]);
 		else nError = -1;
 	}
 

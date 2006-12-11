@@ -92,7 +92,7 @@ protected:
 						if(m_pinHdr.n>1)
 						{
 							m_pinHdr.phWnds = new HWND [m_pinHdr.n];
-							std::copy(m_wnds.begin(),m_wnds.end(),m_pinHdr.phWnds);
+							stdext::unchecked_copy(m_wnds.begin(),m_wnds.end(),m_pinHdr.phWnds);
 						}
 						if(m_pinHdr.hdr.hWnd==NULL)
 						{

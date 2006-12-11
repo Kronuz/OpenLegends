@@ -873,7 +873,8 @@ public:
 		size_t nCount = m_Items.GetCount();
 		int xpos = m_settings.iIndent;
 		HFONT hRestoreNormalFont = NULL;
-		for( size_t i=0; i<nCount; ++i )
+		size_t i;
+		for( i=0; i<nCount; ++i )
 		{
 			bool bSelected = ((int)i == m_iCurSel);
 			if(bSelected)
@@ -1070,7 +1071,7 @@ public:
 
 template <class TItem = CCustomTabItem>
 class CDotNetButtonTabCtrl : 
-	public CCustomTabCtrl<CDotNetButtonTabCtrl, TItem>
+	public CCustomTabCtrl<CDotNetButtonTabCtrl<TItem>, TItem>
 {
 protected:
 	typedef CCustomTabCtrl<CDotNetButtonTabCtrl, TItem> customTabClass;
@@ -1512,7 +1513,7 @@ public:
 
 template <class TItem = CCustomTabItem>
 class CDotNetTabCtrl :
-	public CDotNetTabCtrlImpl<CDotNetTabCtrl, TItem>
+	public CDotNetTabCtrlImpl<CDotNetTabCtrl<TItem>, TItem>
 {
 protected:
 	typedef CDotNetTabCtrl thisClass;

@@ -192,7 +192,7 @@ void SCompiler::sc_closeasm(void *handle, int deletefile)
 {
   fclose((FILE*)handle);
   if (deletefile)
-    unlink(outfname);
+    _unlink(outfname);
 }
 
 void SCompiler::sc_resetasm(void *handle)
@@ -223,7 +223,7 @@ void SCompiler::sc_closebin(void *handle,int deletefile)
 {
   fclose((FILE*)handle);
   if (deletefile)
-    unlink(binfname);
+    _unlink(binfname);
 }
 
 void SCompiler::sc_resetbin(void *handle)
@@ -306,7 +306,7 @@ int SCompiler::Compile(LPCSTR szInludeDir, LPCSTR szSrcFile, LPCSTR szDestFile)
 	if(m_bInUse) return 1;
 
 	// Printing a message
-	char *aux = strrchr(szSrcFile, '\\');
+	const char *aux = strrchr(szSrcFile, '\\');
 	if(!aux) aux = (char *)szSrcFile;
 	else aux++;
 	::sc_printf("%s\n", aux);

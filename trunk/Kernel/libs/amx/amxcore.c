@@ -77,7 +77,7 @@ static proplist *list_finditem(proplist *root,cell id,char *name,cell value,
   assert(name!=NULL);
   if (strlen(name)>0) {
     /* find by name */
-    while (item!=NULL && (item->id!=id || stricmp(item->name,name)!=0)) {
+    while (item!=NULL && (item->id!=id || _stricmp(item->name,name)!=0)) {
       prev=item;
       item=item->next;
     } /* while */
@@ -334,7 +334,7 @@ static cell AMX_NATIVE_CALL core_stricmp(AMX *amx,cell *params)
   amx_GetAddr(amx, params[2], &n2);
   amx_GetString(szString2, n2);
 
-  return stricmp(szString1, szString2);
+  return _stricmp(szString1, szString2);
 }
 
 static cell AMX_NATIVE_CALL strpack(AMX *amx,cell *params)

@@ -1,4 +1,4 @@
-// Windows Template Library - WTL version 7.5
+// Windows Template Library - WTL version 8.0
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //
 // This file is a part of the Windows Template Library.
@@ -26,11 +26,11 @@
 
   #ifdef APSTUDIO_INVOKED
     #define APSTUDIO_HIDDEN_SYMBOLS // Ignore following symbols
-  #endif //APSTUDIO_INVOKED
+  #endif // APSTUDIO_INVOKED
 
   #ifndef WINVER
     #define WINVER 0x0400   // default to Windows Version 4.0
-  #endif //!WINVER
+  #endif // !WINVER
 
   #if !defined(WCEOLE_ENABLE_DIALOGEX)
     #define DIALOGEX DIALOG DISCARDABLE
@@ -51,9 +51,34 @@
 
   #include <windows.h>
 
-#endif //!_INC_WINDOWS
-#endif //RC_INVOKED
+#endif // !_INC_WINDOWS
+#endif // RC_INVOKED
 
-#include <atlres.h>
+#include "atlres.h"
 
-#endif //__ATLRESCE_H__
+#ifdef APSTUDIO_INVOKED
+	#undef APSTUDIO_HIDDEN_SYMBOLS
+#endif // APSTUDIO_INVOKED
+
+#define IDC_INFOSTATIC 0xFFFE   // == IDC_STATIC -1
+
+///////////////////////////////////////////////////////////////////////////////
+// Smartphone Resource IDs
+
+#ifdef WIN32_PLATFORM_WFSP
+
+#define ID_MENU_OK                      0xE790
+#define ID_MENU_CANCEL                  0xE791
+
+#define ATL_IDW_SPIN_ID                 9999
+
+#define ATL_IDS_DONE                    0xEF20
+#define ATL_IDS_CANCEL                  0xEF21
+
+#define ATL_IDM_MENU_DONE               0xE701
+#define ATL_IDM_MENU_CANCEL             0xE702
+#define ATL_IDM_MENU_DONECANCEL         0xE703
+
+#endif // WIN32_PLATFORM_WFSP
+
+#endif // __ATLRESCE_H__

@@ -511,8 +511,8 @@ public:
 
 template< class TTabCtrl >
 class CMDITabOwner :
-	public CWindowImpl<CMDITabOwner>,
-	public CCustomTabOwnerImpl<CMDITabOwner, TTabCtrl>
+	public CWindowImpl<CMDITabOwner<TTabCtrl>>,
+	public CCustomTabOwnerImpl<CMDITabOwner<TTabCtrl>, TTabCtrl>
 {
 public:
 	// Expose the type of tab control
@@ -873,7 +873,7 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 
 template< class TTabCtrl = CDotNetTabCtrl<CTabViewTabItem>, class TTabOwner = CMDITabOwner<TTabCtrl> >
-class CTabbedMDIClient : public CWindowImpl<CTabbedMDIClient, CWindow>
+class CTabbedMDIClient : public CWindowImpl<CTabbedMDIClient< TTabCtrl, TTabOwner >, CWindow>
 {
 public:
 	// Expose the type of tab control and tab owner

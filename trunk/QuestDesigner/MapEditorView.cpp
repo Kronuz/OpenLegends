@@ -1088,7 +1088,8 @@ void CMapEditorView::OnChangeSel(int type, IPropertyEnabled *pPropObj)
 		return;
 	}
 
-	for(int nLayer=0; nLayer<MAX_LAYERS; nLayer++) {
+	int nLayer;
+	for(nLayer=0; nLayer<MAX_LAYERS; nLayer++) {
 		bool bVisible = m_pMapGroupI->isVisible(nLayer);
 		bool bLocked = m_SelectionI->isLocked(nLayer);
 

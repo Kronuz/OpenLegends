@@ -79,7 +79,7 @@ SC_FUNC stringlist *insert_path(char *path)
   assert(path!=NULL);
   if ((cur=(stringlist*)malloc(sizeof(stringlist)))==NULL)
     error(103);       /* insufficient memory (fatal error) */
-  if ((cur->line=strdup(path))==NULL)
+  if ((cur->line=_strdup(path))==NULL)
     error(103);       /* insufficient memory (fatal error) */
   cur->next=includepaths.next;
   includepaths.next=cur;
