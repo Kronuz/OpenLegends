@@ -1,30 +1,31 @@
-Microsoft Visual Studio Solution File, Format Version 8.00
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlibvc", "zlibvc.vcproj", "{8FD826F8-3739-44E6-8CC8-997122E53B8D}"
-	ProjectSection(ProjectDependencies) = postProject
-	EndProjectSection
 EndProject
 Global
-	GlobalSection(SolutionConfiguration) = preSolution
-		Debug = Debug
-		Release = Release
-		ReleaseAxp = ReleaseAxp
-		ReleaseWithoutAsm = ReleaseWithoutAsm
-		ReleaseWithoutCrtdll = ReleaseWithoutCrtdll
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+		ReleaseAxp|Win32 = ReleaseAxp|Win32
+		ReleaseWithoutAsm|Win32 = ReleaseWithoutAsm|Win32
+		ReleaseWithoutCrtdll|Win32 = ReleaseWithoutCrtdll|Win32
+		StaticRelease|Win32 = StaticRelease|Win32
 	EndGlobalSection
-	GlobalSection(ProjectConfiguration) = postSolution
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Debug.ActiveCfg = Debug|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Debug.Build.0 = Debug|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Release.ActiveCfg = Release|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Release.Build.0 = Release|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseAxp.ActiveCfg = ReleaseAxp|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseAxp.Build.0 = ReleaseAxp|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutAsm.ActiveCfg = ReleaseWithoutAsm|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutAsm.Build.0 = ReleaseWithoutAsm|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutCrtdll.ActiveCfg = ReleaseWithoutCrtdll|Win32
-		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutCrtdll.Build.0 = ReleaseWithoutCrtdll|Win32
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Debug|Win32.Build.0 = Debug|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Release|Win32.ActiveCfg = Release|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.Release|Win32.Build.0 = Release|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseAxp|Win32.ActiveCfg = ReleaseAxp|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseAxp|Win32.Build.0 = ReleaseAxp|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutAsm|Win32.ActiveCfg = ReleaseWithoutAsm|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutAsm|Win32.Build.0 = ReleaseWithoutAsm|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutCrtdll|Win32.ActiveCfg = ReleaseWithoutCrtdll|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.ReleaseWithoutCrtdll|Win32.Build.0 = ReleaseWithoutCrtdll|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.StaticRelease|Win32.ActiveCfg = StaticRelease|Win32
+		{8FD826F8-3739-44E6-8CC8-997122E53B8D}.StaticRelease|Win32.Build.0 = StaticRelease|Win32
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-	EndGlobalSection
-	GlobalSection(ExtensibilityAddIns) = postSolution
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
