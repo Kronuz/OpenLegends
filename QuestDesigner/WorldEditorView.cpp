@@ -358,12 +358,13 @@ void CWorldEditorView::Render(WPARAM wParam)
 		CSize szMap((int)((float)m_szMap.cx*m_Zoom+0.5f), (int)((float)m_szMap.cy*m_Zoom+0.5f));
 
 		// Draw Grid in the Background
+		int x, y;
 		HPEN oldPen = dcMem.SelectPen(m_hPenGrid);
-		for(int x = (rcDst.left / szMap.cx) * szMap.cx; x <= rcDst.right; x += szMap.cx) {	// Vertical
+		for(x = (rcDst.left / szMap.cx) * szMap.cx; x <= rcDst.right; x += szMap.cx) {	// Vertical
 			dcMem.MoveTo(x, rcDst.top);
 			dcMem.LineTo(x, rcDst.bottom);
 		}
-		for(int y = (rcDst.top/szMap.cy)*szMap.cy; y <= rcDst.bottom; y += szMap.cy) {	// Horizontal
+		for(y = (rcDst.top/szMap.cy)*szMap.cy; y <= rcDst.bottom; y += szMap.cy) {	// Horizontal
 			dcMem.MoveTo(rcDst.left,  y);
 			dcMem.LineTo(rcDst.right, y);
 		}

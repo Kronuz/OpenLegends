@@ -1,88 +1,149 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.10"
+	Version="8.00"
 	Name="Kernel"
 	ProjectGUID="{1B00B5FB-F7B9-4183-82BD-692262A0D0D9}"
-	Keyword="Win32Proj">
+	RootNamespace="Kernel"
+	Keyword="Win32Proj"
+	>
 	<Platforms>
 		<Platform
-			Name="Win32"/>
+			Name="Win32"
+		/>
 	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
-			CharacterSet="2">
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\;.\"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;__STL_DEBUG;_OL"
-				MinimalRebuild="TRUE"
-				BasicRuntimeChecks="3"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;_OL;_CRT_SECURE_NO_DEPRECATE"
 				RuntimeLibrary="1"
-				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				DebugInformationFormat="4"/>
+				DebugInformationFormat="4"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+				Description="Compiling assembler code for the abstract virtual machine"
+				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="fmodvc.lib amxexec.obj zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
-				LinkIncremental="2"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
 				ModuleDefinitionFile="Kernel.def"
-				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="$(OutDir)/Kernel.pdb"
+				GenerateDebugInformation="true"
 				SubSystem="2"
 				ImportLibrary="$(OutDir)/$(ProjectName).lib"
-				TargetMachine="1"/>
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCMIDLTool"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
+				Name="VCXDCMakeTool"
+			/>
 			<Tool
-				Name="VCPreLinkEventTool"
-				Description="Compiling assembler code for the abstract virtual machine"
-				CommandLine="ml /Zd /Zf /Zi /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"/>
+				Name="VCBscMakeTool"
+			/>
 			<Tool
-				Name="VCResourceCompilerTool"/>
+				Name="VCFxCopTool"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
+				Name="VCWebDeploymentTool"
+			/>
 			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
 			ConfigurationType="2"
-			CharacterSet="2">
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				GlobalOptimizations="TRUE"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\;.\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;_OL"
-				StringPooling="TRUE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;_OL;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
 				RuntimeLibrary="0"
-				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				DebugInformationFormat="0"/>
+				DebugInformationFormat="0"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+				Description="Compiling assembler code for the abstract virtual machine"
+				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="fmodvc.lib amxexec.obj zlib.lib"
@@ -90,55 +151,84 @@
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
 				ModuleDefinitionFile="Kernel.def"
-				GenerateDebugInformation="FALSE"
+				GenerateDebugInformation="false"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				ImportLibrary="$(OutDir)/$(ProjectName).lib"
-				TargetMachine="1"/>
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCMIDLTool"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
+				Name="VCXDCMakeTool"
+			/>
 			<Tool
-				Name="VCPreLinkEventTool"
-				Description="Compiling assembler code for the abstract virtual machine"
-				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"/>
+				Name="VCBscMakeTool"
+			/>
 			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"/>
+				Name="VCFxCopTool"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
+				Name="VCWebDeploymentTool"
+			/>
 			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 		<Configuration
 			Name="ReleaseDeb|Win32"
 			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
-			CharacterSet="2">
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories=".\libs\amx;..\libs\zlib;..\libs;..\;.\"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;_OL"
-				StringPooling="TRUE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;_OL;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
 				RuntimeLibrary="0"
-				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				DebugInformationFormat="3"/>
+				DebugInformationFormat="3"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+				Description="Compiling assembler code for the abstract virtual machine"
+				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="fmodvc.lib amxexec.obj zlib.lib"
@@ -146,37 +236,37 @@
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
 				ModuleDefinitionFile="Kernel.def"
-				GenerateDebugInformation="TRUE"
+				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				ImportLibrary="$(OutDir)/$(ProjectName).lib"
-				TargetMachine="1"/>
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCMIDLTool"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
+				Name="VCXDCMakeTool"
+			/>
 			<Tool
-				Name="VCPreLinkEventTool"
-				Description="Compiling assembler code for the abstract virtual machine"
-				CommandLine="ml /c /DCDECL /DSTACKARGS /Cx /coff .\libs\amx\amxexec.asm"/>
+				Name="VCBscMakeTool"
+			/>
 			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"/>
+				Name="VCFxCopTool"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
+				Name="VCWebDeploymentTool"
+			/>
 			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 	</Configurations>
 	<References>
@@ -184,300 +274,381 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm">
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm"
+			>
 			<File
-				RelativePath="..\FilePath.cpp">
+				RelativePath="..\FilePath.cpp"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="ReleaseDeb|Win32">
+					Name="ReleaseDeb|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="GameManager.cpp">
-			</File>
-			<File
-				RelativePath="Kernel.cpp">
-			</File>
-			<File
-				RelativePath="Kernel.def">
-			</File>
-			<File
-				RelativePath=".\Memento.cpp">
-			</File>
-			<File
-				RelativePath="..\Misc.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ReleaseDeb|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\Net.cpp">
+				RelativePath="GameManager.cpp"
+				>
 			</File>
 			<File
-				RelativePath="stdafx.cpp">
+				RelativePath="Kernel.cpp"
+				>
+			</File>
+			<File
+				RelativePath="Kernel.def"
+				>
+			</File>
+			<File
+				RelativePath=".\Memento.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\Misc.cpp"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="ReleaseDeb|Win32">
+					Name="ReleaseDeb|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="WorldManager.cpp">
+				RelativePath="..\Net.cpp"
+				>
+			</File>
+			<File
+				RelativePath="stdafx.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseDeb|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="WorldManager.cpp"
+				>
 			</File>
 			<Filter
 				Name="Scripting"
-				Filter="">
+				>
 				<File
-					RelativePath=".\amxcons.cpp">
+					RelativePath=".\amxcons.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\Debugger.cpp">
+					RelativePath=".\Debugger.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\Script.cpp">
+					RelativePath=".\Script.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\ScriptManager.cpp">
+					RelativePath=".\ScriptManager.cpp"
+					>
 				</File>
 				<Filter
 					Name="Abstract Machine"
-					Filter="">
+					>
 					<File
-						RelativePath=".\libs\amx\amx.c">
+						RelativePath=".\libs\amx\amx.c"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\amx\amxcore.c">
+						RelativePath=".\libs\amx\amxcore.c"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\amx\amxexec.asm">
+						RelativePath=".\libs\amx\amxexec.asm"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\amx\float.cpp">
+						RelativePath=".\libs\amx\float.cpp"
+						>
 					</File>
 				</Filter>
 			</Filter>
 			<Filter
 				Name="Graphics"
-				Filter="">
+				>
 				<File
-					RelativePath="DrawManager.cpp">
+					RelativePath="DrawManager.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\SelectionManager.cpp">
+					RelativePath=".\SelectionManager.cpp"
+					>
 				</File>
 				<File
-					RelativePath="SpriteManager.cpp">
+					RelativePath="SpriteManager.cpp"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="File System"
-				Filter="">
+				>
 				<File
-					RelativePath="ArchiveBinary.cpp">
+					RelativePath="ArchiveBinary.cpp"
+					>
 				</File>
 				<File
-					RelativePath="ArchiveText.cpp">
+					RelativePath="ArchiveText.cpp"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Sound"
-				Filter="">
+				>
 				<File
-					RelativePath=".\SoundManager.cpp">
+					RelativePath=".\SoundManager.cpp"
+					>
 				</File>
 			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc">
+			Filter="h;hpp;hxx;hm;inl;inc"
+			>
 			<File
-				RelativePath="..\Core.h">
+				RelativePath="..\Core.h"
+				>
 			</File>
 			<File
-				RelativePath="GameManager.h">
+				RelativePath="GameManager.h"
+				>
 			</File>
 			<File
-				RelativePath="..\IConsole.h">
+				RelativePath="..\IConsole.h"
+				>
 			</File>
 			<File
-				RelativePath="..\IGame.h">
+				RelativePath="..\IGame.h"
+				>
 			</File>
 			<File
-				RelativePath="..\Interfaces.h">
+				RelativePath="..\Interfaces.h"
+				>
 			</File>
 			<File
-				RelativePath="Kernel.h">
+				RelativePath="Kernel.h"
+				>
 			</File>
 			<File
-				RelativePath=".\Memento.h">
+				RelativePath=".\Memento.h"
+				>
 			</File>
 			<File
-				RelativePath="..\Misc.h">
+				RelativePath="..\Misc.h"
+				>
 			</File>
 			<File
-				RelativePath="..\Net.h">
+				RelativePath="..\Net.h"
+				>
 			</File>
 			<File
-				RelativePath="resource.h">
+				RelativePath="resource.h"
+				>
 			</File>
 			<File
-				RelativePath="stdafx.h">
+				RelativePath="stdafx.h"
+				>
 			</File>
 			<File
-				RelativePath="WorldManager.h">
+				RelativePath="WorldManager.h"
+				>
 			</File>
 			<Filter
 				Name="Scripting"
-				Filter="">
+				>
 				<File
-					RelativePath=".\Debugger.h">
+					RelativePath=".\Debugger.h"
+					>
 				</File>
 				<File
-					RelativePath=".\Script.h">
+					RelativePath=".\Script.h"
+					>
 				</File>
 				<File
-					RelativePath=".\ScriptManager.h">
+					RelativePath=".\ScriptManager.h"
+					>
 				</File>
 				<Filter
 					Name="Abstract Machine"
-					Filter="">
+					>
 					<File
-						RelativePath="..\libs\amx.h">
+						RelativePath="..\libs\amx.h"
+						>
 					</File>
 					<File
-						RelativePath=".\amx\osdefs.h">
+						RelativePath=".\amx\osdefs.h"
+						>
 					</File>
 				</Filter>
 			</Filter>
 			<Filter
 				Name="Graphics"
-				Filter="">
+				>
 				<File
-					RelativePath="DrawManager.h">
+					RelativePath="DrawManager.h"
+					>
 				</File>
 				<File
-					RelativePath="..\IDraw.h">
+					RelativePath="..\IDraw.h"
+					>
 				</File>
 				<File
-					RelativePath="..\IGraphics.h">
+					RelativePath="..\IGraphics.h"
+					>
 				</File>
 				<File
-					RelativePath=".\SelectionManager.h">
+					RelativePath=".\SelectionManager.h"
+					>
 				</File>
 				<File
-					RelativePath="SpriteManager.h">
+					RelativePath="SpriteManager.h"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Sound"
-				Filter="">
+				>
 				<File
-					RelativePath="SoundManager.h">
+					RelativePath="SoundManager.h"
+					>
 				</File>
 				<Filter
 					Name="fmod"
-					Filter="">
+					>
 					<File
-						RelativePath=".\libs\fmod\fmod.h">
+						RelativePath=".\libs\fmod\fmod.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\fmod\fmod_errors.h">
+						RelativePath=".\libs\fmod\fmod_errors.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\fmod\fmoddyn.h">
+						RelativePath=".\libs\fmod\fmoddyn.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\fmod\wincompat.h">
+						RelativePath=".\libs\fmod\wincompat.h"
+						>
 					</File>
 				</Filter>
 			</Filter>
 			<Filter
 				Name="File system"
-				Filter="">
+				>
 				<File
-					RelativePath="ArchiveBinary.h">
+					RelativePath="ArchiveBinary.h"
+					>
 				</File>
 				<File
-					RelativePath="ArchiveText.h">
+					RelativePath="ArchiveText.h"
+					>
 				</File>
 				<File
-					RelativePath="..\FilePath.h">
+					RelativePath="..\FilePath.h"
+					>
 				</File>
 				<File
-					RelativePath="..\IArchiver.h">
+					RelativePath="..\IArchiver.h"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Libs"
-				Filter="">
+				>
 				<Filter
 					Name="ZLib"
-					Filter="">
+					>
 					<File
-						RelativePath="..\libs\zlib\ioapi.h">
+						RelativePath="..\libs\zlib\ioapi.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\unzip.h">
+						RelativePath="..\libs\zlib\unzip.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\zconf.h">
+						RelativePath="..\libs\zlib\zconf.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\zip.h">
+						RelativePath="..\libs\zlib\zip.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\zlib.h">
+						RelativePath="..\libs\zlib\zlib.h"
+						>
 					</File>
 				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+			>
 			<File
-				RelativePath="Kernel.rc">
+				RelativePath="Kernel.rc"
+				>
 			</File>
 		</Filter>
 	</Files>

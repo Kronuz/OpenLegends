@@ -440,11 +440,11 @@ LRESULT CMainFrame::OnDebugCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL
 		} else if(!strncmp(szCommand, "501 ", 4)) { // Step using this ID
 			bValid = true;
 		} else if(!strncmp(szCommand, "502 ", 4)) { // Step using this file
-			LPSTR szLine = strchr(szCommand, ':');
+			LPCSTR szLine = strchr(szCommand, ':');
 			if(szLine) {
 				szLine++;
 				while(*szLine == ' ' || *szLine == '\t') szLine++;
-				LPSTR szFile = strchr(szLine, ' ');
+				LPCSTR szFile = strchr(szLine, ' ');
 				if(szFile) {
 					while(*szFile == ' ' || *szFile == '\t') szFile++;
 					if(*szLine && *szFile) {

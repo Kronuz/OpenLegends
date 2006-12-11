@@ -115,7 +115,7 @@ CSpriteSelection::CSpriteSelection(CDrawableContext **ppDrawableContext_) :
 	m_pBitmap(NULL),
 	m_pLastSelected(NULL),
 	m_rcClip(0,0,0,0),
-	m_CurrentSel(NULL),
+	m_CurrentSel(m_Objects.end()),
 	m_pCurrentDrawable(NULL)
 {
 	for(int i=0; i<MAX_LAYERS; i++)
@@ -663,7 +663,6 @@ SObjProp* CSpriteSelection::GetFirstSelection()
 
 SObjProp* CSpriteSelection::GetNextSelection() 
 {
-	if(m_CurrentSel == NULL) return NULL;
 	if(m_CurrentSel == m_Objects.end()) return NULL;
 	return (m_CurrentSel++).operator ->();
 }
@@ -1526,6 +1525,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 		return NULL;
 	}
 
+	int i;
 	int bmpsize = 0;
 	int indexsize = 0;
 	int datasize = sizeof(_SpriteSet::_SpriteSetInfo);
@@ -1538,7 +1538,7 @@ HGLOBAL CSpriteSelection::Copy(BITMAP **ppBitmap, bool bDeleteBitmap)
 	std::map<CDrawableObject*, int> ObjectsNames;
 
 	vectorObject::iterator Iterator = m_Objects.begin();
-	for(int i=0; Iterator != m_Objects.end(); i++, Iterator++) {
+	for(i=0; Iterator != m_Objects.end(); i++, Iterator++) {
 		ASSERT(Iterator->pContext);
 
 		CSpriteContext *scontext = static_cast<CSpriteContext*>(Iterator->pContext);

@@ -173,7 +173,7 @@ protected:
             pen.CreatePen(PS_SOLID, 0, ::GetSysColor(COLOR_BTNTEXT));
 
             HPEN hPenOld = dc.SelectPen(pen);
-			const sp=5;
+			const int sp = 5;
             dc.MoveTo(left+sp, top+sp);
             dc.LineTo(right-sp, bottom-sp);
             dc.MoveTo(left + sp+1, top+sp);
@@ -433,7 +433,7 @@ protected:
             pen.CreatePen(PS_SOLID, 0, ::GetSysColor(COLOR_BTNTEXT));
 
             HPEN hPenOld = dc.SelectPen(pen);
-			const sp=3;
+			const int sp = 3;
             dc.MoveTo(left+sp, top+sp);
             dc.LineTo(right-sp, bottom-sp);
             dc.MoveTo(left + sp+1, top+sp);

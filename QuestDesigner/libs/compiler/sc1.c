@@ -306,7 +306,7 @@ int sc_compile(int argc, char *argv[])
 
   setopt(argc,argv,inpfname,outfname,binfname,errfname,incfname,reportname);
   if (strlen(errfname)!=0)
-    unlink(errfname);   /* delete file on startup */
+    _unlink(errfname);   /* delete file on startup */
   else
     setcaption();
   setconfig(argv[0]);   /* the path to the include files */
@@ -623,7 +623,7 @@ static void parseoptions(int argc,char **argv,char *iname,char *oname,
         ptr++;
         if (ptr[1]==':')
           dos_setdrive(toupper(*ptr)-'A'+1);    /* set active drive */
-        chdir(ptr);
+        _chdir(ptr);
         break;
 #endif
       case 'd':
@@ -869,7 +869,7 @@ static int waitkey(void)
     sc_printf("\nPress the space bar to continue, or \"Esc\" to abort");
     fflush(stdout);
     do
-      ch=getch();
+      ch = _getch();
     while (ch>0 && ch!=' ' && ch!='\x1b');
     sc_printf("\n\n");
     return ch==' ';
@@ -2506,7 +2506,7 @@ static void doarg(char *name,int ident,int offset,int tags[],int numtags,
           char *name;
           cell val;
           tokeninfo(&val,&name);
-          if ((arg->defvalue.symname=strdup(name)) == NULL)
+          if ((arg->defvalue.symname = _strdup(name)) == NULL)
             error(103);         /* insufficient memory */
           if (ident==iVARIABLE) /* make sure we set this only if not a reference */
             arg->hasdefault |= uSIZEOF;

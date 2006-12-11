@@ -168,7 +168,7 @@ LRESULT CPropertyView::OnSelChanged(int idCtrl, LPNMHDR pnmh, BOOL& /*bHandled*/
 
 	UINT uID = IDS_DESC_EMPTY;
 	for(int i=0; i<sizeof(PropDesc)/sizeof(PROPDESC); i++) {
-		if(!stricmp(PropDesc[i].Name, Name)) {
+		if(!_stricmp(PropDesc[i].Name, Name)) {
 			uID = PropDesc[i].uID;
 			break;
 		}

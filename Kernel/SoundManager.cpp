@@ -122,19 +122,19 @@ void CSound::SetSource(CBString sPath) {
 
 	LPCSTR szExt = m_vFile.GetFileExt();
 		
-		 if(!stricmp(szExt, ".it"))		eType = stMusic;
-	else if(!stricmp(szExt, ".mid"))	eType = stMusic;
-	else if(!stricmp(szExt, ".mod"))	eType = stMusic;
-	else if(!stricmp(szExt, ".wav"))	eType = stSample;
-	else if(!stricmp(szExt, ".mp3"))	eType = stSample;
-	else if(!stricmp(szExt, ".ogg"))	eType = stSample;
-	else if(!stricmp(szExt, ".rmi"))	eType = stMusic;
-	else if(!stricmp(szExt, ".s3m"))	eType = stMusic;
-	else if(!stricmp(szExt, ".xm"))		eType = stMusic;
-	else if(!stricmp(szExt, ".raw"))	eType = stSample;
-	else if(!stricmp(szExt, ".mp2"))	eType = stSample;
-	else if(!stricmp(szExt, ".wma"))	eType = stSample;
-	else if(!stricmp(szExt, ".asf"))	eType = stSample;
+		 if(!_stricmp(szExt, ".it"))		eType = stMusic;
+	else if(!_stricmp(szExt, ".mid"))	eType = stMusic;
+	else if(!_stricmp(szExt, ".mod"))	eType = stMusic;
+	else if(!_stricmp(szExt, ".wav"))	eType = stSample;
+	else if(!_stricmp(szExt, ".mp3"))	eType = stSample;
+	else if(!_stricmp(szExt, ".ogg"))	eType = stSample;
+	else if(!_stricmp(szExt, ".rmi"))	eType = stMusic;
+	else if(!_stricmp(szExt, ".s3m"))	eType = stMusic;
+	else if(!_stricmp(szExt, ".xm"))	eType = stMusic;
+	else if(!_stricmp(szExt, ".raw"))	eType = stSample;
+	else if(!_stricmp(szExt, ".mp2"))	eType = stSample;
+	else if(!_stricmp(szExt, ".wma"))	eType = stSample;
+	else if(!_stricmp(szExt, ".asf"))	eType = stSample;
 	else								eType = stUnknown;
 }
 

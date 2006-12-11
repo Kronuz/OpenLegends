@@ -46,7 +46,7 @@
 template< class T, class TBase = CComboBox, class TWinTraits = CWinTraitsOR<CBS_OWNERDRAWVARIABLE|CBS_HASSTRINGS> >
 class ATL_NO_VTABLE CSuperComboBoxImpl :
 	public CWindowImpl< T, TBase, TWinTraits >,
-	public COwnerDraw< CSuperComboBoxImpl >
+	public COwnerDraw< CSuperComboBoxImpl< T, TBase, TWinTraits > >
 {
 	typedef CWindowImpl< T, TBase, TWinTraits > baseCtrlClass;
 

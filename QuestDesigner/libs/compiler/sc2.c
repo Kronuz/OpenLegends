@@ -494,7 +494,7 @@ static int ftoi(cell *val,char *curptr)
     #if defined LINUX
       fmult=pow10(exp*sign);
     #else
-      fmult=pow(10,exp*sign);
+      fmult = pow(10.0f,exp*sign);
     #endif
     fnum *= fmult;
     dnum *= (unsigned long)(fmult+0.5);

@@ -1,204 +1,297 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.10"
+	Version="8.00"
 	Name="QuestDesigner"
-	ProjectGUID="{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}">
+	ProjectGUID="{58BF68BD-1AEC-4CF7-9696-B0C4E69881A0}"
+	RootNamespace="QuestDesigner"
+	>
 	<Platforms>
 		<Platform
-			Name="Win32"/>
+			Name="Win32"
+		/>
 	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="Debug"
-			IntermediateDirectory="Debug"
+			OutputDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2">
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			UseOfATL="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			WholeProgramOptimization="1"
+			>
 			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
-				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG;_OL"
-				MinimalRebuild="TRUE"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
-				UsePrecompiledHeader="3"
-				WarningLevel="3"
-				DebugInformationFormat="4"/>
+				Name="VCPreBuildEventTool"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCCustomBuildTool"
+			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib"
-				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
-				LinkIncremental="2"
-				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
-				GenerateDebugInformation="TRUE"
-				SubSystem="2"
-				TargetMachine="1"/>
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="_DEBUG"
-				MkTypLibCompatible="FALSE"
-				GenerateStublessProxies="TRUE"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="false"
+				TargetEnvironment="1"
+				GenerateStublessProxies="true"
 				TypeLibraryName="$(IntDir)/QuestDesigner.tlb"
 				HeaderFileName="QuestDesigner.h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="QuestDesigner_i.c"
-				ProxyFileName="QuestDesigner_p.c"/>
+				ProxyFileName="QuestDesigner_p.c"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				WholeProgramOptimization="false"
+				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
+				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;_DEBUG;_OL;_CRT_SECURE_NO_DEPRECATE"
+				RuntimeLibrary="1"
+				WarningLevel="3"
+				DebugInformationFormat="4"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
-			<Tool
-				Name="VCPreLinkEventTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="NDEBUG"
 				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"/>
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCPreLinkEventTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
+				Name="VCLinkerTool"
+				AdditionalDependencies="zlib.lib"
+				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
+				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				LinkTimeCodeGeneration="0"
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCWebDeploymentTool"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="Release"
 			IntermediateDirectory="Release"
 			ConfigurationType="1"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfATL="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
-			WholeProgramOptimization="TRUE">
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="false"
+				TargetEnvironment="1"
+				GenerateStublessProxies="true"
+				TypeLibraryName="$(IntDir)/QuestDesigner.tlb"
+				HeaderFileName="QuestDesigner.h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="QuestDesigner_i.c"
+				ProxyFileName="QuestDesigner_p.c"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				GlobalOptimizations="TRUE"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
-				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
-				StringPooling="TRUE"
+				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
 				RuntimeLibrary="0"
-				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				DebugInformationFormat="0"/>
+				DebugInformationFormat="0"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
-				GenerateDebugInformation="FALSE"
+				GenerateDebugInformation="false"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				TargetMachine="1"/>
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCMIDLTool"
-				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="FALSE"
-				TargetEnvironment="1"
-				GenerateStublessProxies="TRUE"
-				TypeLibraryName="$(IntDir)/QuestDesigner.tlb"
-				HeaderFileName="QuestDesigner.h"
-				DLLDataFileName=""
-				InterfaceIdentifierFileName="QuestDesigner_i.c"
-				ProxyFileName="QuestDesigner_p.c"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
+				Name="VCXDCMakeTool"
+			/>
 			<Tool
-				Name="VCPreLinkEventTool"/>
+				Name="VCBscMakeTool"
+			/>
 			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"/>
+				Name="VCFxCopTool"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
+				Name="VCWebDeploymentTool"
+			/>
 			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 		<Configuration
 			Name="ReleaseDeb|Win32"
 			OutputDirectory="$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfATL="0"
-			ATLMinimizesCRunTimeLibraryUsage="FALSE"
+			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
-			WholeProgramOptimization="TRUE">
+			WholeProgramOptimization="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="false"
+				TargetEnvironment="1"
+				GenerateStublessProxies="true"
+				TypeLibraryName="$(IntDir)/QuestDesigner.tlb"
+				HeaderFileName="QuestDesigner.h"
+				DLLDataFileName=""
+				InterfaceIdentifierFileName="QuestDesigner_i.c"
+				ProxyFileName="QuestDesigner_p.c"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories=".\libs\MenuXP;.\libs\wtl;.\libs\progressbar;.\libs\filetree;.\libs\dragdrop;.\libs\compiler;.\libs\tabctrls;.\libs\propertylist;.\libs;.\libs\dockingwindows;.\libs\cmcs;..\libs\zlib;..\libs;..\;.\"
-				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL"
-				StringPooling="TRUE"
+				PreprocessorDefinitions="WIN32;_WINDOWS;STRICT;NDEBUG;_OL;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
 				RuntimeLibrary="0"
-				UsePrecompiledHeader="3"
 				WarningLevel="3"
-				DebugInformationFormat="3"/>
+				DebugInformationFormat="3"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+				AdditionalIncludeDirectories="$(IntDir)"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="zlib.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
-				GenerateDebugInformation="TRUE"
+				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				TargetMachine="1"/>
+				TargetMachine="1"
+			/>
 			<Tool
-				Name="VCMIDLTool"
-				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="FALSE"
-				TargetEnvironment="1"
-				GenerateStublessProxies="TRUE"
-				TypeLibraryName="$(IntDir)/QuestDesigner.tlb"
-				HeaderFileName="QuestDesigner.h"
-				DLLDataFileName=""
-				InterfaceIdentifierFileName="QuestDesigner_i.c"
-				ProxyFileName="QuestDesigner_p.c"/>
+				Name="VCALinkTool"
+			/>
 			<Tool
-				Name="VCPostBuildEventTool"/>
+				Name="VCManifestTool"
+			/>
 			<Tool
-				Name="VCPreBuildEventTool"/>
+				Name="VCXDCMakeTool"
+			/>
 			<Tool
-				Name="VCPreLinkEventTool"/>
+				Name="VCBscMakeTool"
+			/>
 			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1033"
-				AdditionalIncludeDirectories="$(IntDir)"/>
+				Name="VCFxCopTool"
+			/>
 			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
-				Name="VCXMLDataGeneratorTool"/>
+				Name="VCWebDeploymentTool"
+			/>
 			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				Name="VCPostBuildEventTool"
+			/>
 		</Configuration>
 	</Configurations>
 	<References>
@@ -206,805 +299,1065 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm">
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm"
+			>
 			<File
-				RelativePath="AboutDlg.cpp">
+				RelativePath="AboutDlg.cpp"
+				>
 			</File>
 			<File
-				RelativePath="Console.cpp">
+				RelativePath="Console.cpp"
+				>
 			</File>
 			<File
-				RelativePath="..\FilePath.cpp">
+				RelativePath="..\FilePath.cpp"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="ReleaseDeb|Win32">
+					Name="ReleaseDeb|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="GraphicsFactory.cpp">
-			</File>
-			<File
-				RelativePath="MainFrm.cpp">
-			</File>
-			<File
-				RelativePath="..\Misc.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="ReleaseDeb|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\Net.cpp">
+				RelativePath="GraphicsFactory.cpp"
+				>
 			</File>
 			<File
-				RelativePath="ProjectFactory.cpp">
+				RelativePath="MainFrm.cpp"
+				>
 			</File>
 			<File
-				RelativePath="QuestDesigner.cpp">
-			</File>
-			<File
-				RelativePath="SCompiler.cpp">
-			</File>
-			<File
-				RelativePath="stdafx.cpp">
+				RelativePath="..\Misc.cpp"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="0"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="ReleaseDeb|Win32">
+					Name="ReleaseDeb|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="1"/>
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\Net.cpp"
+				>
+			</File>
+			<File
+				RelativePath="ProjectFactory.cpp"
+				>
+			</File>
+			<File
+				RelativePath="QuestDesigner.cpp"
+				>
+			</File>
+			<File
+				RelativePath="SCompiler.cpp"
+				>
+			</File>
+			<File
+				RelativePath="stdafx.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseDeb|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
 				</FileConfiguration>
 			</File>
 			<Filter
 				Name="MDI"
-				Filter="">
+				>
 				<File
-					RelativePath="ChildFrm.cpp">
+					RelativePath="ChildFrm.cpp"
+					>
 				</File>
 				<File
-					RelativePath="ChildView.cpp">
+					RelativePath="ChildView.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\GEditorFrm.cpp">
+					RelativePath=".\GEditorFrm.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\GEditorView.cpp">
+					RelativePath=".\GEditorView.cpp"
+					>
 				</File>
 				<File
-					RelativePath="MapEditorFrm.cpp">
+					RelativePath="MapEditorFrm.cpp"
+					>
 				</File>
 				<File
-					RelativePath="MapEditorView.cpp">
+					RelativePath="MapEditorView.cpp"
+					>
 				</File>
 				<File
-					RelativePath="ScriptEditorFrm.cpp">
+					RelativePath="ScriptEditorFrm.cpp"
+					>
 				</File>
 				<File
-					RelativePath="ScriptEditorView.cpp">
+					RelativePath="ScriptEditorView.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\SptShtEditorFrm.cpp">
+					RelativePath=".\SptShtEditorFrm.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\SptShtEditorView.cpp">
+					RelativePath=".\SptShtEditorView.cpp"
+					>
 				</File>
 				<File
-					RelativePath="WorldEditorFrm.cpp">
+					RelativePath="WorldEditorFrm.cpp"
+					>
 				</File>
 				<File
-					RelativePath="WorldEditorView.cpp">
+					RelativePath="WorldEditorView.cpp"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Docking"
-				Filter="">
+				>
 				<File
-					RelativePath="BuildOutputBox.cpp">
+					RelativePath="BuildOutputBox.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\DebugBox.cpp">
+					RelativePath=".\DebugBox.cpp"
+					>
 				</File>
 				<File
-					RelativePath="FoldersTreeBox.cpp">
+					RelativePath="FoldersTreeBox.cpp"
+					>
 				</File>
 				<File
-					RelativePath="OutputBox.cpp">
+					RelativePath="OutputBox.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\PropertiesDockingView.cpp">
+					RelativePath=".\PropertiesDockingView.cpp"
+					>
 				</File>
 				<File
-					RelativePath=".\ThumbnailsBox.cpp">
+					RelativePath=".\ThumbnailsBox.cpp"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Properties"
-				Filter="">
+				>
 				<File
-					RelativePath="PropertiesDlg.cpp">
+					RelativePath="PropertiesDlg.cpp"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Libs"
-				Filter="">
+				>
 				<Filter
 					Name="dragdrop"
-					Filter="">
+					>
 					<File
-						RelativePath="libs\dragdrop\DragDropImpl.cpp">
+						RelativePath="libs\dragdrop\DragDropImpl.cpp"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="filetree"
-					Filter="">
+					>
 					<File
-						RelativePath=".\libs\filetree\FileFind.cpp">
+						RelativePath=".\libs\filetree\FileFind.cpp"
+						>
 					</File>
 					<File
-						RelativePath="libs\filetree\WtlFileTreeCtrl.cpp">
+						RelativePath="libs\filetree\WtlFileTreeCtrl.cpp"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="MenuXP"
-					Filter="">
+					>
 					<File
-						RelativePath=".\libs\MenuXP\Draw.cpp">
+						RelativePath=".\libs\MenuXP\Draw.cpp"
+						>
 					</File>
 				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc">
+			Filter="h;hpp;hxx;hm;inl;inc"
+			>
 			<File
-				RelativePath="AboutDlg.h">
+				RelativePath="AboutDlg.h"
+				>
 			</File>
 			<File
-				RelativePath="Console.h">
+				RelativePath="Console.h"
+				>
 			</File>
 			<File
-				RelativePath="..\FilePath.h">
+				RelativePath="..\FilePath.h"
+				>
 			</File>
 			<File
-				RelativePath="GraphicsFactory.h">
+				RelativePath="GraphicsFactory.h"
+				>
 			</File>
 			<File
-				RelativePath="IdleHandlerPump.h">
+				RelativePath="IdleHandlerPump.h"
+				>
 			</File>
 			<File
-				RelativePath="MainFrm.h">
+				RelativePath="MainFrm.h"
+				>
 			</File>
 			<File
-				RelativePath="..\Misc.h">
+				RelativePath="..\Misc.h"
+				>
 			</File>
 			<File
-				RelativePath="..\Net.h">
+				RelativePath="..\Net.h"
+				>
 			</File>
 			<File
-				RelativePath="ProjectFactory.h">
+				RelativePath="ProjectFactory.h"
+				>
 			</File>
 			<File
-				RelativePath="QuestDesigner.h">
+				RelativePath="QuestDesigner.h"
+				>
 			</File>
 			<File
-				RelativePath="resource.h">
+				RelativePath="resource.h"
+				>
 			</File>
 			<File
-				RelativePath="SCompiler.h">
+				RelativePath="SCompiler.h"
+				>
 			</File>
 			<File
-				RelativePath="stdafx.h">
+				RelativePath="stdafx.h"
+				>
 			</File>
 			<File
-				RelativePath=".\SuperCombo.h">
+				RelativePath=".\SuperCombo.h"
+				>
 			</File>
 			<File
-				RelativePath="..\Version.h">
+				RelativePath="..\Version.h"
+				>
 			</File>
 			<Filter
 				Name="MDI"
-				Filter="">
+				>
 				<File
-					RelativePath="ChildFrm.h">
+					RelativePath="ChildFrm.h"
+					>
 				</File>
 				<File
-					RelativePath="ChildView.h">
+					RelativePath="ChildView.h"
+					>
 				</File>
 				<File
-					RelativePath=".\GEditorFrm.h">
+					RelativePath=".\GEditorFrm.h"
+					>
 				</File>
 				<File
-					RelativePath=".\GEditorView.h">
+					RelativePath=".\GEditorView.h"
+					>
 				</File>
 				<File
-					RelativePath="MapEditorFrm.h">
+					RelativePath="MapEditorFrm.h"
+					>
 				</File>
 				<File
-					RelativePath="MapEditorView.h">
+					RelativePath="MapEditorView.h"
+					>
 				</File>
 				<File
-					RelativePath="ScriptEditorFrm.h">
+					RelativePath="ScriptEditorFrm.h"
+					>
 				</File>
 				<File
-					RelativePath="ScriptEditorView.h">
+					RelativePath="ScriptEditorView.h"
+					>
 				</File>
 				<File
-					RelativePath=".\SptShtEditorFrm.h">
+					RelativePath=".\SptShtEditorFrm.h"
+					>
 				</File>
 				<File
-					RelativePath=".\SptShtEditorView.h">
+					RelativePath=".\SptShtEditorView.h"
+					>
 				</File>
 				<File
-					RelativePath="WorldEditorFrm.h">
+					RelativePath="WorldEditorFrm.h"
+					>
 				</File>
 				<File
-					RelativePath="WorldEditorView.h">
+					RelativePath="WorldEditorView.h"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Docking"
-				Filter="">
+				>
 				<File
-					RelativePath="BuildOutputBox.h">
+					RelativePath="BuildOutputBox.h"
+					>
 				</File>
 				<File
-					RelativePath=".\DebugBox.h">
+					RelativePath=".\DebugBox.h"
+					>
 				</File>
 				<File
-					RelativePath="FoldersTreeBox.h">
+					RelativePath="FoldersTreeBox.h"
+					>
 				</File>
 				<File
-					RelativePath="OutputBox.h">
+					RelativePath="OutputBox.h"
+					>
 				</File>
 				<File
-					RelativePath="PropertiesDockingView.h">
+					RelativePath="PropertiesDockingView.h"
+					>
 				</File>
 				<File
-					RelativePath=".\ThumbnailsBox.h">
+					RelativePath=".\ThumbnailsBox.h"
+					>
 				</File>
 				<File
-					RelativePath="ToolBarBox.h">
+					RelativePath="ToolBarBox.h"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Properties"
-				Filter="">
+				>
 				<File
-					RelativePath="PropertiesDlg.h">
+					RelativePath="PropertiesDlg.h"
+					>
 				</File>
 				<File
-					RelativePath="PropertiesSheet.h">
+					RelativePath="PropertiesSheet.h"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Drag and Drop"
-				Filter="">
+				>
 				<File
-					RelativePath="Controls.h">
+					RelativePath="Controls.h"
+					>
 				</File>
 				<File
-					RelativePath="EditDropTarget.h">
+					RelativePath="EditDropTarget.h"
+					>
 				</File>
 				<File
-					RelativePath="ListViewDropTarget.h">
+					RelativePath="ListViewDropTarget.h"
+					>
 				</File>
 				<File
-					RelativePath="StaticDropTarget.h">
+					RelativePath="StaticDropTarget.h"
+					>
 				</File>
 				<File
-					RelativePath="TreeDropTarget.h">
+					RelativePath="TreeDropTarget.h"
+					>
 				</File>
 				<File
-					RelativePath="WindowDropTarget.h">
+					RelativePath="WindowDropTarget.h"
+					>
 				</File>
 			</Filter>
 			<Filter
 				Name="Libs"
-				Filter="">
+				>
 				<File
-					RelativePath=".\libs\CMCSWTL.h">
+					RelativePath=".\libs\CMCSWTL.h"
+					>
 				</File>
 				<File
-					RelativePath="libs\DlgContainer.h">
+					RelativePath="libs\DlgContainer.h"
+					>
 				</File>
 				<File
-					RelativePath="libs\ssfiledialog.h">
+					RelativePath="libs\ssfiledialog.h"
+					>
 				</File>
 				<Filter
 					Name="propertylist"
-					Filter="">
+					>
 					<File
-						RelativePath=".\libs\propertylist\PropertyGrid.h">
+						RelativePath=".\libs\propertylist\PropertyGrid.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\propertylist\PropertyItem.h">
+						RelativePath="libs\propertylist\PropertyItem.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\propertylist\PropertyItemEditors.h">
+						RelativePath="libs\propertylist\PropertyItemEditors.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\propertylist\PropertyItemImpl.h">
+						RelativePath="libs\propertylist\PropertyItemImpl.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\propertylist\PropertyList.h">
+						RelativePath="libs\propertylist\PropertyList.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\propertylist\PropertyTree.h">
+						RelativePath=".\libs\propertylist\PropertyTree.h"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="filetree"
-					Filter="">
+					>
 					<File
-						RelativePath="libs\filetree\FileFind.h">
+						RelativePath="libs\filetree\FileFind.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\filetree\WtlFileTreeCtrl.h">
+						RelativePath="libs\filetree\WtlFileTreeCtrl.h"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="dragdrop"
-					Filter="">
+					>
 					<File
-						RelativePath="libs\dragdrop\DragDropImpl.h">
+						RelativePath="libs\dragdrop\DragDropImpl.h"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="dockingwindows"
-					Filter="">
+					>
 					<File
-						RelativePath="libs\dockingwindows\dbstate.h">
+						RelativePath="libs\dockingwindows\dbstate.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\DDTracker.h">
+						RelativePath="libs\dockingwindows\DDTracker.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\DockingBox.h">
+						RelativePath="libs\dockingwindows\DockingBox.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\DockingFocus.h">
+						RelativePath="libs\dockingwindows\DockingFocus.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\DockingFrame.h">
+						RelativePath="libs\dockingwindows\DockingFrame.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\DockingWindow.h">
+						RelativePath="libs\dockingwindows\DockingWindow.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\DockMisc.h">
+						RelativePath="libs\dockingwindows\DockMisc.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\DWAutoHide.h">
+						RelativePath="libs\dockingwindows\DWAutoHide.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\dwstate.h">
+						RelativePath="libs\dockingwindows\dwstate.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\ExtDockingWindow.h">
+						RelativePath="libs\dockingwindows\ExtDockingWindow.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\FlyingTabs.h">
+						RelativePath="libs\dockingwindows\FlyingTabs.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\PackageWindow.h">
+						RelativePath="libs\dockingwindows\PackageWindow.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\SimpleSplitterBar.h">
+						RelativePath="libs\dockingwindows\SimpleSplitterBar.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\ssec.h">
+						RelativePath="libs\dockingwindows\ssec.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\sstate.h">
+						RelativePath="libs\dockingwindows\sstate.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\TabDockingBox.h">
+						RelativePath="libs\dockingwindows\TabDockingBox.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\dockingwindows\WndFrmPkg.h">
+						RelativePath="libs\dockingwindows\WndFrmPkg.h"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="tabctrls"
-					Filter="">
+					>
 					<File
-						RelativePath="libs\tabctrls\atlgdix.h">
+						RelativePath="libs\tabctrls\atlgdix.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\CustomTabCtrl.h">
+						RelativePath="libs\tabctrls\CustomTabCtrl.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\DotNetTabCtrl.h">
+						RelativePath="libs\tabctrls\DotNetTabCtrl.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\PlainTextView.h">
+						RelativePath="libs\tabctrls\PlainTextView.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\SimpleDlgTabCtrls.h">
+						RelativePath="libs\tabctrls\SimpleDlgTabCtrls.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\SimpleTabCtrls.h">
+						RelativePath="libs\tabctrls\SimpleTabCtrls.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\TabbedDockingWindow.h">
+						RelativePath="libs\tabctrls\TabbedDockingWindow.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\TabbedFrame.h">
+						RelativePath="libs\tabctrls\TabbedFrame.h"
+						>
 					</File>
 					<File
-						RelativePath="libs\tabctrls\TabbedMDI.h">
+						RelativePath="libs\tabctrls\TabbedMDI.h"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="Zlib"
-					Filter="">
+					>
 					<File
-						RelativePath="..\libs\zlib\ioapi.h">
+						RelativePath="..\libs\zlib\ioapi.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\unzip.h">
+						RelativePath="..\libs\zlib\unzip.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\zconf.h">
+						RelativePath="..\libs\zlib\zconf.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\zip.h">
+						RelativePath="..\libs\zlib\zip.h"
+						>
 					</File>
 					<File
-						RelativePath="..\libs\zlib\zlib.h">
+						RelativePath="..\libs\zlib\zlib.h"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="MenuXP"
-					Filter="">
+					>
 					<File
-						RelativePath=".\libs\MenuXP\Draw.h">
+						RelativePath=".\libs\MenuXP\Draw.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\MenuXP\MenuXP.h">
+						RelativePath=".\libs\MenuXP\MenuXP.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\MenuXP\Tools.h">
+						RelativePath=".\libs\MenuXP\Tools.h"
+						>
 					</File>
 				</Filter>
 				<Filter
 					Name="wtl"
-					Filter="">
+					>
 					<File
-						RelativePath=".\libs\wtl\atlapp.h">
+						RelativePath=".\libs\wtl\atlapp.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlcrack.h">
+						RelativePath=".\libs\wtl\atlcrack.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlctrls.h">
+						RelativePath=".\libs\wtl\atlctrls.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlctrlw.h">
+						RelativePath=".\libs\wtl\atlctrlw.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlctrlx.h">
+						RelativePath=".\libs\wtl\atlctrlx.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlddx.h">
+						RelativePath=".\libs\wtl\atlddx.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atldlgs.h">
+						RelativePath=".\libs\wtl\atldlgs.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlframe.h">
+						RelativePath=".\libs\wtl\atlframe.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlgdi.h">
+						RelativePath=".\libs\wtl\atlgdi.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlmisc.h">
+						RelativePath=".\libs\wtl\atlmisc.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlprint.h">
+						RelativePath=".\libs\wtl\atlprint.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlres.h">
+						RelativePath=".\libs\wtl\atlres.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlresce.h">
+						RelativePath=".\libs\wtl\atlresce.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlscrl.h">
+						RelativePath=".\libs\wtl\atlscrl.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlsplit.h">
+						RelativePath=".\libs\wtl\atlsplit.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atltheme.h">
+						RelativePath=".\libs\wtl\atltheme.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atluser.h">
+						RelativePath=".\libs\wtl\atluser.h"
+						>
 					</File>
 					<File
-						RelativePath=".\libs\wtl\atlwinx.h">
+						RelativePath=".\libs\wtl\atlwinx.h"
+						>
 					</File>
 				</Filter>
 			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest">
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest"
+			>
 			<File
-				RelativePath="res\arrowadd.cur">
+				RelativePath="res\arrowadd.cur"
+				>
 			</File>
 			<File
-				RelativePath="res\arrowdel.cur">
+				RelativePath="res\arrowdel.cur"
+				>
 			</File>
 			<File
-				RelativePath="res\arrowselect.cur">
+				RelativePath="res\arrowselect.cur"
+				>
 			</File>
 			<File
-				RelativePath=".\res\bitmap2.bmp">
+				RelativePath=".\res\bitmap2.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\camara.bmp">
+				RelativePath=".\res\camara.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\combo_icons.bmp">
+				RelativePath=".\res\combo_icons.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\combo_icons.png">
+				RelativePath=".\res\combo_icons.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\combo_icons2.png">
+				RelativePath=".\res\combo_icons2.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\DebugToolbar.bmp">
+				RelativePath=".\res\DebugToolbar.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\DragImg.bmp">
+				RelativePath="res\DragImg.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\Error.ico">
+				RelativePath="res\Error.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\FolderC.ico">
+				RelativePath="res\FolderC.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\FolderO.ico">
+				RelativePath="res\FolderO.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\folders.bmp">
+				RelativePath="res\folders.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\FoldersToolbar.bmp">
+				RelativePath="res\FoldersToolbar.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\LampOff.bmp">
+				RelativePath=".\res\LampOff.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\LampOn.bmp">
+				RelativePath=".\res\LampOn.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\layer_icons.bmp">
+				RelativePath=".\res\layer_icons.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\LockOff.bmp">
+				RelativePath=".\res\LockOff.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\LockOn.bmp">
+				RelativePath=".\res\LockOn.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\logo.bmp">
+				RelativePath=".\res\logo.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\logo.ico">
+				RelativePath=".\res\logo.ico"
+				>
 			</File>
 			<File
-				RelativePath=".\res\logo.png">
+				RelativePath=".\res\logo.png"
+				>
 			</File>
 			<File
-				RelativePath="res\MapEdToolbar.bmp">
+				RelativePath="res\MapEdToolbar.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\MapEdToolbarBasic.bmp">
+				RelativePath="res\MapEdToolbarBasic.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\MapEdToolbarMain.bmp">
+				RelativePath="res\MapEdToolbarMain.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\MapEdToolbarObject.bmp">
+				RelativePath="res\MapEdToolbarObject.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Margin.bmp">
+				RelativePath=".\res\Margin.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\mhand.cur">
+				RelativePath=".\res\mhand.cur"
+				>
 			</File>
 			<File
-				RelativePath="res\Okay.ico">
+				RelativePath="res\Okay.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\ProjectToolbar.bmp">
+				RelativePath="res\ProjectToolbar.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\PropertyViewToolbar.bmp">
+				RelativePath="res\PropertyViewToolbar.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesigner.exe.manifest">
+				RelativePath="res\QuestDesigner.exe.manifest"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseDeb|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="res\QuestDesigner.ico">
+				RelativePath="res\QuestDesigner.ico"
+				>
 			</File>
 			<File
-				RelativePath="QuestDesigner.rc">
+				RelativePath="QuestDesigner.rc"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerLib.ico">
+				RelativePath="res\QuestDesignerLib.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerMap.ico">
+				RelativePath="res\QuestDesignerMap.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerMidi.ico">
+				RelativePath="res\QuestDesignerMidi.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerProject.ico">
+				RelativePath="res\QuestDesignerProject.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerScript.ico">
+				RelativePath="res\QuestDesignerScript.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerSprite.ico">
+				RelativePath="res\QuestDesignerSprite.ico"
+				>
 			</File>
 			<File
-				RelativePath=".\res\QuestDesignerSpriteSet.ico">
+				RelativePath=".\res\QuestDesignerSpriteSet.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerSpriteSheet.ico">
+				RelativePath="res\QuestDesignerSpriteSheet.ico"
+				>
 			</File>
 			<File
-				RelativePath=".\res\QuestDesignerUnknown.ico">
+				RelativePath=".\res\QuestDesignerUnknown.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerWav.ico">
+				RelativePath="res\QuestDesignerWav.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\QuestDesignerWorld.ico">
+				RelativePath="res\QuestDesignerWorld.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\Question.ico">
+				RelativePath="res\Question.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\ScriptsToolbar.bmp">
+				RelativePath="res\ScriptsToolbar.bmp"
+				>
 			</File>
 			<File
-				RelativePath="res\tab_icons.bmp">
+				RelativePath="res\tab_icons.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\test.png">
+				RelativePath=".\res\test.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar1Folders.bmp">
+				RelativePath=".\res\Toolbar1Folders.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar1Main.bmp">
+				RelativePath=".\res\Toolbar1Main.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar1MapEdBasic.bmp">
+				RelativePath=".\res\Toolbar1MapEdBasic.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar1MapEdObject.bmp">
+				RelativePath=".\res\Toolbar1MapEdObject.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar1Project.bmp">
+				RelativePath=".\res\Toolbar1Project.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar1PropertyView.bmp">
+				RelativePath=".\res\Toolbar1PropertyView.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar2Folders.bmp">
+				RelativePath=".\res\Toolbar2Folders.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar2Main.bmp">
+				RelativePath=".\res\Toolbar2Main.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar2MapEdBasic.bmp">
+				RelativePath=".\res\Toolbar2MapEdBasic.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar2MapEdObject.bmp">
+				RelativePath=".\res\Toolbar2MapEdObject.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar2Project.bmp">
+				RelativePath=".\res\Toolbar2Project.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar2PropertyView.bmp">
+				RelativePath=".\res\Toolbar2PropertyView.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar3Folders.bmp">
+				RelativePath=".\res\Toolbar3Folders.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar3Main.bmp">
+				RelativePath=".\res\Toolbar3Main.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar3MapEdBasic.bmp">
+				RelativePath=".\res\Toolbar3MapEdBasic.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar3MapEdObject.bmp">
+				RelativePath=".\res\Toolbar3MapEdObject.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar3Project.bmp">
+				RelativePath=".\res\Toolbar3Project.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Toolbar3PropertyView.bmp">
+				RelativePath=".\res\Toolbar3PropertyView.bmp"
+				>
 			</File>
 			<File
-				RelativePath=".\res\ToolbarDebug.png">
+				RelativePath=".\res\ToolbarDebug.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\ToolbarFolders.png">
+				RelativePath=".\res\ToolbarFolders.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\ToolbarMain.png">
+				RelativePath=".\res\ToolbarMain.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\ToolbarMapEdBasic.png">
+				RelativePath=".\res\ToolbarMapEdBasic.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\ToolbarMapEdObject.png">
+				RelativePath=".\res\ToolbarMapEdObject.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\ToolbarProject.png">
+				RelativePath=".\res\ToolbarProject.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\ToolbarPropertyView.png">
+				RelativePath=".\res\ToolbarPropertyView.png"
+				>
 			</File>
 			<File
-				RelativePath=".\res\Wait.ico">
+				RelativePath=".\res\Wait.ico"
+				>
 			</File>
 			<File
-				RelativePath="res\Warning.ico">
+				RelativePath="res\Warning.ico"
+				>
 			</File>
 		</Filter>
 	</Files>
 	<Globals>
 		<Global
 			Name="RESOURCE_FILE"
-			Value="QuestDesigner.rc"/>
+			Value="QuestDesigner.rc"
+		/>
 	</Globals>
 </VisualStudioProject>

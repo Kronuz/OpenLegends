@@ -1,4 +1,4 @@
-// Windows Template Library - WTL version 7.5
+// Windows Template Library - WTL version 8.0
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //
 // This file is a part of the Windows Template Library.
@@ -28,7 +28,7 @@
 
 #ifndef WM_UPDATEUISTATE
   #define WM_UPDATEUISTATE                0x0128
-#endif //!WM_UPDATEUISTATE
+#endif // !WM_UPDATEUISTATE
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -127,10 +127,10 @@ public:
 	{
 #if (_MSC_VER >= 1300)
 		BOOL bRet = ATL::CWindowImpl< T, TBase, TWinTraits>::SubclassWindow(hWnd);
-#else //!(_MSC_VER >= 1300)
+#else // !(_MSC_VER >= 1300)
 		typedef ATL::CWindowImpl< T, TBase, TWinTraits>   _baseClass;
 		BOOL bRet = _baseClass::SubclassWindow(hWnd);
-#endif //!(_MSC_VER >= 1300)
+#endif // !(_MSC_VER >= 1300)
 		if(bRet)
 			Init();
 		return bRet;
@@ -176,7 +176,12 @@ public:
 		ATLASSERT(lpstrText != NULL);
 		if(m_lpstrToolTipText == NULL)
 			return false;
+#if _SECURE_ATL
+		ATL::Checked::tcsncpy_s(lpstrText, nLength, m_lpstrToolTipText, _TRUNCATE);
+		return true;
+#else
 		return (lstrcpyn(lpstrText, m_lpstrToolTipText, min(nLength, lstrlen(m_lpstrToolTipText) + 1)) != NULL);
+#endif
 	}
 
 	bool SetToolTipText(LPCTSTR lpstrText)
@@ -186,21 +191,30 @@ public:
 			delete [] m_lpstrToolTipText;
 			m_lpstrToolTipText = NULL;
 		}
+
 		if(lpstrText == NULL)
 		{
 			if(m_tip.IsWindow())
 				m_tip.Activate(FALSE);
 			return true;
 		}
-		ATLTRY(m_lpstrToolTipText = new TCHAR[lstrlen(lpstrText) + 1]);
+
+		int cchLen = lstrlen(lpstrText) + 1;
+		ATLTRY(m_lpstrToolTipText = new TCHAR[cchLen]);
 		if(m_lpstrToolTipText == NULL)
 			return false;
+#if _SECURE_ATL
+		ATL::Checked::tcscpy_s(m_lpstrToolTipText, cchLen, lpstrText);
+		bool bRet = true;
+#else
 		bool bRet = (lstrcpy(m_lpstrToolTipText, lpstrText) != NULL);
+#endif
 		if(bRet && m_tip.IsWindow())
 		{
 			m_tip.Activate(TRUE);
 			m_tip.AddTool(m_hWnd, m_lpstrToolTipText);
 		}
+
 		return bRet;
 	}
 
@@ -236,12 +250,12 @@ public:
 		// set bitmap according to the current button state
 		int nImage = -1;
 		bool bHover = IsHoverMode();
-		if(m_fPressed == 1)
+		if(!IsWindowEnabled())
+			nImage = m_nImage[_nImageDisabled];
+		else if(m_fPressed == 1)
 			nImage = m_nImage[_nImagePushed];
 		else if((!bHover && m_fFocus == 1) || (bHover && m_fMouseOver == 1))
 			nImage = m_nImage[_nImageFocusOrHover];
-		else if(!IsWindowEnabled())
-			nImage = m_nImage[_nImageDisabled];
 		if(nImage == -1)   // not there, use default one
 			nImage = m_nImage[_nImageNormal];
 
@@ -571,7 +585,7 @@ public:
 	{ }
 };
 
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -616,10 +630,10 @@ public:
 	{
 #if (_MSC_VER >= 1300)
 		BOOL bRet = ATL::CWindowImplBaseT< TBase, TWinTraits>::SubclassWindow(hWnd);
-#else //!(_MSC_VER >= 1300)
+#else // !(_MSC_VER >= 1300)
 		typedef ATL::CWindowImplBaseT< TBase, TWinTraits>   _baseClass;
 		BOOL bRet = _baseClass::SubclassWindow(hWnd);
-#endif //!(_MSC_VER >= 1300)
+#endif // !(_MSC_VER >= 1300)
 		if(bRet)
 		{
 			T* pT = static_cast<T*>(this);
@@ -745,7 +759,7 @@ __declspec(selectany) struct
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 	}
 };
-#endif //(WINVER < 0x0500) && !defined(_WIN32_WCE)
+#endif // (WINVER < 0x0500) && !defined(_WIN32_WCE)
 
 #define HLINK_UNDERLINED      0x00000000
 #define HLINK_NOTUNDERLINED   0x00000001
@@ -774,7 +788,7 @@ public:
 	RECT m_rcLink;
 #ifndef _WIN32_WCE
 	CToolTipCtrl m_tip;
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 	COLORREF m_clrLink;
 	COLORREF m_clrVisited;
@@ -809,7 +823,7 @@ public:
 		// It was created, not loaded, so we have to destroy it
 		if(m_hCursor != NULL)
 			::DestroyCursor(m_hCursor);
-#endif //(WINVER < 0x0500) && !defined(_WIN32_WCE)
+#endif // (WINVER < 0x0500) && !defined(_WIN32_WCE)
 	}
 
 // Attributes
@@ -833,9 +847,13 @@ public:
 		if(m_lpstrLabel == NULL)
 			return false;
 		ATLASSERT(lpstrBuffer != NULL);
-		if(nLength > lstrlen(m_lpstrLabel) + 1)
+		if(nLength > lstrlen(m_lpstrLabel))
 		{
+#if _SECURE_ATL
+			ATL::Checked::tcscpy_s(lpstrBuffer, nLength, m_lpstrLabel);
+#else
 			lstrcpy(lpstrBuffer, m_lpstrLabel);
+#endif
 			return true;
 		}
 		return false;
@@ -843,12 +861,17 @@ public:
 
 	bool SetLabel(LPCTSTR lpstrLabel)
 	{
+		int cchLen = lstrlen(lpstrLabel) + 1;
 		free(m_lpstrLabel);
 		m_lpstrLabel = NULL;
-		ATLTRY(m_lpstrLabel = (LPTSTR)malloc((lstrlen(lpstrLabel) + 1) * sizeof(TCHAR)));
+		ATLTRY(m_lpstrLabel = (LPTSTR)malloc(cchLen * sizeof(TCHAR)));
 		if(m_lpstrLabel == NULL)
 			return false;
+#if _SECURE_ATL
+		ATL::Checked::tcscpy_s(m_lpstrLabel, cchLen, lpstrLabel);
+#else
 		lstrcpy(m_lpstrLabel, lpstrLabel);
+#endif
 		T* pT = static_cast<T*>(this);
 		pT->CalcLabelRect();
 
@@ -863,9 +886,13 @@ public:
 		if(m_lpstrHyperLink == NULL)
 			return false;
 		ATLASSERT(lpstrBuffer != NULL);
-		if(nLength > lstrlen(m_lpstrHyperLink) + 1)
+		if(nLength > lstrlen(m_lpstrHyperLink))
 		{
+#if _SECURE_ATL
+			ATL::Checked::tcscpy_s(lpstrBuffer, nLength, m_lpstrHyperLink);
+#else
 			lstrcpy(lpstrBuffer, m_lpstrHyperLink);
+#endif
 			return true;
 		}
 		return false;
@@ -873,12 +900,17 @@ public:
 
 	bool SetHyperLink(LPCTSTR lpstrLink)
 	{
+		int cchLen = lstrlen(lpstrLink) + 1;
 		free(m_lpstrHyperLink);
 		m_lpstrHyperLink = NULL;
-		ATLTRY(m_lpstrHyperLink = (LPTSTR)malloc((lstrlen(lpstrLink) + 1) * sizeof(TCHAR)));
+		ATLTRY(m_lpstrHyperLink = (LPTSTR)malloc(cchLen * sizeof(TCHAR)));
 		if(m_lpstrHyperLink == NULL)
 			return false;
+#if _SECURE_ATL
+		ATL::Checked::tcscpy_s(m_lpstrHyperLink, cchLen, lpstrLink);
+#else
 		lstrcpy(m_lpstrHyperLink, lpstrLink);
+#endif
 		if(m_lpstrLabel == NULL)
 		{
 			T* pT = static_cast<T*>(this);
@@ -890,7 +922,7 @@ public:
 			m_tip.Activate(TRUE);
 			m_tip.AddTool(m_hWnd, m_lpstrHyperLink, &m_rcLink, 1);
 		}
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 		return true;
 	}
 
@@ -1039,10 +1071,10 @@ public:
 		ATLASSERT(::IsWindow(hWnd));
 #if (_MSC_VER >= 1300)
 		BOOL bRet = ATL::CWindowImpl< T, TBase, TWinTraits>::SubclassWindow(hWnd);
-#else //!(_MSC_VER >= 1300)
+#else // !(_MSC_VER >= 1300)
 		typedef ATL::CWindowImpl< T, TBase, TWinTraits>   _baseClass;
 		BOOL bRet = _baseClass::SubclassWindow(hWnd);
-#endif //!(_MSC_VER >= 1300)
+#endif // !(_MSC_VER >= 1300)
 		if(bRet)
 		{
 			T* pT = static_cast<T*>(this);
@@ -1073,7 +1105,7 @@ public:
 			SHELLEXECUTEINFO shExeInfo = { sizeof(SHELLEXECUTEINFO), 0, 0, L"open", m_lpstrHyperLink, 0, 0, SW_SHOWNORMAL, 0, 0, 0, 0, 0, 0, 0 };
 			::ShellExecuteEx(&shExeInfo);
 			DWORD_PTR dwRet = (DWORD_PTR)shExeInfo.hInstApp;
-#endif //_WIN32_WCE
+#endif // _WIN32_WCE
 			bRet = (dwRet > 32);
 			ATLASSERT(bRet);
 			if(bRet)
@@ -1091,18 +1123,18 @@ public:
 #ifndef _WIN32_WCE
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MESSAGE_RANGE_HANDLER(WM_MOUSEFIRST, WM_MOUSELAST, OnMouseMessage)
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 		MESSAGE_HANDLER(WM_ERASEBKGND, OnEraseBackground)
 		MESSAGE_HANDLER(WM_PAINT, OnPaint)
 #ifndef _WIN32_WCE
 		MESSAGE_HANDLER(WM_PRINTCLIENT, OnPaint)
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 		MESSAGE_HANDLER(WM_SETFOCUS, OnFocus)
 		MESSAGE_HANDLER(WM_KILLFOCUS, OnFocus)
 		MESSAGE_HANDLER(WM_MOUSEMOVE, OnMouseMove)
 #ifndef _WIN32_WCE
 		MESSAGE_HANDLER(WM_MOUSELEAVE, OnMouseLeave)
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 		MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
 		MESSAGE_HANDLER(WM_LBUTTONUP, OnLButtonUp)
 		MESSAGE_HANDLER(WM_CHAR, OnChar)
@@ -1141,7 +1173,7 @@ public:
 		bHandled = FALSE;
 		return 1;
 	}
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 	LRESULT OnEraseBackground(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
@@ -1196,7 +1228,7 @@ public:
 					UpdateWindow();
 #ifndef _WIN32_WCE
 					StartTrackMouseLeave();
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 				}
 			}
 		}
@@ -1227,7 +1259,7 @@ public:
 		}
 		return 0;
 	}
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 	LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/)
 	{
@@ -1334,7 +1366,7 @@ public:
 						dwStyle == SS_BITMAP || dwStyle == SS_ENHMETAFILE)
 #else // CE specific
 				if(dwStyle == SS_ICON || dwStyle == SS_BITMAP)
-#endif //_WIN32_WCE
+#endif // _WIN32_WCE
 					m_bPaintLabel = false;
 			}
 		}
@@ -1343,11 +1375,7 @@ public:
 #if (WINVER >= 0x0500) || defined(_WIN32_WCE)
 		m_hCursor = ::LoadCursor(NULL, IDC_HAND);
 #else
-  #if (_ATL_VER >= 0x0700)
-		m_hCursor = ::CreateCursor(ATL::_AtlBaseModule.GetModuleInstance(), _AtlHyperLink_CursorData.xHotSpot, _AtlHyperLink_CursorData.yHotSpot, _AtlHyperLink_CursorData.cxWidth, _AtlHyperLink_CursorData.cyHeight, _AtlHyperLink_CursorData.arrANDPlane, _AtlHyperLink_CursorData.arrXORPlane);
-  #else //!(_ATL_VER >= 0x0700)
-		m_hCursor = ::CreateCursor(_Module.GetModuleInstance(), _AtlHyperLink_CursorData.xHotSpot, _AtlHyperLink_CursorData.yHotSpot, _AtlHyperLink_CursorData.cxWidth, _AtlHyperLink_CursorData.cyHeight, _AtlHyperLink_CursorData.arrANDPlane, _AtlHyperLink_CursorData.arrXORPlane);
-  #endif //!(_ATL_VER >= 0x0700)
+		m_hCursor = ::CreateCursor(ModuleHelper::GetModuleInstance(), _AtlHyperLink_CursorData.xHotSpot, _AtlHyperLink_CursorData.yHotSpot, _AtlHyperLink_CursorData.cxWidth, _AtlHyperLink_CursorData.cyHeight, _AtlHyperLink_CursorData.arrANDPlane, _AtlHyperLink_CursorData.arrXORPlane);
 #endif
 		ATLASSERT(m_hCursor != NULL);
 
@@ -1377,7 +1405,7 @@ public:
 		// create a tool tip
 		m_tip.Create(m_hWnd);
 		ATLASSERT(m_tip.IsWindow());
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 		// set label (defaults to window text)
 		if(m_lpstrLabel == NULL)
@@ -1406,7 +1434,7 @@ public:
 			m_tip.Activate(TRUE);
 			m_tip.AddTool(m_hWnd, m_lpstrHyperLink, &m_rcLink, 1);
 		}
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 		// set link colors
 		if(m_bPaintLabel)
@@ -1415,33 +1443,33 @@ public:
 			LONG lRet = rk.Open(HKEY_CURRENT_USER, _T("Software\\Microsoft\\Internet Explorer\\Settings"));
 			if(lRet == 0)
 			{
-				const int cchBuff = 12;
-				TCHAR szBuff[cchBuff] = { 0 };
+				const int cchValue = 12;
+				TCHAR szValue[cchValue] = { 0 };
 #if (_ATL_VER >= 0x0700)
-				ULONG ulCount = cchBuff;
-				lRet = rk.QueryStringValue(_T("Anchor Color"), szBuff, &ulCount);
+				ULONG ulCount = cchValue;
+				lRet = rk.QueryStringValue(_T("Anchor Color"), szValue, &ulCount);
 #else
-				DWORD dwCount = cchBuff * sizeof(TCHAR);
-				lRet = rk.QueryValue(szBuff, _T("Anchor Color"), &dwCount);
+				DWORD dwCount = cchValue * sizeof(TCHAR);
+				lRet = rk.QueryValue(szValue, _T("Anchor Color"), &dwCount);
 #endif
 				if(lRet == 0)
 				{
-					COLORREF clr = pT->_ParseColorString(szBuff);
+					COLORREF clr = pT->_ParseColorString(szValue);
 					ATLASSERT(clr != CLR_INVALID);
 					if(clr != CLR_INVALID)
 						m_clrLink = clr;
 				}
 
 #if (_ATL_VER >= 0x0700)
-				ulCount = cchBuff;
-				lRet = rk.QueryStringValue(_T("Anchor Color Visited"), szBuff, &ulCount);
+				ulCount = cchValue;
+				lRet = rk.QueryStringValue(_T("Anchor Color Visited"), szValue, &ulCount);
 #else
-				dwCount = cchBuff * sizeof(TCHAR);
-				lRet = rk.QueryValue(szBuff, _T("Anchor Color Visited"), &dwCount);
+				dwCount = cchValue * sizeof(TCHAR);
+				lRet = rk.QueryValue(szValue, _T("Anchor Color Visited"), &dwCount);
 #endif
 				if(lRet == 0)
 				{
-					COLORREF clr = pT->_ParseColorString(szBuff);
+					COLORREF clr = pT->_ParseColorString(szValue);
 					ATLASSERT(clr != CLR_INVALID);
 					if(clr != CLR_INVALID)
 						m_clrVisited = clr;
@@ -1695,7 +1723,7 @@ public:
 		tme.hwndTrack = m_hWnd;
 		return _TrackMouseEvent(&tme);
 	}
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 // Implementation helpers
 	bool IsUnderlined() const
@@ -1742,7 +1770,7 @@ public:
 	{
 #ifndef _ATL_MIN_CRT
 		return _ttoi(nptr);
-#else //_ATL_MIN_CRT
+#else // _ATL_MIN_CRT
 		while(*nptr == _T(' '))   // skip spaces
 			++nptr;
 
@@ -1760,7 +1788,7 @@ public:
 
 		// return result, negated if necessary
 		return ((TCHAR)sign != _T('-')) ? total : -total;
-#endif //_ATL_MIN_CRT
+#endif // _ATL_MIN_CRT
 	}
 };
 
@@ -1786,11 +1814,7 @@ public:
 // Constructor/destructor
 	CWaitCursor(bool bSet = true, LPCTSTR lpstrCursor = IDC_WAIT, bool bSys = true) : m_hOldCursor(NULL), m_bInUse(false)
 	{
-#if (_ATL_VER >= 0x0700)
-		HINSTANCE hInstance = bSys ? NULL : ATL::_AtlBaseModule.GetResourceInstance();
-#else //!(_ATL_VER >= 0x0700)
-		HINSTANCE hInstance = bSys ? NULL : _Module.GetResourceInstance();
-#endif //!(_ATL_VER >= 0x0700)
+		HINSTANCE hInstance = bSys ? NULL : ModuleHelper::GetResourceInstance();
 		m_hWaitCursor = ::LoadCursor(hInstance, lpstrCursor);
 		ATLASSERT(m_hWaitCursor != NULL);
 
@@ -1835,13 +1859,7 @@ public:
 			CWaitCursor(false, IDC_WAIT, true)
 	{
 		if(hInstance == NULL)
-		{
-#if (_ATL_VER >= 0x0700)
-			hInstance = ATL::_AtlBaseModule.GetResourceInstance();
-#else //!(_ATL_VER >= 0x0700)
-			hInstance = _Module.GetResourceInstance();
-#endif //!(_ATL_VER >= 0x0700)
-		}
+			hInstance = ModuleHelper::GetResourceInstance();
 		m_hWaitCursor = (HCURSOR)::LoadImage(hInstance, cursor.m_lpstr, IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE);
 
 		if(bSet)
@@ -1853,7 +1871,7 @@ public:
 		Restore();
 #if !defined(_WIN32_WCE) || ((_WIN32_WCE >= 0x400) && !(defined(WIN32_PLATFORM_PSPC) || defined(WIN32_PLATFORM_WFSP)))
 		::DestroyCursor(m_hWaitCursor);
-#endif //!defined(_WIN32_WCE) || ((_WIN32_WCE >= 0x400) && !(defined(WIN32_PLATFORM_PSPC) || defined(WIN32_PLATFORM_WFSP)))
+#endif // !defined(_WIN32_WCE) || ((_WIN32_WCE >= 0x400) && !(defined(WIN32_PLATFORM_PSPC) || defined(WIN32_PLATFORM_WFSP)))
 	}
 };
 
@@ -1887,10 +1905,10 @@ public:
 	{
 #if (_MSC_VER >= 1300)
 		return ATL::CWindowImpl< T, TBase >::Create(hWndParent, rcDefault, lpstrText, dwStyle, 0, nID);
-#else //!(_MSC_VER >= 1300)
+#else // !(_MSC_VER >= 1300)
 		typedef ATL::CWindowImpl< T, TBase >   _baseClass;
 		return _baseClass::Create(hWndParent, rcDefault, lpstrText, dwStyle, 0, nID);
-#endif //!(_MSC_VER >= 1300)
+#endif // !(_MSC_VER >= 1300)
 	}
 
 	HWND Create(HWND hWndParent, UINT nTextID = ATL_IDS_IDLEMESSAGE, DWORD dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | SBARS_SIZEGRIP, UINT nID = ATL_IDW_STATUS_BAR)
@@ -1898,11 +1916,7 @@ public:
 		const int cchMax = 128;   // max text length is 127 for status bars (+1 for null)
 		TCHAR szText[cchMax];
 		szText[0] = 0;
-#if (_ATL_VER >= 0x0700)
-		::LoadString(ATL::_AtlBaseModule.GetResourceInstance(), nTextID, szText, cchMax);
-#else //!(_ATL_VER >= 0x0700)
-		::LoadString(_Module.GetResourceInstance(), nTextID, szText, cchMax);
-#endif //!(_ATL_VER >= 0x0700)
+		::LoadString(ModuleHelper::GetResourceInstance(), nTextID, szText, cchMax);
 		return Create(hWndParent, szText, dwStyle, nID);
 	}
 
@@ -1919,7 +1933,11 @@ public:
 		ATLASSERT(m_pPane != NULL);
 		if(m_pPane == NULL)
 			return FALSE;
+#if _SECURE_ATL
+		ATL::Checked::memcpy_s(m_pPane, nPanes * sizeof(int), pPanes, nPanes * sizeof(int));
+#else
 		memcpy(m_pPane, pPanes, nPanes * sizeof(int));
+#endif
 
 		int* pPanesPos = (int*)_alloca(nPanes * sizeof(int));
 
@@ -1941,16 +1959,12 @@ public:
 		{
 			if(pPanes[i] == ID_DEFAULT_PANE)
 			{
-				// will be resized later
-				pPanesPos[i] = 100 + cxLeft + arrBorders[2];
+				// make very large, will be resized later
+				pPanesPos[i] = INT_MAX / 2;
 			}
 			else
 			{
-#if (_ATL_VER >= 0x0700)
-				::LoadString(ATL::_AtlBaseModule.GetResourceInstance(), pPanes[i], szBuff, cchBuff);
-#else //!(_ATL_VER >= 0x0700)
-				::LoadString(_Module.GetResourceInstance(), pPanes[i], szBuff, cchBuff);
-#endif //!(_ATL_VER >= 0x0700)
+				::LoadString(ModuleHelper::GetResourceInstance(), pPanes[i], szBuff, cchBuff);
 				dc.GetTextExtent(szBuff, lstrlen(szBuff), &size);
 				T* pT = static_cast<T*>(this);
 				pT;
@@ -1967,11 +1981,7 @@ public:
 			{
 				if(pPanes[i] != ID_DEFAULT_PANE)
 				{
-#if (_ATL_VER >= 0x0700)
-					::LoadString(ATL::_AtlBaseModule.GetResourceInstance(), pPanes[i], szBuff, cchBuff);
-#else //!(_ATL_VER >= 0x0700)
-					::LoadString(_Module.GetResourceInstance(), pPanes[i], szBuff, cchBuff);
-#endif //!(_ATL_VER >= 0x0700)
+					::LoadString(ModuleHelper::GetResourceInstance(), pPanes[i], szBuff, cchBuff);
 					SetPaneText(m_pPane[i], szBuff);
 				}
 			}
@@ -2112,7 +2122,7 @@ public:
 
 		return SetIcon(nIndex, hIcon);
 	}
-#endif //(_WIN32_IE >= 0x0400) && !defined(_WIN32_WCE)
+#endif // (_WIN32_IE >= 0x0400) && !defined(_WIN32_WCE)
 
 // Message map and handlers
 	BEGIN_MSG_MAP(CMultiPaneStatusBarCtrlImpl< T >)
@@ -2147,7 +2157,7 @@ public:
 		// Move panes left if size grip box is present
 		if((GetStyle() & SBARS_SIZEGRIP) != 0)
 			cxOff -= ::GetSystemMetrics(SM_CXVSCROLL) + ::GetSystemMetrics(SM_CXEDGE);
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 		// find variable width pane
 		int i;
 		for(i = 0; i < m_nPanes; i++)
@@ -2295,13 +2305,23 @@ public:
 	BOOL GetTitle(LPTSTR lpstrTitle, int cchLength) const
 	{
 		ATLASSERT(lpstrTitle != NULL);
+#if _SECURE_ATL
+		ATL::Checked::tcsncpy_s(lpstrTitle, cchLength, m_szTitle, _TRUNCATE);
+		return TRUE;
+#else
 		return (lstrcpyn(lpstrTitle, m_szTitle, cchLength) != NULL);
+#endif
 	}
 
 	BOOL SetTitle(LPCTSTR lpstrTitle)
 	{
 		ATLASSERT(lpstrTitle != NULL);
+#if _SECURE_ATL
+		ATL::Checked::tcsncpy_s(m_szTitle, m_cchTitle, lpstrTitle, _TRUNCATE);
+		BOOL bRet = TRUE;
+#else
 		BOOL bRet = (lstrcpyn(m_szTitle, lpstrTitle, m_cchTitle) != NULL);
+#endif
 		if(bRet && m_hWnd != NULL)
 		{
 			T* pT = static_cast<T*>(this);
@@ -2320,30 +2340,30 @@ public:
 			DWORD dwExStyle = 0, UINT nID = 0, LPVOID lpCreateParam = NULL)
 	{
 		if(lpstrTitle != NULL)
+#if _SECURE_ATL
+			ATL::Checked::tcsncpy_s(m_szTitle, m_cchTitle, lpstrTitle, _TRUNCATE);
+#else
 			lstrcpyn(m_szTitle, lpstrTitle, m_cchTitle);
+#endif
 #if (_MSC_VER >= 1300)
 		return ATL::CWindowImpl< T, TBase, TWinTraits >::Create(hWndParent, rcDefault, NULL, dwStyle, dwExStyle, nID, lpCreateParam);
-#else //!(_MSC_VER >= 1300)
+#else // !(_MSC_VER >= 1300)
 		typedef ATL::CWindowImpl< T, TBase, TWinTraits >   _baseClass;
 		return _baseClass::Create(hWndParent, rcDefault, NULL, dwStyle, dwExStyle, nID, lpCreateParam);
-#endif //!(_MSC_VER >= 1300)
+#endif // !(_MSC_VER >= 1300)
 	}
 
 	HWND Create(HWND hWndParent, UINT uTitleID, DWORD dwStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
 			DWORD dwExStyle = 0, UINT nID = 0, LPVOID lpCreateParam = NULL)
 	{
 		if(uTitleID != 0U)
-#if (_ATL_VER >= 0x0700)
-			::LoadString(ATL::_AtlBaseModule.GetResourceInstance(), uTitleID, m_szTitle, m_cchTitle);
-#else //!(_ATL_VER >= 0x0700)
-			::LoadString(_Module.GetResourceInstance(), uTitleID, m_szTitle, m_cchTitle);
-#endif //!(_ATL_VER >= 0x0700)
+			::LoadString(ModuleHelper::GetResourceInstance(), uTitleID, m_szTitle, m_cchTitle);
 #if (_MSC_VER >= 1300)
 		return ATL::CWindowImpl< T, TBase, TWinTraits >::Create(hWndParent, rcDefault, NULL, dwStyle, dwExStyle, nID, lpCreateParam);
-#else //!(_MSC_VER >= 1300)
+#else // !(_MSC_VER >= 1300)
 		typedef ATL::CWindowImpl< T, TBase, TWinTraits >   _baseClass;
 		return _baseClass::Create(hWndParent, rcDefault, NULL, dwStyle, dwExStyle, nID, lpCreateParam);
-#endif //!(_MSC_VER >= 1300)
+#endif // !(_MSC_VER >= 1300)
 	}
 
 	BOOL EnableCloseButton(BOOL bEnable)
@@ -2371,7 +2391,7 @@ public:
 		MESSAGE_HANDLER(WM_PAINT, OnPaint)
 #ifndef _WIN32_WCE
 		MESSAGE_HANDLER(WM_PRINTCLIENT, OnPaint)
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 		MESSAGE_HANDLER(WM_NOTIFY, OnNotify)
 		MESSAGE_HANDLER(WM_COMMAND, OnCommand)
 		FORWARD_NOTIFICATIONS()
@@ -2450,7 +2470,7 @@ public:
 		// pass them to the parent if we don't handle them
 		else if(lpnmh->code == TTN_GETDISPINFO && lpnmh->idFrom == pT->m_nCloseBtnID)
 			bHandled = pT->GetToolTipText(lpnmh);
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 		// only let notifications not from the toolbar go to the parent
 		else if(lpnmh->hwndFrom != m_tb.m_hWnd && lpnmh->idFrom != pT->m_nCloseBtnID)
 			bHandled = FALSE;
@@ -2479,10 +2499,10 @@ public:
 		CDCHandle dc = lpNMCustomDraw->hdc;
 #if (_WIN32_IE >= 0x0400)
 		RECT& rc = lpNMCustomDraw->rc;
-#else //!(_WIN32_IE >= 0x0400)
+#else // !(_WIN32_IE >= 0x0400)
 		RECT rc;
 		m_tb.GetItemRect(0, &rc);
-#endif //!(_WIN32_IE >= 0x0400)
+#endif // !(_WIN32_IE >= 0x0400)
 
 		dc.FillRect(&rc, COLOR_3DFACE);
 
@@ -2494,10 +2514,10 @@ public:
 		CDCHandle dc = lpNMCustomDraw->hdc;
 #if (_WIN32_IE >= 0x0400)
 		RECT& rc = lpNMCustomDraw->rc;
-#else //!(_WIN32_IE >= 0x0400)
+#else // !(_WIN32_IE >= 0x0400)
 		RECT rc = { 0 };
 		m_tb.GetItemRect(0, &rc);
-#endif //!(_WIN32_IE >= 0x0400)
+#endif // !(_WIN32_IE >= 0x0400)
 
 		RECT rcImage = { m_xBtnImageLeft, m_yBtnImageTop, m_xBtnImageRight + 1, m_yBtnImageBottom + 1 };
 		::OffsetRect(&rcImage, rc.left, rc.top);
@@ -2622,7 +2642,7 @@ public:
 	{
 		return FALSE;
 	}
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 	void DrawPaneTitle(CDCHandle dc)
 	{
@@ -2653,7 +2673,7 @@ public:
 			dc.DrawText(m_szTitle, -1, &rect, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
 #else // CE specific
 			dc.DrawText(m_szTitle, -1, &rect, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
-#endif //_WIN32_WCE
+#endif // _WIN32_WCE
 			dc.SelectFont(hFontOld);
 		}
 	}
@@ -2689,11 +2709,11 @@ public:
 		dc.LineTo(rcImage.right + 1, rcImage.top - 1);
 
 		dc.SelectPen(hPenOld);
-#else //(_WIN32_WCE < 400)
+#else // (_WIN32_WCE < 400)
 		rcImage;
 		hPen;
 		// no support for the "x" button image
-#endif //(_WIN32_WCE < 400)
+#endif // (_WIN32_WCE < 400)
 	}
 
 	bool IsVertical() const
@@ -2716,7 +2736,7 @@ public:
 #define SORTLV_USESHELLBITMAPS	0x00000001
 
 // Notification sent to parent when sort column is changed by user clicking header.  
-#define SLVN_SORTCHANGED	(LVN_FIRST-201)
+#define SLVN_SORTCHANGED	LVN_LAST
 
 // A LPNMSORTLISTVIEW is sent with the SLVN_SORTCHANGED notification
 typedef struct tagNMSORTLISTVIEW
@@ -2730,7 +2750,7 @@ typedef struct tagNMSORTLISTVIEW
 enum
 {
 	LVCOLSORT_NONE,
-	LVCOLSORT_TEXT,   //default
+	LVCOLSORT_TEXT,   // default
 	LVCOLSORT_TEXTNOCASE,
 	LVCOLSORT_LONG,
 	LVCOLSORT_DOUBLE,
@@ -2749,7 +2769,7 @@ class CSortListViewImpl
 public:
 	enum
 	{
-		m_cchCmpTextMax = 32, //overrideable
+		m_cchCmpTextMax = 32, // overrideable
 		m_cxSortImage = 16,
 		m_cySortImage = 15,
 		m_cxSortArrow = 11,
@@ -2789,6 +2809,7 @@ public:
 	HBITMAP m_hbmOldSortCol;
 	DWORD m_dwSortLVExtendedStyle;
 	ATL::CSimpleArray<WORD> m_arrColSortType;
+	bool m_bUseWaitCursor;
 	
 	CSortListViewImpl() :
 			m_bSortDescending(false),
@@ -2796,14 +2817,15 @@ public:
 			m_iSortColumn(-1), 
 			m_fmtOldSortCol(0),
 			m_hbmOldSortCol(NULL),
-			m_dwSortLVExtendedStyle(SORTLV_USESHELLBITMAPS)
+			m_dwSortLVExtendedStyle(SORTLV_USESHELLBITMAPS),
+			m_bUseWaitCursor(true)
 	{
 #ifndef _WIN32_WCE
 		DWORD dwMajor = 0;
 		DWORD dwMinor = 0;
 		HRESULT hRet = ATL::AtlGetCommCtrlVersion(&dwMajor, &dwMinor);
 		m_bCommCtrl6 = SUCCEEDED(hRet) && dwMajor >= 6;
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 	}
 	
 // Attributes
@@ -2821,10 +2843,10 @@ public:
 		{
 #ifndef HDF_SORTUP
 			const int HDF_SORTUP = 0x0400;	
-#endif //HDF_SORTUP
+#endif // HDF_SORTUP
 #ifndef HDF_SORTDOWN
 			const int HDF_SORTDOWN = 0x0200;	
-#endif //HDF_SORTDOWN
+#endif // HDF_SORTDOWN
 			const int nMask = HDF_SORTUP | HDF_SORTDOWN;
 			HDITEM hditem = { HDI_FORMAT };
 			if(iOldSortCol != iCol && iOldSortCol >= 0 && header.GetItem(iOldSortCol, &hditem))
@@ -2916,7 +2938,7 @@ public:
 	}
 
 // Operations
-	BOOL DoSortItems(int iCol, bool bDescending = false)
+	bool DoSortItems(int iCol, bool bDescending = false)
 	{
 		T* pT = static_cast<T*>(this);
 		ATLASSERT(::IsWindow(pT->m_hWnd));
@@ -2924,17 +2946,19 @@ public:
 
 		WORD wType = m_arrColSortType[iCol];
 		if(wType == LVCOLSORT_NONE)
-			return FALSE;
+			return false;
 
 		int nCount = pT->GetItemCount();
 		if(nCount < 2)
 		{
 			m_bSortDescending = bDescending;
 			SetSortColumn(iCol);
-			return TRUE;
+			return true;
 		}
 
-		CWaitCursor waitCursor;
+		CWaitCursor waitCursor(false);
+		if(m_bUseWaitCursor)
+			waitCursor.Set();
 
 		LVCompareParam* pParam = NULL;
 		ATLTRY(pParam = new LVCompareParam[nCount]);
@@ -3027,11 +3051,11 @@ public:
 		default:
 			ATLTRACE2(atlTraceUI, 0, _T("Unknown value for sort type in CSortListViewImpl::DoSortItems()\n"));
 			break;
-		} //switch(wType)
+		} // switch(wType)
 
 		ATLASSERT(pFunc != NULL);
 		LVSortInfo lvsi = { pT, iCol, bDescending };
-		BOOL bRet = (BOOL)pT->DefWindowProc(LVM_SORTITEMS, (WPARAM)&lvsi, (LPARAM)pFunc);
+		bool bRet = ((BOOL)pT->DefWindowProc(LVM_SORTITEMS, (WPARAM)&lvsi, (LPARAM)pFunc) != FALSE);
 		for(int i = 0; i < nCount; i++)
 		{
 			DWORD_PTR dwItemData = pT->GetItemData(i);
@@ -3048,6 +3072,9 @@ public:
 			m_bSortDescending = bDescending;
 			SetSortColumn(iCol);
 		}
+
+		if(m_bUseWaitCursor)
+			waitCursor.Restore();
 
 		return bRet;
 	}
@@ -3078,7 +3105,7 @@ public:
 						IMAGE_BITMAP, 0, 0, LR_LOADMAP3DCOLORS);
 #else // CE specific
 						IMAGE_BITMAP, 0, 0, 0);
-#endif //_WIN32_WCE
+#endif // _WIN32_WCE
 					if(m_bmSort[i].IsNull())
 					{
 						bSuccess = false;
@@ -3114,7 +3141,7 @@ public:
 	{
 		T* pT = static_cast<T*>(this);
 		int nID = pT->GetDlgCtrlID();
-		NMSORTLISTVIEW nm = {{pT->m_hWnd, nID, SLVN_SORTCHANGED}, iNewSortCol, iOldSortCol};
+		NMSORTLISTVIEW nm = { { pT->m_hWnd, nID, SLVN_SORTCHANGED }, iNewSortCol, iOldSortCol };
 		::SendMessage(pT->GetParent(), WM_NOTIFY, (WPARAM)nID, (LPARAM)&nm);
 	}
 
@@ -3229,7 +3256,7 @@ public:
 		return true;
 	}
 
-//Overrideable PFNLVCOMPARE functions
+// Overrideable PFNLVCOMPARE functions
 	static int CALLBACK LVCompareText(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
 	{
 		ATLASSERT(lParam1 != NULL && lParam2 != NULL && lParamSort != NULL);
@@ -3451,7 +3478,7 @@ public:
 		nRet--;
 		return pInfo->bDescending ? -nRet : nRet;
 	}
-#endif //!_WIN32_WCE
+#endif // !_WIN32_WCE
 
 	BEGIN_MSG_MAP(CSortListViewImpl)
 		MESSAGE_HANDLER(LVM_INSERTCOLUMN, OnInsertColumn)
@@ -3522,7 +3549,7 @@ public:
 #else  // CE specific
 		wParam; // avoid level 4 warning
 		GetSystemSettings();
-#endif //_WIN32_WCE
+#endif // _WIN32_WCE
 		bHandled = FALSE;
 		return 0;
 	}
@@ -3549,7 +3576,7 @@ class ATL_NO_VTABLE CSortListViewCtrlImpl: public ATL::CWindowImpl<T, TBase, TWi
 public:
 	DECLARE_WND_SUPERCLASS(NULL, TBase::GetWndClassName())
 
-	BOOL SortItems(int iCol, bool bDescending = false)
+	bool SortItems(int iCol, bool bDescending = false)
 	{
 		return DoSortItems(iCol, bDescending);
 	}
@@ -3561,7 +3588,6 @@ public:
 		NOTIFY_CODE_HANDLER(HDN_ITEMCLICKW, CSortListViewImpl<T>::OnHeaderItemClick)
 		MESSAGE_HANDLER(WM_SETTINGCHANGE, CSortListViewImpl<T>::OnSettingChange)
 	END_MSG_MAP()
-
 };
 
 class CSortListViewCtrl : public CSortListViewCtrlImpl<CSortListViewCtrl>
@@ -3570,6 +3596,6 @@ public:
 	DECLARE_WND_SUPERCLASS(_T("WTL_SortListViewCtrl"), GetWndClassName())
 };
 
-}; //namespace WTL
+}; // namespace WTL
 
 #endif // __ATLCTRLX_H__

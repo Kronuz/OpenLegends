@@ -1,4 +1,4 @@
-// Windows Template Library - WTL version 7.5
+// Windows Template Library - WTL version 8.0
 // Copyright (C) Microsoft Corporation. All rights reserved.
 //
 // This file is a part of the Windows Template Library.
@@ -24,14 +24,14 @@
 
 #if defined(_ATL_USE_DDX_FLOAT) && defined(_ATL_MIN_CRT)
 	#error Cannot use floating point DDX with _ATL_MIN_CRT defined
-#endif //defined(_ATL_USE_DDX_FLOAT) && defined(_ATL_MIN_CRT)
+#endif // defined(_ATL_USE_DDX_FLOAT) && defined(_ATL_MIN_CRT)
 
 #ifdef _ATL_USE_DDX_FLOAT
   #include <float.h>
   #ifndef _DEBUG
     #include <stdio.h>
-  #endif //!_DEBUG
-#endif //_ATL_USE_DDX_FLOAT
+  #endif // !_DEBUG
+#endif // _ATL_USE_DDX_FLOAT
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -123,7 +123,7 @@ namespace WTL
 			if(!DDX_Float(nID, var, bSaveAndValidate, TRUE, min, max, precision)) \
 				return FALSE; \
 		}
-#endif //_ATL_USE_DDX_FLOAT
+#endif // _ATL_USE_DDX_FLOAT
 
 #define DDX_CONTROL(nID, obj) \
 		if(nCtlID == (UINT)-1 || nCtlID == nID) \
@@ -356,7 +356,7 @@ public:
 		}
 		return bSuccess;
 	}
-#endif //defined(_WTL_USE_CSTRING) || defined(__ATLSTR_H__)
+#endif // defined(_WTL_USE_CSTRING) || defined(__ATLSTR_H__)
 
 // Numeric exchange
 	template <class Type>
@@ -400,17 +400,17 @@ public:
 	static BOOL _AtlSimpleFloatParse(LPCTSTR lpszText, double& d)
 	{
 		ATLASSERT(lpszText != NULL);
-		while (*lpszText == ' ' || *lpszText == '\t')
+		while (*lpszText == _T(' ') || *lpszText == _T('\t'))
 			lpszText++;
 
 		TCHAR chFirst = lpszText[0];
 		d = _tcstod(lpszText, (LPTSTR*)&lpszText);
-		if (d == 0.0 && chFirst != '0')
+		if (d == 0.0 && chFirst != _T('0'))
 			return FALSE;   // could not convert
-		while (*lpszText == ' ' || *lpszText == '\t')
+		while (*lpszText == _T(' ') || *lpszText == _T('\t'))
 			lpszText++;
 
-		if (*lpszText != '\0')
+		if (*lpszText != _T('\0'))
 			return FALSE;   // not terminated properly
 
 		return TRUE;
@@ -435,7 +435,11 @@ public:
 		else
 		{
 			ATLASSERT(!bValidate || nVal >= nMin && nVal <= nMax);
+#if _SECURE_ATL && !defined(_ATL_MIN_CRT) && !defined(_WIN32_WCE)
+			_stprintf_s(szBuff, cchBuff, _T("%.*g"), nPrecision, nVal);
+#else
 			_stprintf(szBuff, _T("%.*g"), nPrecision, nVal);
+#endif
 			bSuccess = pT->SetDlgItemText(nID, szBuff);
 		}
 
@@ -478,7 +482,11 @@ public:
 		else
 		{
 			ATLASSERT(!bValidate || nVal >= nMin && nVal <= nMax);
+#if _SECURE_ATL && !defined(_ATL_MIN_CRT) && !defined(_WIN32_WCE)
+			_stprintf_s(szBuff, cchBuff, _T("%.*g"), nPrecision, nVal);
+#else
 			_stprintf(szBuff, _T("%.*g"), nPrecision, nVal);
+#endif
 			bSuccess = pT->SetDlgItemText(nID, szBuff);
 		}
 
@@ -501,7 +509,7 @@ public:
 		}
 		return bSuccess;
 	}
-#endif //_ATL_USE_DDX_FLOAT
+#endif // _ATL_USE_DDX_FLOAT
 
 // Full control subclassing (for CWindowImpl derived controls)
 	template <class TControl>
@@ -622,6 +630,6 @@ public:
 	}
 };
 
-}; //namespace WTL
+}; // namespace WTL
 
-#endif //__ATLDDX_H__
+#endif // __ATLDDX_H__

@@ -4,11 +4,12 @@
 //
 
 #pragma once
-
+/*
 // disable exeption handling:
 #undef _HAS_EXCEPTIONS
 #define _HAS_EXCEPTIONS 0 
 class exception {};
+/**/
 
 #include "../Version.h"
 

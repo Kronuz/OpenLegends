@@ -92,7 +92,7 @@ private:
 	public std::binary_function<State*, UINT, bool> {
 		CMemento *m_pMemento;
 		CheckpointDestroy(CMemento *pMemento) : m_pMemento(pMemento) {	/* Warning C4355: THIS CONSTRUCTOR MUST NEVER MAKE ACCESS ANY MEMBERS OF pMemento */}
-		bool operator()(const State* &a, const UINT b) const;
+		bool operator()(State* &a, const UINT b) const;
 	} m_destroyCheckpoint;
 
 	const struct CheckpointCmp : 
