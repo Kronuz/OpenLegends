@@ -134,8 +134,9 @@ void CEdit::DoSelfTest()
 	const int nTestLines = ARRAY_SIZE( pszTestLines );
 	ASSERT( nTestLines >= 5 );
 
+	int i;
 	ASSERT( CM_GetTopIndex( m_hWndTest, 0 ) == 0 );
-	for ( int i = 0; i < nTestLines; i++ )
+	for ( i = 0; i < nTestLines; i++ )
 	{
 		switch ( i % 5 )
 		{

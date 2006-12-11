@@ -135,7 +135,8 @@ void CPropInfo::AddHotKey( CM_HOTKEY &cmHotKey, WORD wCmd )
 
 	// check to see if already have 'add' record for this hotkey
 	// and modify it if so
-	for ( int i = 0; i < m_nAddCount; i++ )
+	int i;
+	for ( i = 0; i < m_nAddCount; i++ )
 	{
 		if ( m_pcmAddKey[ i ] == cmHotKey )
 		{
@@ -174,7 +175,8 @@ void CPropInfo::RemoveHotKey( CM_HOTKEY &cmHotKey )
 
 	// check to see if already have a 'remove' record for this hotkey
 	// and ignore this one if so
-	for ( int i = 0; i < m_nRemoveCount; i++ )
+	int i;
+	for ( i = 0; i < m_nRemoveCount; i++ )
 	{
 		if ( m_pcmRemoveKey[ i ] == cmHotKey )
 		{
@@ -224,7 +226,8 @@ void CPropInfo::ResetHotKeys()
 	m_nAddCount = m_nRemoveCount = 0;
 
 	// Now, add 'remove' records for all existing hotkeys
-	for ( int i = 0; i < CEdit::g_nHotKeyCount; i++ )
+	int i;
+	for ( i = 0; i < CEdit::g_nHotKeyCount; i++ )
 	{
 		CHotKey *pHotKey = CEdit::g_pHotKeys + i;
 		if ( !CEdit::IsRegisteredCommand( pHotKey->wCmd ) )
@@ -551,7 +554,8 @@ BOOL CALLBACK PageColorFontDlgProc( HWND hWndDlg, UINT uMsg, WPARAM wParam, LPAR
 
 			ASSERT( ARRAY_SIZE( Items ) == IDX_ASPECT_COUNT );	// every ui aspect should be configurable
 
-			for ( int i = 0; i < ARRAY_SIZE( Items ); i++ )
+			int i;
+			for ( i = 0; i < ARRAY_SIZE( Items ); i++ )
 			{
 				int nIndex = SendMessage( hWndList, LB_ADDSTRING, 0, ( LPARAM ) LoadStringPtr( Items[ i ].unText ) );
 				pInfo->m_nPosToIndexMap[ nIndex ] = Items[ i ].nIdx;	// need to update the mapping from combo item to arrays in pInfo
@@ -765,8 +769,8 @@ BOOL CALLBACK PageColorFontDlgProc( HWND hWndDlg, UINT uMsg, WPARAM wParam, LPAR
 			}
 
 			// pick the fore color
-			int nCBCount = SendMessage( hWndFore, CB_GETCOUNT, 0, 0 );
-			for ( int i = 0; i < nCBCount; i++ )
+			int i, nCBCount = SendMessage( hWndFore, CB_GETCOUNT, 0, 0 );
+			for ( i = 0; i < nCBCount; i++ )
 			{
 				if ( ( COLORREF ) SendMessage( hWndFore, CB_GETITEMDATA, i, 0 ) == pInfo->m_crFore[ nAspect ] )
 				{
@@ -1185,7 +1189,8 @@ BOOL CALLBACK PageKeyboardDlgProc( HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARA
 			HWND hWndCmds = GetDlgItem( hWndDlg, IDC_COMMANDS );
 
 			TCHAR szCmd[ max( CM_MAX_CMD_DESCRIPTION, CM_MAX_CMD_STRING ) + 1 ];
-			for ( int i = CMD_FIRST; i <= CMD_LAST; i++ )
+			int i;
+			for ( i = CMD_FIRST; i <= CMD_LAST; i++ )
 			{
 				pCtrl->GetCommandString( ( WORD ) i, FALSE, szCmd, ARRAY_SIZE( szCmd ) );
 				if ( *szCmd )
@@ -1285,7 +1290,8 @@ BOOL CALLBACK PageKeyboardDlgProc( HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARA
 				_tcscpy( szHotKey, LoadStringPtr( IDS_CURRENTLY_ASSIGNED_TO_CR ) );
 
 				WORD wCmd = 0;
-				for ( int i = 0; i < pInfo->m_nAddCount; i++ )
+				int i;
+				for ( i = 0; i < pInfo->m_nAddCount; i++ )
 				{
 					if ( pInfo->m_pcmAddKey[ i ] == cmHotKey )
 					{
@@ -1366,8 +1372,8 @@ BOOL CALLBACK PageKeyboardDlgProc( HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARA
 				// Stupid compiler keeps saying pCtrl isn't referenced!
 				pCtrl;
 
-				int nHotKeys = pCtrl->g_nHotKeyCount;
-				for ( int i = 0; i < nHotKeys; i++ )
+				int i, nHotKeys = pCtrl->g_nHotKeyCount;
+				for ( i = 0; i < nHotKeys; i++ )
 				{
 					if ( pCtrl->g_pHotKeys[ i ].wCmd == wCmd )
 					{

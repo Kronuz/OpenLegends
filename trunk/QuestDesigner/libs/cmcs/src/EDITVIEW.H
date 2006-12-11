@@ -8,6 +8,7 @@ class CSelection;
 
 class CEditView
 {
+	friend CEdit;
 	public:
 		CEditView( CEdit *pCtrl, CBuffer *pBuffer, int nLeftIndex = 0, int nTopIndex = 0 );
 		~CEditView();

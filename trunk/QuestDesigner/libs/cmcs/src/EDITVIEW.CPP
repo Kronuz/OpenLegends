@@ -182,9 +182,10 @@ void CEditView::Draw( HDC hDC, LPRECT prcClipBox, CSelection *pSel ) const
 		SetTextColor( hDC, m_pCtrl->GetLineNumberForeColor() );
 		::SetBkMode( hDC, TRANSPARENT );
 	}
-
+	
+	int nLine;
 	int cyDescentShiftNormal = m_pCtrl->m_font->cyDescentShift;
-	for ( int nLine = nRowStart; nLine <= nLastLine; nLine++ )
+	for ( nLine = nRowStart; nLine <= nLastLine; nLine++ )
 	{
 		// draw the bookmark and images if present
 		if ( cxLeftMargin1 > 0 )

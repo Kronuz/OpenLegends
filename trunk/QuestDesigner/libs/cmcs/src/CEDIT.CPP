@@ -2350,7 +2350,8 @@ void CEdit::GenerateFontVariations( HDC hDC, const LOGFONT &lfBase, FONT_DATA *m
 	// and baselines will match when rendered later
 	cxChar = 0;
 	int nMaxDescent = 0;
-	for ( int i = 0; i < NUM_FONT_VARIATIONS; i++ )
+	int i;
+	for ( i = 0; i < NUM_FONT_VARIATIONS; i++ )
 	{
 		FONT_DATA *pFont = m_pFonts + i;
 		HFONT hFontOld = ( HFONT ) SelectObject( hDC, pFont->hFont );

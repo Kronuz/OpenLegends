@@ -115,7 +115,8 @@ void CCodeTipFuncHighlightCtrl::GetSelection()
 	m_iHighlightBegin = -1;
 	m_iHighlightEnd = -1;
 
-	for( int i = 0, iArg = -1; -1 == iArg && i < iTipLen; i++ )
+	int i, iArg;
+	for( i = 0, iArg = -1; -1 == iArg && i < iTipLen; i++ )
 	{
 		switch( lpszTip[i] )
 		{
@@ -148,7 +149,8 @@ void CCodeTipFuncHighlightCtrl::GetSelection()
 
 	if( iArg == (int)m_nArgument )
 	{
-		for( int iEnd = iBegin; iEnd < iTipLen; iEnd++ )
+		int iEnd;
+		for( iEnd = iBegin; iEnd < iTipLen; iEnd++ )
 		{
 			if( L',' == lpszTip[iEnd] || L')' == lpszTip[iEnd] )
 			{
