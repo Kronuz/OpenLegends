@@ -19,7 +19,9 @@
 	#define END_DESTRUCTOR } catch (...) { ASSERT(!"Exception catched in destructor"); }
 #endif
 
+#ifndef interface 
 #define interface struct
+#endif
 
 #define FEF_NOEXT		0x01
 #define FEF_NODIR		0x02
@@ -710,12 +712,12 @@ inline int PASCAL CBString::SafeStrlen(LPCSTR lpsz)
 inline int CBString::Compare(LPCSTR lpsz) const
 	{ return strcmp(m_pchData, lpsz); }    // MBCS/Unicode aware
 inline int CBString::CompareNoCase(LPCSTR lpsz) const
-	{ return stricmp(m_pchData, lpsz); }   // MBCS/Unicode aware
+	{ return _stricmp(m_pchData, lpsz); }   // MBCS/Unicode aware
 
 inline int CBString::Compare(LPCSTR lpsz, int nCount) const
 	{ return strncmp(m_pchData, lpsz, nCount); }    // MBCS/Unicode aware
 inline int CBString::CompareNoCase(LPCSTR lpsz, int nCount) const
-	{ return strnicmp(m_pchData, lpsz, nCount); }   // MBCS/Unicode aware
+	{ return _strnicmp(m_pchData, lpsz, nCount); }   // MBCS/Unicode aware
 
 inline char CBString::GetAt(int nIndex) const
 {
@@ -1174,19 +1176,19 @@ inline int CBString::FindOneOf(LPCSTR lpszCharSet) const
 inline void CBString::MakeUpper()
 {
 	CopyBeforeWrite();
-	strupr(m_pchData);
+	_strupr(m_pchData);
 }
 
 inline void CBString::MakeLower()
 {
 	CopyBeforeWrite();
-	strlwr(m_pchData);
+	_strlwr(m_pchData);
 }
 
 inline void CBString::MakeReverse()
 {
 	CopyBeforeWrite();
-	strrev(m_pchData);
+	_strrev(m_pchData);
 }
 
 inline void CBString::SetAt(int nIndex, char ch)

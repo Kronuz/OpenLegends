@@ -104,9 +104,9 @@ struct SPropertyList
 			if(aProperties[i].eType == SProperty::ptCategory) {
 				szLastCategory = aProperties[i].szPropName;
 			}
-			if( (!stricmp(aProperties[i].szPropName, _szName)) &&
+			if( (!_stricmp(aProperties[i].szPropName, _szName)) &&
 				(_eType == SProperty::ptUnknown || _eType == aProperties[i].eType) &&
-				(!stricmp(szLastCategory, _szCategory) || *_szCategory == '\0') ) 
+				(!_stricmp(szLastCategory, _szCategory) || *_szCategory == '\0') ) 
 				return &aProperties[i];
 		}
 		return NULL;
@@ -174,7 +174,7 @@ struct SPropertyList
 			LPCSTR szLastCategory = "";
 			for(i=0; i<nProperties; i++) {
 				if(aProperties[i].eType == SProperty::ptCategory) {
-					if(!stricmp(szLastCategory, _szCategory)) {
+					if(!_stricmp(szLastCategory, _szCategory)) {
 						if(nProperties+1>=MAX_PROPS) return false;
 						nAtProperty = i;
 						break;
