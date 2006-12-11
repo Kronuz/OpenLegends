@@ -29,7 +29,7 @@
 #define OGL_INTNAME			"GraphicsOGL"
 #define DEBUGGER_INTNAME	"Debugger"
 
-#define OL_EMAIL			"kronuz@openlegends.com"
+#define OL_EMAIL			"kronuz@users.sourceforge.net"
 #define OL_WEBSITE			"http://www.openlegends.com/"
 #define OL_DONATION_URL		"https://www.paypal.com/xclick/business=kronuz%40hotmail.com"
 
@@ -42,8 +42,8 @@
 #define D3D9_DESC			D3D9_NAME " designed for " OL_NAME ". " OL_WEBSITE
 #define OGL_DESC			OGL_NAME " designed for " OL_NAME ". " OL_WEBSITE
 
-#define OL_COPYRIGHT_ALT	"Copyright © 2001-2005. Open Legends Project"
-#define OL_COPYRIGHT		"Copyright © 2003-2005. Germán Méndez Bravo (Kronuz). All rights reserved."
+#define OL_COPYRIGHT_ALT	"Copyright © 2001-2007. Open Legends Project"
+#define OL_COPYRIGHT		"Copyright © 2003-2007. Germán Méndez Bravo (Kronuz). All rights reserved."
 
 // Interface versions:
 #define GAME_INTVER			NUM_VERSION_IMPL(1, 5, 0, 0)
@@ -58,9 +58,9 @@
 #define OGL_FILEVERSION			1, 0, 0, 0
 #define DEBUGGER_FILEVERSION	1, 0, 0, 0
 
-#define MAIN_VERSION		"0.8.6 (beta)"
+#define MAIN_VERSION		"0.8.7 (beta)"
 #define OL_VERSION			"0.2.0 (beta)"
-#define QD_VERSION			"0.8.6 (beta)"
+#define QD_VERSION			"0.8.7 (beta)"
 #define KERNEL_VERSION		"1.5 (beta)"
 #define D3D8_VERSION		"1.4"
 #define D3D9_VERSION		"1.4"
@@ -82,7 +82,7 @@
 #define OL_LICENSE_NAME	"GNU General Public License"
 #define OL_LICENSE _T("\
 Open Legends Project\r\n\
-Copyright (C) 2001-2005\r\n\
+Copyright (C) 2001-2007\r\n\
 \r\n\
 This program is free software; you can redistribute it and/or modify it \
 under the terms of the GNU General Public License as published by the Free \
@@ -134,6 +134,7 @@ Also, I want to thank all people who helped me and collaborated in one way or th
       + HocusPocus;\r\n\
       + GodGinrai;\r\n\
       + and last, but not least, the guys at GU who have \r\n\
-          a great website (http://www.thegaminguniverse.com)\r\n\
+          a great website that provided the project with a nice\r\n\
+          and useful forum (http://www.thegaminguniverse.com)\r\n\
 \r\n\
 If you feel I'm missing sombody, please tell me so I can add her/him/you to the list.")
