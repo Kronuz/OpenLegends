@@ -137,10 +137,10 @@ inline LPCSTR GetNameFromOLFile(LPCOLFILE pOLFile, LPSTR szBuffer, int nBuffSize
 	}
 
 	int nNameLen = 0;
-	LPSTR aux = strchr(pOLFile->ID, '\n');
+	LPCSTR aux = strchr(pOLFile->ID, '\n');
 	if(aux) {
 		aux++;
-		LPSTR aux2 = strchr(aux, '\n');
+		LPCSTR aux2 = strchr(aux, '\n');
 		if(aux2) nNameLen = aux2 - aux;
 		else nNameLen = (int)strlen(aux);
 
@@ -162,7 +162,7 @@ inline LPCSTR GetDescFromOLFile(LPCOLFILE pOLFile, LPSTR szBuffer, int nBuffSize
 	}
 
 	int nNameLen = 0;
-	LPSTR aux = strchr(pOLFile->ID, '\n');
+	LPCSTR aux = strchr(pOLFile->ID, '\n');
 	if(aux) {
 		aux = strchr(aux+1, '\n');
 		if(aux) {

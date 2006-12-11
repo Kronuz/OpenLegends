@@ -457,10 +457,10 @@ inline int CVFile::DeleteVirtual(bool bKeep)
 	CBString sTmpFile = sFile + "~";
 
 	if(GetFileDate(sTmpFile) && !m_bChanges) {
-		unlink(sFile);
+		_unlink(sFile);
 		if(rename(sTmpFile, sFile) != 0) return -1;
 		return 0;
-	} else unlink(sTmpFile);
+	} else _unlink(sTmpFile);
 
 	// open source and destiny files:
 	unzFile ufile = unzOpen(sFile);
@@ -569,10 +569,10 @@ inline int CVFile::DeleteVirtual(bool bKeep)
 	// delete the temporary file:
 	if(!bKeep) {
 		if(!nDeleted || err!=UNZ_END_OF_LIST_OF_FILE) {
-			unlink(sTmpFile);
+			_unlink(sTmpFile);
 			return -1;
 		}
-		unlink(sFile);
+		_unlink(sFile);
 		if(rename(sTmpFile, sFile) != 0) return -1;
 	}
 
@@ -594,10 +594,10 @@ inline int CVFile::RenameVirtual(CVFile &vFile)
 	CBString sTmpFile = sFile + "~";
 
 	if(GetFileDate(sTmpFile) && !m_bChanges) {
-		unlink(sFile);
+		_unlink(sFile);
 		if(rename(sTmpFile, sFile) != 0) return -1;
 		return 0;
-	} else unlink(sTmpFile);
+	} else _unlink(sTmpFile);
 
 	CBString sDstFile = vFile.GetHomeFile();
 	if(sDstFile.IsEmpty()) return -1;
@@ -620,7 +620,7 @@ inline int CVFile::RenameVirtual(CVFile &vFile)
 		if(zfile2 == NULL) {
 			zipClose(zfile, NULL);
 			unzClose(ufile);
-			unlink(sTmpFile);
+			_unlink(sTmpFile);
 			return -1;
 		}
 	}
@@ -737,10 +737,10 @@ inline int CVFile::RenameVirtual(CVFile &vFile)
 
 	// delete the temporary file:
 	if(!nRenamed || err!=UNZ_END_OF_LIST_OF_FILE) {
-		unlink(sTmpFile);
+		_unlink(sTmpFile);
 		return -1;
 	}
-	unlink(sFile);
+	_unlink(sFile);
 	if(rename(sTmpFile, sFile) != 0) return -1;
 
 	if(!nRenamed || err!=UNZ_END_OF_LIST_OF_FILE) return -1;
@@ -856,7 +856,7 @@ inline bool CVFile::OpenVirtual(LPCSTR mode)
 	if(sFile.IsEmpty()) return false;
 
 	CBString sTmpFile = sFile + "~";
-	unlink(sTmpFile); // delete any temporary file
+	_unlink(sTmpFile); // delete any temporary file
 	m_bChanges = false;
 	m_bTempFile = true;
 
@@ -988,12 +988,12 @@ inline bool CVFile::CloseVirtual(bool bDeleteTemps) const
 	ASSERT(!sFile.IsEmpty());
 	if(m_bTempFile && m_bChanges) {
 		m_bChanges = false;
-		unlink(sFile);
+		_unlink(sFile);
 		if(rename(sFile + "~", sFile) != 0) return false;
 	}
 	if(bDeleteTemps) {
 		m_bTempFile = false;
-		unlink(sFile + "~");
+		_unlink(sFile + "~");
 	}
 	return true;
 }
@@ -1211,7 +1211,7 @@ inline int CVFile::Delete()
 	if(sFile.IsEmpty()) return -1;
 
 	//FIXME We yet need to implement the "delete directory" for real files
-	return (unlink(sFile)==0)?0:-1;
+	return (_unlink(sFile)==0)?0:-1;
 }
 
 inline int CVFile::Rename(CVFile &vFile)
