@@ -1217,7 +1217,8 @@ BOOL CBuffer::SetLanguage( CM_LANGUAGE *pLang )
 	int cbLangBuff = 0;
 
 	// calculate token counts and total buffer size requirement
-	for ( int i = 0; i < ARRAY_SIZE( LangInfo ); i++ )
+	int i;
+	for ( i = 0; i < ARRAY_SIZE( LangInfo ); i++ )
 	{
 	_LangInfo *pInfo = LangInfo + i;
 	*pInfo->pnTokensIn = *pInfo->ppszTokensIn ? ( CharCount( *pInfo->ppszTokensIn, _T('\n') ) + 1 ) : 0;

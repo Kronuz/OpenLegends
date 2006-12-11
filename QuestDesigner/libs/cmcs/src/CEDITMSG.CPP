@@ -58,7 +58,8 @@ LRESULT CEdit::OnDestroy( WPARAM /* wParam */, LPARAM /* lParam */ )
 	DeleteOffScreenBitmap();
 
 	// find the hWnd in the master list so it can be removed
-	for ( int nhWnd = 0; nhWnd < g_nhWndCount; nhWnd++ )
+	int nhWnd;
+	for ( nhWnd = 0; nhWnd < g_nhWndCount; nhWnd++ )
 	{
 		if ( g_phWnds[ nhWnd ] == m_hWnd )
 		{
@@ -826,7 +827,8 @@ LRESULT CEdit::OnHScroll( WPARAM wParam, LPARAM lParam )
 	int nSBCode = ( int ) LOWORD( wParam );
 	int nPos = ( int ) HIWORD( wParam );
 
-	for ( int i = 0; i < m_nViews; i++ )
+	int i;
+	for ( i = 0; i < m_nViews; i++ )
 	{
 		if ( m_Views[ i ]->OnHScroll( hWndScrollBar, nSBCode, nPos ) )
 		{
@@ -856,7 +858,8 @@ LRESULT CEdit::OnVScroll( WPARAM wParam, LPARAM lParam )
 	VERIFY( GetScrollInfo( hWndScrollBar, SB_CTL, &si ) );
 	int nPos = si.nTrackPos;
 
-	for ( int i = 0; i < m_nViews; i++ )
+	int i;
+	for ( i = 0; i < m_nViews; i++ )
 	{
 		if ( m_Views[ i ]->OnVScroll( hWndScrollBar, nSBCode, nPos ) )
 		{
