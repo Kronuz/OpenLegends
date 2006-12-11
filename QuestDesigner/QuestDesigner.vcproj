@@ -73,7 +73,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib"
+				AdditionalDependencies="zlibs.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
 				GenerateDebugInformation="true"
@@ -165,7 +165,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib"
+				AdditionalDependencies="zlibs.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
@@ -258,7 +258,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="zlib.lib"
+				AdditionalDependencies="zlibs.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=".\libs\cmcs; ..\libs\zlib"
