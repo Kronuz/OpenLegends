@@ -592,7 +592,7 @@ bool CDrawableContext::PopChildEx(CDrawableContext *pDrawableContext_)
 		return true;
 	}
 	// Propagate de search to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->PopChildEx(pDrawableContext_)) {
 			return true;
@@ -625,7 +625,7 @@ bool CDrawableContext::KillChildEx(CDrawableContext *pDrawableContext_)
 		return true;
 	}
 	// Propagate the search to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->KillChildEx(pDrawableContext_)) {
 			return true;
@@ -659,7 +659,7 @@ bool CDrawableContext::DeleteChildEx(CDrawableContext *pDrawableContext_)
 		return true;
 	}
 	// Propagate the search to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if((*Iterator)->DeleteChildEx(pDrawableContext_)) {
 			return true;
@@ -775,7 +775,7 @@ int CDrawableContext::SaveState(UINT checkpoint)
 {
 	int nRet = 0;
 	// Propagate the state saving to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if(*Iterator) {
 			// We need to keep the current position of the Iterator:
@@ -803,7 +803,7 @@ int CDrawableContext::RestoreState(UINT checkpoint)
 {
 	int nRet = 0;
 	// Propagate the state restoring to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		if(*Iterator) {
 			// RestoreState can move children around layers, etc.
@@ -828,7 +828,7 @@ bool CDrawableContext::HasChanged()
 	// Restore this context state:
 	bool bRet = CMutable::HasChanged();
 	// Propagate the call to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		ASSERT(*Iterator);
 		if(*Iterator) {
@@ -844,7 +844,7 @@ bool CDrawableContext::IsModified()
 	// Restore this context state:
 	bool bRet = CMutable::IsModified();
 	// Propagate the call to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		ASSERT(*Iterator);
 		if(*Iterator) {
@@ -860,7 +860,7 @@ void CDrawableContext::WasSaved()
 	// Restore this context state:
 	CMutable::WasSaved();
 	// Propagate the call to the children:
-	std::vector<CDrawableContext*>::iterator Iterator = Iterator = m_Children.begin();
+	std::vector<CDrawableContext*>::iterator Iterator = m_Children.begin();
 	while(Iterator != m_Children.end()) {
 		ASSERT(*Iterator);
 		if(*Iterator) {

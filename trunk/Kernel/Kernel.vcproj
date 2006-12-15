@@ -63,6 +63,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				LinkLibraryDependencies="false"
 				AdditionalDependencies="fmodvc.lib amxexec.obj zlibs.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				AdditionalLibraryDirectories="..\libs\zlib;libs\fmod"
@@ -146,6 +147,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				LinkLibraryDependencies="false"
 				AdditionalDependencies="fmodvc.lib amxexec.obj zlibs.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="1"
@@ -231,6 +233,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				LinkLibraryDependencies="false"
 				AdditionalDependencies="fmodvc.lib amxexec.obj zlibs.lib"
 				OutputFile="$(SolutionDir)$(OutDir)/$(ProjectName).dll"
 				LinkIncremental="1"

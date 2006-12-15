@@ -169,15 +169,15 @@ bool CSpriteSelection::isGroup()
 }
 bool CSpriteSelection::isResizing() 
 { 
-	return (m_eCurrentState==eResizing); 
+	return (m_eCurrentState == eResizing); 
 }
 bool CSpriteSelection::isMoving() 
 { 
-	return (m_eCurrentState==eMoving); 
+	return (m_eCurrentState == eMoving); 
 }
 bool CSpriteSelection::isSelecting() 
 { 
-	return (m_eCurrentState==eSelecting); 
+	return (m_eCurrentState == eSelecting); 
 }
 bool CSpriteSelection::isFloating()
 {

@@ -234,7 +234,8 @@ std::string CFileFind::GetFilePath() const
 		return FALSE;
 
 	std::string strResult = m_strRoot;
-	if (strResult[strResult.size()-1] != '\\' &&
+	if (!strResult.empty() &&
+		strResult[strResult.size()-1] != '\\' &&
 		strResult[strResult.size()-1] != '/')
 		strResult += m_chDirSeparator;
 	strResult += GetFileName();
